@@ -16,6 +16,7 @@ import {
 
 // Import layout component
 import EmployeeSidebar from './layout/EmployeeSidebar'
+import Logo from './layout/Logo'
 
 // Import subcomponents
 import EmployeeOverview from './employee/EmployeeOverview'
@@ -145,11 +146,11 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     const endNormal = 9 * 60 // 09:00
 
     if (timeVal < startNormal) {
-      return { text: 'Datang Lebih Awal', colorClass: 'text-amber-400 bg-amber-500/10 border-amber-500/20' }
+      return { text: 'Datang Lebih Awal', colorClass: 'text-amber-700 bg-amber-50 border-amber-200' }
     } else if (timeVal >= startNormal && timeVal <= endNormal) {
-      return { text: 'Normal (Sesuai Jadwal)', colorClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
+      return { text: 'Normal (Sesuai Jadwal)', colorClass: 'text-emerald-700 bg-emerald-50 border-emerald-200' }
     } else {
-      return { text: 'Terlambat', colorClass: 'text-rose-400 bg-rose-500/10 border-rose-500/20' }
+      return { text: 'Terlambat', colorClass: 'text-rose-700 bg-rose-50 border-rose-200' }
     }
   }
 
@@ -162,11 +163,11 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     const endNormal = 18 * 60 // 18:00
 
     if (timeVal < startNormal) {
-      return { text: 'Pulang Cepat', colorClass: 'text-rose-400 bg-rose-500/10 border-rose-500/20' }
+      return { text: 'Pulang Cepat', colorClass: 'text-rose-700 bg-rose-50 border-rose-200' }
     } else if (timeVal >= startNormal && timeVal <= endNormal) {
-      return { text: 'Normal (Sesuai Jadwal)', colorClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' }
+      return { text: 'Normal (Sesuai Jadwal)', colorClass: 'text-emerald-700 bg-emerald-50 border-emerald-200' }
     } else {
-      return { text: 'Lembur', colorClass: 'text-amber-400 bg-amber-500/10 border-amber-500/20' }
+      return { text: 'Lembur', colorClass: 'text-amber-700 bg-amber-50 border-amber-200' }
     }
   }
 
@@ -189,8 +190,8 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
         icon: 'info',
         timer: 1500,
         showConfirmButton: false,
-        background: '#1e293b',
-        color: '#f8fafc'
+        background: '#fffdfb',
+        color: '#3c1105'
       })
     }
   }
@@ -214,14 +215,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       overtime: 'Lembur'
     }
     const colorMap: Record<string, string> = {
-      early: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-      normal: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-      late: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
-      early_departure: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
-      overtime: 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+      early: 'text-amber-700 bg-amber-50 border-amber-200',
+      normal: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+      late: 'text-rose-700 bg-rose-50 border-rose-200',
+      early_departure: 'text-rose-700 bg-rose-50 border-rose-200',
+      overtime: 'text-amber-700 bg-amber-50 border-amber-200'
     }
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${colorMap[status] || 'text-slate-400 bg-slate-500/10 border-slate-500/20'}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${colorMap[status] || 'text-slate-600 bg-slate-50 border-slate-200'}`}>
         {textMap[status] || status}
       </span>
     )
@@ -244,21 +245,18 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   const routeInfo = getRouteInfo()
 
   return (
-    <div className="w-full min-h-screen flex flex-col md:flex-row bg-slate-950">
+    <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#fdfaf7]">
       
       {/* Mobile Top Navbar Header */}
-      <header className="md:hidden flex items-center gap-3 px-6 py-4 bg-slate-900/40 border-b border-slate-850">
-        <button
-          onClick={() => setMobileSidebarOpen(true)}
-          className="p-2 bg-slate-950 border border-slate-800 hover:bg-slate-900 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+      <header className="md:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-orange-100 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-base">
-            K
-          </div>
-          <span className="text-xs font-extrabold text-white tracking-wider font-quicksand uppercase">Portal Karyawan</span>
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50/50 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <Logo className="w-8 h-8" />
         </div>
       </header>
 
@@ -266,7 +264,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       {!mobileSidebarOpen && (
         <button
           onClick={() => setMobileSidebarOpen(true)}
-          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-650 text-white p-2 py-3 rounded-r-2xl shadow-lg shadow-indigo-650/30 border border-l-0 border-indigo-500/20 transition-all cursor-pointer flex items-center"
+          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all cursor-pointer flex items-center"
           title="Buka Menu"
         >
           <ChevronRight className="w-5 h-5 animate-pulse" />
@@ -274,17 +272,17 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       )}
 
       {/* Desktop Left Sidebar (Fixed) */}
-      <aside className="hidden md:block w-64 bg-slate-950/40 border-r border-slate-900/60 p-6 flex-shrink-0">
+      <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm">
         <EmployeeSidebar user={user} onLogout={handleLogoutClick} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden bg-slate-950/90 backdrop-blur-sm animate-fade-in flex">
-          <div className="w-64 bg-slate-900 border-r border-slate-800/80 p-6 h-full flex-shrink-0 relative animate-slide-right">
+        <div className="fixed inset-0 z-50 md:hidden bg-slate-900/40 backdrop-blur-sm animate-fade-in flex">
+          <div className="w-64 bg-white border-r border-orange-100 p-6 h-full flex-shrink-0 relative animate-slide-right">
             <button
               onClick={() => setMobileSidebarOpen(false)}
-              className="absolute top-4 right-4 p-1.5 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -298,28 +296,28 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto">
         
         {/* Dynamic header with page title & clock */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900/60 pb-6 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-orange-100 pb-6 mb-8">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest font-mono">
-                Employee Panel
+              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">
+                Panel Karyawan
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
               <span className="text-[10px] text-slate-500 font-bold font-mono">
                 {routeInfo.subtitle}
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-white mt-1 font-quicksand capitalize">
+            <h1 className="text-2xl font-black text-slate-800 mt-1 font-quicksand capitalize">
               {routeInfo.title}
             </h1>
           </div>
 
           {/* Clock widget */}
-          <div className="flex items-center gap-3 bg-slate-900/40 border border-slate-850 px-4 py-2 rounded-2xl">
-            <Clock className="w-4 h-4 text-indigo-400 animate-pulse" />
+          <div className="flex items-center gap-3 bg-white border border-orange-100 px-4 py-2.5 rounded-2xl shadow-sm">
+            <Clock className="w-4.5 h-4.5 text-red-550 animate-pulse" />
             <div>
-              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-wider font-mono">Live Clock</span>
-              <span className="text-xs font-bold text-white font-mono">{time.toLocaleTimeString('id-ID')}</span>
+              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-wider font-quicksand">Jam Digital</span>
+              <span className="text-xs font-bold text-slate-800 font-mono">{time.toLocaleTimeString('id-ID')}</span>
             </div>
           </div>
         </div>
@@ -327,7 +325,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
         {/* Nested Routing Views */}
         {loading ? (
           <div className="flex items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-400"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-red-500"></div>
           </div>
         ) : (
           <Routes>
@@ -385,3 +383,4 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     </div>
   )
 }
+

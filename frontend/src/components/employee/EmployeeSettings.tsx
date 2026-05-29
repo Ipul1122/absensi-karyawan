@@ -107,35 +107,35 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      <section className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl space-y-6">
-        <div className="border-b border-slate-800/60 pb-3">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2 font-quicksand">
-            <KeyRound className="w-5 h-5 text-indigo-400" />
+      <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6">
+        <div className="border-b border-orange-100 pb-3">
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 font-quicksand">
+            <KeyRound className="w-5 h-5 text-red-500" />
             Pengaturan Akun & Sandi
           </h2>
-          <p className="text-xs text-slate-400 mt-1">Ubah kata sandi login Anda secara berkala untuk menjaga keamanan akun.</p>
+          <p className="text-xs text-slate-500 mt-1">Ubah kata sandi login Anda secara berkala untuk menjaga keamanan akun.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* User Info View (Read-Only) */}
-          <div className="grid grid-cols-2 gap-4 bg-slate-950/40 border border-slate-850 p-4 rounded-2xl">
+          <div className="grid grid-cols-2 gap-4 bg-orange-50/20 border border-orange-100 p-4 rounded-2xl">
             <div>
               <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand">Nama Akun</span>
-              <span className="text-sm font-bold text-slate-200 font-quicksand">{user.name}</span>
+              <span className="text-sm font-bold text-slate-800 font-quicksand">{user.name}</span>
             </div>
             <div>
               <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand">Alamat Email</span>
-              <span className="text-sm font-bold text-slate-200 truncate block font-quicksand">{user.email}</span>
+              <span className="text-sm font-bold text-slate-800 truncate block font-quicksand">{user.email}</span>
             </div>
           </div>
 
           {/* Current Password */}
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 font-quicksand">
+            <label className="block text-xs font-extrabold text-slate-550 uppercase tracking-wider mb-2 font-quicksand">
               Kata Sandi Saat Ini
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                 <Lock className="w-4 h-4" />
               </div>
               <input
@@ -144,20 +144,20 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Masukkan kata sandi aktif"
-                className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-600 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs"
+                className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-500 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs font-medium font-quicksand"
               />
             </div>
           </div>
 
-          <hr className="border-slate-850" />
+          <hr className="border-slate-200" />
 
           {/* New Password */}
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 font-quicksand">
+            <label className="block text-xs font-extrabold text-slate-550 uppercase tracking-wider mb-2 font-quicksand">
               Kata Sandi Baru
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                 <Lock className="w-4 h-4" />
               </div>
               <input
@@ -166,18 +166,18 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Kata sandi baru (min. 6 karakter)"
-                className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-600 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs"
+                className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-500 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs font-medium font-quicksand"
               />
             </div>
           </div>
 
           {/* Confirm New Password */}
           <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 font-quicksand">
+            <label className="block text-xs font-extrabold text-slate-550 uppercase tracking-wider mb-2 font-quicksand">
               Konfirmasi Kata Sandi Baru
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                 <Lock className="w-4 h-4" />
               </div>
               <input
@@ -186,7 +186,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Ketik ulang kata sandi baru"
-                className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-600 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs"
+                className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-500 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs font-medium font-quicksand"
               />
             </div>
           </div>
@@ -195,7 +195,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2.5 bg-gradient-to-r from-indigo-650 to-violet-650 hover:from-indigo-600 hover:to-violet-600 text-white font-bold rounded-xl transition-all shadow-md shadow-indigo-600/10 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand"
+              className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-655 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand"
             >
               {submitting ? (
                 <>
@@ -214,9 +214,9 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
       </section>
 
       {/* Safety Notice */}
-      <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center gap-3">
-        <ShieldAlert className="w-5 h-5 text-indigo-400 shrink-0" />
-        <p className="text-xs text-slate-400 leading-relaxed font-quicksand">
+      <div className="p-4 bg-orange-50/20 border border-orange-100 rounded-2xl flex items-center gap-3 shadow-sm">
+        <ShieldAlert className="w-5 h-5 text-red-500 shrink-0" />
+        <p className="text-xs text-slate-605 leading-relaxed font-quicksand font-semibold">
           <strong>Perhatian Keamanan:</strong> Jangan gunakan kata sandi yang mudah ditebak (seperti nama sendiri atau tanggal lahir). Selalu pastikan sesi Anda keluar dari perangkat publik setelah melakukan presensi.
         </p>
       </div>

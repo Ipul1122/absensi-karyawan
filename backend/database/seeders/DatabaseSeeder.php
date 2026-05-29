@@ -32,5 +32,14 @@ class DatabaseSeeder extends Seeder
                 'role' => 'employee',
             ]
         );
+
+        \App\Models\OfficeSetting::updateOrCreate(
+            ['id' => 1],
+            [
+                'latitude' => '-6.1942189',
+                'longitude' => '106.815998',
+                'radius' => 100,
+            ]
+        );
     }
 }

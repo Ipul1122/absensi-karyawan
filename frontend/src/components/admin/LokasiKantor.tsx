@@ -84,8 +84,8 @@ export default function LokasiKantor({
       configCircleRef.current.setRadius(officeRadius)
     } else {
       configCircleRef.current = L.circle([lat, lng], {
-        color: '#6366f1',
-        fillColor: '#818cf8',
+        color: '#ef4444',
+        fillColor: '#ea580c',
         fillOpacity: 0.15,
         radius: officeRadius
       }).addTo(map)
@@ -116,10 +116,10 @@ export default function LokasiKantor({
   }, [])
 
   return (
-    <section className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl space-y-6 animate-fade-in">
-      <div className="border-b border-slate-800/60 pb-3">
-        <h3 className="text-lg font-bold text-slate-200 font-quicksand">Konfigurasi Lokasi Absensi Kantor</h3>
-        <p className="text-xs text-slate-400 font-quicksand mt-1">
+    <section className="bg-white/80 border border-orange-100 rounded-3xl p-6 shadow-sm backdrop-blur-md space-y-6 animate-fade-in">
+      <div className="border-b border-orange-100 pb-3">
+        <h3 className="text-lg font-bold text-slate-800 font-quicksand">Konfigurasi Lokasi Absensi Kantor</h3>
+        <p className="text-xs text-slate-500 font-quicksand mt-1">
           Tentukan koordinat pusat lokasi kantor Anda dan radius jangkauan absensi bagi karyawan (dalam meter).
         </p>
       </div>
@@ -129,7 +129,7 @@ export default function LokasiKantor({
         <div className="lg:col-span-4 space-y-4">
           <form onSubmit={handleOfficeSettingSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-quicksand">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
                 Latitude Kantor
               </label>
               <input
@@ -138,12 +138,12 @@ export default function LokasiKantor({
                 placeholder="-6.2088"
                 value={officeLatitude}
                 onChange={(e) => setOfficeLatitude(e.target.value)}
-                className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
+                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-quicksand">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
                 Longitude Kantor
               </label>
               <input
@@ -152,12 +152,12 @@ export default function LokasiKantor({
                 placeholder="106.8456"
                 value={officeLongitude}
                 onChange={(e) => setOfficeLongitude(e.target.value)}
-                className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
+                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-quicksand">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
                 Radius Jangkauan (Meter)
               </label>
               <input
@@ -168,7 +168,7 @@ export default function LokasiKantor({
                 placeholder="100"
                 value={officeRadius}
                 onChange={(e) => setOfficeRadius(parseInt(e.target.value) || 0)}
-                className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
+                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
               />
             </div>
 
@@ -176,7 +176,7 @@ export default function LokasiKantor({
               <button
                 type="submit"
                 disabled={savingOffice}
-                className="w-full px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl transition-all shadow-md shadow-indigo-600/20 cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="w-full px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 {savingOffice ? (
                   <>
@@ -190,13 +190,13 @@ export default function LokasiKantor({
             </div>
           </form>
 
-          <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl space-y-2 text-[11px] text-slate-400 leading-normal">
-            <p className="font-bold text-indigo-400 flex items-center gap-1.5">
+          <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl space-y-2 text-[11px] text-slate-600 leading-normal">
+            <p className="font-bold text-red-500 flex items-center gap-1.5">
               <MapPin className="w-4 h-4" /> Petunjuk Penggunaan Peta:
             </p>
             <ul className="list-disc pl-4 space-y-1">
               <li>Klik di bagian mana pun pada peta untuk memindahkan lokasi pin kantor secara instan.</li>
-              <li>Or, seret (drag) pin untuk menyempurnakan posisi koordinat.</li>
+              <li>Atau, seret (drag) pin untuk menyempurnakan posisi koordinat.</li>
               <li>Sesuaikan jangkauan radius dengan memasukkan nilai meter (misal: 100).</li>
             </ul>
           </div>
@@ -204,10 +204,10 @@ export default function LokasiKantor({
 
         {/* Map Config View */}
         <div className="lg:col-span-8 space-y-2">
-          <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
             Visualisasi Peta Lokasi Kantor & Radius Batas Absen
           </label>
-          <div className="relative w-full h-[400px] rounded-3xl bg-slate-950 border border-slate-800 overflow-hidden">
+          <div className="relative w-full h-[400px] rounded-3xl bg-white border border-orange-100 overflow-hidden shadow-inner">
             <div 
               ref={configMapRef} 
               id="office-map-config" 

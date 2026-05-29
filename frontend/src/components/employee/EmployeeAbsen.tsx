@@ -424,13 +424,13 @@ export default function EmployeeAbsen({
   return (
     <div className="space-y-6">
       {/* Tab Selector */}
-      <div className="flex bg-slate-900/20 border border-slate-800/80 rounded-2xl p-1.5 backdrop-blur-xl">
+      <div className="flex bg-orange-50/30 border border-orange-100 rounded-2xl p-1.5 backdrop-blur-xl">
         <button
           onClick={() => setSelectedTab('in')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             selectedTab === 'in'
-              ? 'bg-gradient-to-r from-indigo-600/20 to-violet-600/20 border border-indigo-500/30 text-indigo-400 font-extrabold shadow-md'
-              : 'text-slate-400 hover:text-slate-200 border border-transparent'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              : 'text-slate-500 hover:text-red-500 border border-transparent'
           }`}
         >
           <Clock className="w-4.5 h-4.5" />
@@ -443,8 +443,8 @@ export default function EmployeeAbsen({
           onClick={() => setSelectedTab('out')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             selectedTab === 'out'
-              ? 'bg-gradient-to-r from-indigo-600/20 to-violet-600/20 border border-indigo-500/30 text-indigo-400 font-extrabold shadow-md'
-              : 'text-slate-400 hover:text-slate-200 border border-transparent'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              : 'text-slate-500 hover:text-red-500 border border-transparent'
           }`}
         >
           <Clock className="w-4.5 h-4.5" />
@@ -460,17 +460,17 @@ export default function EmployeeAbsen({
         // Check-In Tab
         !todayAttendance || !todayAttendance.clock_in ? (
           // Form for Check-In
-          <section className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl space-y-6">
-            <div className="border-b border-slate-800/60 pb-3 flex justify-between items-center">
+          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6">
+            <div className="border-b border-orange-100 pb-3 flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2 font-quicksand">
-                  <Camera className="w-5 h-5 text-indigo-400" />
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 font-quicksand">
+                  <Camera className="w-5 h-5 text-red-500" />
                   Formulir Presensi: Masuk (Check-In)
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">Harap ambil foto wajah dan aktifkan lokasi GPS Anda.</p>
+                <p className="text-xs text-slate-500 mt-1">Harap ambil foto wajah dan aktifkan lokasi GPS Anda.</p>
               </div>
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 font-quicksand">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-quicksand">
                   Belum Masuk
                 </span>
               </div>
@@ -479,10 +479,10 @@ export default function EmployeeAbsen({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Column 1: Kamera */}
               <div className="space-y-4">
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
                   1. Foto Kamera Webcam
                 </label>
-                <div className="relative aspect-video w-full rounded-2xl bg-slate-950 border border-slate-800/80 overflow-hidden flex items-center justify-center shadow-inner">
+                <div className="relative aspect-video w-full rounded-2xl bg-slate-100 border border-orange-100/60 overflow-hidden flex items-center justify-center shadow-inner">
                   {capturedPhoto ? (
                     <img src={capturedPhoto} alt="Foto Presensi" className="w-full h-full object-cover" />
                   ) : (
@@ -495,10 +495,10 @@ export default function EmployeeAbsen({
                         className="w-full h-full object-cover transform -scale-x-100" 
                       />
                       {cameraError && (
-                        <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center text-rose-450 gap-2">
-                          <AlertCircle className="w-8 h-8" />
+                        <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2">
+                          <AlertCircle className="w-8 h-8 text-rose-500" />
                           <p className="text-xs font-semibold leading-relaxed">{cameraError}</p>
-                          <button onClick={startCamera} className="px-4 py-2 mt-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                          <button onClick={startCamera} className="px-4 py-2 mt-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
                             Coba Lagi
                           </button>
                         </div>
@@ -510,11 +510,11 @@ export default function EmployeeAbsen({
 
                 <div className="flex gap-3 justify-center">
                   {capturedPhoto ? (
-                    <button onClick={retakePhoto} className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-950 border border-slate-800 hover:border-slate-750 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand">
+                    <button onClick={retakePhoto} className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
                       <RefreshCw className="w-3.5 h-3.5" /> Ambil Ulang Foto
                     </button>
                   ) : (
-                    <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+                    <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
                       <Camera className="w-4 h-4" /> Tangkap Foto Wajah
                     </button>
                   )}
@@ -524,53 +524,53 @@ export default function EmployeeAbsen({
               {/* Column 2: Peta */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
                     2. Lokasi Geolocation (GPS)
                   </label>
-                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer font-quicksand">
+                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-655 cursor-pointer font-quicksand">
                     <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} /> Cari Ulang
                   </button>
                 </div>
 
-                <div className="relative w-full h-[220px] rounded-2xl bg-slate-950 border border-slate-800/80 overflow-hidden flex items-center justify-center">
+                <div className="relative w-full h-[220px] rounded-2xl bg-slate-50 border border-orange-100/60 overflow-hidden flex items-center justify-center">
                   <div ref={mapRef} id="employee-map" className="w-full h-full z-10" />
                   {locationLoading && (
-                    <div className="absolute inset-0 bg-slate-950/80 z-20 flex flex-col items-center justify-center text-slate-400 text-center gap-2">
-                      <RefreshCw className="w-7 h-7 animate-spin text-indigo-400" />
+                    <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-650 text-center gap-2">
+                      <RefreshCw className="w-7 h-7 animate-spin text-red-500" />
                       <p className="text-xs font-semibold">Mengunci sinyal koordinat GPS...</p>
                     </div>
                   )}
                   {locationError && !latitude && (
-                    <div className="absolute inset-0 bg-slate-950/90 z-20 flex flex-col items-center justify-center p-6 text-center text-rose-400 gap-2">
-                      <MapPin className="w-8 h-8" />
+                    <div className="absolute inset-0 bg-slate-50 z-20 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2">
+                      <MapPin className="w-8 h-8 text-rose-500" />
                       <p className="text-xs font-semibold leading-relaxed">{locationError}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex justify-between items-center text-xs font-mono">
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>Koordinat:</span>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center text-xs font-mono">
+                    <div className="flex items-center gap-1.5 text-slate-500">
+                      <MapPin className="w-3.5 h-3.5 text-red-500" />
+                      <span className="font-quicksand font-bold">Koordinat:</span>
                     </div>
                     {latitude && longitude ? (
-                      <span className="text-slate-200 text-[11px] font-semibold">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
+                      <span className="text-slate-700 text-[11px] font-bold">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
                     ) : (
-                      <span className="text-slate-500 italic">Lokasi belum dikunci</span>
+                      <span className="text-slate-450 italic font-quicksand font-semibold">Lokasi belum dikunci</span>
                     )}
                   </div>
 
                   {latitude && longitude && officeSetting && currentDistance !== null && (
-                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-450 bg-rose-500/10 border-rose-500/25'}`}>
+                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-250'}`}>
                       {isWithinRadius ? (
                         <>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                           <span>Anda berada di dalam radius absensi kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m).</span>
                         </>
                       ) : (
                         <>
-                          <AlertTriangle className="w-4 h-4 text-rose-405 shrink-0 mt-0.5 animate-bounce" />
+                          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
                           <span>Anda berada DI LUAR radius batas kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m). Absensi akan ditolak.</span>
                         </>
                       )}
@@ -580,16 +580,16 @@ export default function EmployeeAbsen({
               </div>
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-slate-800/60">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 font-quicksand">
-                <FileText className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="space-y-2 pt-2 border-t border-orange-100">
+              <label className="block text-xs font-bold text-slate-550 uppercase tracking-wider flex items-center gap-1 font-quicksand">
+                <FileText className="w-3.5 h-3.5 text-red-500" />
                 3. Catatan Presensi (Opsional)
               </label>
-              <textarea placeholder="Tambahkan pesan atau keterangan jika diperlukan..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-550 rounded-xl py-2.5 px-4 outline-none transition-all text-xs resize-none" />
+              <textarea placeholder="Tambahkan pesan atau keterangan jika diperlukan..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 px-4 outline-none transition-all text-xs resize-none font-medium font-quicksand" />
             </div>
 
             <div className="pt-2 flex justify-end">
-              <button onClick={() => handleAttendanceSubmit('check-in')} disabled={submitting || !capturedPhoto || !latitude || !longitude || !isWithinRadius} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-550 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+              <button onClick={() => handleAttendanceSubmit('check-in')} disabled={submitting || !capturedPhoto || !latitude || !longitude || !isWithinRadius} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
                 {submitting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim Presensi...
@@ -604,16 +604,16 @@ export default function EmployeeAbsen({
           </section>
         ) : (
           // Check-In Complete Details
-          <section className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl space-y-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-emerald-500 via-teal-500 to-transparent"></div>
-            <div className="flex justify-between items-center pb-3 border-b border-slate-800/60">
+          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-transparent"></div>
+            <div className="flex justify-between items-center pb-3 border-b border-orange-100">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
+                <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white font-quicksand">Absen Masuk Tercatat!</h2>
-                  <p className="text-xs text-slate-400">Anda sudah melakukan absen masuk (check-in) untuk hari ini.</p>
+                  <h2 className="text-lg font-bold text-slate-800 font-quicksand">Absen Masuk Tercatat!</h2>
+                  <p className="text-xs text-slate-500">Anda sudah melakukan absen masuk (check-in) untuk hari ini.</p>
                 </div>
               </div>
               {getStatusBadge(todayAttendance.status_in)}
@@ -621,25 +621,25 @@ export default function EmployeeAbsen({
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
               <div className="md:col-span-7 space-y-4">
-                <div className="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4 space-y-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
                   <div>
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Waktu Presensi Masuk</span>
-                    <span className="text-3xl font-extrabold text-white font-mono">{todayAttendance.clock_in}</span>
+                    <span className="text-3xl font-extrabold text-slate-800 font-mono">{todayAttendance.clock_in}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-800/40">
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
                     <div>
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Latitude GPS</span>
-                      <span className="text-xs text-slate-300 font-mono">{todayAttendance.latitude_in}</span>
+                      <span className="text-xs text-slate-655 font-mono">{todayAttendance.latitude_in}</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Longitude GPS</span>
-                      <span className="text-xs text-slate-300 font-mono">{todayAttendance.longitude_in}</span>
+                      <span className="text-xs text-slate-655 font-mono">{todayAttendance.longitude_in}</span>
                     </div>
                   </div>
                   {todayAttendance.notes_in && (
-                    <div className="pt-2 border-t border-slate-800/40">
+                    <div className="pt-2 border-t border-slate-200">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Catatan Anda</span>
-                      <p className="text-xs text-slate-300 mt-1">{todayAttendance.notes_in}</p>
+                      <p className="text-xs text-slate-655 mt-1 font-medium font-quicksand">{todayAttendance.notes_in}</p>
                     </div>
                   )}
                 </div>
@@ -647,7 +647,7 @@ export default function EmployeeAbsen({
 
               <div className="md:col-span-5">
                 {todayAttendance.photo_in && (
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-inner">
                     <img src={`http://localhost:8000${todayAttendance.photo_in}`} alt="Foto Check In" className="w-full h-full object-cover" />
                   </div>
                 )}
@@ -659,36 +659,36 @@ export default function EmployeeAbsen({
         // Check-Out Tab
         !todayAttendance || !todayAttendance.clock_in ? (
           // Check-Out Blocked (Need Check-In First)
-          <section className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-12 text-center backdrop-blur-xl flex flex-col items-center justify-center gap-4">
-            <div className="p-4 bg-rose-500/10 rounded-full border border-rose-500/20 text-rose-450">
+          <section className="bg-white border border-orange-100 rounded-3xl p-12 text-center shadow-sm flex flex-col items-center justify-center gap-4">
+            <div className="p-4 bg-rose-50 rounded-full border border-rose-200 text-rose-600">
               <AlertTriangle className="w-10 h-10 animate-pulse" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white font-quicksand">Absen Keluar Belum Tersedia</h3>
-              <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
+              <h3 className="text-lg font-bold text-slate-800 font-quicksand">Absen Keluar Belum Tersedia</h3>
+              <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed font-medium">
                 Anda harus melakukan **Absen Masuk (Check-In)** terlebih dahulu pada hari ini sebelum dapat mencatat Absen Keluar (Check-Out).
               </p>
             </div>
             <button
               onClick={() => setSelectedTab('in')}
-              className="mt-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-indigo-600/20 cursor-pointer font-quicksand"
+              className="mt-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer font-quicksand"
             >
               Buka Absen Masuk
             </button>
           </section>
         ) : !todayAttendance.clock_out ? (
           // Form for Check-Out
-          <section className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl space-y-6">
-            <div className="border-b border-slate-800/60 pb-3 flex justify-between items-center">
+          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6">
+            <div className="border-b border-orange-100 pb-3 flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2 font-quicksand">
-                  <Camera className="w-5 h-5 text-indigo-400" />
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 font-quicksand">
+                  <Camera className="w-5 h-5 text-red-500" />
                   Formulir Presensi: Keluar (Check-Out)
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">Harap ambil foto wajah dan aktifkan lokasi GPS Anda.</p>
+                <p className="text-xs text-slate-500 mt-1">Harap ambil foto wajah dan aktifkan lokasi GPS Anda.</p>
               </div>
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20 font-quicksand">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-quicksand">
                   Belum Keluar
                 </span>
               </div>
@@ -697,10 +697,10 @@ export default function EmployeeAbsen({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Column 1: Kamera */}
               <div className="space-y-4">
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
                   1. Foto Kamera Webcam
                 </label>
-                <div className="relative aspect-video w-full rounded-2xl bg-slate-950 border border-slate-800/80 overflow-hidden flex items-center justify-center shadow-inner">
+                <div className="relative aspect-video w-full rounded-2xl bg-slate-100 border border-orange-100/60 overflow-hidden flex items-center justify-center shadow-inner">
                   {capturedPhoto ? (
                     <img src={capturedPhoto} alt="Foto Presensi" className="w-full h-full object-cover" />
                   ) : (
@@ -713,10 +713,10 @@ export default function EmployeeAbsen({
                         className="w-full h-full object-cover transform -scale-x-100" 
                       />
                       {cameraError && (
-                        <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center text-rose-455 gap-2">
-                          <AlertCircle className="w-8 h-8" />
+                        <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2">
+                          <AlertCircle className="w-8 h-8 text-rose-500" />
                           <p className="text-xs font-semibold leading-relaxed">{cameraError}</p>
-                          <button onClick={startCamera} className="px-4 py-2 mt-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                          <button onClick={startCamera} className="px-4 py-2 mt-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
                             Coba Lagi
                           </button>
                         </div>
@@ -728,11 +728,11 @@ export default function EmployeeAbsen({
 
                 <div className="flex gap-3 justify-center">
                   {capturedPhoto ? (
-                    <button onClick={retakePhoto} className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-950 border border-slate-800 hover:border-slate-750 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand">
+                    <button onClick={retakePhoto} className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
                       <RefreshCw className="w-3.5 h-3.5" /> Ambil Ulang Foto
                     </button>
                   ) : (
-                    <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+                    <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
                       <Camera className="w-4 h-4" /> Tangkap Foto Wajah
                     </button>
                   )}
@@ -742,53 +742,53 @@ export default function EmployeeAbsen({
               {/* Column 2: Peta */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
                     2. Lokasi Geolocation (GPS)
                   </label>
-                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 cursor-pointer font-quicksand">
+                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-655 cursor-pointer font-quicksand">
                     <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} /> Cari Ulang
                   </button>
                 </div>
 
-                <div className="relative w-full h-[220px] rounded-2xl bg-slate-950 border border-slate-800/80 overflow-hidden flex items-center justify-center">
+                <div className="relative w-full h-[220px] rounded-2xl bg-slate-50 border border-orange-100/60 overflow-hidden flex items-center justify-center">
                   <div ref={mapRef} id="employee-map" className="w-full h-full z-10" />
                   {locationLoading && (
-                    <div className="absolute inset-0 bg-slate-950/80 z-20 flex flex-col items-center justify-center text-slate-400 text-center gap-2">
-                      <RefreshCw className="w-7 h-7 animate-spin text-indigo-400" />
+                    <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-650 text-center gap-2">
+                      <RefreshCw className="w-7 h-7 animate-spin text-red-500" />
                       <p className="text-xs font-semibold">Mengunci sinyal koordinat GPS...</p>
                     </div>
                   )}
                   {locationError && !latitude && (
-                    <div className="absolute inset-0 bg-slate-950/90 z-20 flex flex-col items-center justify-center p-6 text-center text-rose-400 gap-2">
-                      <MapPin className="w-8 h-8" />
+                    <div className="absolute inset-0 bg-slate-50 z-20 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2">
+                      <MapPin className="w-8 h-8 text-rose-500" />
                       <p className="text-xs font-semibold leading-relaxed">{locationError}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3 flex justify-between items-center text-xs font-mono">
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>Koordinat:</span>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center text-xs font-mono">
+                    <div className="flex items-center gap-1.5 text-slate-500">
+                      <MapPin className="w-3.5 h-3.5 text-red-500" />
+                      <span className="font-quicksand font-bold">Koordinat:</span>
                     </div>
                     {latitude && longitude ? (
-                      <span className="text-slate-200 text-[11px] font-semibold">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
+                      <span className="text-slate-700 text-[11px] font-bold">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
                     ) : (
-                      <span className="text-slate-550 italic">Lokasi belum dikunci</span>
+                      <span className="text-slate-450 italic font-quicksand font-semibold">Lokasi belum dikunci</span>
                     )}
                   </div>
 
                   {latitude && longitude && officeSetting && currentDistance !== null && (
-                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-rose-455 bg-rose-500/10 border-rose-500/25'}`}>
+                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-250'}`}>
                       {isWithinRadius ? (
                         <>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                           <span>Anda berada di dalam radius absensi kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m).</span>
                         </>
                       ) : (
                         <>
-                          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5 animate-bounce" />
+                          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
                           <span>Anda berada DI LUAR radius batas kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m). Absensi akan ditolak.</span>
                         </>
                       )}
@@ -798,16 +798,16 @@ export default function EmployeeAbsen({
               </div>
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-slate-800/60">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 font-quicksand">
-                <FileText className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="space-y-2 pt-2 border-t border-orange-100">
+              <label className="block text-xs font-bold text-slate-555 uppercase tracking-wider flex items-center gap-1 font-quicksand">
+                <FileText className="w-3.5 h-3.5 text-red-500" />
                 3. Catatan Presensi (Opsional)
               </label>
-              <textarea placeholder="Tambahkan pesan atau keterangan jika diperlukan..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-550 rounded-xl py-2.5 px-4 outline-none transition-all text-xs resize-none" />
+              <textarea placeholder="Tambahkan pesan atau keterangan jika diperlukan..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 px-4 outline-none transition-all text-xs resize-none font-medium font-quicksand" />
             </div>
 
             <div className="pt-2 flex justify-end">
-              <button onClick={() => handleAttendanceSubmit('check-out')} disabled={submitting || !capturedPhoto || !latitude || !longitude || !isWithinRadius} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-555 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+              <button onClick={() => handleAttendanceSubmit('check-out')} disabled={submitting || !capturedPhoto || !latitude || !longitude || !isWithinRadius} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
                 {submitting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim Presensi...
@@ -822,16 +822,16 @@ export default function EmployeeAbsen({
           </section>
         ) : (
           // Check-Out Complete Details
-          <section className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl space-y-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-emerald-500 via-teal-550 to-transparent"></div>
-            <div className="flex justify-between items-center pb-3 border-b border-slate-800/60">
+          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-transparent"></div>
+            <div className="flex justify-between items-center pb-3 border-b border-orange-100">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20">
+                <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white font-quicksand">Absen Keluar Tercatat!</h2>
-                  <p className="text-xs text-slate-400">Anda sudah melakukan absen keluar (check-out) untuk hari ini.</p>
+                  <h2 className="text-lg font-bold text-slate-800 font-quicksand">Absen Keluar Tercatat!</h2>
+                  <p className="text-xs text-slate-500">Anda sudah melakukan absen keluar (check-out) untuk hari ini.</p>
                 </div>
               </div>
               {getStatusBadge(todayAttendance.status_out)}
@@ -839,25 +839,25 @@ export default function EmployeeAbsen({
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
               <div className="md:col-span-7 space-y-4">
-                <div className="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4 space-y-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
                   <div>
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Waktu Presensi Keluar</span>
-                    <span className="text-3xl font-extrabold text-white font-mono">{todayAttendance.clock_out}</span>
+                    <span className="text-3xl font-extrabold text-slate-800 font-mono">{todayAttendance.clock_out}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-800/40">
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
                     <div>
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Latitude GPS</span>
-                      <span className="text-xs text-slate-300 font-mono">{todayAttendance.latitude_out}</span>
+                      <span className="text-xs text-slate-655 font-mono">{todayAttendance.latitude_out}</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Longitude GPS</span>
-                      <span className="text-xs text-slate-300 font-mono">{todayAttendance.longitude_out}</span>
+                      <span className="text-xs text-slate-655 font-mono">{todayAttendance.longitude_out}</span>
                     </div>
                   </div>
                   {todayAttendance.notes_out && (
-                    <div className="pt-2 border-t border-slate-800/40">
+                    <div className="pt-2 border-t border-slate-200">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Catatan Anda</span>
-                      <p className="text-xs text-slate-300 mt-1">{todayAttendance.notes_out}</p>
+                      <p className="text-xs text-slate-655 mt-1 font-medium font-quicksand">{todayAttendance.notes_out}</p>
                     </div>
                   )}
                 </div>
@@ -865,7 +865,7 @@ export default function EmployeeAbsen({
 
               <div className="md:col-span-5">
                 {todayAttendance.photo_out && (
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-inner">
                     <img src={`http://localhost:8000${todayAttendance.photo_out}`} alt="Foto Check Out" className="w-full h-full object-cover" />
                   </div>
                 )}

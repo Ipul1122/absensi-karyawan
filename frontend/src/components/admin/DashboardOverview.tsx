@@ -53,15 +53,15 @@ export default function DashboardOverview({
       {/* Widget Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Stat 1: Total Karyawan */}
-        <div className="bg-slate-900/40 border border-slate-800/85 rounded-3xl p-6 flex items-center gap-4 hover:border-slate-750 transition-all">
-          <div className="p-4 bg-indigo-500/10 rounded-2xl text-indigo-400 border border-indigo-500/20">
+        <div className="bg-white border border-orange-100 rounded-3xl p-6 flex items-center gap-4 hover:border-orange-200 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="p-4 bg-red-50 rounded-2xl text-red-500 border border-red-100">
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Total Karyawan</p>
-            <h3 className="text-3xl font-extrabold text-white mt-1">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand">Total Karyawan</p>
+            <h3 className="text-3xl font-black text-slate-900 mt-1">
               {loading ? (
-                <span className="inline-block w-8 h-8 rounded bg-slate-800 animate-pulse"></span>
+                <span className="inline-block w-8 h-8 rounded bg-slate-100 animate-pulse"></span>
               ) : (
                 employeesCount
               )}
@@ -70,15 +70,15 @@ export default function DashboardOverview({
         </div>
 
         {/* Stat 2: Absensi Hari Ini */}
-        <div className="bg-slate-900/40 border border-slate-800/85 rounded-3xl p-6 flex items-center gap-4 hover:border-slate-750 transition-all">
-          <div className="p-4 bg-emerald-500/10 rounded-2xl text-emerald-400 border border-emerald-500/20">
+        <div className="bg-white border border-orange-100 rounded-3xl p-6 flex items-center gap-4 hover:border-orange-200 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-600 border border-emerald-100">
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Absensi Hari Ini</p>
-            <h3 className="text-3xl font-extrabold text-white mt-1">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand">Absensi Hari Ini</p>
+            <h3 className="text-3xl font-black text-slate-900 mt-1">
               {attendanceLoading ? (
-                <span className="inline-block w-8 h-8 rounded bg-slate-800 animate-pulse"></span>
+                <span className="inline-block w-8 h-8 rounded bg-slate-100 animate-pulse"></span>
               ) : (
                 presentTodayCount
               )}
@@ -87,15 +87,15 @@ export default function DashboardOverview({
         </div>
 
         {/* Stat 3: Kehadiran Normal */}
-        <div className="bg-slate-900/40 border border-slate-800/85 rounded-3xl p-6 flex items-center gap-4 hover:border-slate-750 transition-all">
-          <div className="p-4 bg-violet-500/10 rounded-2xl text-violet-400 border border-violet-500/20">
+        <div className="bg-white border border-orange-100 rounded-3xl p-6 flex items-center gap-4 hover:border-orange-200 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="p-4 bg-orange-50 rounded-2xl text-orange-655 border border-orange-100">
             <Clock className="w-6 h-6 animate-pulse" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Normal Hari Ini</p>
-            <h3 className="text-3xl font-extrabold text-white mt-1">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand">Normal Hari Ini</p>
+            <h3 className="text-3xl font-black text-slate-900 mt-1">
               {attendanceLoading ? (
-                <span className="inline-block w-8 h-8 rounded bg-slate-800 animate-pulse"></span>
+                <span className="inline-block w-8 h-8 rounded bg-slate-100 animate-pulse"></span>
               ) : (
                 normalTodayCount
               )}
@@ -105,20 +105,19 @@ export default function DashboardOverview({
       </div>
 
       {/* List Kehadiran Hari Ini */}
-      <section className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 space-y-6">
+      <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6">
         <div>
-          <h3 className="text-lg font-bold text-slate-200 font-quicksand flex items-center gap-2">
-            <span className=""></span>
+          <h3 className="text-lg font-bold text-slate-800 font-quicksand flex items-center gap-2">
             Siapa Yang Hadir Hari Ini?
           </h3>
-          <p className="text-xs text-slate-400 font-quicksand mt-1">Daftar kehadiran real-time karyawan pada tanggal hari ini ({formatDate(todayStr)}).</p>
+          <p className="text-xs text-slate-500 font-quicksand mt-1">Daftar kehadiran real-time karyawan pada tanggal hari ini ({formatDate(todayStr)}).</p>
         </div>
 
-        <div className="border border-slate-800/60 rounded-2xl overflow-hidden bg-slate-950/20">
+        <div className="border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse font-quicksand">
               <thead>
-                <tr className="bg-slate-900/60 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-800/80 font-quicksand">
+                <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
                   <th className="py-4 px-6">Nama Karyawan</th>
                   <th className="py-4 px-6">Jam Masuk (Check-In)</th>
                   <th className="py-4 px-6">Status Masuk</th>
@@ -126,42 +125,42 @@ export default function DashboardOverview({
                   <th className="py-4 px-6 text-center">Detail</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/40 text-sm text-slate-350">
+              <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
                 {attendanceLoading ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-500 font-semibold">
+                    <td colSpan={5} className="py-8 text-center text-slate-450 font-semibold">
                       <div className="flex items-center justify-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+                        <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                         Memuat data kehadiran...
                       </div>
                     </td>
                   </tr>
                 ) : presentTodayList.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-500 font-semibold italic">
+                    <td colSpan={5} className="py-8 text-center text-slate-450 font-semibold italic">
                       Belum ada karyawan yang mencatat kehadiran hari ini.
                     </td>
                   </tr>
                 ) : (
                   presentTodayList.map((att) => (
-                    <tr key={att.id} className="hover:bg-slate-900/10 transition-colors">
+                    <tr key={att.id} className="hover:bg-orange-50/10 transition-colors">
                       <td className="py-4 px-6">
                         <div>
-                          <p className="font-semibold text-slate-200 font-quicksand">{att.user.name}</p>
-                          <p className="text-[10px] text-slate-550 font-mono mt-0.5">{att.user.email}</p>
+                          <p className="font-extrabold text-slate-800 font-quicksand">{att.user.name}</p>
+                          <p className="text-[10px] text-slate-450 font-medium mt-0.5">{att.user.email}</p>
                         </div>
                       </td>
-                      <td className="py-4 px-6 font-mono font-bold text-slate-300">{att.clock_in}</td>
+                      <td className="py-4 px-6 font-mono font-bold text-slate-800">{att.clock_in}</td>
                       <td className="py-4 px-6">{getStatusBadge(att.status_in)}</td>
-                      <td className="py-4 px-6 font-mono font-bold text-slate-300">
+                      <td className="py-4 px-6 font-mono font-bold text-slate-800">
                         {att.clock_out ? att.clock_out : (
-                          <span className="text-[11px] text-slate-500 font-semibold italic">Belum check-out</span>
+                          <span className="text-[11px] text-slate-400 font-semibold italic">Belum check-out</span>
                         )}
                       </td>
                       <td className="py-4 px-6 text-center">
                         <button
                           onClick={() => setSelectedAttendance(att)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-950 border border-slate-850 hover:border-indigo-500 text-slate-400 hover:text-indigo-400 rounded-lg text-xs font-bold transition-all cursor-pointer font-quicksand"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-red-500 text-slate-655 hover:text-red-500 rounded-lg text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           Lihat

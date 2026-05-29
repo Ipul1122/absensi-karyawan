@@ -5,21 +5,17 @@ import {
   Routes, 
   Route, 
   Navigate, 
-  NavLink, 
   useLocation 
 } from 'react-router-dom'
 import { 
-  LogOut, 
-  Users, 
-  ShieldCheck,
   Clock,
-  LayoutDashboard,
   Menu,
-  ClipboardList,
-  MapPin,
   X,
   ChevronRight
 } from 'lucide-react'
+
+// Import layout component
+import AdminSidebar from './layout/AdminSidebar'
 
 // Import sub-components
 import DashboardOverview from './admin/DashboardOverview'
@@ -27,6 +23,7 @@ import RekapAbsensi from './admin/RekapAbsensi'
 import AkunKaryawan from './admin/AkunKaryawan'
 import LokasiKantor from './admin/LokasiKantor'
 import AddEmployeeModal from './admin/AddEmployeeModal'
+import EditEmployeeModal from './admin/EditEmployeeModal'
 import DetailAttendanceModal from './admin/DetailAttendanceModal'
 import EditTimeModal from './admin/EditTimeModal'
 
@@ -34,7 +31,9 @@ interface Employee {
   id: number
   name: string
   email: string
+  password_plain?: string
   created_at: string
+  updated_at: string
 }
 
 interface Attendance {
@@ -104,6 +103,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [newEmail, setNewEmail] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // Edit Employee Form States
+  const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPassword, setEditPassword] = useState('')
+  const [submittingEdit, setSubmittingEdit] = useState(false)
 
   useEffect(() => {
     const clock = setInterval(() => {
@@ -325,6 +332,89 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     })
   }
 
+  const handleOpenEditEmployeeModal = (employee: Employee) => {
+    setEditingEmployee(employee)
+    setEditName(employee.name)
+    setEditEmail(employee.email)
+    setEditPassword('')
+    setShowEditEmployeeModal(true)
+  }
+
+  const handleEditEmployee = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingEmployee) return
+
+    if (!editName) {
+      Swal.fire({
+        title: 'Form Belum Lengkap',
+        text: 'Silakan isi nama karyawan.',
+        icon: 'warning',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#6366f1'
+      })
+      return
+    }
+
+    if (editPassword && editPassword.length < 6) {
+      Swal.fire({
+        title: 'Password Terlalu Pendek',
+        text: 'Kata sandi minimal harus terdiri dari 6 karakter.',
+        icon: 'warning',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#6366f1'
+      })
+      return
+    }
+
+    setSubmittingEdit(true)
+    try {
+      const response = await axios.put(
+        `http://localhost:8000/api/employees/${editingEmployee.id}`,
+        {
+          name: editName,
+          password: editPassword || null
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      )
+
+      if (response.data.status === 'success') {
+        Swal.fire({
+          title: 'Berhasil!',
+          text: 'Akun karyawan berhasil diperbarui.',
+          icon: 'success',
+          background: '#1e293b',
+          color: '#f8fafc',
+          timer: 1500,
+          showConfirmButton: false
+        })
+
+        setShowEditEmployeeModal(false)
+        setEditingEmployee(null)
+        setEditName('')
+        setEditEmail('')
+        setEditPassword('')
+        fetchEmployees() // Refresh employees list
+      }
+    } catch (err: any) {
+      console.error(err)
+      const msg = err.response?.data?.message || 'Gagal memperbarui data karyawan.'
+      Swal.fire({
+        title: 'Pembaruan Gagal',
+        text: msg,
+        icon: 'error',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#ef4444'
+      })
+    } finally {
+      setSubmittingEdit(false)
+    }
+  }
+
   // Open edit time modal
   const handleOpenEditModal = (attendance: Attendance) => {
     setEditingAttendance(attendance)
@@ -496,106 +586,39 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
 
   const routeInfo = getRouteInfo()
 
-  // Sidebar navigation menu component
-  const renderSidebar = () => {
-    const menuItems = [
-      { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/admin/rekapAbsensi', label: 'Rekap Absensi', icon: ClipboardList },
-      { to: '/admin/akunKaryawan', label: 'Akun Karyawan', icon: Users },
-      { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin }
-    ]
-
-    return (
-      <div className="flex flex-col h-full justify-between">
-        <div className="space-y-6">
-          {/* Brand Logo */}
-          <div className="flex items-center gap-3 px-3 py-2 border-b border-slate-800/60 pb-5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-bold text-lg">
-              A
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-white leading-none">Portal Admin</h2>
-              <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider font-mono">Absensi App</span>
-            </div>
-          </div>
-
-          {/* User profile brief */}
-          <div className="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-850 flex items-center justify-center text-slate-300 font-bold text-sm">
-              AD
-            </div>
-            <div className="overflow-hidden">
-              <h4 className="text-xs font-bold text-slate-200 truncate">{user.name}</h4>
-              <p className="text-[10px] text-slate-550 font-mono truncate">{user.email}</p>
-            </div>
-          </div>
-
-          {/* Menu Items */}
-          <nav className="space-y-1.5">
-            {menuItems.map((item) => {
-              const IconComponent = item.icon
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
-                    isActive 
-                      ? 'bg-gradient-to-r from-indigo-600/10 to-violet-600/10 border border-indigo-500/20 text-indigo-400' 
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30 border border-transparent'
-                  }`}
-                >
-                  <span className="flex items-center gap-3">
-                    <IconComponent className="w-4 h-4 text-slate-500 group-hover:text-slate-350" />
-                    {item.label}
-                  </span>
-                  <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all text-slate-600" />
-                </NavLink>
-              )
-            })}
-          </nav>
-        </div>
-
-        {/* Bottom Actions */}
-        <div className="pt-6 border-t border-slate-800/60 space-y-3">
-          <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold font-mono px-3">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span>Super Admin Access</span>
-          </div>
-          <button
-            onClick={handleLogoutClick}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-950 border border-slate-850 hover:bg-rose-500/10 hover:border-rose-500/20 text-slate-400 hover:text-rose-400 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand"
-          >
-            <LogOut className="w-4 h-4" />
-            Keluar Aplikasi
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="w-full min-h-screen flex flex-col md:flex-row bg-slate-950">
       
       {/* Mobile Top Navbar Header */}
-      <header className="md:hidden flex items-center justify-between px-6 py-4 bg-slate-900/40 border-b border-slate-850">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-base">
-            A
-          </div>
-          <span className="text-xs font-extrabold text-white tracking-wider font-quicksand uppercase">Portal Admin</span>
-        </div>
+      <header className="md:hidden flex items-center gap-3 px-6 py-4 bg-slate-900/40 border-b border-slate-850">
         <button
           onClick={() => setMobileSidebarOpen(true)}
           className="p-2 bg-slate-950 border border-slate-800 hover:bg-slate-900 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer"
         >
           <Menu className="w-5 h-5" />
         </button>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-base">
+            A
+          </div>
+          <span className="text-xs font-extrabold text-white tracking-wider font-quicksand uppercase">Portal Admin</span>
+        </div>
       </header>
+
+      {/* Floating Toggle Button on Left Middle Edge */}
+      {!mobileSidebarOpen && (
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-650 text-white p-2 py-3 rounded-r-2xl shadow-lg shadow-indigo-600/30 border border-l-0 border-indigo-500/20 transition-all cursor-pointer flex items-center"
+          title="Buka Menu"
+        >
+          <ChevronRight className="w-5 h-5 animate-pulse" />
+        </button>
+      )}
 
       {/* Desktop Left Sidebar (Fixed) */}
       <aside className="hidden md:block w-64 bg-slate-950/40 border-r border-slate-900/60 p-6 flex-shrink-0">
-        {renderSidebar()}
+        <AdminSidebar user={user} onLogout={handleLogoutClick} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
@@ -608,7 +631,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
             >
               <X className="w-4 h-4" />
             </button>
-            {renderSidebar()}
+            <AdminSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} />
           </div>
           <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
         </div>
@@ -687,6 +710,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 handleDeleteEmployee={handleDeleteEmployee}
+                onEditClick={handleOpenEditEmployeeModal}
                 setShowModal={setShowModal}
                 formatDate={formatDate}
               />
@@ -724,6 +748,19 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         newPassword={newPassword}
         setNewPassword={setNewPassword}
         submitting={submitting}
+      />
+
+      {/* Edit Employee Modal */}
+      <EditEmployeeModal
+        show={showEditEmployeeModal}
+        onClose={() => setShowEditEmployeeModal(false)}
+        onSubmit={handleEditEmployee}
+        name={editName}
+        setName={setEditName}
+        email={editEmail}
+        password={editPassword}
+        setPassword={setEditPassword}
+        submitting={submittingEdit}
       />
 
       {/* Detail Attendance Modal */}

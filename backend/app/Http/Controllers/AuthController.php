@@ -50,4 +50,33 @@ class AuthController extends Controller
             'message' => 'Berhasil keluar/logout.'
         ]);
     }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:6',
+        ], [
+            'new_password.min' => 'Kata sandi baru minimal harus terdiri dari 6 karakter.'
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Kata sandi saat ini tidak cocok.'
+            ], 422);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->new_password),
+            'password_plain' => $request->new_password,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Kata sandi Anda berhasil diperbarui.'
+        ]);
+    }
 }

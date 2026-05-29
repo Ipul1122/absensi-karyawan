@@ -31,6 +31,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::put('/user/change-password', [AuthController::class, 'changePassword']);
     Route::get('/user', function (Request $request) {
         return response()->json([
             'status' => 'success',
@@ -55,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'index']);
         Route::post('/employees', [EmployeeController::class, 'store']);
         Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
+        Route::put('/employees/{id}', [EmployeeController::class, 'update']);
         Route::get('/admin/attendances', [AttendanceController::class, 'getAllAttendances']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);
         Route::put('/admin/office-setting', [AttendanceController::class, 'updateOfficeSetting']);

@@ -1,0 +1,124 @@
+import React from 'react'
+import { X, User, Mail, Lock, Loader2, Edit3 } from 'lucide-react'
+
+interface EditEmployeeModalProps {
+  show: boolean
+  onClose: () => void
+  onSubmit: (e: React.FormEvent) => void
+  name: string
+  setName: (v: string) => void
+  email: string
+  password: string
+  setPassword: (v: string) => void
+  submitting: boolean
+}
+
+export default function EditEmployeeModal({
+  show,
+  onClose,
+  onSubmit,
+  name,
+  setName,
+  email,
+  password,
+  setPassword,
+  submitting,
+}: EditEmployeeModalProps) {
+  if (!show) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full relative shadow-2xl overflow-hidden animate-zoom-in">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
+        
+        {/* Modal Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-extrabold text-white flex items-center gap-2 font-quicksand">
+            <Edit3 className="w-5 h-5 text-indigo-400" /> Edit Akun Karyawan
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-slate-800 rounded-lg transition-all cursor-pointer text-slate-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Form */}
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-quicksand">
+              Nama Lengkap
+            </label>
+            <div className="relative">
+              <User className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-500" />
+              <input
+                type="text"
+                required
+                placeholder="Contoh: Syaiful"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-500 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-quicksand">
+              Email Karyawan (Tidak dapat diubah)
+            </label>
+            <div className="relative">
+              <Mail className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-600" />
+              <input
+                type="email"
+                disabled
+                value={email}
+                className="w-full bg-slate-950/30 border border-slate-850 text-slate-500 rounded-xl py-2.5 pl-9 pr-4 outline-none text-xs cursor-not-allowed"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-quicksand">
+              Password Login Baru
+            </label>
+            <div className="relative">
+              <Lock className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-500" />
+              <input
+                type="password"
+                placeholder="Kosongkan jika tidak ingin diubah"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-600 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="pt-3 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 bg-slate-950 border border-slate-855 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl transition-all cursor-pointer text-xs font-bold font-quicksand"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-4 py-2.5 bg-gradient-to-r from-indigo-650 to-violet-650 hover:from-indigo-600 hover:to-violet-600 text-white font-bold rounded-xl transition-all shadow-md shadow-indigo-600/20 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                'Simpan'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}

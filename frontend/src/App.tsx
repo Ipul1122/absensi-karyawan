@@ -121,14 +121,12 @@ function App() {
           ) : (
             <>
               <Route 
-                path="/" 
+                path="/employee/*" 
                 element={
-                  <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12 flex items-center justify-center">
-                    <EmployeeDashboard user={user} token={token} onLogout={handleLogout} />
-                  </div>
+                  <EmployeeDashboard user={user} token={token} onLogout={handleLogout} />
                 } 
               />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
             </>
           )
         ) : (

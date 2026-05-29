@@ -5,9 +5,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EmployeeController;
 
 Route::get('/health-check', function () {
     try {
@@ -25,4 +24,28 @@ Route::get('/health-check', function () {
         'database' => $dbStatus,
         'database_name' => $dbName
     ]);
+});
+
+Route::post('/login', [AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', function (Request $request) {
+        return response()->json([
+            'status' => 'success',
+            'user' => [
+                'id' => $request->user()->id,
+                'name' => $request->user()->name,
+                'email' => $request->user()->email,
+                'role' => $request->user()->role,
+            ]
+        ]);
+    });
+
+    // Admin only routes
+    Route::middleware('admin')->group(function () {
+        Route::get('/employees', [EmployeeController::class, 'index']);
+        Route::post('/employees', [EmployeeController::class, 'store']);
+        Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
+    });
 });

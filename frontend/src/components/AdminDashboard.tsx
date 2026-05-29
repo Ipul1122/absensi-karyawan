@@ -2,26 +2,61 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { 
+  Routes, 
+  Route, 
+  Navigate, 
+  NavLink, 
+  useLocation 
+} from 'react-router-dom'
+import { 
   LogOut, 
   Users, 
-  UserPlus, 
-  Trash2, 
-  Search, 
-  Loader2, 
   ShieldCheck,
-  Mail, 
-  Lock, 
-  User, 
-  X, 
-  Calendar,
-  Clock
+  Clock,
+  LayoutDashboard,
+  Menu,
+  ClipboardList,
+  MapPin,
+  X,
+  ChevronRight
 } from 'lucide-react'
+
+// Import sub-components
+import DashboardOverview from './admin/DashboardOverview'
+import RekapAbsensi from './admin/RekapAbsensi'
+import AkunKaryawan from './admin/AkunKaryawan'
+import LokasiKantor from './admin/LokasiKantor'
+import AddEmployeeModal from './admin/AddEmployeeModal'
+import DetailAttendanceModal from './admin/DetailAttendanceModal'
+import EditTimeModal from './admin/EditTimeModal'
 
 interface Employee {
   id: number
   name: string
   email: string
   created_at: string
+}
+
+interface Attendance {
+  id: number
+  date: string
+  clock_in: string | null
+  clock_out: string | null
+  latitude_in: string | null
+  longitude_in: string | null
+  latitude_out: string | null
+  longitude_out: string | null
+  photo_in: string | null
+  photo_out: string | null
+  notes_in: string | null
+  notes_out: string | null
+  status_in: string | null
+  status_out: string | null
+  user: {
+    id: number
+    name: string
+    email: string
+  }
 }
 
 interface AdminDashboardProps {
@@ -36,11 +71,33 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ user, token, onLogout }: AdminDashboardProps) {
+  const location = useLocation()
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [attendances, setAttendances] = useState<Attendance[]>([])
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  
   const [loading, setLoading] = useState(true)
+  const [attendanceLoading, setAttendanceLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('')
   const [time, setTime] = useState(new Date())
+
+  // Details Modal States
+  const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null)
+
+  // Edit Time Modal States
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null)
+  const [editClockIn, setEditClockIn] = useState('')
+  const [editClockOut, setEditClockOut] = useState('')
+  const [updating, setUpdating] = useState(false)
+
+  // Office Location Configuration States
+  const [officeLatitude, setOfficeLatitude] = useState('-6.2088')
+  const [officeLongitude, setOfficeLongitude] = useState('106.8456')
+  const [officeRadius, setOfficeRadius] = useState(100)
+  const [savingOffice, setSavingOffice] = useState(false)
 
   // New Employee Form States
   const [newName, setNewName] = useState('')
@@ -78,8 +135,48 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     }
   }
 
+  const fetchAttendances = async () => {
+    setAttendanceLoading(true)
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/attendances', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setAttendances(response.data.data)
+      }
+    } catch (err: any) {
+      console.error(err)
+      Swal.fire({
+        title: 'Gagal Memuat Absensi',
+        text: 'Gagal memuat rekam jejak absensi karyawan.',
+        icon: 'error',
+        background: '#1e293b',
+        color: '#f8fafc'
+      })
+    } finally {
+      setAttendanceLoading(false)
+    }
+  }
+
+  const fetchOfficeSetting = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/office-setting', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success' && response.data.data) {
+        setOfficeLatitude(response.data.data.latitude)
+        setOfficeLongitude(response.data.data.longitude)
+        setOfficeRadius(response.data.data.radius)
+      }
+    } catch (err) {
+      console.error('Gagal memuat lokasi kantor:', err)
+    }
+  }
+
   useEffect(() => {
     fetchEmployees()
+    fetchAttendances()
+    fetchOfficeSetting()
   }, [])
 
   const handleLogoutClick = async () => {
@@ -115,7 +212,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         icon: 'warning',
         background: '#1e293b',
         color: '#f8fafc',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#6366f1'
       })
       return
     }
@@ -127,7 +224,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         icon: 'warning',
         background: '#1e293b',
         color: '#f8fafc',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#6366f1'
       })
       return
     }
@@ -152,7 +249,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
           icon: 'success',
           background: '#1e293b',
           color: '#f8fafc',
-          confirmButtonColor: '#ef4444'
+          confirmButtonColor: '#6366f1'
         })
 
         // Reset form & close modal
@@ -228,11 +325,126 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     })
   }
 
-  // Search filter
+  // Open edit time modal
+  const handleOpenEditModal = (attendance: Attendance) => {
+    setEditingAttendance(attendance)
+    setEditClockIn(attendance.clock_in ? attendance.clock_in.substring(0, 5) : '')
+    setEditClockOut(attendance.clock_out ? attendance.clock_out.substring(0, 5) : '')
+    setShowEditModal(true)
+  }
+
+  // Submit edit time
+  const handleEditTimeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingAttendance) return
+
+    setUpdating(true)
+    try {
+      const response = await axios.put(
+        `http://localhost:8000/api/admin/attendances/${editingAttendance.id}`,
+        {
+          clock_in: editClockIn || null,
+          clock_out: editClockOut || null
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      )
+
+      if (response.data.status === 'success') {
+        Swal.fire({
+          title: 'Berhasil!',
+          text: 'Data jam presensi berhasil diperbarui.',
+          icon: 'success',
+          background: '#1e293b',
+          color: '#f8fafc',
+          timer: 1500,
+          showConfirmButton: false
+        })
+        setShowEditModal(false)
+        fetchAttendances() // Refresh log data
+      }
+    } catch (err: any) {
+      console.error(err)
+      const msg = err.response?.data?.message || 'Gagal memperbarui jam presensi.'
+      Swal.fire({
+        title: 'Gagal Mengubah',
+        text: msg,
+        icon: 'error',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#ef4444'
+      })
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  // Submit office setting (latitude, longitude, radius)
+  const handleOfficeSettingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSavingOffice(true)
+    try {
+      const response = await axios.put(
+        'http://localhost:8000/api/admin/office-setting',
+        {
+          latitude: officeLatitude,
+          longitude: officeLongitude,
+          radius: officeRadius
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      )
+
+      if (response.data.status === 'success') {
+        Swal.fire({
+          title: 'Pengaturan Tersimpan!',
+          text: response.data.message,
+          icon: 'success',
+          background: '#1e293b',
+          color: '#f8fafc',
+          timer: 2000,
+          showConfirmButton: false
+        })
+        fetchOfficeSetting()
+      }
+    } catch (err: any) {
+      console.error(err)
+      const msg = err.response?.data?.message || 'Gagal menyimpan pengaturan lokasi kantor.'
+      Swal.fire({
+        title: 'Gagal Menyimpan',
+        text: msg,
+        icon: 'error',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#ef4444'
+      })
+    } finally {
+      setSavingOffice(false)
+    }
+  }
+
+  // Filter lists
   const filteredEmployees = employees.filter(
     (emp) =>
       emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.email.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const filteredAttendances = attendances.filter(
+    (att) =>
+      att.user.name.toLowerCase().includes(attendanceSearchQuery.toLowerCase()) ||
+      att.user.email.toLowerCase().includes(attendanceSearchQuery.toLowerCase()) ||
+      att.date.includes(attendanceSearchQuery)
+  )
+
+  // Get current date string (YYYY-MM-DD)
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  // Get list of employees present today
+  const presentToday = attendances.filter(
+    (att) => att.date === todayStr && att.clock_in !== null
   )
 
   const formatDate = (dateString: string) => {
@@ -244,275 +456,297 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     })
   }
 
-  return (
-    <div className="w-full max-w-6xl mx-auto space-y-6">
-      
-      {/* Top Header Section */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-bold text-xl">
-            A
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded border border-indigo-400/20 flex items-center gap-1 font-quicksand">
-                <ShieldCheck className="w-3 h-3" /> Admin
-              </span>
-              <span className="text-xs text-slate-500 font-bold font-quicksand">Super User Access</span>
+  const getStatusBadge = (status: string | null) => {
+    if (!status) return '-'
+    const textMap: Record<string, string> = {
+      early: 'Datang Lebih Awal',
+      normal: 'Normal',
+      late: 'Terlambat',
+      early_departure: 'Pulang Cepat',
+      overtime: 'Lembur'
+    }
+    const colorMap: Record<string, string> = {
+      early: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+      normal: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+      late: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+      early_departure: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+      overtime: 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+    }
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border ${colorMap[status] || 'text-slate-400 bg-slate-500/10 border-slate-500/20'}`}>
+        {textMap[status] || status}
+      </span>
+    )
+  }
+
+  // Get current route info for headers
+  const getRouteInfo = () => {
+    const path = location.pathname
+    if (path.includes('rekapAbsensi')) {
+      return { title: 'Rekap Absensi Karyawan', subtitle: 'Attendance Logs' }
+    }
+    if (path.includes('akunKaryawan')) {
+      return { title: 'Kelola Akun Karyawan', subtitle: 'Accounts Management' }
+    }
+    if (path.includes('lokasiKantor')) {
+      return { title: 'Konfigurasi Lokasi & Radius', subtitle: 'Location Configuration' }
+    }
+    return { title: 'Dashboard Monitoring', subtitle: 'Overview' }
+  }
+
+  const routeInfo = getRouteInfo()
+
+  // Sidebar navigation menu component
+  const renderSidebar = () => {
+    const menuItems = [
+      { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/admin/rekapAbsensi', label: 'Rekap Absensi', icon: ClipboardList },
+      { to: '/admin/akunKaryawan', label: 'Akun Karyawan', icon: Users },
+      { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin }
+    ]
+
+    return (
+      <div className="flex flex-col h-full justify-between">
+        <div className="space-y-6">
+          {/* Brand Logo */}
+          <div className="flex items-center gap-3 px-3 py-2 border-b border-slate-800/60 pb-5">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-bold text-lg">
+              A
             </div>
-            <h1 className="text-2xl font-bold text-white mt-0.5">{user.name}</h1>
-            <p className="text-sm text-slate-400">{user.email}</p>
+            <div>
+              <h2 className="text-sm font-bold text-white leading-none">Portal Admin</h2>
+              <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider font-mono">Absensi App</span>
+            </div>
           </div>
+
+          {/* User profile brief */}
+          <div className="bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-850 flex items-center justify-center text-slate-300 font-bold text-sm">
+              AD
+            </div>
+            <div className="overflow-hidden">
+              <h4 className="text-xs font-bold text-slate-200 truncate">{user.name}</h4>
+              <p className="text-[10px] text-slate-550 font-mono truncate">{user.email}</p>
+            </div>
+          </div>
+
+          {/* Menu Items */}
+          <nav className="space-y-1.5">
+            {menuItems.map((item) => {
+              const IconComponent = item.icon
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
+                    isActive 
+                      ? 'bg-gradient-to-r from-indigo-600/10 to-violet-600/10 border border-indigo-500/20 text-indigo-400' 
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/30 border border-transparent'
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <IconComponent className="w-4 h-4 text-slate-500 group-hover:text-slate-350" />
+                    {item.label}
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all text-slate-600" />
+                </NavLink>
+              )
+            })}
+          </nav>
         </div>
 
+        {/* Bottom Actions */}
+        <div className="pt-6 border-t border-slate-800/60 space-y-3">
+          <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold font-mono px-3">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span>Super Admin Access</span>
+          </div>
+          <button
+            onClick={handleLogoutClick}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-950 border border-slate-850 hover:bg-rose-500/10 hover:border-rose-500/20 text-slate-400 hover:text-rose-400 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand"
+          >
+            <LogOut className="w-4 h-4" />
+            Keluar Aplikasi
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full min-h-screen flex flex-col md:flex-row bg-slate-950">
+      
+      {/* Mobile Top Navbar Header */}
+      <header className="md:hidden flex items-center justify-between px-6 py-4 bg-slate-900/40 border-b border-slate-850">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold text-base">
+            A
+          </div>
+          <span className="text-xs font-extrabold text-white tracking-wider font-quicksand uppercase">Portal Admin</span>
+        </div>
         <button
-          onClick={handleLogoutClick}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-950 border border-slate-800 hover:bg-rose-500/10 hover:border-rose-500/30 text-slate-300 hover:text-rose-400 rounded-xl transition-all cursor-pointer font-bold text-sm self-start md:self-auto font-quicksand"
+          onClick={() => setMobileSidebarOpen(true)}
+          className="p-2 bg-slate-950 border border-slate-800 hover:bg-slate-900 rounded-xl text-slate-400 hover:text-white transition-all cursor-pointer"
         >
-          <LogOut className="w-4 h-4" />
-          Keluar Aplikasi
+          <Menu className="w-5 h-5" />
         </button>
       </header>
 
-      {/* Grid Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        
-        {/* Card 1: Total Employees */}
-        <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl flex items-center gap-4">
-          <div className="p-4 bg-indigo-500/10 rounded-2xl text-indigo-400 border border-indigo-500/20">
-            <Users className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">Total Karyawan</p>
-            <h3 className="text-3xl font-extrabold text-white mt-1">
-              {loading ? (
-                <span className="inline-block w-8 h-8 rounded bg-slate-800 animate-pulse"></span>
-              ) : (
-                employees.length
-              )}
-            </h3>
-          </div>
-        </div>
+      {/* Desktop Left Sidebar (Fixed) */}
+      <aside className="hidden md:block w-64 bg-slate-950/40 border-r border-slate-900/60 p-6 flex-shrink-0">
+        {renderSidebar()}
+      </aside>
 
-        {/* Card 2: Admin Account Status */}
-        <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl flex items-center gap-4">
-          <div className="p-4 bg-emerald-500/10 rounded-2xl text-emerald-400 border border-emerald-500/20">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">Status Akses</p>
-            <h3 className="text-lg font-bold text-white mt-1 font-quicksand">Akses Penuh (Full Control)</h3>
-          </div>
-        </div>
-
-        {/* Card 3: Clock */}
-        <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl flex items-center gap-4 sm:col-span-2 lg:col-span-1">
-          <div className="p-4 bg-violet-500/10 rounded-2xl text-violet-400 border border-violet-500/20">
-            <Clock className="w-6 h-6 animate-pulse" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 font-quicksand">
-              <Calendar className="w-3.5 h-3.5" /> Live Clock
-            </p>
-            <h3 className="text-xl font-bold text-white mt-1 font-mono">
-              {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </h3>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Table Section */}
-      <section className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl space-y-6">
-        
-        {/* Controls Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-extrabold text-slate-200 font-quicksand">Daftar Akun Karyawan</h3>
-            <p className="text-xs text-slate-400 font-quicksand font-medium">Total karyawan yang memiliki hak akses login ke sistem portal.</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Search Input */}
-            <div className="relative max-w-xs w-full sm:w-64">
-              <Search className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-500" />
-              <input
-                type="text"
-                placeholder="Cari karyawan..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-500 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs"
-              />
-            </div>
-
-            {/* Create Account Trigger Button */}
+      {/* Mobile Sidebar (Slide-over drawer) */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 md:hidden bg-slate-950/90 backdrop-blur-sm animate-fade-in flex">
+          <div className="w-64 bg-slate-900 border-r border-slate-800/80 p-6 h-full flex-shrink-0 relative animate-slide-right">
             <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl transition-all shadow-md shadow-indigo-600/20 cursor-pointer text-xs shrink-0 font-quicksand"
+              onClick={() => setMobileSidebarOpen(false)}
+              className="absolute top-4 right-4 p-1.5 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer"
             >
-              <UserPlus className="w-4 h-4" />
-              Tambah Karyawan
+              <X className="w-4 h-4" />
             </button>
+            {renderSidebar()}
           </div>
-        </div>
-
-        {/* Table Container */}
-        <div className="border border-slate-800/60 rounded-2xl overflow-hidden bg-slate-950/20">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-900/60 text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-800/80 font-quicksand">
-                  <th className="py-4 px-6">Nama</th>
-                  <th className="py-4 px-6">Email</th>
-                  <th className="py-4 px-6">Tanggal Dibuat</th>
-                  <th className="py-4 px-6 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/40 text-sm text-slate-300">
-                {loading ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-slate-450 font-medium">
-                      <div className="flex items-center justify-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
-                        Memuat data karyawan...
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredEmployees.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-slate-500 font-semibold">
-                      {searchQuery ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredEmployees.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-slate-900/20 transition-colors">
-                      <td className="py-4 px-6 font-semibold text-slate-200">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs uppercase">
-                            {emp.name.substring(0, 2)}
-                          </div>
-                          <span>{emp.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 font-mono text-xs">{emp.email}</td>
-                      <td className="py-4 px-6 text-xs text-slate-400">{formatDate(emp.created_at)}</td>
-                      <td className="py-4 px-6 text-center">
-                        <button
-                          onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                          className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                          title="Hapus Karyawan"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Slide / Overlay Modal Form */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full relative shadow-2xl overflow-hidden animate-zoom-in">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
-            
-            {/* Modal Header */}
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-extrabold text-white flex items-center gap-2 font-quicksand">
-                <UserPlus className="w-5 h-5 text-indigo-400" /> Tambah Akun Karyawan
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-1.5 hover:bg-slate-800 rounded-lg transition-all cursor-pointer text-slate-450 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Form */}
-            <form onSubmit={handleAddEmployee} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-quicksand">
-                  Nama Lengkap
-                </label>
-                <div className="relative">
-                  <User className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-500" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: Syaiful"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-550 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-quicksand">
-                  Email Karyawan
-                </label>
-                <div className="relative">
-                  <Mail className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-500" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="syaiful@perusahaan.com"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-550 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5 font-quicksand">
-                  Password Login
-                </label>
-                <div className="relative">
-                  <Lock className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-500" />
-                  <input
-                    type="password"
-                    required
-                    placeholder="Minimal 6 karakter"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full bg-slate-950/60 border border-slate-800 focus:border-indigo-500 text-white placeholder-slate-550 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2.5 bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-350 hover:text-white rounded-xl transition-all cursor-pointer text-xs font-bold font-quicksand"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl transition-all shadow-md shadow-indigo-600/20 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    'Buat Akun'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
+          <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
         </div>
       )}
+
+      {/* Main Content Area */}
+      <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto">
+        {/* Dynamic header with page title & clock */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900/60 pb-6 mb-8">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest font-mono">
+                Admin Panel
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span className="text-[10px] text-slate-550 font-bold font-mono">
+                {routeInfo.subtitle}
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold text-white mt-1 font-quicksand capitalize">
+              {routeInfo.title}
+            </h1>
+          </div>
+
+          {/* Clock widget */}
+          <div className="flex items-center gap-3 bg-slate-900/40 border border-slate-850 px-4 py-2 rounded-2xl">
+            <Clock className="w-4 h-4 text-indigo-400 animate-pulse" />
+            <div>
+              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-wider font-mono">Live Clock</span>
+              <span className="text-xs font-bold text-white font-mono">{time.toLocaleTimeString('id-ID')}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Nested Routing Views */}
+        <Routes>
+          <Route 
+            path="dashboard" 
+            element={
+              <DashboardOverview
+                loading={loading}
+                attendanceLoading={attendanceLoading}
+                employeesCount={employees.length}
+                presentTodayCount={presentToday.length}
+                normalTodayCount={presentToday.filter(a => a.status_in === 'normal').length}
+                presentTodayList={presentToday}
+                formatDate={formatDate}
+                getStatusBadge={getStatusBadge}
+                setSelectedAttendance={setSelectedAttendance}
+                todayStr={todayStr}
+              />
+            } 
+          />
+          <Route 
+            path="rekapAbsensi" 
+            element={
+              <RekapAbsensi
+                attendanceLoading={attendanceLoading}
+                filteredAttendances={filteredAttendances}
+                attendanceSearchQuery={attendanceSearchQuery}
+                setAttendanceSearchQuery={setAttendanceSearchQuery}
+                fetchAttendances={fetchAttendances}
+                formatDate={formatDate}
+                getStatusBadge={getStatusBadge}
+                setSelectedAttendance={setSelectedAttendance}
+                handleOpenEditModal={handleOpenEditModal}
+              />
+            } 
+          />
+          <Route 
+            path="akunKaryawan" 
+            element={
+              <AkunKaryawan
+                loading={loading}
+                filteredEmployees={filteredEmployees}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                handleDeleteEmployee={handleDeleteEmployee}
+                setShowModal={setShowModal}
+                formatDate={formatDate}
+              />
+            } 
+          />
+          <Route 
+            path="lokasiKantor" 
+            element={
+              <LokasiKantor
+                officeLatitude={officeLatitude}
+                setOfficeLatitude={setOfficeLatitude}
+                officeLongitude={officeLongitude}
+                setOfficeLongitude={setOfficeLongitude}
+                officeRadius={officeRadius}
+                setOfficeRadius={setOfficeRadius}
+                savingOffice={savingOffice}
+                handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+              />
+            } 
+          />
+          {/* Default fallback route */}
+          <Route path="*" element={<Navigate to="dashboard" replace />} />
+        </Routes>
+      </main>
+
+      {/* Add Employee Modal */}
+      <AddEmployeeModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={handleAddEmployee}
+        newName={newName}
+        setNewName={setNewName}
+        newEmail={newEmail}
+        setNewEmail={setNewEmail}
+        newPassword={newPassword}
+        setNewPassword={setNewPassword}
+        submitting={submitting}
+      />
+
+      {/* Detail Attendance Modal */}
+      <DetailAttendanceModal
+        attendance={selectedAttendance}
+        onClose={() => setSelectedAttendance(null)}
+        formatDate={formatDate}
+        getStatusBadge={getStatusBadge}
+      />
+
+      {/* Edit Time Modal */}
+      <EditTimeModal
+        show={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSubmit={handleEditTimeSubmit}
+        attendance={editingAttendance}
+        editClockIn={editClockIn}
+        setEditClockIn={setEditClockIn}
+        editClockOut={editClockOut}
+        setEditClockOut={setEditClockOut}
+        updating={updating}
+        formatDate={formatDate}
+      />
     </div>
   )
 }

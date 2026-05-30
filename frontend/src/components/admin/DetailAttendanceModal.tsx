@@ -5,6 +5,7 @@ import AttendanceMap from './AttendanceMap'
 interface Attendance {
   id: number
   date: string
+  attendance_type?: string | null
   clock_in: string | null
   clock_out: string | null
   latitude_in: string | null
@@ -49,7 +50,21 @@ export default function DetailAttendanceModal({
           <div>
             <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-quicksand">Detail Log Kehadiran</span>
             <h3 className="text-xl font-bold text-slate-800 mt-1 font-quicksand">{attendance.user.name}</h3>
-            <p className="text-xs text-slate-500 font-mono">{attendance.user.email} &bull; Tanggal: {formatDate(attendance.date)}</p>
+            <p className="text-xs text-slate-500 font-mono flex flex-wrap items-center gap-2 mt-1">
+              <span>{attendance.user.email}</span>
+              <span>&bull;</span>
+              <span>Tanggal: {formatDate(attendance.date)}</span>
+              <span>&bull;</span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize ${
+                attendance.attendance_type === 'kunjungan' 
+                  ? 'text-emerald-700 bg-emerald-50 border-emerald-250' 
+                  : attendance.attendance_type === 'client' 
+                  ? 'text-amber-700 bg-amber-50 border-amber-250' 
+                  : 'text-indigo-700 bg-indigo-50 border-indigo-250'
+              }`}>
+                Tipe: {attendance.attendance_type || 'kantor'}
+              </span>
+            </p>
           </div>
           <button
             onClick={onClose}

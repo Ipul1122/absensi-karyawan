@@ -40,6 +40,7 @@ interface EmployeeDashboardProps {
 interface Attendance {
   id: number
   date: string
+  attendance_type?: string | null
   clock_in: string | null
   clock_out: string | null
   latitude_in: string | null

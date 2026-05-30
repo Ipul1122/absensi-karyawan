@@ -37,14 +37,16 @@ class AttendanceController extends Controller
             'longitude' => 'required|string',
             'photo' => 'required|string', // base64 string
             'notes' => 'nullable|string',
+            'attendance_type' => 'nullable|string|in:kantor,kunjungan,client',
         ]);
 
         $user = $request->user();
         $today = Carbon::today()->toDateString();
+        $attendanceType = $request->input('attendance_type', 'kantor');
 
         // Check office setting radius limit
         $office = \App\Models\OfficeSetting::first();
-        if ($office) {
+        if ($office && $attendanceType === 'kantor') {
             $distance = $this->getDistance(
                 floatval($request->latitude),
                 floatval($request->longitude),
@@ -94,6 +96,7 @@ class AttendanceController extends Controller
             if ($existing) {
                 // Record already exists but clock_in is null (should be rare)
                 $existing->update([
+                    'attendance_type' => $attendanceType,
                     'clock_in' => $timeStr,
                     'latitude_in' => $request->latitude,
                     'longitude_in' => $request->longitude,
@@ -106,6 +109,7 @@ class AttendanceController extends Controller
                 $attendance = Attendance::create([
                     'user_id' => $user->id,
                     'date' => $today,
+                    'attendance_type' => $attendanceType,
                     'clock_in' => $timeStr,
                     'latitude_in' => $request->latitude,
                     'longitude_in' => $request->longitude,
@@ -144,24 +148,6 @@ class AttendanceController extends Controller
         $user = $request->user();
         $today = Carbon::today()->toDateString();
 
-        // Check office setting radius limit
-        $office = \App\Models\OfficeSetting::first();
-        if ($office) {
-            $distance = $this->getDistance(
-                floatval($request->latitude),
-                floatval($request->longitude),
-                floatval($office->latitude),
-                floatval($office->longitude)
-            );
-            
-            if ($distance > $office->radius) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Gagal melakukan absen keluar! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $office->radius . ' meter).'
-                ], 422);
-            }
-        }
-
         // Check check-in existence
         $attendance = Attendance::where('user_id', $user->id)
             ->where('date', $today)
@@ -179,6 +165,24 @@ class AttendanceController extends Controller
                 'status' => 'error',
                 'message' => 'Anda sudah melakukan absen keluar (check-out) hari ini.'
             ], 422);
+        }
+
+        // Check office setting radius limit (only if attendance was kantor type)
+        $office = \App\Models\OfficeSetting::first();
+        if ($office && $attendance->attendance_type === 'kantor') {
+            $distance = $this->getDistance(
+                floatval($request->latitude),
+                floatval($request->longitude),
+                floatval($office->latitude),
+                floatval($office->longitude)
+            );
+            
+            if ($distance > $office->radius) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gagal melakukan absen keluar! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $office->radius . ' meter).'
+                ], 422);
+            }
         }
 
         try {
@@ -254,6 +258,87 @@ class AttendanceController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $attendances
+        ]);
+    }
+
+    /**
+     * Store manual attendance record for an employee (for admin).
+     */
+    public function storeManualAttendance(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'date' => 'required|date',
+            'attendance_type' => 'required|string|in:kantor,kunjungan,client',
+            'clock_in' => 'required|string',
+            'clock_out' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        $userId = $request->user_id;
+        $date = Carbon::parse($request->date)->toDateString();
+
+        // Check if attendance already exists for this employee on this date
+        $existing = Attendance::where('user_id', $userId)
+            ->where('date', $date)
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Catatan absensi untuk karyawan tersebut pada tanggal yang dipilih sudah ada!'
+            ], 422);
+        }
+
+        // Calculate status_in
+        $clockIn = Carbon::parse($request->clock_in)->format('H:i:s');
+        $statusIn = 'normal';
+        if ($clockIn < '08:30:00') {
+            $statusIn = 'early';
+        } elseif ($clockIn > '09:00:00') {
+            $statusIn = 'late';
+        }
+
+        // Calculate status_out
+        $clockOut = null;
+        $statusOut = null;
+        if ($request->clock_out) {
+            $clockOut = Carbon::parse($request->clock_out)->format('H:i:s');
+            $statusOut = 'normal';
+            if ($clockOut < '17:00:00') {
+                $statusOut = 'early_departure';
+            } elseif ($clockOut > '18:00:00') {
+                $statusOut = 'overtime';
+            }
+        }
+
+        $notesText = $request->notes ?: 'Absen manual diinput oleh Admin';
+
+        $attendance = Attendance::create([
+            'user_id' => $userId,
+            'date' => $date,
+            'attendance_type' => $request->attendance_type,
+            'clock_in' => $clockIn,
+            'status_in' => $statusIn,
+            'notes_in' => $notesText,
+            'latitude_in' => 'Manual',
+            'longitude_in' => 'Manual',
+            'photo_in' => null,
+            'clock_out' => $clockOut,
+            'status_out' => $statusOut,
+            'notes_out' => $clockOut ? $notesText : null,
+            'latitude_out' => $clockOut ? 'Manual' : null,
+            'longitude_out' => $clockOut ? 'Manual' : null,
+            'photo_out' => null,
+        ]);
+
+        // Load the relationship for response format consistency
+        $attendance->load('user:id,name,email');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Absensi manual karyawan berhasil dibuat!',
+            'data' => $attendance
         ]);
     }
 

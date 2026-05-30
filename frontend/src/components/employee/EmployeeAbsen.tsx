@@ -11,13 +11,19 @@ import {
   CheckCircle2, 
   AlertTriangle, 
   FileText, 
-  Check
+  Check,
+  Building,
+  Compass,
+  UserCheck,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 
 
 interface Attendance {
   id: number
   date: string
+  attendance_type?: string | null
   clock_in: string | null
   clock_out: string | null
   latitude_in: string | null
@@ -58,6 +64,7 @@ export default function EmployeeAbsen({
 }: EmployeeAbsenProps) {
   const [selectedTab, setSelectedTab] = useState<'in' | 'out'>('in')
   const [submitting, setSubmitting] = useState(false)
+  const [activeAccordion, setActiveAccordion] = useState<'kantor' | 'kunjungan' | 'client'>('kantor')
 
   // Camera & Location States
   const [latitude, setLatitude] = useState<number | null>(null)
@@ -358,7 +365,8 @@ export default function EmployeeAbsen({
       return
     }
 
-    if (officeSetting && !isWithinRadius) {
+    const isKantor = type === 'check-in' ? activeAccordion === 'kantor' : todayAttendance?.attendance_type === 'kantor';
+    if (isKantor && officeSetting && !isWithinRadius) {
       Swal.fire({
         title: 'Di Luar Radius Kantor',
         text: `Anda tidak diizinkan melakukan absensi karena berada di luar radius batas kantor (Jarak Anda: ${Math.round(currentDistance || 0)} meter, Radius diizinkan: ${officeSetting.radius} meter).`,
@@ -379,7 +387,8 @@ export default function EmployeeAbsen({
           latitude: String(latitude),
           longitude: String(longitude),
           photo: capturedPhoto,
-          notes: notes
+          notes: notes,
+          attendance_type: type === 'check-in' ? activeAccordion : undefined
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -562,34 +571,125 @@ export default function EmployeeAbsen({
                   </div>
 
                   {latitude && longitude && officeSetting && currentDistance !== null && (
-                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-250'}`}>
-                      {isWithinRadius ? (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>Anda berada di dalam radius absensi kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m).</span>
-                        </>
-                      ) : (
-                        <>
-                          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
-                          <span>Anda berada DI LUAR radius batas kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m). Absensi akan ditolak.</span>
-                        </>
-                      )}
-                    </div>
+                    activeAccordion === 'kantor' ? (
+                      <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-250'}`}>
+                        {isWithinRadius ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>Anda berada di dalam radius absensi kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m).</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
+                            <span>Anda berada DI LUAR radius batas kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m). Absensi akan ditolak.</span>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed text-emerald-700 bg-emerald-50 border-emerald-200">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>Lokasi Anda siap untuk absensi tipe {activeAccordion === 'kunjungan' ? 'Kunjungan' : 'Client'} (Jarak ke kantor: {Math.round(currentDistance)}m). Radius kantor dinonaktifkan.</span>
+                      </div>
+                    )
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Step 3: Tipe Presensi Accordion */}
+            <div className="space-y-3 pt-2 border-t border-orange-100">
+              <label className="block text-xs font-bold text-slate-550 uppercase tracking-wider flex items-center gap-1.5 font-quicksand">
+                <Building className="w-4 h-4 text-red-500" />
+                3. Tipe Presensi (Pilih Salah Satu)
+              </label>
+              
+              <div className="space-y-2.5">
+                {[
+                  {
+                    id: 'kantor',
+                    title: 'Absen Kantor',
+                    icon: <Building className="w-4 h-4" />,
+                    description: 'Kehadiran di area kantor utama. Sistem akan memeriksa koordinat GPS Anda agar berada dalam radius batas kantor yang ditentukan.',
+                    badge: 'Wajib GPS & Radius',
+                    badgeColor: 'bg-indigo-50 text-indigo-700 border border-indigo-150',
+                  },
+                  {
+                    id: 'kunjungan',
+                    title: 'Kunjungan Kerja / Lapangan',
+                    icon: <Compass className="w-4 h-4" />,
+                    description: 'Kehadiran di luar area kantor untuk keperluan dinas, survei lapangan, atau kunjungan eksternal lainnya. Radius kantor dinonaktifkan.',
+                    badge: 'Bebas Radius',
+                    badgeColor: 'bg-emerald-50 text-emerald-700 border border-emerald-150',
+                  },
+                  {
+                    id: 'client',
+                    title: 'Kunjungan Klien (Client Visit)',
+                    icon: <UserCheck className="w-4 h-4" />,
+                    description: 'Pertemuan langsung dengan mitra atau klien di lokasi mereka. Radius kantor dinonaktifkan. Silakan sebutkan nama klien di kolom catatan.',
+                    badge: 'Bebas Radius',
+                    badgeColor: 'bg-amber-50 text-amber-700 border border-amber-150',
+                  }
+                ].map((item) => {
+                  const isOpen = activeAccordion === item.id;
+                  return (
+                    <div 
+                      key={item.id} 
+                      className={`border rounded-2xl transition-all duration-300 overflow-hidden ${
+                        isOpen 
+                          ? 'border-orange-300 bg-orange-50/10 shadow-sm' 
+                          : 'border-slate-200 hover:border-orange-200 bg-white'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setActiveAccordion(item.id as any)}
+                        className="w-full flex items-center justify-between p-4 text-left font-quicksand cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl transition-colors ${
+                            isOpen ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {item.icon}
+                          </div>
+                          <div>
+                            <span className={`text-sm font-bold block ${
+                              isOpen ? 'text-orange-950' : 'text-slate-700'
+                            }`}>
+                              {item.title}
+                            </span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold inline-block mt-1 ${item.badgeColor}`}>
+                              {item.badge}
+                            </span>
+                          </div>
+                        </div>
+                        {isOpen ? (
+                          <ChevronUp className="w-4 h-4 text-orange-500" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-slate-400" />
+                        )}
+                      </button>
+                      
+                      {isOpen && (
+                        <div className="px-4 pb-4 pt-1 border-t border-dashed border-orange-100 text-xs text-slate-600 leading-relaxed font-medium animate-fade-in font-quicksand">
+                          {item.description}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             <div className="space-y-2 pt-2 border-t border-orange-100">
               <label className="block text-xs font-bold text-slate-550 uppercase tracking-wider flex items-center gap-1 font-quicksand">
                 <FileText className="w-3.5 h-3.5 text-red-500" />
-                3. Catatan Presensi (Opsional)
+                4. Catatan Presensi (Opsional)
               </label>
               <textarea placeholder="Tambahkan pesan atau keterangan jika diperlukan..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 px-4 outline-none transition-all text-xs resize-none font-medium font-quicksand" />
             </div>
 
             <div className="pt-2 flex justify-end">
-              <button onClick={() => handleAttendanceSubmit('check-in')} disabled={submitting || !capturedPhoto || !latitude || !longitude || !isWithinRadius} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+              <button onClick={() => handleAttendanceSubmit('check-in')} disabled={submitting || !capturedPhoto || !latitude || !longitude || (activeAccordion === 'kantor' && officeSetting && !isWithinRadius)} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
                 {submitting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim Presensi...
@@ -621,12 +721,16 @@ export default function EmployeeAbsen({
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
               <div className="md:col-span-7 space-y-4">
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="bg-slate-55 border border-slate-200 rounded-2xl p-4 space-y-3">
                   <div>
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Waktu Presensi Masuk</span>
                     <span className="text-3xl font-extrabold text-slate-800 font-mono">{todayAttendance.clock_in}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+                  <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Tipe Presensi</span>
+                      <span className="text-xs text-slate-700 font-extrabold capitalize">{todayAttendance.attendance_type || 'kantor'}</span>
+                    </div>
                     <div>
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Latitude GPS</span>
                       <span className="text-xs text-slate-655 font-mono">{todayAttendance.latitude_in}</span>
@@ -780,20 +884,58 @@ export default function EmployeeAbsen({
                   </div>
 
                   {latitude && longitude && officeSetting && currentDistance !== null && (
-                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-250'}`}>
-                      {isWithinRadius ? (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>Anda berada di dalam radius absensi kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m).</span>
-                        </>
-                      ) : (
-                        <>
-                          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
-                          <span>Anda berada DI LUAR radius batas kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m). Absensi akan ditolak.</span>
-                        </>
-                      )}
-                    </div>
+                    todayAttendance?.attendance_type === 'kantor' ? (
+                      <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-250'}`}>
+                        {isWithinRadius ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>Anda berada di dalam radius absensi kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m).</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
+                            <span>Anda berada DI LUAR radius batas kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m). Absensi akan ditolak.</span>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed text-emerald-700 bg-emerald-50 border-emerald-200">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>Lokasi Anda siap untuk absensi tipe {todayAttendance?.attendance_type === 'kunjungan' ? 'Kunjungan' : 'Client'} (Jarak ke kantor: {Math.round(currentDistance)}m). Radius kantor dinonaktifkan.</span>
+                      </div>
+                    )
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Tipe Presensi Hari Ini (Read-Only) */}
+            <div className="space-y-2 pt-2 border-t border-orange-100">
+              <label className="block text-xs font-bold text-slate-550 uppercase tracking-wider flex items-center gap-1.5 font-quicksand">
+                <Building className="w-4 h-4 text-red-500" />
+                3. Tipe Presensi Hari Ini
+              </label>
+              <div className="p-4 border border-orange-100 bg-orange-50/10 rounded-2xl flex items-center gap-3">
+                <div className="p-2 bg-orange-500 text-white rounded-xl">
+                  {todayAttendance?.attendance_type === 'kunjungan' ? (
+                    <Compass className="w-5 h-5" />
+                  ) : todayAttendance?.attendance_type === 'client' ? (
+                    <UserCheck className="w-5 h-5" />
+                  ) : (
+                    <Building className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <span className="text-sm font-bold text-orange-950 block capitalize">
+                    {todayAttendance?.attendance_type === 'kunjungan' 
+                      ? 'Kunjungan Kerja / Lapangan' 
+                      : todayAttendance?.attendance_type === 'client' 
+                      ? 'Kunjungan Klien (Client Visit)' 
+                      : 'Absen Kantor'}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    Tipe absensi telah ditentukan saat melakukan Absen Masuk (Check-In).
+                  </span>
                 </div>
               </div>
             </div>
@@ -801,13 +943,13 @@ export default function EmployeeAbsen({
             <div className="space-y-2 pt-2 border-t border-orange-100">
               <label className="block text-xs font-bold text-slate-555 uppercase tracking-wider flex items-center gap-1 font-quicksand">
                 <FileText className="w-3.5 h-3.5 text-red-500" />
-                3. Catatan Presensi (Opsional)
+                4. Catatan Presensi (Opsional)
               </label>
               <textarea placeholder="Tambahkan pesan atau keterangan jika diperlukan..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 px-4 outline-none transition-all text-xs resize-none font-medium font-quicksand" />
             </div>
 
             <div className="pt-2 flex justify-end">
-              <button onClick={() => handleAttendanceSubmit('check-out')} disabled={submitting || !capturedPhoto || !latitude || !longitude || !isWithinRadius} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+              <button onClick={() => handleAttendanceSubmit('check-out')} disabled={submitting || !capturedPhoto || !latitude || !longitude || (todayAttendance?.attendance_type === 'kantor' && officeSetting && !isWithinRadius)} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
                 {submitting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim Presensi...
@@ -844,13 +986,17 @@ export default function EmployeeAbsen({
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Waktu Presensi Keluar</span>
                     <span className="text-3xl font-extrabold text-slate-800 font-mono">{todayAttendance.clock_out}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+                  <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Latitude GPS</span>
+                      <span className="text-[10px] font-bold text-slate-555 uppercase tracking-wider block font-quicksand">Tipe Presensi</span>
+                      <span className="text-xs text-slate-700 font-extrabold capitalize">{todayAttendance.attendance_type || 'kantor'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-555 uppercase tracking-wider block font-quicksand">Latitude GPS</span>
                       <span className="text-xs text-slate-655 font-mono">{todayAttendance.latitude_out}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Longitude GPS</span>
+                      <span className="text-[10px] font-bold text-slate-555 uppercase tracking-wider block font-quicksand">Longitude GPS</span>
                       <span className="text-xs text-slate-655 font-mono">{todayAttendance.longitude_out}</span>
                     </div>
                   </div>

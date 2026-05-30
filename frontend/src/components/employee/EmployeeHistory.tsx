@@ -5,6 +5,7 @@ import { Eye, ShieldAlert } from 'lucide-react'
 interface Attendance {
   id: number
   date: string
+  attendance_type?: string | null
   clock_in: string | null
   clock_out: string | null
   latitude_in: string | null
@@ -40,6 +41,7 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
               <thead>
                 <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
                   <th className="py-4 px-6">Tanggal</th>
+                  <th className="py-4 px-6">Tipe</th>
                   <th className="py-4 px-6">Masuk (Check-In)</th>
                   <th className="py-4 px-6">Keluar (Check-Out)</th>
                   <th className="py-4 px-6 text-center">Foto Presensi</th>
@@ -48,7 +50,7 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
               <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
                 {history.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-slate-450 font-semibold">
+                    <td colSpan={5} className="py-8 text-center text-slate-450 font-semibold">
                       Belum ada riwayat absensi yang tercatat.
                     </td>
                   </tr>
@@ -61,6 +63,17 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
                           month: 'short',
                           year: 'numeric'
                         })}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize ${
+                          record.attendance_type === 'kunjungan' 
+                            ? 'text-emerald-700 bg-emerald-50 border-emerald-250' 
+                            : record.attendance_type === 'client' 
+                            ? 'text-amber-700 bg-amber-50 border-amber-250' 
+                            : 'text-indigo-700 bg-indigo-50 border-indigo-250'
+                        }`}>
+                          {record.attendance_type || 'kantor'}
+                        </span>
                       </td>
                       <td className="py-4 px-6">
                         {record.clock_in ? (

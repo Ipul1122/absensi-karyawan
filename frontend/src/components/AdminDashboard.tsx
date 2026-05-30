@@ -40,6 +40,7 @@ interface Employee {
 interface Attendance {
   id: number
   date: string
+  attendance_type?: string | null
   clock_in: string | null
   clock_out: string | null
   latitude_in: string | null
@@ -687,10 +688,10 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
             path="rekapAbsensi" 
             element={
               <RekapAbsensi
+                token={token}
+                employees={employees}
                 attendanceLoading={attendanceLoading}
-                filteredAttendances={filteredAttendances}
-                attendanceSearchQuery={attendanceSearchQuery}
-                setAttendanceSearchQuery={setAttendanceSearchQuery}
+                attendances={attendances}
                 fetchAttendances={fetchAttendances}
                 formatDate={formatDate}
                 getStatusBadge={getStatusBadge}

@@ -4,6 +4,7 @@ import { Users, CheckCircle2, Clock, Loader2, Eye } from 'lucide-react'
 interface Attendance {
   id: number
   date: string
+  attendance_type?: string | null
   clock_in: string | null
   clock_out: string | null
   latitude_in: string | null
@@ -119,6 +120,7 @@ export default function DashboardOverview({
               <thead>
                 <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
                   <th className="py-4 px-6">Nama Karyawan</th>
+                  <th className="py-4 px-6">Tipe Presensi</th>
                   <th className="py-4 px-6">Jam Masuk (Check-In)</th>
                   <th className="py-4 px-6">Status Masuk</th>
                   <th className="py-4 px-6">Jam Keluar (Check-Out)</th>
@@ -128,7 +130,7 @@ export default function DashboardOverview({
               <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
                 {attendanceLoading ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-450 font-semibold">
+                    <td colSpan={6} className="py-8 text-center text-slate-450 font-semibold">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                         Memuat data kehadiran...
@@ -137,7 +139,7 @@ export default function DashboardOverview({
                   </tr>
                 ) : presentTodayList.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-450 font-semibold italic">
+                    <td colSpan={6} className="py-8 text-center text-slate-450 font-semibold italic">
                       Belum ada karyawan yang mencatat kehadiran hari ini.
                     </td>
                   </tr>
@@ -149,6 +151,17 @@ export default function DashboardOverview({
                           <p className="font-extrabold text-slate-800 font-quicksand">{att.user.name}</p>
                           <p className="text-[10px] text-slate-450 font-medium mt-0.5">{att.user.email}</p>
                         </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize ${
+                          att.attendance_type === 'kunjungan' 
+                            ? 'text-emerald-700 bg-emerald-50 border-emerald-250' 
+                            : att.attendance_type === 'client' 
+                            ? 'text-amber-700 bg-amber-50 border-amber-250' 
+                            : 'text-indigo-700 bg-indigo-50 border-indigo-250'
+                        }`}>
+                          {att.attendance_type || 'kantor'}
+                        </span>
                       </td>
                       <td className="py-4 px-6 font-mono font-bold text-slate-800">{att.clock_in}</td>
                       <td className="py-4 px-6">{getStatusBadge(att.status_in)}</td>

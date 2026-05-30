@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 #[Fillable([
     'user_id',
     'date',
+    'attendance_type',
     'clock_in',
     'latitude_in',
     'longitude_in',

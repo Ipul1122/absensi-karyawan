@@ -273,6 +273,8 @@ class AttendanceController extends Controller
             'clock_in' => 'required|string',
             'clock_out' => 'nullable|string',
             'notes' => 'nullable|string',
+            'latitude' => 'nullable|string',
+            'longitude' => 'nullable|string',
         ]);
 
         $userId = $request->user_id;
@@ -313,6 +315,8 @@ class AttendanceController extends Controller
         }
 
         $notesText = $request->notes ?: 'Absen manual diinput oleh Admin';
+        $latitude = $request->input('latitude') ?: '-6.1942189';
+        $longitude = $request->input('longitude') ?: '106.815998';
 
         $attendance = Attendance::create([
             'user_id' => $userId,
@@ -321,14 +325,14 @@ class AttendanceController extends Controller
             'clock_in' => $clockIn,
             'status_in' => $statusIn,
             'notes_in' => $notesText,
-            'latitude_in' => 'Manual',
-            'longitude_in' => 'Manual',
+            'latitude_in' => $latitude,
+            'longitude_in' => $longitude,
             'photo_in' => null,
             'clock_out' => $clockOut,
             'status_out' => $statusOut,
             'notes_out' => $clockOut ? $notesText : null,
-            'latitude_out' => $clockOut ? 'Manual' : null,
-            'longitude_out' => $clockOut ? 'Manual' : null,
+            'latitude_out' => $clockOut ? $latitude : null,
+            'longitude_out' => $clockOut ? $longitude : null,
             'photo_out' => null,
         ]);
 

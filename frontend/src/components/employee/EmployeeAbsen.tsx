@@ -689,7 +689,7 @@ export default function EmployeeAbsen({
             </div>
 
             <div className="pt-2 flex justify-end">
-              <button onClick={() => handleAttendanceSubmit('check-in')} disabled={submitting || !capturedPhoto || !latitude || !longitude || (activeAccordion === 'kantor' && officeSetting && !isWithinRadius)} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+              <button onClick={() => handleAttendanceSubmit('check-in')} disabled={submitting || !capturedPhoto || !latitude || !longitude || (activeAccordion === 'kantor' && officeSetting !== null && !isWithinRadius)} className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-orange-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
                 {submitting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim Presensi...
@@ -731,14 +731,23 @@ export default function EmployeeAbsen({
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Tipe Presensi</span>
                       <span className="text-xs text-slate-700 font-extrabold capitalize">{todayAttendance.attendance_type || 'kantor'}</span>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Latitude GPS</span>
-                      <span className="text-xs text-slate-655 font-mono">{todayAttendance.latitude_in}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Longitude GPS</span>
-                      <span className="text-xs text-slate-655 font-mono">{todayAttendance.longitude_in}</span>
-                    </div>
+                    {todayAttendance.latitude_in && isNaN(parseFloat(todayAttendance.latitude_in)) ? (
+                      <div className="col-span-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Lokasi Absensi</span>
+                        <span className="text-xs text-slate-700 font-extrabold">{todayAttendance.latitude_in}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Latitude GPS</span>
+                          <span className="text-xs text-slate-655 font-mono">{todayAttendance.latitude_in}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Longitude GPS</span>
+                          <span className="text-xs text-slate-655 font-mono">{todayAttendance.longitude_in}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                   {todayAttendance.notes_in && (
                     <div className="pt-2 border-t border-slate-200">
@@ -949,7 +958,7 @@ export default function EmployeeAbsen({
             </div>
 
             <div className="pt-2 flex justify-end">
-              <button onClick={() => handleAttendanceSubmit('check-out')} disabled={submitting || !capturedPhoto || !latitude || !longitude || (todayAttendance?.attendance_type === 'kantor' && officeSetting && !isWithinRadius)} className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-emerald-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+              <button onClick={() => handleAttendanceSubmit('check-out')} disabled={submitting || !capturedPhoto || !latitude || !longitude || (todayAttendance?.attendance_type === 'kantor' && officeSetting !== null && !isWithinRadius)} className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-orange-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
                 {submitting ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim Presensi...

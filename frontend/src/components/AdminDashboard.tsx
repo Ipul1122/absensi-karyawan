@@ -81,7 +81,6 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [attendanceLoading, setAttendanceLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('')
   const [time, setTime] = useState(new Date())
 
   // Details Modal States
@@ -524,13 +523,6 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
       emp.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const filteredAttendances = attendances.filter(
-    (att) =>
-      att.user.name.toLowerCase().includes(attendanceSearchQuery.toLowerCase()) ||
-      att.user.email.toLowerCase().includes(attendanceSearchQuery.toLowerCase()) ||
-      att.date.includes(attendanceSearchQuery)
-  )
-
   // Get current date string (YYYY-MM-DD)
   const todayStr = new Date().toISOString().split('T')[0]
 
@@ -697,6 +689,8 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                 getStatusBadge={getStatusBadge}
                 setSelectedAttendance={setSelectedAttendance}
                 handleOpenEditModal={handleOpenEditModal}
+                officeLatitude={officeLatitude}
+                officeLongitude={officeLongitude}
               />
             } 
           />

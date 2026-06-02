@@ -94,7 +94,11 @@ export default function DetailAttendanceModal({
                   
                   <div className="flex items-center gap-1.5 text-xs text-slate-600 font-mono">
                     <MapPin className="w-3.5 h-3.5 text-orange-400" />
-                    <span>GPS: {attendance.latitude_in}, {attendance.longitude_in}</span>
+                    {attendance.latitude_in && isNaN(parseFloat(attendance.latitude_in)) ? (
+                      <span>Lokasi: {attendance.latitude_in}</span>
+                    ) : (
+                      <span>GPS: {attendance.latitude_in}, {attendance.longitude_in}</span>
+                    )}
                   </div>
 
                   {attendance.notes_in && (
@@ -108,7 +112,7 @@ export default function DetailAttendanceModal({
                   )}
 
                   {/* Check-In Map */}
-                  {attendance.latitude_in && attendance.longitude_in && (
+                  {attendance.latitude_in && attendance.longitude_in && !isNaN(parseFloat(attendance.latitude_in)) && !isNaN(parseFloat(attendance.longitude_in)) && (
                     <div className="mt-2">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Peta Check-In</span>
                       <AttendanceMap 
@@ -153,9 +157,13 @@ export default function DetailAttendanceModal({
                     <span className="text-2xl font-extrabold text-slate-800 font-mono">{attendance.clock_out}</span>
                   </div>
                   
-                  <div className="flex items-center gap-1.5 text-xs text-slate-600 font-mono">
+                   <div className="flex items-center gap-1.5 text-xs text-slate-600 font-mono">
                     <MapPin className="w-3.5 h-3.5 text-orange-400" />
-                    <span>GPS: {attendance.latitude_out}, {attendance.longitude_out}</span>
+                    {attendance.latitude_out && isNaN(parseFloat(attendance.latitude_out)) ? (
+                      <span>Lokasi: {attendance.latitude_out}</span>
+                    ) : (
+                      <span>GPS: {attendance.latitude_out}, {attendance.longitude_out}</span>
+                    )}
                   </div>
 
                   {attendance.notes_out && (
@@ -169,7 +177,7 @@ export default function DetailAttendanceModal({
                   )}
 
                   {/* Check-Out Map */}
-                  {attendance.latitude_out && attendance.longitude_out && (
+                  {attendance.latitude_out && attendance.longitude_out && !isNaN(parseFloat(attendance.latitude_out)) && !isNaN(parseFloat(attendance.longitude_out)) && (
                     <div className="mt-2">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Peta Check-Out</span>
                       <AttendanceMap 

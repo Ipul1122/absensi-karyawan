@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
-import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, X } from 'lucide-react'
+import L from 'leaflet'
+import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, X, MapPin } from 'lucide-react'
 
 interface Attendance {
   id: number
@@ -42,6 +43,8 @@ interface RekapAbsensiProps {
   getStatusBadge: (s: string | null) => React.ReactNode
   setSelectedAttendance: (a: Attendance) => void
   handleOpenEditModal: (a: Attendance) => void
+  officeLatitude?: string
+  officeLongitude?: string
 }
 
 export default function RekapAbsensi({
@@ -54,6 +57,8 @@ export default function RekapAbsensi({
   getStatusBadge,
   setSelectedAttendance,
   handleOpenEditModal,
+  officeLatitude = '-6.2088',
+  officeLongitude = '106.8456',
 }: RekapAbsensiProps) {
   // Filter States
   const [search, setSearch] = useState('')
@@ -77,8 +82,99 @@ export default function RekapAbsensi({
   const [manualType, setManualType] = useState<'kantor' | 'kunjungan' | 'client'>('kantor')
   const [manualClockIn, setManualClockIn] = useState('08:00') // default jam masuk
   const [manualClockOut, setManualClockOut] = useState('17:00') // default jam keluar
+  const [manualLat, setManualLat] = useState(-6.1942189)
+  const [manualLng, setManualLng] = useState(106.815998)
+  const [manualLocationPreset, setManualLocationPreset] = useState('thamrin_city')
   const [manualNotes, setManualNotes] = useState('Input absensi manual oleh Admin')
   const [submittingManual, setSubmittingManual] = useState(false)
+
+  // Map refs for manual check-in
+  const manualMapContainerRef = useRef<HTMLDivElement | null>(null)
+  const manualMapInstanceRef = useRef<L.Map | null>(null)
+  const manualMarkerRef = useRef<L.Marker | null>(null)
+
+  // Initialize Leaflet Map inside manual check-in modal
+  useEffect(() => {
+    if (!showManualModal || !manualMapContainerRef.current) {
+      if (manualMapInstanceRef.current) {
+        manualMapInstanceRef.current.remove()
+        manualMapInstanceRef.current = null
+        manualMarkerRef.current = null
+      }
+      return
+    }
+
+    // Fix default marker icon path issue in Leaflet
+    delete (L.Icon.Default.prototype as any)._getIconUrl
+    L.Icon.Default.mergeOptions({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    })
+
+    const defaultLat = manualLat
+    const defaultLng = manualLng
+
+    const map = L.map(manualMapContainerRef.current).setView([defaultLat, defaultLng], 15)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map)
+
+    manualMapInstanceRef.current = map
+
+    const marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map)
+    manualMarkerRef.current = marker
+
+    marker.on('dragend', () => {
+      const pos = marker.getLatLng()
+      setManualLat(pos.lat)
+      setManualLng(pos.lng)
+      setManualLocationPreset('custom')
+    })
+
+    map.on('click', (e) => {
+      marker.setLatLng(e.latlng)
+      setManualLat(e.latlng.lat)
+      setManualLng(e.latlng.lng)
+      setManualLocationPreset('custom')
+    })
+
+    const timer = setTimeout(() => {
+      map.invalidateSize()
+    }, 300)
+
+    return () => {
+      clearTimeout(timer)
+      if (manualMapInstanceRef.current) {
+        manualMapInstanceRef.current.remove()
+        manualMapInstanceRef.current = null
+        manualMarkerRef.current = null
+      }
+    }
+  }, [showManualModal])
+
+  const handlePresetChange = (preset: string) => {
+    setManualLocationPreset(preset)
+    let newLat = -6.1942189
+    let newLng = 106.815998
+
+    if (preset === 'office') {
+      newLat = parseFloat(officeLatitude)
+      newLng = parseFloat(officeLongitude)
+    } else if (preset === 'custom') {
+      return
+    }
+
+    setManualLat(newLat)
+    setManualLng(newLng)
+
+    if (manualMarkerRef.current) {
+      manualMarkerRef.current.setLatLng([newLat, newLng])
+    }
+    if (manualMapInstanceRef.current) {
+      manualMapInstanceRef.current.setView([newLat, newLng], 15)
+    }
+  }
 
   // Reset page when filters change
   useEffect(() => {
@@ -343,6 +439,8 @@ export default function RekapAbsensi({
           attendance_type: manualType,
           clock_in: manualClockIn,
           clock_out: manualClockOut || null,
+          latitude: String(manualLat),
+          longitude: String(manualLng),
           notes: manualNotes
         },
         {
@@ -364,6 +462,9 @@ export default function RekapAbsensi({
         // Reset state and close modal
         setShowManualModal(false)
         setSelectedUserId('')
+        setManualLat(-6.1942189)
+        setManualLng(106.815998)
+        setManualLocationPreset('thamrin_city')
         setManualNotes('Input absensi manual oleh Admin')
         
         // Refresh log table
@@ -704,6 +805,9 @@ export default function RekapAbsensi({
                 onClick={() => {
                   setShowManualModal(false)
                   setSelectedUserId('')
+                  setManualLat(-6.1942189)
+                  setManualLng(106.815998)
+                  setManualLocationPreset('thamrin_city')
                 }}
                 className="p-1.5 hover:bg-orange-50/50 rounded-lg transition-all cursor-pointer text-slate-400 hover:text-red-500"
               >
@@ -733,14 +837,14 @@ export default function RekapAbsensi({
 
               {/* Date Input */}
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-555 uppercase tracking-wider mb-1.5">
                   Tanggal Absensi *
                 </label>
                 <input
                   type="date"
                   value={manualDate}
                   onChange={(e) => setManualDate(e.target.value)}
-                  className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-semibold"
+                  className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-550 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-semibold"
                   required
                 />
               </div>
@@ -762,6 +866,40 @@ export default function RekapAbsensi({
                 </select>
               </div>
 
+              {/* Lokasi Selector & Map */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Lokasi Presensi *
+                  </label>
+                  <select
+                    value={manualLocationPreset}
+                    onChange={(e) => handlePresetChange(e.target.value)}
+                    className="bg-transparent border-none text-[11px] font-bold text-orange-600 outline-none cursor-pointer"
+                  >
+                    <option value="thamrin_city">Mall Thamrin City</option>
+                    <option value="office">Kantor Pusat</option>
+                    <option value="custom">Kustom (Arahkan di Peta)</option>
+                  </select>
+                </div>
+                
+                {/* Leaflet Map Div */}
+                <div className="relative w-full h-[180px] rounded-2xl bg-slate-50 border border-orange-100/60 overflow-hidden shadow-inner">
+                  <div ref={manualMapContainerRef} className="w-full h-full z-10" />
+                </div>
+                
+                {/* Coordinates Badge */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex justify-between items-center text-[10px] font-mono">
+                  <span className="text-slate-550 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-orange-500" />
+                    Koordinat Peta:
+                  </span>
+                  <span className="text-slate-700 font-bold">
+                    {manualLat.toFixed(6)}, {manualLng.toFixed(6)}
+                  </span>
+                </div>
+              </div>
+
               {/* Clock In & Clock Out Times */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -772,7 +910,7 @@ export default function RekapAbsensi({
                     type="time"
                     value={manualClockIn}
                     onChange={(e) => setManualClockIn(e.target.value)}
-                    className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
+                    className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-550 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
                     required
                   />
                 </div>
@@ -810,6 +948,9 @@ export default function RekapAbsensi({
                   onClick={() => {
                     setShowManualModal(false)
                     setSelectedUserId('')
+                    setManualLat(-6.1942189)
+                    setManualLng(106.815998)
+                    setManualLocationPreset('thamrin_city')
                   }}
                   className="px-4 py-2.5 bg-orange-50/50 border border-orange-100 hover:bg-orange-50 text-slate-655 rounded-xl transition-all cursor-pointer text-xs font-bold"
                 >
@@ -818,7 +959,7 @@ export default function RekapAbsensi({
                 <button
                   type="submit"
                   disabled={submittingManual}
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl transition-all shadow-md cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all shadow-md cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submittingManual ? (
                     <>

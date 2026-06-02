@@ -7,7 +7,8 @@ import {
   ClipboardList, 
   MapPin, 
   ChevronRight,
-  ClipboardCheck
+  ClipboardCheck,
+  ReceiptText
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -30,7 +31,8 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
     { to: '/admin/rekapAbsensi', label: 'Rekap Absensi', icon: ClipboardList },
     { to: '/admin/cuti', label: 'Persetujuan Cuti', icon: ClipboardCheck },
     { to: '/admin/akunKaryawan', label: 'Akun Karyawan', icon: Users },
-    { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin }
+    { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin },
+    { to: '/admin/payroll', label: 'Kelola Payroll', icon: ReceiptText }
   ]
 
   const handleLinkClick = () => {

@@ -23,6 +23,7 @@ import EmployeeOverview from './employee/EmployeeOverview'
 import EmployeeAbsen from './employee/EmployeeAbsen'
 import EmployeeHistory from './employee/EmployeeHistory'
 import EmployeeSettings from './employee/EmployeeSettings'
+import EmployeeCuti from './employee/EmployeeCuti'
 
 interface User {
   id: number
@@ -234,6 +235,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     if (path.includes('absen')) {
       return { title: 'Formulir Absensi', subtitle: 'Clock In / Out' }
     }
+    if (path.includes('cuti')) {
+      return { title: 'Pengajuan Cuti', subtitle: 'Leave Request' }
+    }
     if (path.includes('riwayat')) {
       return { title: 'Riwayat Presensi', subtitle: 'History Logs' }
     }
@@ -372,6 +376,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               element={
                 <EmployeeSettings
                   user={user}
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="cuti" 
+              element={
+                <EmployeeCuti
                   token={token}
                 />
               } 

@@ -23,6 +23,7 @@ import DashboardOverview from './admin/DashboardOverview'
 import RekapAbsensi from './admin/RekapAbsensi'
 import AkunKaryawan from './admin/AkunKaryawan'
 import LokasiKantor from './admin/LokasiKantor'
+import AdminCuti from './admin/AdminCuti'
 import AddEmployeeModal from './admin/AddEmployeeModal'
 import EditEmployeeModal from './admin/EditEmployeeModal'
 import DetailAttendanceModal from './admin/DetailAttendanceModal'
@@ -569,6 +570,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     if (path.includes('rekapAbsensi')) {
       return { title: 'Rekap Absensi Karyawan', subtitle: 'Attendance Logs' }
     }
+    if (path.includes('cuti')) {
+      return { title: 'Persetujuan Cuti', subtitle: 'Leave Requests' }
+    }
     if (path.includes('akunKaryawan')) {
       return { title: 'Kelola Akun Karyawan', subtitle: 'Accounts Management' }
     }
@@ -721,6 +725,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                 setOfficeRadius={setOfficeRadius}
                 savingOffice={savingOffice}
                 handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+              />
+            } 
+          />
+          <Route 
+            path="cuti" 
+            element={
+              <AdminCuti
+                token={token}
               />
             } 
           />

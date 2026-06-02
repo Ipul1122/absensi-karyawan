@@ -24,6 +24,7 @@ import EmployeeAbsen from './employee/EmployeeAbsen'
 import EmployeeHistory from './employee/EmployeeHistory'
 import EmployeeSettings from './employee/EmployeeSettings'
 import EmployeeCuti from './employee/EmployeeCuti'
+import EmployeePayroll from './employee/EmployeePayroll'
 
 interface User {
   id: number
@@ -244,6 +245,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     if (path.includes('pengaturan')) {
       return { title: 'Pengaturan Akun', subtitle: 'Settings' }
     }
+    if (path.includes('payroll')) {
+      return { title: 'Rincian Slip Gaji', subtitle: 'My Payslips' }
+    }
     return { title: 'Dashboard Karyawan', subtitle: 'Overview' }
   }
 
@@ -384,6 +388,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="cuti" 
               element={
                 <EmployeeCuti
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="payroll" 
+              element={
+                <EmployeePayroll
                   token={token}
                 />
               } 

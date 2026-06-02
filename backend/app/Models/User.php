@@ -38,4 +38,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(LeaveRequest::class);
     }
+
+    /**
+     * Get the salary configuration associated with the user.
+     */
+    public function salaryConfiguration()
+    {
+        return $this->hasOne(SalaryConfiguration::class);
+    }
+
+    /**
+     * Get the payrolls for the user.
+     */
+    public function payrolls()
+    {
+        return $this->hasMany(Payroll::class);
+    }
 }

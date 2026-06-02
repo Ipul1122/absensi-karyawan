@@ -9,6 +9,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\PayrollController;
 
 Route::get('/health-check', function () {
     try {
@@ -72,5 +73,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/leaves', [LeaveController::class, 'getAllRequests']);
         Route::put('/admin/leaves/{id}/approve', [LeaveController::class, 'approve']);
         Route::put('/admin/leaves/{id}/reject', [LeaveController::class, 'reject']);
+
+        // Admin Payroll routes
+        Route::get('/admin/payroll/configurations', [PayrollController::class, 'indexConfigurations']);
+        Route::post('/admin/payroll/configurations', [PayrollController::class, 'updateConfiguration']);
+        Route::get('/admin/payroll', [PayrollController::class, 'indexPayrolls']);
+        Route::post('/admin/payroll/generate', [PayrollController::class, 'generatePayroll']);
+        Route::put('/admin/payroll/{id}/pay', [PayrollController::class, 'updatePayrollStatus']);
+        Route::put('/admin/payroll/{id}/update', [PayrollController::class, 'updatePayrollManual']);
+        Route::delete('/admin/payroll/{id}', [PayrollController::class, 'destroyPayroll']);
     });
+
+    // Employee Payroll routes
+    Route::get('/payroll/my-slips', [PayrollController::class, 'getEmployeePayrolls']);
 });

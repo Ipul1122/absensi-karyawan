@@ -6,7 +6,8 @@ import {
   LayoutDashboard, 
   ClipboardList, 
   MapPin, 
-  ChevronRight 
+  ChevronRight,
+  ClipboardCheck
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -27,6 +28,7 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
   const menuItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/admin/rekapAbsensi', label: 'Rekap Absensi', icon: ClipboardList },
+    { to: '/admin/cuti', label: 'Persetujuan Cuti', icon: ClipboardCheck },
     { to: '/admin/akunKaryawan', label: 'Akun Karyawan', icon: Users },
     { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin }
   ]

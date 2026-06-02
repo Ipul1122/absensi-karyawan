@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\LeaveController;
 
 Route::get('/health-check', function () {
     try {
@@ -51,6 +52,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/attendance/history', [AttendanceController::class, 'getHistory']);
     Route::get('/office-setting', [AttendanceController::class, 'getOfficeSetting']);
 
+    // Leave routes for employee
+    Route::get('/leaves', [LeaveController::class, 'index']);
+    Route::post('/leaves', [LeaveController::class, 'store']);
+    Route::delete('/leaves/{id}', [LeaveController::class, 'destroy']);
+
     // Admin only routes
     Route::middleware('admin')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'index']);
@@ -61,5 +67,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/attendances', [AttendanceController::class, 'storeManualAttendance']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);
         Route::put('/admin/office-setting', [AttendanceController::class, 'updateOfficeSetting']);
+        
+        // Admin Leave routes
+        Route::get('/admin/leaves', [LeaveController::class, 'getAllRequests']);
+        Route::put('/admin/leaves/{id}/approve', [LeaveController::class, 'approve']);
+        Route::put('/admin/leaves/{id}/reject', [LeaveController::class, 'reject']);
     });
 });

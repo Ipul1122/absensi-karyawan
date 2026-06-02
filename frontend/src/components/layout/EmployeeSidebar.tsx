@@ -6,7 +6,8 @@ import {
   CalendarCheck,
   History,
   ShieldCheck,
-  Settings
+  Settings,
+  CalendarDays
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -27,6 +28,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSid
   const menuItems = [
     { to: '/employee/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/employee/absen', label: 'Absen Mandiri', icon: CalendarCheck },
+    { to: '/employee/cuti', label: 'Pengajuan Cuti', icon: CalendarDays },
     { to: '/employee/riwayat', label: 'Riwayat Absen', icon: History },
     { to: '/employee/pengaturan', label: 'Atur Akun', icon: Settings }
   ]

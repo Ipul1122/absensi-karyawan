@@ -1,0 +1,727 @@
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+import Swal from 'sweetalert2'
+import { 
+  Check, 
+  X, 
+  Search, 
+  Clock, 
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle, 
+  Filter,
+  Eye,
+  FileDown,
+  Printer,
+  Calendar
+} from 'lucide-react'
+
+interface UserDetails {
+  id: number
+  name: string
+  email: string
+}
+
+interface LeaveRequest {
+  id: number
+  user_id: number
+  category: string
+  custom_category: string | null
+  start_date: string
+  end_date: string
+  reason: string
+  image: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  admin_notes: string | null
+  created_at: string
+  user: UserDetails
+}
+
+interface AdminCutiProps {
+  token: string
+}
+
+export default function AdminCuti({ token }: AdminCutiProps) {
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+  const [monthFilter, setMonthFilter] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const fetchLeaves = async () => {
+    setLoading(true)
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/leaves', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setLeaves(response.data.data)
+      }
+    } catch (err: any) {
+      console.error(err)
+      Swal.fire({
+        title: 'Error',
+        text: 'Gagal memuat daftar pengajuan cuti.',
+        icon: 'error',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchLeaves()
+  }, [])
+
+  const handleApprove = (id: number, employeeName: string) => {
+    Swal.fire({
+      title: 'Setujui Pengajuan Cuti',
+      text: `Apakah Anda yakin ingin menyetujui pengajuan cuti dari ${employeeName}?`,
+      input: 'textarea',
+      inputPlaceholder: 'Tambahkan catatan persetujuan di sini (opsional)...',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Setujui!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const adminNotes = result.value || ''
+        try {
+          const response = await axios.put(
+            `http://localhost:8000/api/admin/leaves/${id}/approve`,
+            { admin_notes: adminNotes },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+
+          if (response.data.status === 'success') {
+            Swal.fire({
+              title: 'Disetujui!',
+              text: 'Pengajuan cuti berhasil disetujui.',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false,
+              background: '#fffdfb',
+              color: '#3c1105'
+            })
+            fetchLeaves()
+          }
+        } catch (err: any) {
+          console.error(err)
+          const msg = err.response?.data?.message || 'Gagal memproses persetujuan.'
+          Swal.fire({
+            title: 'Gagal',
+            text: msg,
+            icon: 'error',
+            background: '#fffdfb',
+            color: '#3c1105'
+          })
+        }
+      }
+    })
+  }
+
+  const handleReject = (id: number, employeeName: string) => {
+    Swal.fire({
+      title: 'Tolak Pengajuan Cuti',
+      text: `Apakah Anda yakin ingin menolak pengajuan cuti dari ${employeeName}?`,
+      input: 'textarea',
+      inputPlaceholder: 'Tuliskan alasan penolakan di sini (opsional)...',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Tolak!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const adminNotes = result.value || ''
+        try {
+          const response = await axios.put(
+            `http://localhost:8000/api/admin/leaves/${id}/reject`,
+            { admin_notes: adminNotes },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+
+          if (response.data.status === 'success') {
+            Swal.fire({
+              title: 'Ditolak!',
+              text: 'Pengajuan cuti berhasil ditolak.',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false,
+              background: '#fffdfb',
+              color: '#3c1105'
+            })
+            fetchLeaves()
+          }
+        } catch (err: any) {
+          console.error(err)
+          const msg = err.response?.data?.message || 'Gagal memproses penolakan.'
+          Swal.fire({
+            title: 'Gagal',
+            text: msg,
+            icon: 'error',
+            background: '#fffdfb',
+            color: '#3c1105'
+          })
+        }
+      }
+    })
+  }
+
+  const viewProofImage = (imageUrl: string, name: string) => {
+    Swal.fire({
+      title: `Bukti Pengajuan Cuti - ${name}`,
+      imageUrl: `http://localhost:8000${imageUrl}`,
+      imageAlt: 'Bukti Cuti',
+      confirmButtonColor: '#ea580c',
+      confirmButtonText: 'Tutup',
+      background: '#fffdfb',
+      color: '#3c1105'
+    })
+  }
+
+  const calculateDays = (start: string, end: string) => {
+    const s = new Date(start)
+    const e = new Date(end)
+    const diffTime = Math.abs(e.getTime() - s.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    return diffDays
+  }
+
+  const formatDate = (dateString: string) => {
+    const d = new Date(dateString)
+    return d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+  }
+
+  // Filtered Leave list
+  const filteredLeaves = leaves.filter((leave) => {
+    const matchesSearch = 
+      leave.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      leave.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (leave.category === 'LAINNYA' ? leave.custom_category || '' : leave.category)
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+
+    const matchesStatus = statusFilter === 'all' || leave.status === statusFilter
+
+    const matchesMonth = !monthFilter || 
+                         leave.start_date.startsWith(monthFilter) || 
+                         leave.end_date.startsWith(monthFilter) || 
+                         leave.created_at.startsWith(monthFilter)
+
+    return matchesSearch && matchesStatus && matchesMonth
+  })
+
+  // Statistics calculation
+  const totalPending = leaves.filter((l) => l.status === 'pending').length
+  const totalApproved = leaves.filter((l) => l.status === 'approved').length
+  const totalRejected = leaves.filter((l) => l.status === 'rejected').length
+
+  const getIndonesianMonthName = (monthNum: number) => {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return months[monthNum];
+  }
+
+  const handleExportPDF = () => {
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const [year, month] = monthFilter.split('-')
+    const indonesianMonthName = month ? getIndonesianMonthName(parseInt(month, 10) - 1) : 'Semua Bulan'
+    const activeYear = year || ''
+
+    const getStatusLabel = (status: string) => {
+      if (status === 'approved') return 'Disetujui'
+      if (status === 'rejected') return 'Ditolak'
+      return 'Menunggu Persetujuan'
+    }
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Rekap Cuti Karyawan - ${indonesianMonthName} ${activeYear}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; padding: 25px; line-height: 1.5; }
+            h1 { text-align: center; color: #1e293b; margin-bottom: 5px; font-size: 22px; font-weight: 800; }
+            h3 { text-align: center; color: #64748b; font-weight: 600; font-size: 13px; margin-top: 0; margin-bottom: 25px; }
+            .meta { margin-bottom: 25px; font-size: 11px; padding: 15px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
+            .meta table { width: 100%; border-collapse: collapse; }
+            .meta td { padding: 4px 8px; border: none; }
+            .meta td.label { font-weight: bold; color: #475569; width: 18%; }
+            table.data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10px; }
+            table.data-table th, table.data-table td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }
+            table.data-table th { background-color: #f1f5f9; font-weight: 700; color: #334155; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; }
+            .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; border: 1px solid transparent; }
+            .badge-pending { background-color: #fffbeb; color: #b45309; border-color: #fde68a; }
+            .badge-approved { background-color: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+            .badge-rejected { background-color: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
+            @media print {
+              button { display: none; }
+              @page { margin: 1.5cm; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Laporan Rekapitulasi Cuti Karyawan</h1>
+          <h3>Bulan: ${indonesianMonthName} ${activeYear} | Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</h3>
+          
+          <div class="meta">
+            <table>
+              <tr>
+                <td class="label">Pencarian Karyawan:</td>
+                <td>${searchQuery || 'Semua Karyawan'}</td>
+                <td class="label">Status Cuti:</td>
+                <td>${statusFilter === 'all' ? 'Semua Status' : statusFilter === 'approved' ? 'Disetujui' : statusFilter === 'rejected' ? 'Ditolak' : 'Menunggu Persetujuan'}</td>
+              </tr>
+            </table>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 5%; text-align: center;">No</th>
+                <th>Nama Karyawan</th>
+                <th>Kategori Cuti</th>
+                <th>Tanggal Cuti</th>
+                <th>Durasi</th>
+                <th>Alasan / Keterangan</th>
+                <th>Status</th>
+                <th>Catatan Admin</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredLeaves.length === 0 ? `
+                <tr>
+                  <td colSpan="8" style="text-align: center; padding: 20px; color: #64748b;">
+                    Tidak ada data pengajuan cuti yang sesuai filter.
+                  </td>
+                </tr>
+              ` : filteredLeaves.map((leave, idx) => `
+                <tr>
+                  <td style="text-align: center;">${idx + 1}</td>
+                  <td><strong>${leave.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${leave.user.email}</span></td>
+                  <td>${leave.category === 'LAINNYA' ? leave.custom_category : leave.category}</td>
+                  <td>${formatDate(leave.start_date)} s/d ${formatDate(leave.end_date)}</td>
+                  <td>${calculateDays(leave.start_date, leave.end_date)} Hari</td>
+                  <td>${leave.reason}</td>
+                  <td><span class="badge badge-${leave.status}">${getStatusLabel(leave.status)}</span></td>
+                  <td>${leave.admin_notes || '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `
+
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
+  }
+
+  const handleExportExcel = () => {
+    const [year, month] = monthFilter.split('-')
+    const indonesianMonthName = month ? getIndonesianMonthName(parseInt(month, 10) - 1) : 'Semua Bulan'
+    const activeYear = year || ''
+
+    let excelContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:Name>Rekap Cuti</x:Name>
+              <x:WorksheetOptions>
+                <x:DisplayGridlines/>
+              </x:WorksheetOptions>
+            </x:ExcelWorksheet>
+          </x:ExcelWorksheets>
+        </x:ExcelWorkbook>
+      </xml>
+      <![endif]-->
+      <style>
+        body { font-family: sans-serif; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #089720ff; padding: 8px; text-align: left; }
+        th { background-color: #089720ff; font-weight: bold; }
+        .text-center { text-align: center; }
+        .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        .subtitle { font-size: 12px; color: #089720ff; margin-bottom: 20px; }
+      </style>
+      </head>
+      <body>
+        <div class="title">Laporan Rekapitulasi Cuti Karyawan</div>
+        <div class="subtitle">Bulan: ${indonesianMonthName} ${activeYear} | Tanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Karyawan</th>
+              <th>Email</th>
+              <th>Kategori Cuti</th>
+              <th>Tanggal Mulai</th>
+              <th>Tanggal Selesai</th>
+              <th>Durasi (Hari)</th>
+              <th>Alasan Cuti</th>
+              <th>Status</th>
+              <th>Catatan Admin</th>
+            </tr>
+          </thead>
+          <tbody>
+    `
+
+    filteredLeaves.forEach((leave, idx) => {
+      const days = calculateDays(leave.start_date, leave.end_date)
+      const statusText = leave.status === 'approved' ? 'Disetujui' : leave.status === 'rejected' ? 'Ditolak' : 'Menunggu Persetujuan'
+      const catText = leave.category === 'LAINNYA' ? leave.custom_category : leave.category
+
+      excelContent += `
+        <tr>
+          <td class="text-center">${idx + 1}</td>
+          <td><b>${leave.user.name}</b></td>
+          <td>${leave.user.email}</td>
+          <td>${catText}</td>
+          <td>${leave.start_date}</td>
+          <td>${leave.end_date}</td>
+          <td class="text-center">${days} Hari</td>
+          <td>${leave.reason}</td>
+          <td>${statusText}</td>
+          <td>${leave.admin_notes || '-'}</td>
+        </tr>
+      `
+    })
+
+    if (filteredLeaves.length === 0) {
+      excelContent += `
+        <tr>
+          <td colspan="10" class="text-center" style="color: #64748b; padding: 20px;">Tidak ada data cuti yang sesuai filter.</td>
+        </tr>
+      `
+    }
+
+    excelContent += `
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `
+
+    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `Rekap_Cuti_${indonesianMonthName.replace(/\s+/g, '_')}_${activeYear}.xls`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const getStatusBadge = (status: 'pending' | 'approved' | 'rejected') => {
+    const badgeConfig = {
+      pending: 'bg-amber-50 text-amber-700 border-amber-250',
+      approved: 'bg-emerald-50 text-emerald-700 border-emerald-250',
+      rejected: 'bg-rose-50 text-rose-700 border-rose-250'
+    }
+
+    const textMap = {
+      pending: 'Menunggu',
+      approved: 'Disetujui',
+      rejected: 'Ditolak'
+    }
+
+    return (
+      <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold border ${badgeConfig[status]} font-quicksand`}>
+        {textMap[status]}
+      </span>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      
+      {/* Overview Stats Cards */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {/* Pending Card */}
+        <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Menunggu Persetujuan</span>
+            <span className="text-3xl font-black text-slate-800 mt-1 block font-mono">{totalPending}</span>
+          </div>
+          <div className="p-3 bg-amber-50 rounded-2xl text-amber-600 border border-amber-100">
+            <Clock className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Approved Card */}
+        <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Telah Disetujui</span>
+            <span className="text-3xl font-black text-slate-800 mt-1 block font-mono">{totalApproved}</span>
+          </div>
+          <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600 border border-emerald-100">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Rejected Card */}
+        <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Telah Ditolak</span>
+            <span className="text-3xl font-black text-slate-800 mt-1 block font-mono">{totalRejected}</span>
+          </div>
+          <div className="p-3 bg-rose-50 rounded-2xl text-rose-600 border border-rose-100">
+            <XCircle className="w-6 h-6" />
+          </div>
+        </div>
+      </section>
+
+      {/* Filter and Search Panel */}
+      <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm font-quicksand">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          {/* Search, Month Picker, and Status Filter in a grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-grow">
+            
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-4.5 h-4.5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari nama karyawan, email atau kategori..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-2xl py-2.5 pl-11 pr-4 outline-none transition-all text-xs font-semibold"
+              />
+            </div>
+
+            {/* Month & Year Picker */}
+            <div className="relative flex items-center">
+              <span className="text-xs font-bold text-slate-400 mr-2 shrink-0 flex items-center gap-1">
+                <Calendar className="w-4 h-4 text-red-500" /> Bulan:
+              </span>
+              <input
+                type="month"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-805 rounded-2xl py-2.5 px-4 outline-none transition-all text-xs font-semibold"
+              />
+              {monthFilter && (
+                <button
+                  type="button"
+                  onClick={() => setMonthFilter('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-red-500 cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center">
+              <span className="text-xs font-bold text-slate-400 mr-2 shrink-0 flex items-center gap-1">
+                <Filter className="w-4 h-4 text-slate-400" /> Status:
+              </span>
+              <div className="flex bg-orange-50/30 border border-orange-100 rounded-xl p-1 flex-grow justify-between">
+                {[
+                  { id: 'all', label: 'Semua' },
+                  { id: 'pending', label: 'Menunggu' },
+                  { id: 'approved', label: 'Disetujui' },
+                  { id: 'rejected', label: 'Ditolak' }
+                ].map((filter) => (
+                  <button
+                    key={filter.id}
+                    onClick={() => setStatusFilter(filter.id as any)}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      statusFilter === filter.id
+                        ? 'bg-white border border-orange-100 text-red-550 shadow-sm font-extrabold'
+                        : 'text-slate-500 hover:text-red-500'
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Export Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0 justify-end mt-2 xl:mt-0">
+            {/* Export PDF Button */}
+            <button
+              onClick={handleExportPDF}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-2xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
+              title="Ekspor PDF / Cetak"
+            >
+              <Printer className="w-4 h-4" />
+              Ekspor PDF
+            </button>
+
+            {/* Export Excel Button */}
+            <button
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-650 hover:to-orange-700text-white font-bold rounded-2xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+              title="Ekspor Excel"
+            >
+              <FileDown className="w-4 h-4" />
+              Ekspor Excel
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Leave Applications Table */}
+      <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm">
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-orange-600"></div>
+          </div>
+        ) : filteredLeaves.length === 0 ? (
+          <div className="text-center py-12 text-slate-400 font-medium font-quicksand">
+            <AlertCircle className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+            <p>Tidak ditemukan pengajuan cuti yang sesuai.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse font-quicksand">
+              <thead>
+                <tr className="border-b border-orange-50 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  <th className="pb-3">Karyawan</th>
+                  <th className="pb-3">Kategori</th>
+                  <th className="pb-3">Masa Cuti</th>
+                  <th className="pb-3">Keterangan / Alasan</th>
+                  <th className="pb-3">Bukti</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3">Catatan Admin</th>
+                  <th className="pb-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-orange-50 text-xs font-semibold text-slate-700">
+                {filteredLeaves.map((leave) => {
+                  const days = calculateDays(leave.start_date, leave.end_date)
+                  return (
+                    <tr key={leave.id} className="hover:bg-orange-50/10 transition-colors">
+                      {/* Employee detail */}
+                      <td className="py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs">
+                            {leave.user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <span className="block font-bold text-slate-800">{leave.user.name}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">{leave.user.email}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Category */}
+                      <td className="py-4">
+                        <span className="block font-bold text-slate-800">
+                          {leave.category === 'LAINNYA' ? leave.custom_category : leave.category}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          Diajukan: {formatDate(leave.created_at)}
+                        </span>
+                      </td>
+
+                      {/* Period */}
+                      <td className="py-4">
+                        <span className="block text-slate-750 font-bold">{days} Hari</span>
+                        <span className="text-[10px] text-slate-400 font-medium block">
+                          {formatDate(leave.start_date)} - {formatDate(leave.end_date)}
+                        </span>
+                      </td>
+
+                      {/* Reason */}
+                      <td className="py-4 max-w-xs truncate" title={leave.reason}>
+                        {leave.reason}
+                      </td>
+
+                      {/* Evidence */}
+                      <td className="py-4">
+                        {leave.image ? (
+                          <button
+                            type="button"
+                            onClick={() => viewProofImage(leave.image!, leave.user.name)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-all border border-orange-150 cursor-pointer text-[10px] font-bold"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> Lihat
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic font-medium">-</span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-4">
+                        {getStatusBadge(leave.status)}
+                      </td>
+
+                      {/* Admin Notes */}
+                      <td className="py-4 max-w-[180px] truncate" title={leave.admin_notes || ''}>
+                        {leave.admin_notes ? (
+                          <span className="text-slate-600 font-medium italic">"{leave.admin_notes}"</span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic font-medium">-</span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-4 text-right">
+                        {leave.status === 'pending' ? (
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              onClick={() => handleApprove(leave.id, leave.user.name)}
+                              className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                              title="Setujui"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleReject(leave.id, leave.user.name)}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                              title="Tolak"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-bold">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}

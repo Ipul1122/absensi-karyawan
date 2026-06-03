@@ -79,4 +79,76 @@ class AuthController extends Controller
             'message' => 'Kata sandi Anda berhasil diperbarui.'
         ]);
     }
+
+    public function getProfile(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'id'              => $user->id,
+                'name'            => $user->name,
+                'email'           => $user->email,
+                'role'            => $user->role,
+                'photo'           => $user->photo ? asset('storage/' . $user->photo) : null,
+                'date_of_birth'   => $user->date_of_birth,
+                'address'         => $user->address,
+                'employee_number' => $user->employee_number,
+                'join_date'       => $user->join_date,
+                'gender'          => $user->gender,
+            ]
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'name'            => 'required|string|max:255',
+            'email'           => 'required|email|unique:users,email,' . $request->user()->id,
+            'date_of_birth'   => 'nullable|date',
+            'address'         => 'nullable|string|max:500',
+            'employee_number' => 'nullable|string|max:50|unique:users,employee_number,' . $request->user()->id,
+            'join_date'       => 'nullable|date',
+            'gender'          => 'nullable|in:male,female',
+            'photo'           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ], [
+            'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
+            'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
+            'photo.image'            => 'File foto harus berupa gambar.',
+            'photo.max'              => 'Ukuran foto maksimal 2MB.',
+        ]);
+
+        $user = $request->user();
+        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender']);
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($user->photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->photo);
+            }
+            $path = $request->file('photo')->store('photos', 'public');
+            $data['photo'] = $path;
+        }
+
+        $user->update($data);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Profil berhasil diperbarui.',
+            'data'    => [
+                'id'              => $user->id,
+                'name'            => $user->name,
+                'email'           => $user->email,
+                'role'            => $user->role,
+                'photo'           => $user->photo ? asset('storage/' . $user->photo) : null,
+                'date_of_birth'   => $user->date_of_birth,
+                'address'         => $user->address,
+                'employee_number' => $user->employee_number,
+                'join_date'       => $user->join_date,
+                'gender'          => $user->gender,
+            ]
+        ]);
+    }
 }

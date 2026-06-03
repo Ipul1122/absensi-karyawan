@@ -714,6 +714,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                 onEditClick={handleOpenEditEmployeeModal}
                 setShowModal={setShowModal}
                 formatDate={formatDate}
+                token={token}
               />
             } 
           />
@@ -749,7 +750,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
             } 
           />
           {/* Default fallback route */}
-          <Route path="*" element={<Navigate to="dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
         </Routes>
       </main>
 

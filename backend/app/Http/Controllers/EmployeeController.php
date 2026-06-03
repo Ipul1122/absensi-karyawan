@@ -102,4 +102,93 @@ class EmployeeController extends Controller
             'data' => $employee
         ]);
     }
+
+    /**
+     * Admin: Get full profile/biodata of a specific employee
+     */
+    public function getEmployeeProfile($id)
+    {
+        $employee = User::where('id', $id)->where('role', 'employee')->first();
+
+        if (!$employee) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Karyawan tidak ditemukan.'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'id'              => $employee->id,
+                'name'            => $employee->name,
+                'email'           => $employee->email,
+                'photo'           => $employee->photo ? asset('storage/' . $employee->photo) : null,
+                'date_of_birth'   => $employee->date_of_birth,
+                'address'         => $employee->address,
+                'employee_number' => $employee->employee_number,
+                'join_date'       => $employee->join_date,
+                'gender'          => $employee->gender,
+                'created_at'      => $employee->created_at,
+            ]
+        ]);
+    }
+
+    /**
+     * Admin: Update full profile/biodata of a specific employee
+     */
+    public function updateEmployeeProfile(Request $request, $id)
+    {
+        $employee = User::where('id', $id)->where('role', 'employee')->first();
+
+        if (!$employee) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Karyawan tidak ditemukan.'
+            ], 404);
+        }
+
+        $request->validate([
+            'name'            => 'required|string|max:255',
+            'email'           => 'required|email|unique:users,email,' . $id,
+            'date_of_birth'   => 'nullable|date',
+            'address'         => 'nullable|string|max:500',
+            'employee_number' => 'nullable|string|max:50|unique:users,employee_number,' . $id,
+            'join_date'       => 'nullable|date',
+            'gender'          => 'nullable|in:male,female',
+            'photo'           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ], [
+            'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
+            'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
+        ]);
+
+        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender']);
+
+        if ($request->hasFile('photo')) {
+            if ($employee->photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($employee->photo);
+            }
+            $path = $request->file('photo')->store('photos', 'public');
+            $data['photo'] = $path;
+        }
+
+        $employee->update($data);
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Biodata karyawan berhasil diperbarui.',
+            'data'    => [
+                'id'              => $employee->id,
+                'name'            => $employee->name,
+                'email'           => $employee->email,
+                'photo'           => $employee->photo ? asset('storage/' . $employee->photo) : null,
+                'date_of_birth'   => $employee->date_of_birth,
+                'address'         => $employee->address,
+                'employee_number' => $employee->employee_number,
+                'join_date'       => $employee->join_date,
+                'gender'          => $employee->gender,
+            ]
+        ]);
+    }
 }
+

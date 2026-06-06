@@ -25,6 +25,7 @@ import AkunKaryawan from './admin/AkunKaryawan'
 import LokasiKantor from './admin/LokasiKantor'
 import AdminCuti from './admin/AdminCuti'
 import AdminPayroll from './admin/AdminPayroll'
+import AdminSalaryConfig from './admin/AdminSalaryConfig'
 import AddEmployeeModal from './admin/AddEmployeeModal'
 import EditEmployeeModal from './admin/EditEmployeeModal'
 import DetailAttendanceModal from './admin/DetailAttendanceModal'
@@ -580,6 +581,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     if (path.includes('lokasiKantor')) {
       return { title: 'Konfigurasi Lokasi & Radius', subtitle: 'Location Configuration' }
     }
+    if (path.includes('payroll-config')) {
+      return { title: 'Setelan Gaji Karyawan', subtitle: 'Salary Configuration' }
+    }
     if (path.includes('payroll')) {
       return { title: 'Kelola Payroll Karyawan', subtitle: 'Payroll Management' }
     }
@@ -745,6 +749,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
             path="payroll" 
             element={
               <AdminPayroll
+                token={token}
+              />
+            } 
+          />
+          <Route 
+            path="payroll-config" 
+            element={
+              <AdminSalaryConfig
                 token={token}
               />
             } 

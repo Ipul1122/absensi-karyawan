@@ -27,6 +27,7 @@ interface PayrollRecord {
   allowance_position: number
   deduction_late: number
   deduction_fixed: number
+  deduction_absence: number
   net_salary: number
   status: 'draft' | 'unpaid' | 'paid'
   paid_at: string | null
@@ -227,7 +228,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
               ) : (
                 payrolls.map((record) => {
                   const totalAllowances = record.basic_salary + (record.allowance_meal ?? 0) + record.allowance_transport + (record.allowance_position ?? 0) + record.allowance_fixed
-                  const totalDeductions = record.deduction_late + record.deduction_fixed
+                  const totalDeductions = record.deduction_late + (record.deduction_absence ?? 0) + record.deduction_fixed
                   
                   return (
                     <tr key={record.id} className="hover:bg-orange-50/10 transition-colors">
@@ -385,6 +386,12 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                     <span>Terlambat Masuk ({selectedSlip.days_late} Hari)</span>
                     <strong style={{ color: '#dc2626' }}>-{formatRupiah(selectedSlip.deduction_late)}</strong>
                   </div>
+                  {selectedSlip.deduction_absence > 0 && (
+                    <div className="item-row">
+                      <span>Tidak Masuk</span>
+                      <strong style={{ color: '#dc2626' }}>-{formatRupiah(selectedSlip.deduction_absence)}</strong>
+                    </div>
+                  )}
                   {selectedSlip.deduction_fixed > 0 && (
                     <div className="item-row">
                       <span>BPJS & Lainnya</span>
@@ -393,7 +400,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                   )}
                   <div className="item-row bold">
                     <span>Total Pemotongan</span>
-                    <span style={{ color: '#dc2626' }}>-{formatRupiah(selectedSlip.deduction_late + selectedSlip.deduction_fixed)}</span>
+                    <span style={{ color: '#dc2626' }}>-{formatRupiah(selectedSlip.deduction_late + (selectedSlip.deduction_absence ?? 0) + selectedSlip.deduction_fixed)}</span>
                   </div>
                 </div>
               </div>

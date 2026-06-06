@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'allowance_position',
     'deduction_late',
     'deduction_fixed',
+    'deduction_absence',
     'net_salary',
     'status',
     'paid_at',
@@ -35,6 +36,7 @@ class Payroll extends Model
         'allowance_position' => 'double',
         'deduction_late' => 'double',
         'deduction_fixed' => 'double',
+        'deduction_absence' => 'double',
         'net_salary' => 'double',
     ];
 

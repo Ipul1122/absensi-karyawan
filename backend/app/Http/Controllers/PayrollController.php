@@ -41,6 +41,7 @@ class PayrollController extends Controller
             'allowance_transport_daily' => 'required|numeric|min:0',
             'allowance_position' => 'required|numeric|min:0',
             'deduction_late_daily' => 'required|numeric|min:0',
+            'deduction_absence_daily' => 'required|numeric|min:0',
             'deduction_fixed' => 'required|numeric|min:0',
         ]);
 
@@ -52,6 +53,7 @@ class PayrollController extends Controller
                 'allowance_transport_daily' => $request->allowance_transport_daily,
                 'allowance_position' => $request->allowance_position,
                 'deduction_late_daily' => $request->deduction_late_daily,
+                'deduction_absence_daily' => $request->deduction_absence_daily,
                 'deduction_fixed' => $request->deduction_fixed,
             ]
         );
@@ -185,8 +187,12 @@ class PayrollController extends Controller
                 $allowanceFixed = $config ? $config->allowance_fixed : 0;
                 $deductionLate = $daysLate * $deductDailyLate;
                 
-                // Total Gaji Bersih = Gaji Pokok Prorata + Makan + Transport + Jabatan + Tetap - Potongan Telat - Potongan Tetap
-                $netSalary = $proratedBasicSalary + $allowanceMeal + $allowanceTransport + $allowancePosition + $allowanceFixed - $deductionLate - $deductFixed;
+                // Hitung total potongan tidak masuk
+                $daysAbsent = max(0, $workingDaysInMonth - $daysPresent - $daysLeave);
+                $deductionAbsence = $config ? ($daysAbsent * $config->deduction_absence_daily) : 0;
+                
+                // Total Gaji Bersih = Gaji Pokok Prorata + Makan + Transport + Jabatan + Tetap - Potongan Telat - Potongan Tetap - Potongan Tidak Masuk
+                $netSalary = $proratedBasicSalary + $allowanceMeal + $allowanceTransport + $allowancePosition + $allowanceFixed - $deductionLate - $deductFixed - $deductionAbsence;
                 if ($netSalary < 0) {
                     $netSalary = 0; // Gaji tidak boleh negatif
                 }
@@ -208,9 +214,10 @@ class PayrollController extends Controller
                         'allowance_position' => $allowancePosition,
                         'deduction_late' => $deductionLate,
                         'deduction_fixed' => $deductFixed,
+                        'deduction_absence' => $deductionAbsence,
                         'net_salary' => $netSalary,
                         'status' => 'draft', // default ke draft
-                        'notes' => "Kalkulasi otomatis. Hari kerja efektif bulan ini: $workingDaysInMonth hari."
+                        'notes' => "Kalkulasi otomatis. Hari kerja efektif bulan ini: $workingDaysInMonth hari. Potongan tidak masuk: $daysAbsent hari."
                     ]
                 );
 
@@ -273,6 +280,7 @@ class PayrollController extends Controller
             'allowance_fixed' => 'nullable|numeric|min:0',
             'deduction_late' => 'required|numeric|min:0',
             'deduction_fixed' => 'required|numeric|min:0',
+            'deduction_absence' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
 
@@ -292,8 +300,9 @@ class PayrollController extends Controller
         $fixedAllow = $request->input('allowance_fixed', 0);
         $lateDeduct = $request->deduction_late;
         $fixedDeduct = $request->deduction_fixed;
+        $absenceDeduct = $request->input('deduction_absence', 0);
 
-        $net = ($basic + $meal + $transport + $position + $fixedAllow) - ($lateDeduct + $fixedDeduct);
+        $net = ($basic + $meal + $transport + $position + $fixedAllow) - ($lateDeduct + $fixedDeduct + $absenceDeduct);
         if ($net < 0) {
             $net = 0;
         }
@@ -306,6 +315,7 @@ class PayrollController extends Controller
             'allowance_fixed' => $fixedAllow,
             'deduction_late' => $lateDeduct,
             'deduction_fixed' => $fixedDeduct,
+            'deduction_absence' => $absenceDeduct,
             'net_salary' => $net,
             'notes' => $request->notes ?: $payroll->notes,
         ]);

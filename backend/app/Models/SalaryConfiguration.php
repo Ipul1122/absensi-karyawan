@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'allowance_fixed',
     'allowance_position',
     'deduction_late_daily',
+    'deduction_absence_daily',
     'deduction_fixed',
 ])]
 class SalaryConfiguration extends Model

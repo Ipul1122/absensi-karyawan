@@ -275,6 +275,7 @@ class AttendanceController extends Controller
             'notes' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
+            'photo' => 'nullable|string',
         ]);
 
         $userId = $request->user_id;
@@ -318,6 +319,19 @@ class AttendanceController extends Controller
         $latitude = $request->input('latitude') ?: '-6.1942189';
         $longitude = $request->input('longitude') ?: '106.815998';
 
+        // Save photo if uploaded
+        $photoPath = null;
+        if ($request->photo) {
+            try {
+                $photoPath = $this->saveBase64Image($request->photo, 'manual_checkin_' . $userId);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Gagal menyimpan foto: ' . $e->getMessage()
+                ], 422);
+            }
+        }
+
         $attendance = Attendance::create([
             'user_id' => $userId,
             'date' => $date,
@@ -327,13 +341,13 @@ class AttendanceController extends Controller
             'notes_in' => $notesText,
             'latitude_in' => $latitude,
             'longitude_in' => $longitude,
-            'photo_in' => null,
+            'photo_in' => $photoPath,
             'clock_out' => $clockOut,
             'status_out' => $statusOut,
             'notes_out' => $clockOut ? $notesText : null,
             'latitude_out' => $clockOut ? $latitude : null,
             'longitude_out' => $clockOut ? $longitude : null,
-            'photo_out' => null,
+            'photo_out' => $clockOut ? $photoPath : null,
         ]);
 
         // Load the relationship for response format consistency

@@ -16,7 +16,8 @@ import {
   Compass,
   UserCheck,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Upload
 } from 'lucide-react'
 
 
@@ -209,6 +210,42 @@ export default function EmployeeAbsen({
 
   const retakePhoto = () => {
     setCapturedPhoto(null)
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({
+        title: 'Ukuran File Terlalu Besar',
+        text: 'Ukuran foto maksimal adalah 5MB.',
+        icon: 'warning',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#6366f1'
+      })
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string
+      setCapturedPhoto(dataUrl)
+      stopCamera()
+    }
+    reader.onerror = (err) => {
+      console.error('File reading error:', err)
+      Swal.fire({
+        title: 'Gagal Membaca File',
+        text: 'Terjadi kesalahan saat membaca file gambar.',
+        icon: 'error',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#ef4444'
+      })
+    }
+    reader.readAsDataURL(file)
   }
 
   // Calculate distance between employee and office (in meters)
@@ -504,12 +541,23 @@ export default function EmployeeAbsen({
                         className="w-full h-full object-cover transform -scale-x-100" 
                       />
                       {cameraError && (
-                        <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2">
+                        <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2 font-quicksand">
                           <AlertCircle className="w-8 h-8 text-rose-500" />
                           <p className="text-xs font-semibold leading-relaxed">{cameraError}</p>
-                          <button onClick={startCamera} className="px-4 py-2 mt-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
-                            Coba Lagi
-                          </button>
+                          <div className="flex flex-wrap gap-2 justify-center mt-2">
+                            <button onClick={startCamera} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                              Coba Lagi
+                            </button>
+                            <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">
+                              <Upload className="w-3.5 h-3.5" /> Pilih dari Galeri
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={handleImageUpload} 
+                              />
+                            </label>
+                          </div>
                         </div>
                       )}
                     </>
@@ -523,9 +571,22 @@ export default function EmployeeAbsen({
                       <RefreshCw className="w-3.5 h-3.5" /> Ambil Ulang Foto
                     </button>
                   ) : (
-                    <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
-                      <Camera className="w-4 h-4" /> Tangkap Foto Wajah
-                    </button>
+                    <>
+                      <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+                        <Camera className="w-4 h-4" /> Tangkap Foto Wajah
+                      </button>
+                      {cameraError && (
+                        <label className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
+                          <Upload className="w-4 h-4 text-red-500" /> Pilih dari Galeri
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={handleImageUpload} 
+                          />
+                        </label>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -826,12 +887,23 @@ export default function EmployeeAbsen({
                         className="w-full h-full object-cover transform -scale-x-100" 
                       />
                       {cameraError && (
-                        <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2">
+                        <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2 font-quicksand">
                           <AlertCircle className="w-8 h-8 text-rose-500" />
                           <p className="text-xs font-semibold leading-relaxed">{cameraError}</p>
-                          <button onClick={startCamera} className="px-4 py-2 mt-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
-                            Coba Lagi
-                          </button>
+                          <div className="flex flex-wrap gap-2 justify-center mt-2">
+                            <button onClick={startCamera} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                              Coba Lagi
+                            </button>
+                            <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">
+                              <Upload className="w-3.5 h-3.5" /> Pilih dari Galeri
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={handleImageUpload} 
+                              />
+                            </label>
+                          </div>
                         </div>
                       )}
                     </>
@@ -845,9 +917,22 @@ export default function EmployeeAbsen({
                       <RefreshCw className="w-3.5 h-3.5" /> Ambil Ulang Foto
                     </button>
                   ) : (
-                    <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
-                      <Camera className="w-4 h-4" /> Tangkap Foto Wajah
-                    </button>
+                    <>
+                      <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
+                        <Camera className="w-4 h-4" /> Tangkap Foto Wajah
+                      </button>
+                      {cameraError && (
+                        <label className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
+                          <Upload className="w-4 h-4 text-red-500" /> Pilih dari Galeri
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={handleImageUpload} 
+                          />
+                        </label>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

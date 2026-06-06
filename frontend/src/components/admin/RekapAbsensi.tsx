@@ -210,6 +210,45 @@ export default function RekapAbsensi({
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedAttendances = filteredAttendances.slice(startIndex, startIndex + itemsPerPage)
 
+  // Helper to resolve coordinates/presets to location name
+  const getSingleLokasiName = (lat: string | null | undefined, lng: string | null | undefined, type?: string | null) => {
+    if (!lat) return '-'
+    if (isNaN(parseFloat(lat))) return lat
+    
+    const latitude = parseFloat(lat)
+    const longitude = lng ? parseFloat(lng) : 0
+
+    // Check if coordinates match Mall Thamrin City preset
+    if (Math.abs(latitude - (-6.1942189)) < 0.0001 && Math.abs(longitude - 106.815998) < 0.0001) {
+      return 'Mall Thamrin City'
+    }
+
+    // Check if coordinates match Office coordinates
+    const officeLat = parseFloat(officeLatitude)
+    const officeLng = parseFloat(officeLongitude)
+    if (!isNaN(officeLat) && !isNaN(officeLng)) {
+      if (Math.abs(latitude - officeLat) < 0.0005 && Math.abs(longitude - officeLng) < 0.0005) {
+        return 'Kantor Pusat'
+      }
+    }
+
+    // Fallback based on attendance type
+    if (type === 'kantor') return 'Kantor Pusat'
+    if (type === 'kunjungan') return 'Kunjungan Kerja'
+    if (type === 'client') return 'Kunjungan Klien'
+
+    return 'Luar Kantor'
+  }
+
+  const getLokasiLabel = (att: Attendance) => {
+    const locIn = att.latitude_in ? getSingleLokasiName(att.latitude_in, att.longitude_in, att.attendance_type) : '-'
+    const locOut = att.latitude_out ? getSingleLokasiName(att.latitude_out, att.longitude_out, att.attendance_type) : '-'
+    
+    if (locIn === '-' && locOut === '-') return '-'
+    if (locOut === '-' || locIn === locOut) return locIn
+    return `${locIn} (Masuk) / ${locOut} (Keluar)`
+  }
+
   // Export to PDF (Filtered strictly to selected report month, in Indonesian language)
   const handleExportPDF = () => {
     const printWindow = window.open('', '_blank')
@@ -414,6 +453,126 @@ export default function RekapAbsensi({
     printWindow.document.close()
   }
 
+  // Export to Excel
+  const handleExportExcel = () => {
+    const activeMonth = reportMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+    const [year, month] = activeMonth.split('-')
+    
+    const getIndonesianMonthName = (monthNum: number) => {
+      const months = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      return months[monthNum];
+    }
+    
+    const indonesianMonthName = getIndonesianMonthName(parseInt(month, 10) - 1)
+    const currentYear = year
+
+    const getTypeLabel = (type: string | null | undefined) => {
+      if (!type || type === 'kantor') return 'Kantor'
+      if (type === 'kunjungan') return 'Kunjungan Kerja'
+      if (type === 'client') return 'Kunjungan Klien'
+      return type
+    }
+
+    const getPhotoHtml = (photo: string | null) => {
+      if (!photo) return '-'
+      return `<img src="http://localhost:8000${photo}" width="55" height="55" />`
+    }
+
+    let excelContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:Name>Rekap Absensi</x:Name>
+              <x:WorksheetOptions>
+                <x:DisplayGridlines/>
+              </x:WorksheetOptions>
+            </x:ExcelWorksheet>
+          </x:ExcelWorksheets>
+        </x:ExcelWorkbook>
+      </xml>
+      <![endif]-->
+      <style>
+        body { font-family: sans-serif; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #fed7aa; padding: 8px; text-align: left; vertical-align: middle; }
+        th { background-color: #ea580c; color: white; font-weight: bold; }
+        .data-row { height: 65px; }
+        .img-cell { width: 70px; text-align: center; }
+        .text-center { text-align: center; }
+        .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        .subtitle { font-size: 12px; color: #ea580c; margin-bottom: 20px; }
+      </style>
+      </head>
+      <body>
+        <div class="title">Laporan Rekap Absensi Karyawan</div>
+        <div class="subtitle">Bulan: ${indonesianMonthName} ${currentYear} | Tanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Karyawan</th>
+              <th>Email</th>
+              <th>Tanggal</th>
+              <th>Tipe</th>
+              <th>Clock In</th>
+              <th>Clock Out</th>
+              <th>Foto Selfie Masuk</th>
+              <th>Foto Selfie Keluar</th>
+              <th>Lokasi</th>
+            </tr>
+          </thead>
+          <tbody>
+    `
+
+    filteredAttendances.forEach((att, idx) => {
+      excelContent += `
+        <tr class="data-row" style="height: 65px;">
+          <td class="text-center">${idx + 1}</td>
+          <td><b>${att.user.name}</b></td>
+          <td>${att.user.email}</td>
+          <td>${formatDate(att.date)}</td>
+          <td>${getTypeLabel(att.attendance_type)}</td>
+          <td>${att.clock_in || '-'}</td>
+          <td>${att.clock_out || '-'}</td>
+          <td class="img-cell" style="width: 70px; text-align: center; vertical-align: middle;">${getPhotoHtml(att.photo_in)}</td>
+          <td class="img-cell" style="width: 70px; text-align: center; vertical-align: middle;">${getPhotoHtml(att.photo_out)}</td>
+          <td>${getLokasiLabel(att)}</td>
+        </tr>
+      `
+    })
+
+    if (filteredAttendances.length === 0) {
+      excelContent += `
+        <tr>
+          <td colspan="10" class="text-center" style="color: #64748b; padding: 20px;">Tidak ada data absensi yang sesuai filter.</td>
+        </tr>
+      `
+    }
+
+    excelContent += `
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `
+
+    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `Rekap_Absensi_${indonesianMonthName.replace(/\s+/g, '_')}_${currentYear}.xls`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   // Handle Manual Attendance Submission
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -517,6 +676,17 @@ export default function RekapAbsensi({
           >
             <FileDown className="w-4 h-4" />
             Ekspor PDF
+          </button>
+
+          {/* Export Excel Button */}
+          <button
+            onClick={handleExportExcel}
+            disabled={attendanceLoading}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-650 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            title="Ekspor Excel"
+          >
+            <FileDown className="w-4 h-4" />
+            Ekspor Excel
           </button>
 
           <button
@@ -651,13 +821,14 @@ export default function RekapAbsensi({
                 <th className="py-4 px-6">Tipe</th>
                 <th className="py-4 px-6">Clock-In (Masuk)</th>
                 <th className="py-4 px-6">Clock-Out (Keluar)</th>
+                <th className="py-4 px-6">Lokasi</th>
                 <th className="py-4 px-6 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
               {attendanceLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-450 font-medium">
+                  <td colSpan={7} className="py-8 text-center text-slate-450 font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                       Memuat rekam absensi...
@@ -666,7 +837,7 @@ export default function RekapAbsensi({
                 </tr>
               ) : paginatedAttendances.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-450 font-semibold">
+                  <td colSpan={7} className="py-8 text-center text-slate-450 font-semibold">
                     Data absensi tidak ditemukan.
                   </td>
                 </tr>
@@ -712,6 +883,9 @@ export default function RekapAbsensi({
                       ) : (
                         <span className="text-xs text-slate-400 italic font-semibold">Belum keluar</span>
                       )}
+                    </td>
+                    <td className="py-4 px-6 font-extrabold text-slate-700 text-xs">
+                      {getLokasiLabel(att)}
                     </td>
                     <td className="py-4 px-6 text-center">
                       <div className="flex items-center justify-center gap-2">

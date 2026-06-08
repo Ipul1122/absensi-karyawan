@@ -4,10 +4,9 @@ import {
   Users, 
   ShieldCheck, 
   LayoutDashboard, 
-  ClipboardList, 
-  MapPin, 
   ChevronRight,
-  ClipboardCheck,
+  Clock,
+  CalendarDays,
   ReceiptText,
   Settings
 } from 'lucide-react'
@@ -29,12 +28,11 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarProps) {
   const menuItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/admin/rekapAbsensi', label: 'Rekap Absensi', icon: ClipboardList },
-    { to: '/admin/cuti', label: 'Persetujuan Cuti', icon: ClipboardCheck },
-    { to: '/admin/akunKaryawan', label: 'Akun Karyawan', icon: Users },
-    { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin },
-    { to: '/admin/payroll-config', label: 'Setelan Gaji', icon: Settings },
-    { to: '/admin/payroll', label: 'Kelola Payroll', icon: ReceiptText }
+    { to: '/admin/akunKaryawan', label: 'Karyawan', icon: Users },
+    { to: '/admin/rekapAbsensi', label: 'Kehadiran', icon: Clock },
+    { to: '/admin/cuti', label: 'Cuti', icon: CalendarDays },
+    { to: '/admin/payroll', label: 'Penggajian', icon: ReceiptText },
+    { to: '/admin/lokasiKantor', label: 'Pengaturan', icon: Settings },
   ]
 
   const handleLinkClick = () => {
@@ -52,8 +50,8 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
         </div>
 
         {/* User profile brief */}
-        <div className="bg-orange-50/40 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-500 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-red-500/10">
+        <div className="bg-gradient-to-tr from-red-500/5 to-orange-500/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-650 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-red-500/10">
             AD
           </div>
           <div className="overflow-hidden">
@@ -63,7 +61,7 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
         </div>
 
         {/* Menu Items */}
-        <nav className="space-y-1.5 font-quicksand">
+        <nav className="space-y-1 font-quicksand">
           {menuItems.map((item) => {
             const IconComponent = item.icon
             return (
@@ -73,17 +71,17 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
                 onClick={handleLinkClick}
                 className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
                   isActive 
-                    ? 'bg-gradient-to-r from-red-55/60 to-orange-55/60 border border-orange-100/80 text-red-655 shadow-sm' 
-                    : 'text-slate-600 hover:text-red-500 hover:bg-orange-50/30 border border-transparent'
+                    ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md shadow-red-500/15' 
+                    : 'text-slate-655 hover:text-red-600 hover:bg-orange-50/40 border border-transparent'
                 }`}
               >
                 {({ isActive }) => (
                   <>
                     <span className="flex items-center gap-3">
-                      <IconComponent className={`w-4 h-4 transition-colors ${isActive ? 'text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
+                      <IconComponent className={`w-4.5 h-4.5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`} />
                       {item.label}
                     </span>
-                    <ChevronRight className={`w-3.5 h-3.5 transition-all ${isActive ? 'opacity-100 text-red-500' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
+                    <ChevronRight className={`w-4 h-4 transition-all ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
                   </>
                 )}
               </NavLink>
@@ -94,9 +92,9 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
 
       {/* Bottom Actions */}
       <div className="pt-6 border-t border-orange-100 space-y-3">
-        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold px-3">
-          <ShieldCheck className="w-4 h-4 text-red-500" />
-          <span className="font-quicksand uppercase tracking-wider text-[9px]">Akses Admin Utama</span>
+        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold px-3 font-quicksand">
+          <ShieldCheck className="w-4.5 h-4.5 text-red-600 animate-pulse" />
+          <span className="uppercase tracking-wider text-[9px]">Akses Admin Utama</span>
         </div>
         <button
           onClick={onLogout}

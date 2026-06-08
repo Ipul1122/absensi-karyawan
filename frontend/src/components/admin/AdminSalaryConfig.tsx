@@ -4,8 +4,7 @@ import Swal from 'sweetalert2'
 import { 
   Settings, 
   Loader2, 
-  Edit3, 
-  Info
+  Edit3
 } from 'lucide-react'
 
 interface User {

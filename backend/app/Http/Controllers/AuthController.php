@@ -97,6 +97,7 @@ class AuthController extends Controller
                 'employee_number' => $user->employee_number,
                 'join_date'       => $user->join_date,
                 'gender'          => $user->gender,
+                'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
             ]
         ]);
     }
@@ -112,11 +113,15 @@ class AuthController extends Controller
             'join_date'       => 'nullable|date',
             'gender'          => 'nullable|in:male,female',
             'photo'           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
             'photo.image'            => 'File foto harus berupa gambar.',
             'photo.max'              => 'Ukuran foto maksimal 2MB.',
+            'cv.file'                => 'File CV harus berupa dokumen.',
+            'cv.mimes'               => 'Format CV harus berupa PDF, DOC, atau DOCX.',
+            'cv.max'                 => 'Ukuran CV maksimal 5MB.',
         ]);
 
         $user = $request->user();
@@ -130,6 +135,16 @@ class AuthController extends Controller
             }
             $path = $request->file('photo')->store('photos', 'public');
             $data['photo'] = $path;
+        }
+
+        // Handle CV upload
+        if ($request->hasFile('cv')) {
+            // Delete old CV if exists
+            if ($user->cv) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->cv);
+            }
+            $path = $request->file('cv')->store('cvs', 'public');
+            $data['cv'] = $path;
         }
 
         $user->update($data);
@@ -148,6 +163,7 @@ class AuthController extends Controller
                 'employee_number' => $user->employee_number,
                 'join_date'       => $user->join_date,
                 'gender'          => $user->gender,
+                'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
             ]
         ]);
     }

@@ -21,7 +21,9 @@ import {
   Save,
   Phone,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  FileUp
 } from 'lucide-react'
 
 interface Employee {
@@ -43,6 +45,7 @@ interface EmployeeProfile {
   employee_number: string | null
   join_date: string | null
   gender: string | null
+  cv: string | null
   created_at: string
 }
 
@@ -81,8 +84,10 @@ export default function AkunKaryawan({
   const [editProfile, setEditProfile] = useState<EmployeeProfile | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [cvFile, setCvFile] = useState<File | null>(null)
   const [savingBio, setSavingBio] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cvInputRef = useRef<HTMLInputElement>(null)
 
   const togglePassword = (id: number) => {
     setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
@@ -120,6 +125,7 @@ export default function AkunKaryawan({
       setEditProfile(profile)
       setPhotoPreview(profile.photo)
       setPhotoFile(null)
+      setCvFile(null)
       setShowEditBioModal(true)
     }
   }
@@ -133,6 +139,40 @@ export default function AkunKaryawan({
     }
     setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
+  }
+
+  const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ]
+    const fileExtension = file.name.split('.').pop()?.toLowerCase()
+    const isAllowedExt = ['pdf', 'doc', 'docx'].includes(fileExtension || '')
+    
+    if (!allowedTypes.includes(file.type) && !isAllowedExt) {
+      Swal.fire({
+        title: 'Format File Salah',
+        text: 'Hanya file PDF, DOC, atau DOCX yang diperbolehkan.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({
+        title: 'File Terlalu Besar',
+        text: 'Ukuran CV maksimal 5MB.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+      return
+    }
+    setCvFile(file)
   }
 
   const handleSaveBiodata = async () => {
@@ -153,6 +193,7 @@ export default function AkunKaryawan({
       if (editProfile.join_date) formData.append('join_date', editProfile.join_date)
       if (editProfile.gender) formData.append('gender', editProfile.gender)
       if (photoFile) formData.append('photo', photoFile)
+      if (cvFile) formData.append('cv', cvFile)
 
       const res = await axios.post(`http://localhost:8000/api/employees/${editProfile.id}/profile`, formData, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
@@ -163,6 +204,7 @@ export default function AkunKaryawan({
         setShowEditBioModal(false)
         setEditProfile(null)
         setPhotoFile(null)
+        setCvFile(null)
       }
     } catch (err: any) {
       Swal.fire({ title: 'Gagal Menyimpan', text: err.response?.data?.message || 'Gagal menyimpan biodata.', icon: 'error', background: '#fffdfb', color: '#3c1105' })
@@ -380,9 +422,35 @@ export default function AkunKaryawan({
                     </p>
                   </div>
 
+                  {/* CV Document */}
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 font-quicksand">
+                    <div className="flex items-center gap-1 text-slate-400 mb-1.5">
+                      <FileText className="w-3.5 h-3.5" />
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold font-quicksand">Curriculum Vitae (CV)</span>
+                    </div>
+                    {viewProfile.cv ? (
+                      <div className="flex items-center justify-between gap-3 bg-white p-2 border border-slate-100 rounded-lg">
+                        <span className="text-xs font-semibold text-slate-600 truncate flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-orange-500" />
+                          Dokumen CV Karyawan
+                        </span>
+                        <a
+                          href={viewProfile.cv}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer"
+                        >
+                          Lihat / Unduh
+                        </a>
+                      </div>
+                    ) : (
+                      <p className="text-xs font-semibold text-slate-400 italic">Belum diunggah oleh karyawan</p>
+                    )}
+                  </div>
+
                   {/* Completeness indicator */}
                   {(() => {
-                    const fields = [viewProfile.photo, viewProfile.date_of_birth, viewProfile.address, viewProfile.employee_number, viewProfile.join_date, viewProfile.gender]
+                    const fields = [viewProfile.photo, viewProfile.date_of_birth, viewProfile.address, viewProfile.employee_number, viewProfile.join_date, viewProfile.gender, viewProfile.cv]
                     const filled = fields.filter(Boolean).length
                     const pct = Math.round((filled / fields.length) * 100)
                     return (
@@ -547,6 +615,56 @@ export default function AkunKaryawan({
                       placeholder="Alamat lengkap karyawan..."
                       className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-3 outline-none transition-all text-xs font-medium font-quicksand focus:ring-2 focus:ring-red-100 resize-none" />
                   </div>
+                </div>
+
+                {/* CV Upload */}
+                <div className="col-span-2">
+                  <label className={labelClass}>Dokumen CV (Curriculum Vitae)</label>
+                  <div className="p-3 bg-orange-50/20 border border-dashed border-orange-200 rounded-xl flex items-center justify-between gap-3 font-quicksand">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-4 h-4 text-orange-600 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-700 truncate">
+                          {cvFile ? cvFile.name : (editProfile.cv ? 'CV saat ini terunggah' : 'Belum ada CV')}
+                        </p>
+                        <p className="text-[9px] text-slate-400">PDF, DOC, DOCX · Maks. 5MB</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {editProfile.cv && (
+                        <a
+                          href={editProfile.cv}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 bg-white border border-orange-200 text-orange-600 rounded-lg text-[10px] font-bold hover:bg-orange-50 transition-all font-quicksand"
+                          title="Lihat CV Saat Ini"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => cvInputRef.current?.click()}
+                        className="px-2.5 py-1.5 bg-white border border-red-200 hover:border-red-300 text-red-600 rounded-lg text-[10px] font-bold transition-all cursor-pointer font-quicksand flex items-center gap-1 shrink-0"
+                      >
+                        <FileUp className="w-3 h-3" />
+                        Pilih File
+                      </button>
+                      <input
+                        ref={cvInputRef}
+                        type="file"
+                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        className="hidden"
+                        onChange={handleCvChange}
+                      />
+                    </div>
+                  </div>
+                  {cvFile && (
+                    <p className="mt-1 text-[9px] text-emerald-600 font-bold font-quicksand flex items-center gap-1 ml-1">
+                      <span>✓</span> Terpilih: {cvFile.name} ({Math.round(cvFile.size / 1024)} KB)
+                    </p>
+                  )}
                 </div>
               </div>
 

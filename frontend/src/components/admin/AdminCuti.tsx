@@ -46,10 +46,13 @@ export default function AdminCuti({ token }: AdminCutiProps) {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
-  const [monthFilter, setMonthFilter] = useState(() => {
+
+  const currentMonthStr = (() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  })
+  })()
+
+  const [monthFilter, setMonthFilter] = useState(currentMonthStr)
 
   const fetchLeaves = async () => {
     setLoading(true)
@@ -462,9 +465,41 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     )
   }
 
+  const isFilterModified = searchQuery !== '' || statusFilter !== 'all' || monthFilter !== currentMonthStr
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-quicksand">
       
+      {/* Header Panel */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-slate-800">Manajemen Cuti Karyawan</h3>
+          <p className="text-xs text-slate-500 font-medium">Setujui, tolak, dan pantau pengajuan cuti serta ketidakhadiran karyawan.</p>
+        </div>
+        
+        <div className="flex items-center gap-2.5">
+          {/* Export PDF Button */}
+          <button
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
+            title="Ekspor PDF"
+          >
+            <Printer className="w-4 h-4" />
+            Ekspor PDF
+          </button>
+
+          {/* Export Excel Button */}
+          <button
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-650 hover:to-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+            title="Ekspor Excel"
+          >
+            <FileDown className="w-4 h-4" />
+            Ekspor Excel
+          </button>
+        </div>
+      </div>
+
       {/* Overview Stats Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {/* Pending Card */}
@@ -502,96 +537,82 @@ export default function AdminCuti({ token }: AdminCutiProps) {
       </section>
 
       {/* Filter and Search Panel */}
-      <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm font-quicksand">
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          {/* Search, Month Picker, and Status Filter in a grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-grow">
-            
-            {/* Search Input */}
+      <section className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm font-quicksand">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+          
+          {/* Search Input */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cari Karyawan</label>
             <div className="relative">
-              <Search className="w-4.5 h-4.5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Cari nama karyawan, email atau kategori..."
+                placeholder="Cari nama, email, kategori..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-2xl py-2.5 pl-11 pr-4 outline-none transition-all text-xs font-semibold"
+                className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-3 outline-none transition-all text-xs font-semibold shadow-sm"
               />
             </div>
+          </div>
 
-            {/* Month & Year Picker */}
-            <div className="relative flex items-center">
-              <span className="text-xs font-bold text-slate-400 mr-2 shrink-0 flex items-center gap-1">
-                <Calendar className="w-4 h-4 text-red-500" /> Bulan:
-              </span>
-              <input
-                type="month"
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-805 rounded-2xl py-2.5 px-4 outline-none transition-all text-xs font-semibold"
-              />
-              {monthFilter && (
+          {/* Month & Year Picker */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-red-500" />
+              Filter Bulan
+            </label>
+            <input
+              type="month"
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              Status Cuti
+            </label>
+            <div className="flex bg-orange-50/30 border border-orange-100 rounded-xl p-1 justify-between h-[38px] items-center shadow-sm">
+              {[
+                { id: 'all', label: 'Semua' },
+                { id: 'pending', label: 'Menunggu' },
+                { id: 'approved', label: 'Disetujui' },
+                { id: 'rejected', label: 'Ditolak' }
+              ].map((filter) => (
                 <button
-                  type="button"
-                  onClick={() => setMonthFilter('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-red-500 cursor-pointer"
+                  key={filter.id}
+                  onClick={() => setStatusFilter(filter.id as any)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                    statusFilter === filter.id
+                      ? 'bg-white border border-orange-100 text-red-500 shadow-sm font-extrabold'
+                      : 'text-slate-500 hover:text-red-500'
+                  }`}
                 >
-                  Clear
+                  {filter.label}
                 </button>
-              )}
+              ))}
             </div>
-
-            {/* Status Filter */}
-            <div className="flex items-center">
-              <span className="text-xs font-bold text-slate-400 mr-2 shrink-0 flex items-center gap-1">
-                <Filter className="w-4 h-4 text-slate-400" /> Status:
-              </span>
-              <div className="flex bg-orange-50/30 border border-orange-100 rounded-xl p-1 flex-grow justify-between">
-                {[
-                  { id: 'all', label: 'Semua' },
-                  { id: 'pending', label: 'Menunggu' },
-                  { id: 'approved', label: 'Disetujui' },
-                  { id: 'rejected', label: 'Ditolak' }
-                ].map((filter) => (
-                  <button
-                    key={filter.id}
-                    onClick={() => setStatusFilter(filter.id as any)}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                      statusFilter === filter.id
-                        ? 'bg-white border border-orange-100 text-red-550 shadow-sm font-extrabold'
-                        : 'text-slate-500 hover:text-red-500'
-                    }`}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
           </div>
 
-          {/* Export Action Buttons */}
-          <div className="flex items-center gap-2.5 shrink-0 justify-end mt-2 xl:mt-0">
-            {/* Export PDF Button */}
+          {/* Reset Filter Button */}
+          <div>
             <button
-              onClick={handleExportPDF}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-2xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
-              title="Ekspor PDF / Cetak"
+              onClick={() => {
+                setSearchQuery('')
+                setMonthFilter(currentMonthStr)
+                setStatusFilter('all')
+              }}
+              disabled={!isFilterModified}
+              className="w-full py-2 bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 font-bold rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow h-[38px] flex items-center justify-center gap-1.5"
             >
-              <Printer className="w-4 h-4" />
-              Ekspor PDF
-            </button>
-
-            {/* Export Excel Button */}
-            <button
-              onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-650 hover:to-orange-700text-white font-bold rounded-2xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
-              title="Ekspor Excel"
-            >
-              <FileDown className="w-4 h-4" />
-              Ekspor Excel
+              <X className="w-3.5 h-3.5" />
+              Bersihkan Filter
             </button>
           </div>
+
         </div>
       </section>
 
@@ -607,118 +628,120 @@ export default function AdminCuti({ token }: AdminCutiProps) {
             <p>Tidak ditemukan pengajuan cuti yang sesuai.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse font-quicksand">
-              <thead>
-                <tr className="border-b border-orange-50 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  <th className="pb-3">Karyawan</th>
-                  <th className="pb-3">Kategori</th>
-                  <th className="pb-3">Masa Cuti</th>
-                  <th className="pb-3">Keterangan / Alasan</th>
-                  <th className="pb-3">Bukti</th>
-                  <th className="pb-3">Status</th>
-                  <th className="pb-3">Catatan Admin</th>
-                  <th className="pb-3 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-orange-50 text-xs font-semibold text-slate-700">
-                {filteredLeaves.map((leave) => {
-                  const days = calculateDays(leave.start_date, leave.end_date)
-                  return (
-                    <tr key={leave.id} className="hover:bg-orange-50/10 transition-colors">
-                      {/* Employee detail */}
-                      <td className="py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs">
-                            {leave.user.name.charAt(0).toUpperCase()}
+          <div className="border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse font-quicksand">
+                <thead>
+                  <tr className="bg-orange-55/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
+                    <th className="py-4 px-5">Karyawan</th>
+                    <th className="py-4 px-5">Kategori</th>
+                    <th className="py-4 px-5">Masa Cuti</th>
+                    <th className="py-4 px-5">Keterangan / Alasan</th>
+                    <th className="py-4 px-5">Bukti</th>
+                    <th className="py-4 px-5">Status</th>
+                    <th className="py-4 px-5">Catatan Admin</th>
+                    <th className="py-4 px-5 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-orange-100 text-xs font-semibold text-slate-700">
+                  {filteredLeaves.map((leave) => {
+                    const days = calculateDays(leave.start_date, leave.end_date)
+                    return (
+                      <tr key={leave.id} className="hover:bg-orange-50/10 transition-colors">
+                        {/* Employee detail */}
+                        <td className="py-4 px-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs">
+                              {leave.user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="block font-bold text-slate-800">{leave.user.name}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">{leave.user.email}</span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="block font-bold text-slate-800">{leave.user.name}</span>
-                            <span className="text-[10px] text-slate-400 font-medium">{leave.user.email}</span>
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Category */}
-                      <td className="py-4">
-                        <span className="block font-bold text-slate-800">
-                          {leave.category === 'LAINNYA' ? leave.custom_category : leave.category}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          Diajukan: {formatDate(leave.created_at)}
-                        </span>
-                      </td>
+                        {/* Category */}
+                        <td className="py-4 px-5">
+                          <span className="block font-bold text-slate-800">
+                            {leave.category === 'LAINNYA' ? leave.custom_category : leave.category}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            Diajukan: {formatDate(leave.created_at)}
+                          </span>
+                        </td>
 
-                      {/* Period */}
-                      <td className="py-4">
-                        <span className="block text-slate-750 font-bold">{days} Hari</span>
-                        <span className="text-[10px] text-slate-400 font-medium block">
-                          {formatDate(leave.start_date)} - {formatDate(leave.end_date)}
-                        </span>
-                      </td>
+                        {/* Period */}
+                        <td className="py-4 px-5">
+                          <span className="block text-slate-750 font-bold">{days} Hari</span>
+                          <span className="text-[10px] text-slate-400 font-medium block">
+                            {formatDate(leave.start_date)} - {formatDate(leave.end_date)}
+                          </span>
+                        </td>
 
-                      {/* Reason */}
-                      <td className="py-4 max-w-xs truncate" title={leave.reason}>
-                        {leave.reason}
-                      </td>
+                        {/* Reason */}
+                        <td className="py-4 px-5 max-w-xs truncate" title={leave.reason}>
+                          {leave.reason}
+                        </td>
 
-                      {/* Evidence */}
-                      <td className="py-4">
-                        {leave.image ? (
-                          <button
-                            type="button"
-                            onClick={() => viewProofImage(leave.image!, leave.user.name)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-all border border-orange-150 cursor-pointer text-[10px] font-bold"
-                          >
-                            <Eye className="w-3.5 h-3.5" /> Lihat
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 italic font-medium">-</span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-4">
-                        {getStatusBadge(leave.status)}
-                      </td>
-
-                      {/* Admin Notes */}
-                      <td className="py-4 max-w-[180px] truncate" title={leave.admin_notes || ''}>
-                        {leave.admin_notes ? (
-                          <span className="text-slate-600 font-medium italic">"{leave.admin_notes}"</span>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 italic font-medium">-</span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 text-right">
-                        {leave.status === 'pending' ? (
-                          <div className="flex justify-end gap-1.5">
+                        {/* Evidence */}
+                        <td className="py-4 px-5">
+                          {leave.image ? (
                             <button
-                              onClick={() => handleApprove(leave.id, leave.user.name)}
-                              className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
-                              title="Setujui"
+                              type="button"
+                              onClick={() => viewProofImage(leave.image!, leave.user.name)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-all border border-orange-150 cursor-pointer text-[10px] font-bold"
                             >
-                              <Check className="w-4 h-4" />
+                              <Eye className="w-3.5 h-3.5" /> Lihat
                             </button>
-                            <button
-                              onClick={() => handleReject(leave.id, leave.user.name)}
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
-                              title="Tolak"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 font-bold">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic font-medium">-</span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-4 px-5">
+                          {getStatusBadge(leave.status)}
+                        </td>
+
+                        {/* Admin Notes */}
+                        <td className="py-4 px-5 max-w-[180px] truncate" title={leave.admin_notes || ''}>
+                          {leave.admin_notes ? (
+                            <span className="text-slate-600 font-medium italic">"{leave.admin_notes}"</span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic font-medium">-</span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-4 px-5 text-right">
+                          {leave.status === 'pending' ? (
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={() => handleApprove(leave.id, leave.user.name)}
+                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Setujui"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleReject(leave.id, leave.user.name)}
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Tolak"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-bold">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </section>

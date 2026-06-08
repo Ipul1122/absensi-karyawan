@@ -38,6 +38,7 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
     { to: '/admin/inventaris', label: 'Inventaris', icon: Package },
     { to: '/admin/reimbursement', label: 'Reimbursement', icon: ReceiptText },
     { to: '/admin/bonus', label: 'Bonus Karyawan', icon: Gift },
+    { to: '/admin/lembur', label: 'Lembur Karyawan', icon: Clock },
     { to: '/admin/payroll-config', label: 'Setelan Gaji', icon: Wallet },
     { to: '/admin/payroll', label: 'Kelola Payroll', icon: Coins },
     { to: '/admin/lokasiKantor', label: 'Pengaturan', icon: Settings },

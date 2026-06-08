@@ -14,6 +14,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ReimbursementController;
 use App\Http\Controllers\BonusController;
 use App\Http\Controllers\SalesVisitController;
+use App\Http\Controllers\OvertimeController;
 
 Route::get('/health-check', function () {
     try {
@@ -76,6 +77,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sales-visits', [SalesVisitController::class, 'store']);
     Route::get('/sales-visits/today', [SalesVisitController::class, 'getTodayVisits']);
 
+    // Employee Overtime routes
+    Route::get('/overtimes', [OvertimeController::class, 'index']);
+    Route::post('/overtimes', [OvertimeController::class, 'store']);
+    Route::delete('/overtimes/{id}', [OvertimeController::class, 'destroy']);
+
     // Admin only routes
     Route::middleware('admin')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'index']);
@@ -122,6 +128,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/bonuses', [BonusController::class, 'store']);
         Route::put('/admin/bonuses/{id}', [BonusController::class, 'update']);
         Route::delete('/admin/bonuses/{id}', [BonusController::class, 'destroy']);
+
+        // Admin Overtime routes
+        Route::get('/admin/overtimes', [OvertimeController::class, 'indexAdmin']);
+        Route::get('/admin/overtimes/recap', [OvertimeController::class, 'recapAdmin']);
+        Route::put('/admin/overtimes/{id}/approve', [OvertimeController::class, 'approve']);
+        Route::put('/admin/overtimes/{id}/reject', [OvertimeController::class, 'reject']);
     });
 
     // Employee Payroll routes

@@ -27,6 +27,7 @@ import AdminSalaryConfig from './admin/AdminSalaryConfig'
 import AdminInventaris from './admin/AdminInventaris'
 import AdminReimbursement from './admin/AdminReimbursement'
 import AdminBonus from './admin/AdminBonus'
+import AdminOvertime from './admin/AdminOvertime'
 import AddEmployeeModal from './admin/AddEmployeeModal'
 import EditEmployeeModal from './admin/EditEmployeeModal'
 import DetailAttendanceModal from './admin/DetailAttendanceModal'
@@ -631,6 +632,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     if (path.includes('bonus')) {
       return { title: 'Pemberian Bonus Karyawan', subtitle: 'Employee Bonuses' }
     }
+    if (path.includes('lembur')) {
+      return { title: 'Manajemen Lembur Karyawan', subtitle: 'Employee Overtime' }
+    }
     return { title: 'Dashboard Monitoring', subtitle: 'Overview' }
   }
 
@@ -802,6 +806,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
               path="bonus" 
               element={
                 <AdminBonus
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="lembur" 
+              element={
+                <AdminOvertime
                   token={token}
                 />
               } 

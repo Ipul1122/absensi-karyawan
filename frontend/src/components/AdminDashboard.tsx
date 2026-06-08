@@ -8,14 +8,13 @@ import {
   useLocation 
 } from 'react-router-dom'
 import { 
-  Menu,
   X,
   ChevronRight
 } from 'lucide-react'
 
-// Import layout component
+// Import layout components
 import AdminSidebar from './layout/AdminSidebar'
-import Logo from './layout/Logo'
+import AdminNavbar, { AdminMobileNavbar } from './layout/AdminNavbar'
 
 // Import sub-components
 import DashboardOverview from './admin/DashboardOverview'
@@ -25,6 +24,7 @@ import LokasiKantor from './admin/LokasiKantor'
 import AdminCuti from './admin/AdminCuti'
 import AdminPayroll from './admin/AdminPayroll'
 import AdminSalaryConfig from './admin/AdminSalaryConfig'
+import AdminInventaris from './admin/AdminInventaris'
 import AddEmployeeModal from './admin/AddEmployeeModal'
 import EditEmployeeModal from './admin/EditEmployeeModal'
 import DetailAttendanceModal from './admin/DetailAttendanceModal'
@@ -611,6 +611,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     if (path.includes('akunKaryawan')) {
       return { title: 'Kelola Akun Karyawan', subtitle: 'Accounts Management' }
     }
+    if (path.includes('inventaris')) {
+      return { title: 'Daftar Inventaris Barang Kantor', subtitle: 'Office Inventory' }
+    }
     if (path.includes('lokasiKantor')) {
       return { title: 'Konfigurasi Lokasi & Radius', subtitle: 'Location Configuration' }
     }
@@ -629,17 +632,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#f8fafc]">
       
       {/* Mobile Top Navbar Header */}
-      <header className="md:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-orange-100 shadow-sm">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setMobileSidebarOpen(true)}
-            className="p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50/50 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <Logo className="w-8 h-8" />
-        </div>
-      </header>
+      <AdminMobileNavbar onMenuClick={() => setMobileSidebarOpen(true)} />
 
       {/* Floating Toggle Button on Left Middle Edge */}
       {!mobileSidebarOpen && (
@@ -677,70 +670,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
       <div className="flex-grow flex flex-col min-h-screen">
         
         {/* Desktop Navbar Header */}
-        <header className="hidden md:flex items-center justify-between bg-white border-b border-slate-100 px-8 py-5 shadow-xs sticky top-0 z-30">
-          <div>
-            <h1 className="text-sm font-black text-slate-800 tracking-wider font-quicksand uppercase">
-              {routeInfo.title}
-            </h1>
-          </div>
-
-          {/* Search bar inside header */}
-          <div className="relative w-80">
-            <svg
-              className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2.5"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 rounded-full py-2 pl-10 pr-4 outline-none text-xs font-semibold transition-all shadow-inner placeholder-slate-400 text-slate-700"
-            />
-          </div>
-
-          {/* User Profile dropdown or layout */}
-          <div className="flex items-center gap-6">
-            {/* Notification Bell */}
-            <button className="relative p-2 text-slate-500 hover:text-red-500 transition-colors bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500"></span>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
-
-            {/* Profile Info */}
-            <div className="flex items-center gap-3">
-              {user.photo ? (
-                <img
-                  src={user.photo.startsWith('http') ? user.photo : `http://localhost:8000/storage/${user.photo}`}
-                  alt="Avatar"
-                  className="w-10 h-10 rounded-full border border-slate-200 object-cover shadow-sm shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full border border-slate-200 bg-gradient-to-tr from-orange-500 to-red-650 flex items-center justify-center text-white font-extrabold text-sm shadow-sm shrink-0">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="text-left font-quicksand">
-                <h4 className="text-xs font-extrabold text-slate-800 leading-tight">{user.name}</h4>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">
-                  {user.role === 'admin' ? 'HR Manager' : 'Staff'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </header>
+        <AdminNavbar user={user} title={routeInfo.title} />
 
         {/* Main page content container */}
         <main className="flex-grow p-6 md:p-8 overflow-y-auto">
@@ -824,6 +754,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
               path="cuti" 
               element={
                 <AdminCuti
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="inventaris" 
+              element={
+                <AdminInventaris
                   token={token}
                 />
               } 

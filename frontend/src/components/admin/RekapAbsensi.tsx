@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown } from 'lucide-react'
+import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass } from 'lucide-react'
 import ManualAttendanceModal from './ManualAttendanceModal'
+import SalesVisitsLog from './SalesVisitsLog'
 
 interface Attendance {
   id: number
@@ -59,6 +60,8 @@ export default function RekapAbsensi({
   officeLatitude = '-6.2088',
   officeLongitude = '106.8456',
 }: RekapAbsensiProps) {
+  const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'visits'>('attendance')
+
   // Filter States
   const [search, setSearch] = useState('')
   const [reportMonth, setReportMonth] = useState(() => {
@@ -72,7 +75,7 @@ export default function RekapAbsensi({
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const [itemsPerPage, setItemsPerPage] = useState(15) // Default to 15 (> 10)
 
   // Manual Attendance Modal States
   const [showManualModal, setShowManualModal] = useState(false)
@@ -80,10 +83,15 @@ export default function RekapAbsensi({
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, reportMonth, startDate, endDate, statusIn, statusOut])
+  }, [search, reportMonth, startDate, endDate, statusIn, statusOut, itemsPerPage])
 
   // Filter Logic (For Web UI Display)
   const filteredAttendances = attendances.filter((att) => {
+    // Only show 'kantor' type (or null/default to office) in daily attendance log
+    if (att.attendance_type && att.attendance_type !== 'kantor') {
+      return false
+    }
+
     // 1. Search Query (Name/Email)
     const matchesSearch =
       !search ||
@@ -477,7 +485,35 @@ export default function RekapAbsensi({
 
 
   return (
-    <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
+    <div className="space-y-6">
+      {/* Tab Selector */}
+      <div className="flex bg-orange-50/30 border border-orange-100 rounded-2xl p-1.5 backdrop-blur-md">
+        <button
+          onClick={() => setActiveSubTab('attendance')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+            activeSubTab === 'attendance'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              : 'text-slate-500 hover:text-red-500 border border-transparent'
+          }`}
+        >
+          <Clock className="w-4.5 h-4.5" />
+          Log Absensi Harian
+        </button>
+        <button
+          onClick={() => setActiveSubTab('visits')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+            activeSubTab === 'visits'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              : 'text-slate-500 hover:text-red-500 border border-transparent'
+          }`}
+        >
+          <Compass className="w-4.5 h-4.5" />
+          Kunjungan Lapangan / Sales
+        </button>
+      </div>
+
+      {activeSubTab === 'attendance' ? (
+        <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
       
       {/* Header Panel */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-quicksand">
@@ -747,11 +783,31 @@ export default function RekapAbsensi({
       {/* Pagination Footer */}
       {!attendanceLoading && totalItems > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-orange-100 font-quicksand">
-          <span className="text-xs text-slate-500 font-semibold">
-            Menampilkan <span className="font-bold text-slate-700">{startIndex + 1}</span> sampai{' '}
-            <span className="font-bold text-slate-700">{Math.min(startIndex + itemsPerPage, totalItems)}</span> dari{' '}
-            <span className="font-bold text-slate-700">{totalItems}</span> entri absensi
-          </span>
+          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 font-semibold">
+            <span>
+              Menampilkan <span className="font-bold text-slate-700">{startIndex + 1}</span> sampai{' '}
+              <span className="font-bold text-slate-700">{Math.min(startIndex + itemsPerPage, totalItems)}</span> dari{' '}
+              <span className="font-bold text-slate-700">{totalItems}</span> entri absensi
+            </span>
+            <span className="text-slate-300">|</span>
+            <div className="flex items-center gap-1.5">
+              <span>Tampilkan</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="bg-white border border-slate-200 hover:border-orange-500 rounded-lg p-1 outline-none font-bold text-slate-700 transition-all cursor-pointer font-quicksand"
+              >
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+              <span>entri</span>
+            </div>
+          </div>
           {totalPages > 1 && (
             <div className="flex items-center gap-1">
               <button
@@ -805,6 +861,17 @@ export default function RekapAbsensi({
         officeLatitude={officeLatitude}
         officeLongitude={officeLongitude}
       />
-    </section>
+        </section>
+      ) : (
+        <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
+          <SalesVisitsLog 
+            token={token} 
+            formatDate={formatDate} 
+            officeLatitude={officeLatitude} 
+            officeLongitude={officeLongitude} 
+          />
+        </section>
+      )}
+    </div>
   )
 }

@@ -90,7 +90,7 @@ class AttendanceController extends Controller
             if ($timeStr < '08:30:00') {
                 $status = 'early';
             } elseif ($timeStr > '09:00:00') {
-                $status = 'late';
+                $status = ($attendanceType === 'kantor') ? 'late' : 'normal';
             }
 
             if ($existing) {
@@ -116,6 +116,23 @@ class AttendanceController extends Controller
                     'photo_in' => $photoPath,
                     'notes_in' => $request->notes,
                     'status_in' => $status,
+                ]);
+            }
+
+            if ($attendanceType === 'kunjungan' || $attendanceType === 'client') {
+                $clientName = $attendanceType === 'client' ? 'Kunjungan Klien Pertama' : 'Kunjungan Lapangan Pertama';
+                if ($request->notes) {
+                    $clientName = $request->notes;
+                }
+                \App\Models\SalesVisit::create([
+                    'user_id' => $user->id,
+                    'date' => $today,
+                    'visit_time' => $timeStr,
+                    'client_name' => $clientName,
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                    'photo_path' => $photoPath,
+                    'notes' => 'Absen Masuk Pertama Kali (' . ($attendanceType === 'client' ? 'Kunjungan Klien' : 'Kunjungan Lapangan') . ')',
                 ]);
             }
 
@@ -299,7 +316,7 @@ class AttendanceController extends Controller
         if ($clockIn < '08:30:00') {
             $statusIn = 'early';
         } elseif ($clockIn > '09:00:00') {
-            $statusIn = 'late';
+            $statusIn = ($request->attendance_type === 'kantor') ? 'late' : 'normal';
         }
 
         // Calculate status_out
@@ -350,6 +367,23 @@ class AttendanceController extends Controller
             'photo_out' => $clockOut ? $photoPath : null,
         ]);
 
+        if ($request->attendance_type === 'kunjungan' || $request->attendance_type === 'client') {
+            $clientName = $request->attendance_type === 'client' ? 'Kunjungan Klien Pertama' : 'Kunjungan Lapangan Pertama';
+            if ($request->notes) {
+                $clientName = $request->notes;
+            }
+            \App\Models\SalesVisit::create([
+                'user_id' => $userId,
+                'date' => $date,
+                'visit_time' => $clockIn,
+                'client_name' => $clientName,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'photo_path' => $photoPath ?: '',
+                'notes' => 'Absen Masuk Manual oleh Admin',
+            ]);
+        }
+
         // Load the relationship for response format consistency
         $attendance->load('user:id,name,email');
 
@@ -381,7 +415,7 @@ class AttendanceController extends Controller
             if ($clockIn < '08:30:00') {
                 $statusIn = 'early';
             } elseif ($clockIn > '09:00:00') {
-                $statusIn = 'late';
+                $statusIn = ($attendance->attendance_type === 'kantor') ? 'late' : 'normal';
             }
             $attendance->clock_in = $clockIn;
             $attendance->status_in = $statusIn;

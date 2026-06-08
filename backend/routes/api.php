@@ -12,6 +12,8 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ReimbursementController;
+use App\Http\Controllers\BonusController;
+use App\Http\Controllers\SalesVisitController;
 
 Route::get('/health-check', function () {
     try {
@@ -67,6 +69,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reimbursements', [ReimbursementController::class, 'store']);
     Route::delete('/reimbursements/{id}', [ReimbursementController::class, 'destroy']);
 
+    // Employee Bonus routes
+    Route::get('/bonuses', [BonusController::class, 'index']);
+
+    // Employee Sales Visit routes
+    Route::post('/sales-visits', [SalesVisitController::class, 'store']);
+    Route::get('/sales-visits/today', [SalesVisitController::class, 'getTodayVisits']);
+
     // Admin only routes
     Route::middleware('admin')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'index']);
@@ -76,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/employees/{id}/profile', [EmployeeController::class, 'getEmployeeProfile']);
         Route::post('/employees/{id}/profile', [EmployeeController::class, 'updateEmployeeProfile']);
         Route::get('/admin/attendances', [AttendanceController::class, 'getAllAttendances']);
+        Route::get('/admin/sales-visits', [SalesVisitController::class, 'getAllVisits']);
         Route::post('/admin/attendances', [AttendanceController::class, 'storeManualAttendance']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);
         Route::put('/admin/office-setting', [AttendanceController::class, 'updateOfficeSetting']);
@@ -106,6 +116,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/reimbursements/summary', [ReimbursementController::class, 'summaryAdmin']);
         Route::put('/admin/reimbursements/{id}/approve', [ReimbursementController::class, 'approve']);
         Route::put('/admin/reimbursements/{id}/reject', [ReimbursementController::class, 'reject']);
+
+        // Admin Bonus routes
+        Route::get('/admin/bonuses', [BonusController::class, 'indexAdmin']);
+        Route::post('/admin/bonuses', [BonusController::class, 'store']);
+        Route::put('/admin/bonuses/{id}', [BonusController::class, 'update']);
+        Route::delete('/admin/bonuses/{id}', [BonusController::class, 'destroy']);
     });
 
     // Employee Payroll routes

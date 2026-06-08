@@ -9,7 +9,8 @@ import {
   CalendarDays,
   Package,
   ReceiptText,
-  Settings
+  Settings,
+  Gift
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -34,6 +35,7 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
     { to: '/admin/cuti', label: 'Cuti', icon: CalendarDays },
     { to: '/admin/inventaris', label: 'Inventaris', icon: Package },
     { to: '/admin/reimbursement', label: 'Reimbursement', icon: ReceiptText },
+    { to: '/admin/bonus', label: 'Bonus Karyawan', icon: Gift },
     { to: '/admin/lokasiKantor', label: 'Pengaturan', icon: Settings },
   ]
 

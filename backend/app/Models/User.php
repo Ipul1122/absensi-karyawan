@@ -62,5 +62,21 @@ class User extends Authenticatable
     {
         return $this->hasMany(Reimbursement::class);
     }
+
+    /**
+     * Get the bonuses for the user.
+     */
+    public function bonuses()
+    {
+        return $this->hasMany(Bonus::class);
+    }
+
+    /**
+     * Get the sales visits for the user.
+     */
+    public function salesVisits()
+    {
+        return $this->hasMany(SalesVisit::class);
+    }
 }
 

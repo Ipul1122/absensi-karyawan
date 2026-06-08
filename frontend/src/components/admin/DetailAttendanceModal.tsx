@@ -1,5 +1,6 @@
-import React from 'react'
-import { X, Clock, MapPin, FileText } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, Clock, MapPin, FileText, Compass, RefreshCw } from 'lucide-react'
+import axios from 'axios'
 import AttendanceMap from './AttendanceMap'
 
 interface Attendance {
@@ -31,6 +32,9 @@ interface DetailAttendanceModalProps {
   onClose: () => void
   formatDate: (d: string) => string
   getStatusBadge: (s: string | null) => React.ReactNode
+  token: string
+  officeLatitude?: string
+  officeLongitude?: string
 }
 
 export default function DetailAttendanceModal({
@@ -38,7 +42,90 @@ export default function DetailAttendanceModal({
   onClose,
   formatDate,
   getStatusBadge,
+  token,
+  officeLatitude = '-6.2088',
+  officeLongitude = '106.8456',
 }: DetailAttendanceModalProps) {
+  const [visits, setVisits] = useState<any[]>([])
+  const [visitsLoading, setVisitsLoading] = useState(false)
+  const [resolvedAddresses, setResolvedAddresses] = useState<Record<number, string>>({})
+
+  // Address Resolver Function (Nominatim Reverse Geocoding)
+  const resolveAddress = async (id: number, lat: string, lng: string) => {
+    if (resolvedAddresses[id]) return
+    
+    // Check presets first
+    const latitude = parseFloat(lat)
+    const longitude = parseFloat(lng)
+    if (Math.abs(latitude - (-6.1942189)) < 0.0001 && Math.abs(longitude - 106.815998) < 0.0001) {
+      setResolvedAddresses(prev => ({ ...prev, [id]: 'Mall Thamrin City' }))
+      return
+    }
+    const officeLat = parseFloat(officeLatitude)
+    const officeLng = parseFloat(officeLongitude)
+    if (!isNaN(officeLat) && !isNaN(officeLng)) {
+      if (Math.abs(latitude - officeLat) < 0.0005 && Math.abs(longitude - officeLng) < 0.0005) {
+        setResolvedAddresses(prev => ({ ...prev, [id]: 'Kantor Pusat' }))
+        return
+      }
+    }
+
+    // Call Nominatim API for reverse geocoding
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`,
+        { headers: { 'Accept-Language': 'id-ID' } }
+      )
+      if (response.data && response.data.display_name) {
+        const addressObj = response.data.address;
+        const street = addressObj.road || addressObj.suburb || addressObj.village || '';
+        const city = addressObj.city || addressObj.town || addressObj.municipality || addressObj.county || '';
+        const displayName = street && city ? `${street}, ${city}` : response.data.display_name.split(',').slice(0, 3).join(',');
+        setResolvedAddresses(prev => ({ ...prev, [id]: displayName }))
+      } else {
+        setResolvedAddresses(prev => ({ ...prev, [id]: `Luar Kantor` }))
+      }
+    } catch (err) {
+      setResolvedAddresses(prev => ({ ...prev, [id]: `Luar Kantor` }))
+    }
+  }
+
+  // Fetch addresses for visible visits
+  useEffect(() => {
+    if (visits.length > 0) {
+      visits.forEach(visit => {
+        resolveAddress(visit.id, visit.latitude, visit.longitude)
+      })
+    }
+  }, [visits])
+
+  const fetchVisitsForDay = async () => {
+    if (!attendance) return
+    setVisitsLoading(true)
+    try {
+      const response = await axios.get(
+        `http://localhost:8000/api/admin/sales-visits?user_id=${attendance.user.id}&date=${attendance.date}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      )
+      if (response.data.status === 'success') {
+        setVisits(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data kunjungan sales karyawan:', err)
+    } finally {
+      setVisitsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (attendance) {
+      fetchVisitsForDay()
+    } else {
+      setVisits([])
+    }
+  }, [attendance])
   if (!attendance) return null
 
   return (
@@ -209,6 +296,83 @@ export default function DetailAttendanceModal({
           </div>
 
         </div>
+
+        {/* Sales / Field Visits Timeline Section */}
+        {attendance.clock_in && (
+          <div className="mt-8 border-t border-orange-100 pt-6 space-y-4">
+            <h4 className="text-sm font-extrabold text-slate-800 flex items-center gap-2 font-quicksand">
+              <Compass className="w-5 h-5 text-orange-500" />
+              Laporan Kunjungan Sales / Lapangan Hari Ini
+            </h4>
+
+            {visitsLoading ? (
+              <div className="text-center py-4 text-xs font-semibold text-slate-500 flex justify-center items-center gap-2">
+                <RefreshCw className="animate-spin h-4.5 w-4.5 text-orange-500" />
+                <span>Memuat data kunjungan sales...</span>
+              </div>
+            ) : visits.length === 0 ? (
+              <p className="text-xs text-slate-400 italic">Karyawan tidak melaporkan kunjungan lapangan/sales pada hari ini.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {visits.map((visit) => (
+                  <div key={visit.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex gap-4 items-start shadow-sm">
+                    {visit.photo_path && (
+                      <div className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
+                        <img 
+                          src={`http://localhost:8000${visit.photo_path}`} 
+                          alt="Selfie Kunjungan" 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-1.5 flex-grow overflow-hidden">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold text-slate-800 block truncate" title={visit.client_name}>
+                          {visit.client_name}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-55 text-orange-600 border border-orange-100 font-bold font-mono shrink-0">
+                          {visit.visit_time.substring(0, 5)}
+                        </span>
+                      </div>
+                      
+                      {visit.notes && (
+                        <p className="text-[11px] text-slate-655 leading-relaxed font-medium line-clamp-2" title={visit.notes}>
+                          {visit.notes}
+                        </p>
+                      )}
+
+                      <div className="flex flex-col gap-1 mt-2">
+                        <span className="text-xs font-bold text-slate-700 leading-tight">
+                          {resolvedAddresses[visit.id] ? (
+                            resolvedAddresses[visit.id]
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
+                              Mencari nama lokasi...
+                            </span>
+                          )}
+                        </span>
+                        
+                        <div className="flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 font-mono font-semibold">
+                          <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                            title="Buka di Google Maps"
+                          >
+                            Buka Peta
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Modal Footer */}
         <div className="mt-6 pt-4 border-t border-orange-100 flex justify-end">

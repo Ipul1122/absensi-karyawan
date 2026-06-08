@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   Settings,
   CalendarDays,
-  ReceiptText
+  ReceiptText,
+  Gift
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -32,6 +33,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSid
     { to: '/employee/cuti', label: 'Pengajuan Cuti', icon: CalendarDays },
     { to: '/employee/riwayat', label: 'Riwayat Absen', icon: History },
     { to: '/employee/reimbursement', label: 'Reimbursement', icon: ReceiptText },
+    { to: '/employee/bonus', label: 'Bonus Saya', icon: Gift },
     { to: '/employee/pengaturan', label: 'Atur Akun', icon: Settings }
   ]
 

@@ -26,6 +26,7 @@ import AdminPayroll from './admin/AdminPayroll'
 import AdminSalaryConfig from './admin/AdminSalaryConfig'
 import AdminInventaris from './admin/AdminInventaris'
 import AdminReimbursement from './admin/AdminReimbursement'
+import AdminBonus from './admin/AdminBonus'
 import AddEmployeeModal from './admin/AddEmployeeModal'
 import EditEmployeeModal from './admin/EditEmployeeModal'
 import DetailAttendanceModal from './admin/DetailAttendanceModal'
@@ -627,6 +628,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     if (path.includes('reimbursement')) {
       return { title: 'Kelola Klaim Reimbursement', subtitle: 'Reimbursement Claims' }
     }
+    if (path.includes('bonus')) {
+      return { title: 'Pemberian Bonus Karyawan', subtitle: 'Employee Bonuses' }
+    }
     return { title: 'Dashboard Monitoring', subtitle: 'Overview' }
   }
 
@@ -794,6 +798,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                 />
               } 
             />
+            <Route 
+              path="bonus" 
+              element={
+                <AdminBonus
+                  token={token}
+                />
+              } 
+            />
             {/* Default fallback route */}
             <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
           </Routes>
@@ -833,6 +845,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         onClose={() => setSelectedAttendance(null)}
         formatDate={formatDate}
         getStatusBadge={getStatusBadge}
+        token={token}
+        officeLatitude={officeLatitude}
+        officeLongitude={officeLongitude}
       />
 
       {/* Edit Time Modal */}

@@ -26,6 +26,7 @@ import EmployeeSettings from './employee/EmployeeSettings'
 import EmployeeCuti from './employee/EmployeeCuti'
 import EmployeePayroll from './employee/EmployeePayroll'
 import EmployeeReimbursement from './employee/EmployeeReimbursement'
+import EmployeeBonus from './employee/EmployeeBonus'
 
 interface User {
   id: number
@@ -252,6 +253,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     if (path.includes('reimbursement')) {
       return { title: 'Reimbursement Karyawan', subtitle: 'Klaim Biaya Pengeluaran' }
     }
+    if (path.includes('bonus')) {
+      return { title: 'Bonus Saya', subtitle: 'My Bonuses' }
+    }
     return { title: 'Dashboard Karyawan', subtitle: 'Overview' }
   }
 
@@ -408,6 +412,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="reimbursement" 
               element={
                 <EmployeeReimbursement
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="bonus" 
+              element={
+                <EmployeeBonus
                   token={token}
                 />
               } 

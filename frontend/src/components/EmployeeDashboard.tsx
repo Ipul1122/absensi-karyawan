@@ -27,6 +27,7 @@ import EmployeeCuti from './employee/EmployeeCuti'
 import EmployeePayroll from './employee/EmployeePayroll'
 import EmployeeReimbursement from './employee/EmployeeReimbursement'
 import EmployeeBonus from './employee/EmployeeBonus'
+import EmployeeOvertime from './employee/EmployeeOvertime'
 
 interface User {
   id: number
@@ -256,6 +257,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     if (path.includes('bonus')) {
       return { title: 'Bonus Saya', subtitle: 'My Bonuses' }
     }
+    if (path.includes('lembur')) {
+      return { title: 'Pengajuan Lembur Kerja', subtitle: 'Overtime Requests' }
+    }
     return { title: 'Dashboard Karyawan', subtitle: 'Overview' }
   }
 
@@ -420,6 +424,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="bonus" 
               element={
                 <EmployeeBonus
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="lembur" 
+              element={
+                <EmployeeOvertime
                   token={token}
                 />
               } 

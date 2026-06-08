@@ -17,7 +17,9 @@ import {
   UserCircle2,
   Settings,
   ClipboardList,
-  CheckCircle2
+  CheckCircle2,
+  FileText,
+  FileUp
 } from 'lucide-react'
 
 interface UserProp {
@@ -36,6 +38,7 @@ interface ProfileData {
   employee_number: string
   join_date: string
   gender: string
+  cv: string | null
 }
 
 interface EmployeeSettingsProps {
@@ -57,10 +60,12 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
     address: '',
     employee_number: '',
     join_date: '',
-    gender: ''
+    gender: '',
+    cv: null
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [cvFile, setCvFile] = useState<File | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -91,7 +96,8 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
           address: d.address ?? '',
           employee_number: d.employee_number ?? '',
           join_date: d.join_date ?? '',
-          gender: d.gender ?? ''
+          gender: d.gender ?? '',
+          cv: d.cv ?? null
         })
         if (d.photo) setPhotoPreview(d.photo)
       }
@@ -113,6 +119,41 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
     setPhotoPreview(URL.createObjectURL(file))
   }
 
+  const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ]
+    const fileExtension = file.name.split('.').pop()?.toLowerCase()
+    const isAllowedExt = ['pdf', 'doc', 'docx'].includes(fileExtension || '')
+    
+    if (!allowedTypes.includes(file.type) && !isAllowedExt) {
+      Swal.fire({
+        title: 'Format File Salah',
+        text: 'Hanya file PDF, DOC, atau DOCX yang diperbolehkan.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+      return
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire({
+        title: 'File Terlalu Besar',
+        text: 'Ukuran CV maksimal 5MB.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+      return
+    }
+    setCvFile(file)
+  }
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile.name.trim() || !profile.email.trim()) {
@@ -130,6 +171,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
       if (profile.join_date) formData.append('join_date', profile.join_date)
       if (profile.gender) formData.append('gender', profile.gender)
       if (photoFile) formData.append('photo', photoFile)
+      if (cvFile) formData.append('cv', cvFile)
 
       const res = await axios.post('http://localhost:8000/api/user/profile', formData, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
@@ -137,7 +179,11 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
       if (res.data.status === 'success') {
         Swal.fire({ title: 'Biodata Diperbarui!', text: 'Data profil Anda berhasil disimpan.', icon: 'success', background: '#fffdfb', color: '#3c1105', timer: 2000, showConfirmButton: false })
         setPhotoFile(null)
+        setCvFile(null)
         if (res.data.data.photo) setPhotoPreview(res.data.data.photo)
+        if (res.data.data.cv) {
+          setProfile(p => ({ ...p, cv: res.data.data.cv }))
+        }
       }
     } catch (err: any) {
       Swal.fire({ title: 'Gagal Menyimpan', text: err.response?.data?.message || 'Gagal menyimpan profil.', icon: 'error', background: '#fffdfb', color: '#3c1105' })
@@ -198,7 +244,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
   ]
 
   // Biodata completeness indicator
-  const biodataFields = [profile.photo, profile.date_of_birth, profile.address, profile.employee_number, profile.join_date, profile.gender]
+  const biodataFields = [profile.photo, profile.date_of_birth, profile.address, profile.employee_number, profile.join_date, profile.gender, profile.cv]
   const filled = biodataFields.filter(Boolean).length
   const totalFields = biodataFields.length
   const percent = Math.round((filled / totalFields) * 100)
@@ -468,6 +514,52 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                     placeholder="Jl. Contoh No. 123, Kota, Provinsi..."
                     className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs font-medium font-quicksand focus:ring-2 focus:ring-red-100 resize-none" />
                 </div>
+              </div>
+
+              {/* ---- CV (Curriculum Vitae) ---- */}
+              <div>
+                <label className={labelClass}>Dokumen CV (Curriculum Vitae)</label>
+                <div className="p-4 bg-orange-50/20 border border-dashed border-orange-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 font-quicksand">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="w-10 h-10 rounded-xl bg-orange-100/50 flex items-center justify-center shrink-0">
+                      <FileText className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-700 font-quicksand">Unggah Curriculum Vitae Anda</p>
+                      <p className="text-[10px] text-slate-400 font-quicksand mt-0.5">Format: PDF, DOC, DOCX · Maks. 5MB</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                    {profile.cv && (
+                      <a
+                        href={profile.cv}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 rounded-xl text-[10px] font-bold transition-all font-quicksand flex items-center gap-1 cursor-pointer"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Lihat CV Saat Ini
+                      </a>
+                    )}
+                    
+                    <label className="px-3.5 py-1.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-[10px] transition-all cursor-pointer shadow-sm font-quicksand flex items-center gap-1.5 select-none">
+                      <FileUp className="w-3.5 h-3.5" />
+                      {profile.cv ? 'Ganti CV' : 'Unggah CV'}
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        className="hidden"
+                        onChange={handleCvChange}
+                      />
+                    </label>
+                  </div>
+                </div>
+                {cvFile && (
+                  <p className="mt-1.5 text-[10px] text-emerald-600 font-bold font-quicksand flex items-center gap-1 ml-1">
+                    <span>✓</span> Terpilih: {cvFile.name} ({Math.round(cvFile.size / 1024)} KB)
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end pt-1">

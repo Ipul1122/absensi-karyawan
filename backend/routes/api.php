@@ -10,6 +10,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\InventoryController;
 
 Route::get('/health-check', function () {
     try {
@@ -86,6 +87,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/admin/payroll/{id}/pay', [PayrollController::class, 'updatePayrollStatus']);
         Route::put('/admin/payroll/{id}/update', [PayrollController::class, 'updatePayrollManual']);
         Route::delete('/admin/payroll/{id}', [PayrollController::class, 'destroyPayroll']);
+
+        // Admin Inventory routes
+        Route::get('/admin/inventories', [InventoryController::class, 'index']);
+        Route::post('/admin/inventories', [InventoryController::class, 'store']);
+        Route::get('/admin/inventories/{id}', [InventoryController::class, 'show']);
+        Route::post('/admin/inventories/{id}/update', [InventoryController::class, 'update']);
+        Route::delete('/admin/inventories/{id}', [InventoryController::class, 'destroy']);
     });
 
     // Employee Payroll routes

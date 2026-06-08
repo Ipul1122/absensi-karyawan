@@ -25,6 +25,7 @@ import AdminCuti from './admin/AdminCuti'
 import AdminPayroll from './admin/AdminPayroll'
 import AdminSalaryConfig from './admin/AdminSalaryConfig'
 import AdminInventaris from './admin/AdminInventaris'
+import AdminReimbursement from './admin/AdminReimbursement'
 import AddEmployeeModal from './admin/AddEmployeeModal'
 import EditEmployeeModal from './admin/EditEmployeeModal'
 import DetailAttendanceModal from './admin/DetailAttendanceModal'
@@ -623,6 +624,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     if (path.includes('payroll')) {
       return { title: 'Kelola Payroll Karyawan', subtitle: 'Payroll Management' }
     }
+    if (path.includes('reimbursement')) {
+      return { title: 'Kelola Klaim Reimbursement', subtitle: 'Reimbursement Claims' }
+    }
     return { title: 'Dashboard Monitoring', subtitle: 'Overview' }
   }
 
@@ -778,6 +782,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
               path="payroll-config" 
               element={
                 <AdminSalaryConfig
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="reimbursement" 
+              element={
+                <AdminReimbursement
                   token={token}
                 />
               } 

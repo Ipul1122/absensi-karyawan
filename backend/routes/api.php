@@ -11,6 +11,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ReimbursementController;
 
 Route::get('/health-check', function () {
     try {
@@ -61,6 +62,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/leaves', [LeaveController::class, 'store']);
     Route::delete('/leaves/{id}', [LeaveController::class, 'destroy']);
 
+    // Employee Reimbursement routes
+    Route::get('/reimbursements', [ReimbursementController::class, 'index']);
+    Route::post('/reimbursements', [ReimbursementController::class, 'store']);
+    Route::delete('/reimbursements/{id}', [ReimbursementController::class, 'destroy']);
+
     // Admin only routes
     Route::middleware('admin')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'index']);
@@ -94,6 +100,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/inventories/{id}', [InventoryController::class, 'show']);
         Route::post('/admin/inventories/{id}/update', [InventoryController::class, 'update']);
         Route::delete('/admin/inventories/{id}', [InventoryController::class, 'destroy']);
+
+        // Admin Reimbursement routes
+        Route::get('/admin/reimbursements', [ReimbursementController::class, 'indexAdmin']);
+        Route::get('/admin/reimbursements/summary', [ReimbursementController::class, 'summaryAdmin']);
+        Route::put('/admin/reimbursements/{id}/approve', [ReimbursementController::class, 'approve']);
+        Route::put('/admin/reimbursements/{id}/reject', [ReimbursementController::class, 'reject']);
     });
 
     // Employee Payroll routes

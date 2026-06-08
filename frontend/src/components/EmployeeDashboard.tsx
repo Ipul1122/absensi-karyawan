@@ -25,6 +25,7 @@ import EmployeeHistory from './employee/EmployeeHistory'
 import EmployeeSettings from './employee/EmployeeSettings'
 import EmployeeCuti from './employee/EmployeeCuti'
 import EmployeePayroll from './employee/EmployeePayroll'
+import EmployeeReimbursement from './employee/EmployeeReimbursement'
 
 interface User {
   id: number
@@ -248,6 +249,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     if (path.includes('payroll')) {
       return { title: 'Rincian Slip Gaji', subtitle: 'My Payslips' }
     }
+    if (path.includes('reimbursement')) {
+      return { title: 'Reimbursement Karyawan', subtitle: 'Klaim Biaya Pengeluaran' }
+    }
     return { title: 'Dashboard Karyawan', subtitle: 'Overview' }
   }
 
@@ -396,6 +400,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="payroll" 
               element={
                 <EmployeePayroll
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="reimbursement" 
+              element={
+                <EmployeeReimbursement
                   token={token}
                 />
               } 

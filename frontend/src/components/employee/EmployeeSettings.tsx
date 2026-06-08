@@ -252,6 +252,15 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-fade-in">
 
+      {user.role !== 'admin' && (
+        <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800">
+          <ShieldAlert className="w-5 h-5 shrink-0 text-amber-600 animate-pulse" />
+          <div className="text-xs font-bold font-quicksand">
+            Mode Baca-Saja: Hanya Administrator yang dapat mengubah data akun dan biodata ini.
+          </div>
+        </div>
+      )}
+
       {/* ===== TAB SWITCHER ===== */}
       <div className="grid grid-cols-2 gap-3">
         {tabs.map(tab => (
@@ -332,7 +341,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   <Lock className="w-4 h-4" />
                 </div>
                 <input type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
-                  placeholder="Masukkan kata sandi aktif" className={inputClass} />
+                  placeholder="Masukkan kata sandi aktif" className={inputClass} disabled={user.role !== 'admin'} />
               </div>
             </div>
 
@@ -342,7 +351,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Lock className="w-4 h-4" /></div>
                   <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                    placeholder="Min. 6 karakter" className={inputClass} />
+                    placeholder="Min. 6 karakter" className={inputClass} disabled={user.role !== 'admin'} />
                 </div>
               </div>
               <div>
@@ -350,19 +359,21 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Lock className="w-4 h-4" /></div>
                   <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="Ketik ulang sandi baru" className={inputClass} />
+                    placeholder="Ketik ulang sandi baru" className={inputClass} disabled={user.role !== 'admin'} />
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end pt-1">
-              <button type="submit" disabled={savingPassword}
-                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/15 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand">
-                {savingPassword
-                  ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />Menyimpan...</>
-                  : <><Save className="w-4 h-4" />Perbarui Kata Sandi</>}
-              </button>
-            </div>
+            {user.role === 'admin' && (
+              <div className="flex justify-end pt-1">
+                <button type="submit" disabled={savingPassword}
+                  className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/15 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand">
+                  {savingPassword
+                    ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />Menyimpan...</>
+                    : <><Save className="w-4 h-4" />Perbarui Kata Sandi</>}
+                </button>
+              </div>
+            )}
           </form>
 
           {/* Safety notice */}
@@ -423,19 +434,23 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                       <User className="w-8 h-8 text-orange-300" />
                     </div>
                   )}
-                  <button type="button" onClick={() => fileInputRef.current?.click()}
-                    className="absolute -bottom-2 -right-2 w-7 h-7 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center text-white shadow-md cursor-pointer hover:scale-110 transition-transform">
-                    <Camera className="w-3.5 h-3.5" />
-                  </button>
+                  {user.role === 'admin' && (
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      className="absolute -bottom-2 -right-2 w-7 h-7 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center text-white shadow-md cursor-pointer hover:scale-110 transition-transform">
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <div className="flex-grow text-center sm:text-left">
                   <p className="text-sm font-bold text-slate-700 font-quicksand">Foto Profil Karyawan</p>
                   <p className="text-[11px] text-slate-500 font-quicksand mt-0.5">Format: JPG, PNG, WEBP · Maks. 2MB</p>
-                  <button type="button" onClick={() => fileInputRef.current?.click()}
-                    className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-orange-200 hover:border-red-300 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-xl text-[11px] font-bold transition-all cursor-pointer shadow-sm font-quicksand">
-                    <Camera className="w-3.5 h-3.5" />
-                    {photoPreview ? 'Ganti Foto' : 'Unggah Foto'}
-                  </button>
+                  {user.role === 'admin' && (
+                    <button type="button" onClick={() => fileInputRef.current?.click()}
+                      className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-orange-200 hover:border-red-300 hover:bg-red-50 text-slate-600 hover:text-red-600 rounded-xl text-[11px] font-bold transition-all cursor-pointer shadow-sm font-quicksand">
+                      <Camera className="w-3.5 h-3.5" />
+                      {photoPreview ? 'Ganti Foto' : 'Unggah Foto'}
+                    </button>
+                  )}
                   {photoFile && <p className="mt-1 text-[10px] text-emerald-600 font-semibold font-quicksand">✓ {photoFile.name}</p>}
                 </div>
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
@@ -448,7 +463,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><User className="w-4 h-4" /></div>
                     <input type="text" required value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
-                      placeholder="Nama lengkap karyawan" className={inputClass} />
+                      placeholder="Nama lengkap karyawan" className={inputClass} disabled={user.role !== 'admin'} />
                   </div>
                 </div>
                 <div>
@@ -456,7 +471,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Mail className="w-4 h-4" /></div>
                     <input type="email" required value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
-                      placeholder="email@perusahaan.com" className={inputClass} />
+                      placeholder="email@perusahaan.com" className={inputClass} disabled={user.role !== 'admin'} />
                   </div>
                 </div>
               </div>
@@ -468,7 +483,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Hash className="w-4 h-4" /></div>
                     <input type="text" value={profile.employee_number} onChange={e => setProfile(p => ({ ...p, employee_number: e.target.value }))}
-                      placeholder="Contoh: EMP-001" className={inputClass} />
+                      placeholder="Contoh: EMP-001" className={inputClass} disabled={user.role !== 'admin'} />
                   </div>
                 </div>
                 <div>
@@ -476,7 +491,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><User className="w-4 h-4" /></div>
                     <select value={profile.gender} onChange={e => setProfile(p => ({ ...p, gender: e.target.value }))}
-                      className={`${inputClass} appearance-none cursor-pointer`}>
+                      className={`${inputClass} appearance-none cursor-pointer`} disabled={user.role !== 'admin'}>
                       <option value="">-- Pilih Jenis Kelamin --</option>
                       <option value="male">Laki-laki</option>
                       <option value="female">Perempuan</option>
@@ -492,7 +507,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Calendar className="w-4 h-4" /></div>
                     <input type="date" value={profile.date_of_birth} onChange={e => setProfile(p => ({ ...p, date_of_birth: e.target.value }))}
-                      className={inputClass} />
+                      className={inputClass} disabled={user.role !== 'admin'} />
                   </div>
                 </div>
                 <div>
@@ -500,7 +515,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Briefcase className="w-4 h-4" /></div>
                     <input type="date" value={profile.join_date} onChange={e => setProfile(p => ({ ...p, join_date: e.target.value }))}
-                      className={inputClass} />
+                      className={inputClass} disabled={user.role !== 'admin'} />
                   </div>
                 </div>
               </div>
@@ -512,7 +527,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   <div className="absolute top-3 left-0 pl-3.5 pointer-events-none text-slate-400"><MapPin className="w-4 h-4" /></div>
                   <textarea rows={3} value={profile.address} onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
                     placeholder="Jl. Contoh No. 123, Kota, Provinsi..."
-                    className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs font-medium font-quicksand focus:ring-2 focus:ring-red-100 resize-none" />
+                    className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs font-medium font-quicksand focus:ring-2 focus:ring-red-100 resize-none" disabled={user.role !== 'admin'} />
                 </div>
               </div>
 
@@ -525,7 +540,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                       <FileText className="w-5 h-5 text-orange-600" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-700 font-quicksand">Unggah Curriculum Vitae Anda</p>
+                      <p className="text-xs font-bold text-slate-700 font-quicksand">Curriculum Vitae Anda</p>
                       <p className="text-[10px] text-slate-400 font-quicksand mt-0.5">Format: PDF, DOC, DOCX · Maks. 5MB</p>
                     </div>
                   </div>
@@ -543,16 +558,18 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                       </a>
                     )}
                     
-                    <label className="px-3.5 py-1.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-[10px] transition-all cursor-pointer shadow-sm font-quicksand flex items-center gap-1.5 select-none">
-                      <FileUp className="w-3.5 h-3.5" />
-                      {profile.cv ? 'Ganti CV' : 'Unggah CV'}
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        className="hidden"
-                        onChange={handleCvChange}
-                      />
-                    </label>
+                    {user.role === 'admin' && (
+                      <label className="px-3.5 py-1.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-[10px] transition-all cursor-pointer shadow-sm font-quicksand flex items-center gap-1.5 select-none">
+                        <FileUp className="w-3.5 h-3.5" />
+                        {profile.cv ? 'Ganti CV' : 'Unggah CV'}
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                          className="hidden"
+                          onChange={handleCvChange}
+                        />
+                      </label>
+                    )}
                   </div>
                 </div>
                 {cvFile && (
@@ -562,14 +579,16 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                 )}
               </div>
 
-              <div className="flex justify-end pt-1">
-                <button type="submit" disabled={savingProfile}
-                  className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/15 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand">
-                  {savingProfile
-                    ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />Menyimpan...</>
-                    : <><Save className="w-4 h-4" />Simpan Biodata</>}
-                </button>
-              </div>
+              {user.role === 'admin' && (
+                <div className="flex justify-end pt-1">
+                  <button type="submit" disabled={savingProfile}
+                    className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/15 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand">
+                    {savingProfile
+                      ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />Menyimpan...</>
+                      : <><Save className="w-4 h-4" />Simpan Biodata</>}
+                  </button>
+                </div>
+              )}
             </form>
           )}
         </section>

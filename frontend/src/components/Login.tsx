@@ -29,7 +29,6 @@ interface LoginProps {
 
 const BRAND_ORANGE = '#ea580c'
 const BRAND_ORANGE_DARK = '#c2410c'
-const PANEL_BG = '#ea580c'
 
 export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   const [email, setEmail] = useState('')
@@ -60,11 +59,6 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleQuickFill = (role: 'admin' | 'employee') => {
-    setEmail(role === 'admin' ? 'admin@absen.com' : 'karyawan@absen.com')
-    setPassword('password')
   }
 
   return (

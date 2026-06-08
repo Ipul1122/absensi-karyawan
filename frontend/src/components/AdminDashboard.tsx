@@ -8,7 +8,6 @@ import {
   useLocation 
 } from 'react-router-dom'
 import { 
-  Clock,
   Menu,
   X,
   ChevronRight
@@ -60,6 +59,7 @@ interface Attendance {
     id: number
     name: string
     email: string
+    photo?: string | null
   }
 }
 
@@ -69,6 +69,7 @@ interface AdminDashboardProps {
     name: string
     email: string
     role: 'admin' | 'employee'
+    photo?: string | null
   }
   token: string
   onLogout: () => void
@@ -85,6 +86,10 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [showModal, setShowModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [time, setTime] = useState(new Date())
+
+  // Admin's own attendance & leaves states
+  const [adminAttendance, setAdminAttendance] = useState<Attendance | null>(null)
+  const [leaves, setLeaves] = useState<any[]>([])
 
   // Details Modal States
   const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null)
@@ -122,6 +127,32 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     }, 1000)
     return () => clearInterval(clock)
   }, [])
+
+  const fetchAdminAttendance = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/attendance/today', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setAdminAttendance(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data absensi admin hari ini:', err)
+    }
+  }
+
+  const fetchLeaves = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/leaves', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setLeaves(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data cuti:', err)
+    }
+  }
 
   const fetchEmployees = async () => {
     setLoading(true)
@@ -188,6 +219,8 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     fetchEmployees()
     fetchAttendances()
     fetchOfficeSetting()
+    fetchAdminAttendance()
+    fetchLeaves()
   }, [])
 
   const handleLogoutClick = async () => {
@@ -593,7 +626,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const routeInfo = getRouteInfo()
 
   return (
-    <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#fdfaf7]">
+    <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#f8fafc]">
       
       {/* Mobile Top Navbar Header */}
       <header className="md:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-orange-100 shadow-sm">
@@ -620,14 +653,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
       )}
 
       {/* Desktop Left Sidebar (Fixed) */}
-      <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm">
+      <aside className="hidden md:block w-64 bg-white border-r border-slate-100 p-6 flex-shrink-0 shadow-sm">
         <AdminSidebar user={user} onLogout={handleLogoutClick} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden bg-slate-900/40 backdrop-blur-sm animate-fade-in flex">
-          <div className="w-64 bg-white border-r border-orange-100 p-6 h-full flex-shrink-0 relative animate-slide-right">
+          <div className="w-64 bg-white border-r border-slate-200 p-6 h-full flex-shrink-0 relative animate-slide-right">
             <button
               onClick={() => setMobileSidebarOpen(false)}
               className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
@@ -640,131 +673,182 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         </div>
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto">
-        {/* Dynamic header with page title & clock */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-orange-100 pb-6 mb-8">
+      {/* Main Area Wrapper */}
+      <div className="flex-grow flex flex-col min-h-screen">
+        
+        {/* Desktop Navbar Header */}
+        <header className="hidden md:flex items-center justify-between bg-white border-b border-slate-100 px-8 py-5 shadow-xs sticky top-0 z-30">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">
-                Admin Panel
-              </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span className="text-[10px] text-slate-500 font-bold font-mono">
-                {routeInfo.subtitle}
-              </span>
-            </div>
-            <h1 className="text-2xl font-black text-slate-800 mt-1 font-quicksand capitalize">
+            <h1 className="text-sm font-black text-slate-800 tracking-wider font-quicksand uppercase">
               {routeInfo.title}
             </h1>
           </div>
 
-          {/* Clock widget */}
-          <div className="flex items-center gap-3 bg-white border border-orange-100 px-4 py-2.5 rounded-2xl shadow-sm">
-            <Clock className="w-4.5 h-4.5 text-red-550 animate-pulse" />
-            <div>
-              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-wider font-quicksand">Jam Digital</span>
-              <span className="text-xs font-bold text-slate-800 font-mono">{time.toLocaleTimeString('id-ID')}</span>
+          {/* Search bar inside header */}
+          <div className="relative w-80">
+            <svg
+              className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2.5"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 rounded-full py-2 pl-10 pr-4 outline-none text-xs font-semibold transition-all shadow-inner placeholder-slate-400 text-slate-700"
+            />
+          </div>
+
+          {/* User Profile dropdown or layout */}
+          <div className="flex items-center gap-6">
+            {/* Notification Bell */}
+            <button className="relative p-2 text-slate-500 hover:text-red-500 transition-colors bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500"></span>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </button>
+
+            {/* Profile Info */}
+            <div className="flex items-center gap-3">
+              {user.photo ? (
+                <img
+                  src={user.photo.startsWith('http') ? user.photo : `http://localhost:8000/storage/${user.photo}`}
+                  alt="Avatar"
+                  className="w-10 h-10 rounded-full border border-slate-200 object-cover shadow-sm shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full border border-slate-200 bg-gradient-to-tr from-orange-500 to-red-650 flex items-center justify-center text-white font-extrabold text-sm shadow-sm shrink-0">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="text-left font-quicksand">
+                <h4 className="text-xs font-extrabold text-slate-800 leading-tight">{user.name}</h4>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-mono">
+                  {user.role === 'admin' ? 'HR Manager' : 'Staff'}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Nested Routing Views */}
-        <Routes>
-          <Route 
-            path="dashboard" 
-            element={
-              <DashboardOverview
-                loading={loading}
-                attendanceLoading={attendanceLoading}
-                employeesCount={employees.length}
-                presentTodayCount={presentToday.length}
-                normalTodayCount={presentToday.filter(a => a.status_in === 'normal').length}
-                presentTodayList={presentToday}
-                formatDate={formatDate}
-                getStatusBadge={getStatusBadge}
-                setSelectedAttendance={setSelectedAttendance}
-                todayStr={todayStr}
-              />
-            } 
-          />
-          <Route 
-            path="rekapAbsensi" 
-            element={
-              <RekapAbsensi
-                token={token}
-                employees={employees}
-                attendanceLoading={attendanceLoading}
-                attendances={attendances}
-                fetchAttendances={fetchAttendances}
-                formatDate={formatDate}
-                getStatusBadge={getStatusBadge}
-                setSelectedAttendance={setSelectedAttendance}
-                handleOpenEditModal={handleOpenEditModal}
-                officeLatitude={officeLatitude}
-                officeLongitude={officeLongitude}
-              />
-            } 
-          />
-          <Route 
-            path="akunKaryawan" 
-            element={
-              <AkunKaryawan
-                loading={loading}
-                filteredEmployees={filteredEmployees}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                handleDeleteEmployee={handleDeleteEmployee}
-                onEditClick={handleOpenEditEmployeeModal}
-                setShowModal={setShowModal}
-                formatDate={formatDate}
-                token={token}
-              />
-            } 
-          />
-          <Route 
-            path="lokasiKantor" 
-            element={
-              <LokasiKantor
-                officeLatitude={officeLatitude}
-                setOfficeLatitude={setOfficeLatitude}
-                officeLongitude={officeLongitude}
-                setOfficeLongitude={setOfficeLongitude}
-                officeRadius={officeRadius}
-                setOfficeRadius={setOfficeRadius}
-                savingOffice={savingOffice}
-                handleOfficeSettingSubmit={handleOfficeSettingSubmit}
-              />
-            } 
-          />
-          <Route 
-            path="cuti" 
-            element={
-              <AdminCuti
-                token={token}
-              />
-            } 
-          />
-          <Route 
-            path="payroll" 
-            element={
-              <AdminPayroll
-                token={token}
-              />
-            } 
-          />
-          <Route 
-            path="payroll-config" 
-            element={
-              <AdminSalaryConfig
-                token={token}
-              />
-            } 
-          />
-          {/* Default fallback route */}
-          <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-        </Routes>
-      </main>
+        {/* Main page content container */}
+        <main className="flex-grow p-6 md:p-8 overflow-y-auto">
+          {/* Nested Routing Views */}
+          <Routes>
+            <Route 
+              path="dashboard" 
+              element={
+                <DashboardOverview
+                  loading={loading}
+                  attendanceLoading={attendanceLoading}
+                  employeesCount={employees.length}
+                  presentTodayCount={presentToday.length}
+                  presentTodayList={presentToday}
+                  todayStr={todayStr}
+                  user={user}
+                  token={token}
+                  time={time}
+                  officeSetting={
+                    officeLatitude && officeLongitude 
+                      ? { latitude: officeLatitude, longitude: officeLongitude, radius: officeRadius }
+                      : null
+                  }
+                  todayAttendance={adminAttendance}
+                  fetchTodayAttendance={fetchAdminAttendance}
+                  leaves={leaves}
+                  allAttendances={attendances}
+                />
+              } 
+            />
+            <Route 
+              path="rekapAbsensi" 
+              element={
+                <RekapAbsensi
+                  token={token}
+                  employees={employees}
+                  attendanceLoading={attendanceLoading}
+                  attendances={attendances}
+                  fetchAttendances={fetchAttendances}
+                  formatDate={formatDate}
+                  getStatusBadge={getStatusBadge}
+                  setSelectedAttendance={setSelectedAttendance}
+                  handleOpenEditModal={handleOpenEditModal}
+                  officeLatitude={officeLatitude}
+                  officeLongitude={officeLongitude}
+                />
+              } 
+            />
+            <Route 
+              path="akunKaryawan" 
+              element={
+                <AkunKaryawan
+                  loading={loading}
+                  filteredEmployees={filteredEmployees}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  handleDeleteEmployee={handleDeleteEmployee}
+                  onEditClick={handleOpenEditEmployeeModal}
+                  setShowModal={setShowModal}
+                  formatDate={formatDate}
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="lokasiKantor" 
+              element={
+                <LokasiKantor
+                  officeLatitude={officeLatitude}
+                  setOfficeLatitude={setOfficeLatitude}
+                  officeLongitude={officeLongitude}
+                  setOfficeLongitude={setOfficeLongitude}
+                  officeRadius={officeRadius}
+                  setOfficeRadius={setOfficeRadius}
+                  savingOffice={savingOffice}
+                  handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                />
+              } 
+            />
+            <Route 
+              path="cuti" 
+              element={
+                <AdminCuti
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="payroll" 
+              element={
+                <AdminPayroll
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="payroll-config" 
+              element={
+                <AdminSalaryConfig
+                  token={token}
+                />
+              } 
+            />
+            {/* Default fallback route */}
+            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+          </Routes>
+        </main>
+      </div>
 
       {/* Add Employee Modal */}
       <AddEmployeeModal

@@ -19,7 +19,6 @@ import {
   Briefcase,
   Camera,
   Save,
-  Phone,
   CheckCircle2,
   AlertCircle,
   FileText,
@@ -314,18 +313,26 @@ export default function AkunKaryawan({
                           >
                             <BookUser className="w-4 h-4" />
                           </button>
+                          {/* Edit Akun Credentials */}
+                          <button
+                            onClick={() => onEditClick(emp)}
+                            className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                            title="Edit Akun Login"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
                           {/* Edit Biodata */}
                           <button
                             onClick={() => handleOpenEditBio(emp)}
                             className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                            title="Edit Biodata"
+                            title="Edit Biodata Lengkap"
                           >
-                            <Edit className="w-4 h-4" />
+                            <FileText className="w-4 h-4" />
                           </button>
                           {/* Hapus */}
                           <button
                             onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                            className="p-2 text-slate-400 hover:text-red-650 hover:bg-red-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
                             title="Hapus Karyawan"
                           >
                             <Trash2 className="w-4 h-4" />

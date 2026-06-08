@@ -20,8 +20,6 @@ interface User {
 
 function App() {
   const [backendStatus, setBackendStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle')
-  const [dbStatus, setDbStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle')
-  const [healthData, setHealthData] = useState<HealthResponse | null>(null)
   
   // Auth state
   const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'))
@@ -39,21 +37,12 @@ function App() {
 
   const checkConnection = async () => {
     setBackendStatus('checking')
-    setDbStatus('checking')
 
     try {
-      const response = await axios.get<HealthResponse>('http://localhost:8000/api/health-check')
-      setHealthData(response.data)
+      await axios.get<HealthResponse>('http://localhost:8000/api/health-check')
       setBackendStatus('connected')
-      
-      if (response.data.database === 'Connected') {
-        setDbStatus('connected')
-      } else {
-        setDbStatus('error')
-      }
     } catch (error) {
       setBackendStatus('error')
-      setDbStatus('error')
     }
   }
 
@@ -73,32 +62,6 @@ function App() {
     localStorage.removeItem('auth_user')
     setToken(null)
     setUser(null)
-  }
-
-  // Helper to show indicator color classes
-  const getStatusBadge = () => {
-    if (backendStatus === 'connected' && dbStatus === 'connected') {
-      return (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider font-quicksand">Sistem Online</span>
-        </div>
-      )
-    }
-    if (backendStatus === 'checking') {
-      return (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200">
-          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-          <span className="text-[10px] font-extrabold text-amber-700 uppercase tracking-wider font-quicksand">Menghubungkan...</span>
-        </div>
-      )
-    }
-    return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-55 border border-rose-200">
-        <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-        <span className="text-[10px] font-extrabold text-rose-700 uppercase tracking-wider font-quicksand">Backend Offline</span>
-      </div>
-    )
   }
 
   return (

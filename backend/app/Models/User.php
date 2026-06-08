@@ -54,4 +54,13 @@ class User extends Authenticatable
     {
         return $this->hasMany(Payroll::class);
     }
+
+    /**
+     * Get the reimbursements for the user.
+     */
+    public function reimbursements()
+    {
+        return $this->hasMany(Reimbursement::class);
+    }
 }
+

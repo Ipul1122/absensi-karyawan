@@ -26,11 +26,24 @@ import EmployeeSettings from './employee/EmployeeSettings'
 import EmployeeCuti from './employee/EmployeeCuti'
 import EmployeePayroll from './employee/EmployeePayroll'
 
+interface Shift {
+  id: number
+  name: string
+  clock_in: string
+  clock_out: string
+  early_checkin_before: string
+  late_checkin_after: string
+  early_checkout_before: string
+  overtime_checkout_after: string
+}
+
 interface User {
   id: number
   name: string
   email: string
   role: 'admin' | 'employee'
+  photo?: string | null
+  shift?: Shift | null
 }
 
 interface EmployeeDashboardProps {
@@ -67,6 +80,7 @@ interface OfficeSetting {
 export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDashboardProps) {
   const location = useLocation()
   const [time, setTime] = useState(new Date())
+  const [currentUser, setCurrentUser] = useState<User>(user)
   const [todayAttendance, setTodayAttendance] = useState<Attendance | null>(null)
   const [officeSetting, setOfficeSetting] = useState<OfficeSetting | null>(null)
   const [history, setHistory] = useState<Attendance[]>([])
@@ -80,6 +94,20 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+
+  // Fetch latest user profile to get dynamic shift config
+  const fetchProfile = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/user/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setCurrentUser(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data profil karyawan:', err)
+    }
+  }
 
   // Fetch today's attendance, office setting & history
   const fetchTodayAttendance = async () => {
@@ -124,6 +152,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   }
 
   useEffect(() => {
+    fetchProfile()
     fetchTodayAttendance()
     fetchOfficeSetting()
     fetchHistory()
@@ -139,14 +168,29 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
 
   const attendanceState = getAttendanceState()
 
+  // Helper to convert HH:MM:SS to minutes
+  const timeToMinutes = (timeStr: string | undefined, defaultMinutes: number) => {
+    if (!timeStr) return defaultMinutes
+    const parts = timeStr.split(':')
+    if (parts.length >= 2) {
+      const hh = parseInt(parts[0], 10)
+      const mm = parseInt(parts[1], 10)
+      if (!isNaN(hh) && !isNaN(mm)) {
+        return hh * 60 + mm
+      }
+    }
+    return defaultMinutes
+  }
+
   // Timer-based status evaluation for visual guidelines
   const getLiveCheckInStatus = () => {
     const hrs = time.getHours()
     const mins = time.getMinutes()
     const timeVal = hrs * 60 + mins
 
-    const startNormal = 8 * 60 + 30 // 08:30
-    const endNormal = 9 * 60 // 09:00
+    const shift = currentUser?.shift
+    const startNormal = timeToMinutes(shift?.early_checkin_before, 8 * 60 + 30) // 08:30
+    const endNormal = timeToMinutes(shift?.late_checkin_after, 9 * 60) // 09:00
 
     if (timeVal < startNormal) {
       return { text: 'Datang Lebih Awal', colorClass: 'text-amber-700 bg-amber-50 border-amber-200' }
@@ -162,8 +206,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     const mins = time.getMinutes()
     const timeVal = hrs * 60 + mins
 
-    const startNormal = 17 * 60 // 17:00
-    const endNormal = 18 * 60 // 18:00
+    const shift = currentUser?.shift
+    const startNormal = timeToMinutes(shift?.early_checkout_before, 17 * 60) // 17:00
+    const endNormal = timeToMinutes(shift?.overtime_checkout_after, 18 * 60) // 18:00
 
     if (timeVal < startNormal) {
       return { text: 'Pulang Cepat', colorClass: 'text-rose-700 bg-rose-50 border-rose-200' }
@@ -282,7 +327,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
 
       {/* Desktop Left Sidebar (Fixed) */}
       <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm">
-        <EmployeeSidebar user={user} onLogout={handleLogoutClick} />
+        <EmployeeSidebar user={currentUser} onLogout={handleLogoutClick} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
@@ -295,7 +340,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
             >
               <X className="w-4 h-4" />
             </button>
-            <EmployeeSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} />
+            <EmployeeSidebar user={currentUser} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} />
           </div>
           <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
         </div>
@@ -342,7 +387,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="dashboard" 
               element={
                 <EmployeeOverview
-                  user={user}
+                  user={currentUser}
                   time={time}
                   todayAttendance={todayAttendance}
                   attendanceState={attendanceState}
@@ -379,8 +424,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="pengaturan" 
               element={
                 <EmployeeSettings
-                  user={user}
+                  user={currentUser}
                   token={token}
+                  onProfileUpdate={fetchProfile}
                 />
               } 
             />

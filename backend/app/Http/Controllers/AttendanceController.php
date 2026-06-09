@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Attendance;
+use App\Models\User;
+use App\Models\Shift;
+use App\Models\Holiday;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
@@ -86,10 +89,15 @@ class AttendanceController extends Controller
             // - Before 08:30: early (Datang Lebih Awal)
             // - 08:30 - 09:00: normal (Normal)
             // - After 09:00: late (Terlambat)
+            $user->load('shift');
+            $shift = $user->shift;
+            $earlyLimit = $shift ? $shift->early_checkin_before : '08:30:00';
+            $lateLimit = $shift ? $shift->late_checkin_after : '09:00:00';
+
             $status = 'normal';
-            if ($timeStr < '08:30:00') {
+            if ($timeStr < $earlyLimit) {
                 $status = 'early';
-            } elseif ($timeStr > '09:00:00') {
+            } elseif ($timeStr > $lateLimit) {
                 $status = 'late';
             }
 
@@ -197,10 +205,15 @@ class AttendanceController extends Controller
             // - Before 17:00: early_departure (Pulang Cepat)
             // - 17:00 - 18:00: normal (Normal)
             // - After 18:00: overtime (Lembur)
+            $user->load('shift');
+            $shift = $user->shift;
+            $earlyOutLimit = $shift ? $shift->early_checkout_before : '17:00:00';
+            $overtimeLimit = $shift ? $shift->overtime_checkout_after : '18:00:00';
+
             $status = 'normal';
-            if ($timeStr < '17:00:00') {
+            if ($timeStr < $earlyOutLimit) {
                 $status = 'early_departure';
-            } elseif ($timeStr > '18:00:00') {
+            } elseif ($timeStr > $overtimeLimit) {
                 $status = 'overtime';
             }
 
@@ -293,12 +306,17 @@ class AttendanceController extends Controller
             ], 422);
         }
 
+        $targetUser = User::find($userId);
+        $shift = $targetUser ? $targetUser->shift : null;
+
         // Calculate status_in
         $clockIn = Carbon::parse($request->clock_in)->format('H:i:s');
+        $earlyLimit = $shift ? $shift->early_checkin_before : '08:30:00';
+        $lateLimit = $shift ? $shift->late_checkin_after : '09:00:00';
         $statusIn = 'normal';
-        if ($clockIn < '08:30:00') {
+        if ($clockIn < $earlyLimit) {
             $statusIn = 'early';
-        } elseif ($clockIn > '09:00:00') {
+        } elseif ($clockIn > $lateLimit) {
             $statusIn = 'late';
         }
 
@@ -307,10 +325,12 @@ class AttendanceController extends Controller
         $statusOut = null;
         if ($request->clock_out) {
             $clockOut = Carbon::parse($request->clock_out)->format('H:i:s');
+            $earlyOutLimit = $shift ? $shift->early_checkout_before : '17:00:00';
+            $overtimeLimit = $shift ? $shift->overtime_checkout_after : '18:00:00';
             $statusOut = 'normal';
-            if ($clockOut < '17:00:00') {
+            if ($clockOut < $earlyOutLimit) {
                 $statusOut = 'early_departure';
-            } elseif ($clockOut > '18:00:00') {
+            } elseif ($clockOut > $overtimeLimit) {
                 $statusOut = 'overtime';
             }
         }
@@ -370,17 +390,20 @@ class AttendanceController extends Controller
             'clock_out' => 'nullable|string',
         ]);
 
-        $attendance = Attendance::findOrFail($id);
+        $targetUser = $attendance->user;
+        $shift = $targetUser ? $targetUser->shift : null;
 
         $clockIn = $request->clock_in;
         $clockOut = $request->clock_out;
 
         if ($clockIn) {
             $clockIn = Carbon::parse($clockIn)->format('H:i:s');
+            $earlyLimit = $shift ? $shift->early_checkin_before : '08:30:00';
+            $lateLimit = $shift ? $shift->late_checkin_after : '09:00:00';
             $statusIn = 'normal';
-            if ($clockIn < '08:30:00') {
+            if ($clockIn < $earlyLimit) {
                 $statusIn = 'early';
-            } elseif ($clockIn > '09:00:00') {
+            } elseif ($clockIn > $lateLimit) {
                 $statusIn = 'late';
             }
             $attendance->clock_in = $clockIn;
@@ -392,10 +415,12 @@ class AttendanceController extends Controller
 
         if ($clockOut) {
             $clockOut = Carbon::parse($clockOut)->format('H:i:s');
+            $earlyOutLimit = $shift ? $shift->early_checkout_before : '17:00:00';
+            $overtimeLimit = $shift ? $shift->overtime_checkout_after : '18:00:00';
             $statusOut = 'normal';
-            if ($clockOut < '17:00:00') {
+            if ($clockOut < $earlyOutLimit) {
                 $statusOut = 'early_departure';
-            } elseif ($clockOut > '18:00:00') {
+            } elseif ($clockOut > $overtimeLimit) {
                 $statusOut = 'overtime';
             }
             $attendance->clock_out = $clockOut;
@@ -498,5 +523,154 @@ class AttendanceController extends Controller
         Storage::disk('public')->put($filePath, $image);
 
         return '/storage/' . $filePath;
+    }
+
+    /**
+     * Get all shifts (for admin).
+     */
+    public function getAllShifts()
+    {
+        $shifts = Shift::withCount('users')->get();
+        return response()->json([
+            'status' => 'success',
+            'data' => $shifts
+        ]);
+    }
+
+    /**
+     * Store new shift (for admin).
+     */
+    public function storeShift(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'clock_in' => 'required|string',
+            'clock_out' => 'required|string',
+            'early_checkin_before' => 'required|string',
+            'late_checkin_after' => 'required|string',
+            'early_checkout_before' => 'required|string',
+            'overtime_checkout_after' => 'required|string',
+        ]);
+
+        $shift = Shift::create([
+            'name' => $request->name,
+            'clock_in' => Carbon::parse($request->clock_in)->format('H:i:s'),
+            'clock_out' => Carbon::parse($request->clock_out)->format('H:i:s'),
+            'early_checkin_before' => Carbon::parse($request->early_checkin_before)->format('H:i:s'),
+            'late_checkin_after' => Carbon::parse($request->late_checkin_after)->format('H:i:s'),
+            'early_checkout_before' => Carbon::parse($request->early_checkout_before)->format('H:i:s'),
+            'overtime_checkout_after' => Carbon::parse($request->overtime_checkout_after)->format('H:i:s'),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Shift baru berhasil dibuat!',
+            'data' => $shift
+        ], 201);
+    }
+
+    /**
+     * Update shift (for admin).
+     */
+    public function updateShift(Request $request, $id)
+    {
+        $shift = Shift::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'clock_in' => 'required|string',
+            'clock_out' => 'required|string',
+            'early_checkin_before' => 'required|string',
+            'late_checkin_after' => 'required|string',
+            'early_checkout_before' => 'required|string',
+            'overtime_checkout_after' => 'required|string',
+        ]);
+
+        $shift->update([
+            'name' => $request->name,
+            'clock_in' => Carbon::parse($request->clock_in)->format('H:i:s'),
+            'clock_out' => Carbon::parse($request->clock_out)->format('H:i:s'),
+            'early_checkin_before' => Carbon::parse($request->early_checkin_before)->format('H:i:s'),
+            'late_checkin_after' => Carbon::parse($request->late_checkin_after)->format('H:i:s'),
+            'early_checkout_before' => Carbon::parse($request->early_checkout_before)->format('H:i:s'),
+            'overtime_checkout_after' => Carbon::parse($request->overtime_checkout_after)->format('H:i:s'),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Shift berhasil diperbarui!',
+            'data' => $shift
+        ]);
+    }
+
+    /**
+     * Delete shift (for admin).
+     */
+    public function destroyShift($id)
+    {
+        $shift = Shift::findOrFail($id);
+
+        // Don't allow deleting shift with active employees
+        if ($shift->users()->count() > 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Shift tidak dapat dihapus karena masih digunakan oleh karyawan aktif.'
+            ], 422);
+        }
+
+        $shift->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Shift berhasil dihapus!'
+        ]);
+    }
+
+    /**
+     * Get all holidays (for admin/employee).
+     */
+    public function getHolidays()
+    {
+        $holidays = Holiday::orderBy('date', 'asc')->get();
+        return response()->json([
+            'status' => 'success',
+            'data' => $holidays
+        ]);
+    }
+
+    /**
+     * Store holiday (for admin).
+     */
+    public function storeHoliday(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date|unique:holidays,date',
+            'name' => 'required|string|max:255',
+        ]);
+
+        $holiday = Holiday::create([
+            'date' => Carbon::parse($request->date)->toDateString(),
+            'name' => $request->name,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Hari libur berhasil ditambahkan!',
+            'data' => $holiday
+        ], 201);
+    }
+
+    /**
+     * Delete holiday (for admin).
+     */
+    public function destroyHoliday($id)
+    {
+        $holiday = Holiday::findOrFail($id);
+        $holiday->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Hari libur berhasil dihapus!'
+        ]);
     }
 }

@@ -12,7 +12,7 @@ class EmployeeController extends Controller
 {
     public function index()
     {
-        $employees = User::where('role', 'employee')->orderBy('id', 'desc')->get();
+        $employees = User::where('role', 'employee')->with('shift')->orderBy('id', 'desc')->get();
         
         return response()->json([
             'status' => 'success',
@@ -26,6 +26,7 @@ class EmployeeController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
+            'shift_id' => 'nullable|integer|exists:shifts,id',
         ]);
 
         $employee = User::create([
@@ -34,7 +35,11 @@ class EmployeeController extends Controller
             'password' => Hash::make($request->password),
             'password_plain' => $request->password,
             'role' => 'employee',
+            'shift_id' => $request->shift_id,
         ]);
+
+        // Load the shift relation for returning consistent data
+        $employee->load('shift');
 
         return response()->json([
             'status' => 'success',
@@ -75,6 +80,7 @@ class EmployeeController extends Controller
 
         $rules = [
             'name' => 'required|string|max:255',
+            'shift_id' => 'nullable|integer|exists:shifts,id',
         ];
 
         if ($request->filled('password')) {
@@ -87,6 +93,7 @@ class EmployeeController extends Controller
 
         $updateData = [
             'name' => $request->name,
+            'shift_id' => $request->shift_id,
         ];
 
         if ($request->filled('password')) {
@@ -95,6 +102,9 @@ class EmployeeController extends Controller
         }
 
         $employee->update($updateData);
+
+        // Load the shift relation for returning consistent data
+        $employee->load('shift');
 
         return response()->json([
             'status' => 'success',

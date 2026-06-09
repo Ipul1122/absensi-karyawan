@@ -8,6 +8,7 @@ use App\Models\Attendance;
 use App\Models\LeaveRequest;
 use App\Models\Payroll;
 use App\Models\SalaryConfiguration;
+use App\Models\Holiday;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -101,6 +102,11 @@ class PayrollController extends Controller
         $startOfMonth = Carbon::parse($period . '-01')->startOfMonth();
         $endOfMonth = Carbon::parse($period . '-01')->endOfMonth();
 
+        // Get all national holidays in this month
+        $holidayDates = Holiday::whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+            ->pluck('date')
+            ->toArray();
+
         $employees = User::where('role', 'employee')->get();
 
         if ($employees->isEmpty()) {
@@ -164,11 +170,13 @@ class PayrollController extends Controller
                 $deductDailyLate = $config ? $config->deduction_late_daily : 0;
                 $deductFixed = $config ? $config->deduction_fixed : 0;
 
-                // Hitung total hari kerja efektif (Senin - Sabtu) di bulan tersebut
+                // Hitung total hari kerja efektif (Senin - Sabtu, dikurangi Hari Libur) di bulan tersebut
                 $workingDaysInMonth = 0;
                 $tempDate = $startOfMonth->copy();
                 while ($tempDate->lte($endOfMonth)) {
-                    if ($tempDate->dayOfWeek !== Carbon::SUNDAY) {
+                    $isSunday = $tempDate->dayOfWeek === Carbon::SUNDAY;
+                    $isHoliday = in_array($tempDate->toDateString(), $holidayDates);
+                    if (!$isSunday && !$isHoliday) {
                         $workingDaysInMonth++;
                     }
                     $tempDate->addDay();

@@ -11,11 +11,24 @@ interface HealthResponse {
   database: string
 }
 
+interface Shift {
+  id: number
+  name: string
+  clock_in: string
+  clock_out: string
+  early_checkin_before: string
+  late_checkin_after: string
+  early_checkout_before: string
+  overtime_checkout_after: string
+}
+
 interface User {
   id: number
   name: string
   email: string
   role: 'admin' | 'employee'
+  photo?: string | null
+  shift?: Shift | null
 }
 
 function App() {

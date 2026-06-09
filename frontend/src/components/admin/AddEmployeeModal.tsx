@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, User, Mail, Lock, Loader2, UserPlus } from 'lucide-react'
+import { X, User, Mail, Lock, Loader2, UserPlus, Clock } from 'lucide-react'
 
 interface AddEmployeeModalProps {
   show: boolean
@@ -12,6 +12,9 @@ interface AddEmployeeModalProps {
   newPassword: string
   setNewPassword: (v: string) => void
   submitting: boolean
+  shifts: any[]
+  selectedShiftId: string
+  setSelectedShiftId: (v: string) => void
 }
 
 export default function AddEmployeeModal({
@@ -25,6 +28,9 @@ export default function AddEmployeeModal({
   newPassword,
   setNewPassword,
   submitting,
+  shifts,
+  selectedShiftId,
+  setSelectedShiftId,
 }: AddEmployeeModalProps) {
   if (!show) return null
 
@@ -96,6 +102,27 @@ export default function AddEmployeeModal({
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs"
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+              Pilih Shift Kerja
+            </label>
+            <div className="relative">
+              <Clock className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
+              <select
+                value={selectedShiftId}
+                onChange={(e) => setSelectedShiftId(e.target.value)}
+                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-850 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs"
+              >
+                <option value="">-- Pilih Shift (Default Normal) --</option>
+                {shifts.map((shift) => (
+                  <option key={shift.id} value={shift.id}>
+                    {shift.name} ({shift.clock_in.substring(0, 5)} - {shift.clock_out.substring(0, 5)})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

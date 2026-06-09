@@ -31,6 +31,13 @@ interface Employee {
   name: string
   email: string
   password_plain?: string
+  shift_id?: number | null
+  shift?: {
+    id: number
+    name: string
+    clock_in: string
+    clock_out: string
+  } | null
   created_at: string
   updated_at: string
 }
@@ -256,6 +263,7 @@ export default function AkunKaryawan({
                 <tr className="bg-orange-50/40 text-orange-950/80 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
                   <th className="py-4 px-5">Nama</th>
                   <th className="py-4 px-5">Email</th>
+                  <th className="py-4 px-5">Shift Kerja</th>
                   <th className="py-4 px-5">Kata Sandi</th>
                   <th className="py-4 px-5">Terdaftar</th>
                   <th className="py-4 px-5 text-center">Aksi</th>
@@ -264,7 +272,7 @@ export default function AkunKaryawan({
               <tbody className="divide-y divide-orange-50 text-sm text-slate-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-500 font-medium">
+                    <td colSpan={6} className="py-8 text-center text-slate-500 font-medium">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                         Memuat data karyawan...
@@ -273,7 +281,7 @@ export default function AkunKaryawan({
                   </tr>
                 ) : filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400 font-semibold">
+                    <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold">
                       {searchQuery ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
                     </td>
                   </tr>
@@ -289,6 +297,11 @@ export default function AkunKaryawan({
                         </div>
                       </td>
                       <td className="py-4 px-5 font-mono text-xs text-slate-600">{emp.email}</td>
+                      <td className="py-4 px-5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold border ${emp.shift ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-slate-55 text-slate-500 border-slate-200'}`}>
+                          {emp.shift ? emp.shift.name : 'Shift Normal'}
+                        </span>
+                      </td>
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-2 max-w-[140px]">
                           <span className="font-mono text-xs text-slate-700 select-all block truncate">

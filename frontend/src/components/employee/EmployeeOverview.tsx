@@ -10,11 +10,24 @@ import {
   UserCheck
 } from 'lucide-react'
 
+interface Shift {
+  id: number
+  name: string
+  clock_in: string
+  clock_out: string
+  early_checkin_before: string
+  late_checkin_after: string
+  early_checkout_before: string
+  overtime_checkout_after: string
+}
+
 interface User {
   id: number
   name: string
   email: string
   role: 'admin' | 'employee'
+  photo?: string | null
+  shift?: Shift | null
 }
 
 interface Attendance {
@@ -56,6 +69,15 @@ export default function EmployeeOverview({
   getStatusBadge
 }: EmployeeOverviewProps) {
   const navigate = useNavigate()
+
+  const formatTime = (timeStr?: string) => {
+    if (!timeStr) return '-'
+    const parts = timeStr.split(':')
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}`
+    }
+    return timeStr
+  }
 
   const getGreeting = () => {
     const hrs = time.getHours()
@@ -178,7 +200,9 @@ export default function EmployeeOverview({
             <div className="mt-4 flex-grow flex flex-col justify-between">
               <div>
                 <h3 className="text-lg font-extrabold text-slate-800 font-quicksand">Evaluasi Waktu</h3>
-                <p className="text-xs text-slate-500 mt-1">Status jika Anda mengirim absensi sekarang:</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Jadwal: <span className="font-bold text-slate-700">{user.shift ? `${user.shift.name} (${formatTime(user.shift.clock_in)} - ${formatTime(user.shift.clock_out)})` : 'Shift Normal (09:00 - 17:00)'}</span>
+                </p>
               </div>
               
               <div className="mt-4 pt-3 border-t border-orange-100">
@@ -218,7 +242,7 @@ export default function EmployeeOverview({
         <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 pb-3 border-b border-orange-100 font-quicksand">
           <UserIcon className="w-5 h-5 text-red-500" /> Profil Akun Karyawan
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
           <div className="space-y-1">
             <span className="text-xs text-slate-400 uppercase font-bold font-quicksand">Nama Lengkap</span>
             <p className="text-sm font-bold text-slate-700 font-quicksand">{user.name}</p>
@@ -226,6 +250,16 @@ export default function EmployeeOverview({
           <div className="space-y-1">
             <span className="text-xs text-slate-400 uppercase font-bold font-quicksand">Alamat Email</span>
             <p className="text-sm font-bold text-slate-700 font-quicksand">{user.email}</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-slate-400 uppercase font-bold font-quicksand">Jadwal Shift</span>
+            <p className="text-sm font-bold text-slate-700 font-quicksand font-mono">
+              {user.shift ? (
+                `${user.shift.name} (${formatTime(user.shift.clock_in)} - ${formatTime(user.shift.clock_out)})`
+              ) : (
+                'Shift Normal (09:00 - 17:00)'
+              )}
+            </p>
           </div>
           <div className="space-y-1">
             <span className="text-xs text-slate-400 uppercase font-bold font-quicksand">Tipe Akun</span>

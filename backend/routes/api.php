@@ -37,13 +37,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [AuthController::class, 'getProfile']);
     Route::post('/user/profile', [AuthController::class, 'updateProfile']);
     Route::get('/user', function (Request $request) {
+        $user = $request->user();
+        $user->load('shift');
         return response()->json([
             'status' => 'success',
             'user' => [
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'role' => $request->user()->role,
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'shift' => $user->shift,
             ]
         ]);
     });
@@ -59,6 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/leaves', [LeaveController::class, 'index']);
     Route::post('/leaves', [LeaveController::class, 'store']);
     Route::delete('/leaves/{id}', [LeaveController::class, 'destroy']);
+    
+    // Holiday list for all authenticated users
+    Route::get('/holidays', [AttendanceController::class, 'getHolidays']);
 
     // Admin only routes
     Route::middleware('admin')->group(function () {
@@ -68,6 +74,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/employees/{id}', [EmployeeController::class, 'update']);
         Route::get('/employees/{id}/profile', [EmployeeController::class, 'getEmployeeProfile']);
         Route::post('/employees/{id}/profile', [EmployeeController::class, 'updateEmployeeProfile']);
+        
+        // Admin Shift routes
+        Route::get('/admin/shifts', [AttendanceController::class, 'getAllShifts']);
+        Route::post('/admin/shifts', [AttendanceController::class, 'storeShift']);
+        Route::put('/admin/shifts/{id}', [AttendanceController::class, 'updateShift']);
+        Route::delete('/admin/shifts/{id}', [AttendanceController::class, 'destroyShift']);
+
+        // Admin Holiday routes (write operations)
+        Route::post('/admin/holidays', [AttendanceController::class, 'storeHoliday']);
+        Route::delete('/admin/holidays/{id}', [AttendanceController::class, 'destroyHoliday']);
+
         Route::get('/admin/attendances', [AttendanceController::class, 'getAllAttendances']);
         Route::post('/admin/attendances', [AttendanceController::class, 'storeManualAttendance']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);

@@ -44,11 +44,12 @@ interface ProfileData {
 interface EmployeeSettingsProps {
   user: UserProp
   token: string
+  onProfileUpdate?: () => void
 }
 
 type ActiveTab = 'account' | 'biodata'
 
-export default function EmployeeSettings({ user, token }: EmployeeSettingsProps) {
+export default function EmployeeSettings({ user, token, onProfileUpdate }: EmployeeSettingsProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('account')
 
   // ---------- Profile / Biodata States ----------
@@ -183,6 +184,9 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
         if (res.data.data.photo) setPhotoPreview(res.data.data.photo)
         if (res.data.data.cv) {
           setProfile(p => ({ ...p, cv: res.data.data.cv }))
+        }
+        if (onProfileUpdate) {
+          onProfileUpdate()
         }
       }
     } catch (err: any) {

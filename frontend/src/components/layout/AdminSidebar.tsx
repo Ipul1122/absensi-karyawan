@@ -9,7 +9,9 @@ import {
   ChevronRight,
   ClipboardCheck,
   ReceiptText,
-  Settings
+  Settings,
+  Clock,
+  Calendar
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -32,6 +34,8 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
     { to: '/admin/rekapAbsensi', label: 'Rekap Absensi', icon: ClipboardList },
     { to: '/admin/cuti', label: 'Persetujuan Cuti', icon: ClipboardCheck },
     { to: '/admin/akunKaryawan', label: 'Akun Karyawan', icon: Users },
+    { to: '/admin/shifts', label: 'Kelola Shift', icon: Clock },
+    { to: '/admin/holidays', label: 'Hari Libur', icon: Calendar },
     { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin },
     { to: '/admin/payroll-config', label: 'Setelan Gaji', icon: Settings },
     { to: '/admin/payroll', label: 'Kelola Payroll', icon: ReceiptText }

@@ -28,6 +28,8 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $user->load('shift');
+
         return response()->json([
             'status' => 'success',
             'token' => $token,
@@ -36,6 +38,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'shift' => $user->shift,
             ]
         ]);
     }
@@ -84,6 +87,8 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
+        $user->load('shift');
+
         return response()->json([
             'status' => 'success',
             'data' => [
@@ -98,6 +103,7 @@ class AuthController extends Controller
                 'join_date'       => $user->join_date,
                 'gender'          => $user->gender,
                 'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
+                'shift'           => $user->shift,
             ]
         ]);
     }
@@ -149,6 +155,8 @@ class AuthController extends Controller
 
         $user->update($data);
 
+        $user->load('shift');
+
         return response()->json([
             'status'  => 'success',
             'message' => 'Profil berhasil diperbarui.',
@@ -164,6 +172,7 @@ class AuthController extends Controller
                 'join_date'       => $user->join_date,
                 'gender'          => $user->gender,
                 'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
+                'shift'           => $user->shift,
             ]
         ]);
     }

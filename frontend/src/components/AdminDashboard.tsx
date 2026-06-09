@@ -30,12 +30,19 @@ import AddEmployeeModal from './admin/AddEmployeeModal'
 import EditEmployeeModal from './admin/EditEmployeeModal'
 import DetailAttendanceModal from './admin/DetailAttendanceModal'
 import EditTimeModal from './admin/EditTimeModal'
+import AdminShifts from './admin/AdminShifts'
+import AdminHolidays from './admin/AdminHolidays'
 
 interface Employee {
   id: number
   name: string
   email: string
   password_plain?: string
+  shift_id?: number | null
+  shift?: {
+    id: number
+    name: string
+  } | null
   created_at: string
   updated_at: string
 }
@@ -116,6 +123,11 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [editPassword, setEditPassword] = useState('')
   const [submittingEdit, setSubmittingEdit] = useState(false)
 
+  // Shift Management States
+  const [shifts, setShifts] = useState<any[]>([])
+  const [newShiftId, setNewShiftId] = useState('')
+  const [editShiftId, setEditShiftId] = useState('')
+
   useEffect(() => {
     const clock = setInterval(() => {
       setTime(new Date())
@@ -184,10 +196,24 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     }
   }
 
+  const fetchShifts = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/shifts', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setShifts(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal memuat data shift:', err)
+    }
+  }
+
   useEffect(() => {
     fetchEmployees()
     fetchAttendances()
     fetchOfficeSetting()
+    fetchShifts()
   }, [])
 
   const handleLogoutClick = async () => {
@@ -248,7 +274,8 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         {
           name: newName,
           email: newEmail,
-          password: newPassword
+          password: newPassword,
+          shift_id: newShiftId ? parseInt(newShiftId) : null
         },
         { headers: { Authorization: `Bearer ${token}` } }
       )
@@ -267,6 +294,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         setNewName('')
         setNewEmail('')
         setNewPassword('')
+        setNewShiftId('')
         setShowModal(false)
         
         // Refresh list
@@ -341,6 +369,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     setEditName(employee.name)
     setEditEmail(employee.email)
     setEditPassword('')
+    setEditShiftId(employee.shift_id ? String(employee.shift_id) : '')
     setShowEditEmployeeModal(true)
   }
 
@@ -378,7 +407,8 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         `http://localhost:8000/api/employees/${editingEmployee.id}`,
         {
           name: editName,
-          password: editPassword || null
+          password: editPassword || null,
+          shift_id: editShiftId ? parseInt(editShiftId) : null
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -401,6 +431,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         setEditName('')
         setEditEmail('')
         setEditPassword('')
+        setEditShiftId('')
         fetchEmployees() // Refresh employees list
       }
     } catch (err: any) {
@@ -584,6 +615,12 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     if (path.includes('payroll-config')) {
       return { title: 'Setelan Gaji Karyawan', subtitle: 'Salary Configuration' }
     }
+    if (path.includes('shifts')) {
+      return { title: 'Kelola Shift Kerja', subtitle: 'Shift Management' }
+    }
+    if (path.includes('holidays')) {
+      return { title: 'Kalender Hari Libur', subtitle: 'Holiday & Weekend Calendar' }
+    }
     if (path.includes('payroll')) {
       return { title: 'Kelola Payroll Karyawan', subtitle: 'Payroll Management' }
     }
@@ -761,6 +798,23 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
               />
             } 
           />
+          <Route 
+            path="shifts" 
+            element={
+              <AdminShifts
+                token={token}
+                onRefreshEmployees={fetchEmployees}
+              />
+            } 
+          />
+          <Route 
+            path="holidays" 
+            element={
+              <AdminHolidays
+                token={token}
+              />
+            } 
+          />
           {/* Default fallback route */}
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
         </Routes>
@@ -778,6 +832,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         newPassword={newPassword}
         setNewPassword={setNewPassword}
         submitting={submitting}
+        shifts={shifts}
+        selectedShiftId={newShiftId}
+        setSelectedShiftId={setNewShiftId}
       />
 
       {/* Edit Employee Modal */}
@@ -791,6 +848,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         password={editPassword}
         setPassword={setEditPassword}
         submitting={submittingEdit}
+        shifts={shifts}
+        selectedShiftId={editShiftId}
+        setSelectedShiftId={setEditShiftId}
       />
 
       {/* Detail Attendance Modal */}

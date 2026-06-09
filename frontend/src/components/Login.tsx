@@ -19,7 +19,7 @@ interface User {
   id: number
   name: string
   email: string
-  role: 'admin' | 'employee'
+  role: 'admin' | 'employee' | 'director'
 }
 
 interface LoginProps {
@@ -36,11 +36,25 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<'standard' | 'director'>('standard')
+
+  const currentAccentColor = activeTab === 'director' ? '#d97706' : BRAND_ORANGE
+
+  const handleTabChange = (tab: 'standard' | 'director') => {
+    setActiveTab(tab)
+    if (tab === 'director') {
+      setEmail('direktur@absen.com')
+      setPassword('password')
+    } else {
+      setEmail('')
+      setPassword('')
+    }
+  }
 
   const handleLogin = async (e?: React.FormEvent | React.MouseEvent) => {
     e?.preventDefault()
     if (!email || !password) {
-      Swal.fire({ title: 'Form Belum Lengkap', text: 'Silakan isi email dan kata sandi Anda.', icon: 'warning', background: '#fff7f5', color: '#3c1105', confirmButtonColor: BRAND_ORANGE })
+      Swal.fire({ title: 'Form Belum Lengkap', text: 'Silakan isi email dan kata sandi Anda.', icon: 'warning', background: '#fff7f5', color: '#3c1105', confirmButtonColor: currentAccentColor })
       return
     }
     setLoading(true)
@@ -55,7 +69,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
       let msg = 'Terjadi kesalahan saat menghubungi server.'
       if (err.response?.data?.message) msg = err.response.data.message
       else if (err.response?.data?.errors) msg = Object.values(err.response.data.errors).flat().join('\n')
-      Swal.fire({ title: 'Login Gagal', text: msg, icon: 'error', background: '#fff7f5', color: '#3c1105', confirmButtonColor: BRAND_ORANGE })
+      Swal.fire({ title: 'Login Gagal', text: msg, icon: 'error', background: '#fff7f5', color: '#3c1105', confirmButtonColor: currentAccentColor })
     } finally {
       setLoading(false)
     }
@@ -73,7 +87,12 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
 
         {/* ─── LEFT PANEL (hidden on mobile/tablet) ─── */}
         <div className="hidden lg:flex lg:w-[58%] xl:w-[60%] relative flex-col justify-between overflow-hidden"
-          style={{ background: `linear-gradient(145deg, ${BRAND_ORANGE} 0%, #c2410c 100%)` }}>
+          style={{
+            background: activeTab === 'director'
+              ? 'linear-gradient(145deg, #0f172a 0%, #1e1b4b 100%)'
+              : `linear-gradient(145deg, ${BRAND_ORANGE} 0%, #c2410c 100%)`,
+            transition: 'background 0.5s ease'
+          }}>
 
           {/* Decorative grid pattern */}
           <div className="absolute inset-0 opacity-10" style={{
@@ -101,36 +120,60 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
 
           {/* Glow circle */}
           <div className="absolute top-1/3 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl"
-            style={{ background: 'radial-gradient(circle, #fca5a5, transparent)' }} />
+            style={{ background: activeTab === 'director' ? 'radial-gradient(circle, #fbbf24, transparent)' : 'radial-gradient(circle, #fca5a5, transparent)' }} />
 
           {/* Left panel content */}
           <div className="relative z-10 flex flex-col justify-center h-full px-10 xl:px-14 pb-10">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-white/10 text-white text-[11px] font-bold uppercase tracking-widest w-fit mb-10">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Enterprise Security
-            </div>
+            {activeTab === 'director' ? (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[11px] font-bold uppercase tracking-widest w-fit mb-10">
+                <ShieldCheck className="w-3.5 h-3.5 animate-pulse" />
+                Directorate Executive Portal
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-white/10 text-white text-[11px] font-bold uppercase tracking-widest w-fit mb-10">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Enterprise Security
+              </div>
+            )}
 
             {/* Heading */}
-            <h1 className="text-3xl xl:text-4xl font-black text-white leading-tight mb-5 max-w-sm">
-              Sistem Informasi Absensi Karyawan
+            <h1 className="text-3xl xl:text-4xl font-black text-white leading-tight mb-5 max-w-sm transition-all duration-300">
+              {activeTab === 'director' ? 'Panel Keputusan & Pengawasan Direksi' : 'Sistem Informasi Absensi Karyawan'}
             </h1>
 
             {/* Description */}
-            <p className="text-white/75 text-sm leading-relaxed max-w-sm mb-10">
-              Platform pencatatan presensi digital karyawan terintegrasi. Dirancang untuk efisiensi tinggi dan akurasi data dalam ekosistem perusahaan modern.
+            <p className="text-white/75 text-sm leading-relaxed max-w-sm mb-10 transition-all duration-300">
+              {activeTab === 'director'
+                ? 'Akses eksklusif untuk jajaran Direktur Utama guna mengambil keputusan strategis, persetujuan administratif, dan pengawasan metrik kinerja secara real-time.'
+                : 'Platform pencatatan presensi digital karyawan terintegrasi. Dirancang untuk efisiensi tinggi dan akurasi data dalam ekosistem perusahaan modern.'}
             </p>
 
             {/* Feature pills */}
             <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/20 transition-all cursor-default">
-                <MapPin className="w-3.5 h-3.5 text-orange-300" />
-                Geofencing Tracking
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/20 transition-all cursor-default">
-                <BarChart2 className="w-3.5 h-3.5 text-orange-300" />
-                Biometric Auth
-              </div>
+              {activeTab === 'director' ? (
+                <>
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-semibold backdrop-blur-sm hover:bg-amber-500/20 transition-all cursor-default">
+                    <CheckSquare className="w-3.5 h-3.5" />
+                    Executive Approvals
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-semibold backdrop-blur-sm hover:bg-amber-500/20 transition-all cursor-default">
+                    <BarChart2 className="w-3.5 h-3.5 animate-bounce" />
+                    Operational Overview
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/20 transition-all cursor-default">
+                    <MapPin className="w-3.5 h-3.5 text-orange-300 animate-bounce" />
+                    Geofencing Tracking
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/20 transition-all cursor-default">
+                    <BarChart2 className="w-3.5 h-3.5 text-orange-300" />
+                    Biometric Auth
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -158,24 +201,64 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
         {/* ─── RIGHT PANEL (Login Form) ─── */}
         <div className="flex-1 flex flex-col bg-white">
           {/* Mobile hero — only shown on small screens */}
-          <div className="lg:hidden w-full py-8 px-6 flex flex-col items-center text-center"
-            style={{ background: `linear-gradient(160deg, ${BRAND_ORANGE}, #c2410c)` }}>
+          <div className="lg:hidden w-full py-8 px-6 flex flex-col items-center text-center transition-all duration-500"
+            style={{
+              background: activeTab === 'director'
+                ? 'linear-gradient(160deg, #0f172a, #1e1b4b)'
+                : `linear-gradient(160deg, ${BRAND_ORANGE}, #c2410c)`
+            }}>
             <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center mb-3">
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-xl font-black text-white">Portal Absensi Karyawan</h2>
-            <p className="text-white/70 text-xs mt-1">Platform presensi digital terintegrasi</p>
+            <h2 className="text-xl font-black text-white">
+              {activeTab === 'director' ? 'Portal Direktur Utama' : 'Portal Absensi Karyawan'}
+            </h2>
+            <p className="text-white/70 text-xs mt-1">
+              {activeTab === 'director' ? 'Panel pengawasan eksekutif' : 'Platform presensi digital terintegrasi'}
+            </p>
           </div>
 
           {/* Form area — scrollable on small screens */}
           <div className="flex-1 flex items-center justify-center px-6 sm:px-10 lg:px-12 xl:px-16 py-8 overflow-y-auto">
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-md animate-fade-in">
+
+              {/* TABS SIDE SWITCHER FOR DIRECTOR */}
+              <div className="flex bg-slate-100 p-1 rounded-2xl mb-8 font-quicksand font-bold text-xs select-none">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('standard')}
+                  className={`flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeTab === 'standard'
+                      ? 'bg-white text-orange-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Karyawan & Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('director')}
+                  className={`flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeTab === 'director'
+                      ? 'bg-slate-900 text-amber-400 shadow-sm animate-pulse'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <LogIn className="w-4 h-4" />
+                  Direktur Utama
+                </button>
+              </div>
 
               {/* Heading */}
               <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Selamat Datang</h2>
-                <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">
-                  Silakan masuk untuk mengakses portal karyawan Anda.
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight transition-all duration-300">
+                  {activeTab === 'director' ? 'Portal Direksi' : 'Selamat Datang'}
+                </h2>
+                <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed transition-all duration-300">
+                  {activeTab === 'director'
+                    ? 'Silakan masuk dengan kredensial Direktur Utama Anda.'
+                    : 'Silakan masuk untuk mengakses portal karyawan Anda.'}
                 </p>
               </div>
 
@@ -198,7 +281,11 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="nama@perusahaan.com"
-                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-4 outline-none transition-all text-sm font-medium"
+                      className={`w-full bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-4 outline-none transition-all text-sm font-medium ${
+                        activeTab === 'director'
+                          ? 'focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
+                          : 'focus:border-orange-500 focus:ring-2 focus:ring-orange-100'
+                      }`}
                     />
                   </div>
                 </div>
@@ -209,7 +296,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                     <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
                       Kata Sandi
                     </label>
-                    <button type="button" className="text-xs font-bold hover:underline cursor-pointer" style={{ color: BRAND_ORANGE }}>
+                    <button type="button" className="text-xs font-bold hover:underline cursor-pointer" style={{ color: currentAccentColor }}>
                       Lupa Sandi?
                     </button>
                   </div>
@@ -224,7 +311,11 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-12 outline-none transition-all text-sm font-medium"
+                      className={`w-full bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-12 outline-none transition-all text-sm font-medium ${
+                        activeTab === 'director'
+                          ? 'focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
+                          : 'focus:border-orange-500 focus:ring-2 focus:ring-orange-100'
+                      }`}
                     />
                     <button
                       type="button"
@@ -242,7 +333,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                   onClick={() => setRememberMe(v => !v)}
                   className="flex items-center gap-2.5 cursor-pointer group"
                 >
-                  <div className="text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" style={rememberMe ? { color: BRAND_ORANGE } : {}}>
+                  <div className="text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" style={rememberMe ? { color: currentAccentColor } : {}}>
                     {rememberMe
                       ? <CheckSquare className="w-4 h-4" />
                       : <Square className="w-4 h-4" />}
@@ -259,8 +350,14 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                   disabled={loading}
                   className="w-full py-3.5 px-4 flex items-center justify-center gap-2.5 text-white font-bold rounded-xl transition-all text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
                   style={{
-                    background: loading ? '#c2410c' : `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_ORANGE_DARK} 100%)`,
-                    boxShadow: `0 4px 18px rgba(234,88,12,0.35)`
+                    background: loading 
+                      ? (activeTab === 'director' ? '#b45309' : '#c2410c') 
+                      : (activeTab === 'director'
+                          ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)'
+                          : `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_ORANGE_DARK} 100%)`),
+                    boxShadow: activeTab === 'director'
+                      ? '0 4px 18px rgba(217,119,6,0.35)'
+                      : `0 4px 18px rgba(234,88,12,0.35)`
                   }}
                 >
                   {loading ? (

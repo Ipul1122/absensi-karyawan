@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'user_id',
     'bonus_amount',
     'bonus_date',
-    'description'
+    'description',
+    'status'
 ])]
 class Bonus extends Model
 {

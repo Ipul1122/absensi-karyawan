@@ -82,58 +82,104 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/overtimes', [OvertimeController::class, 'store']);
     Route::delete('/overtimes/{id}', [OvertimeController::class, 'destroy']);
 
-    // Admin only routes
-    Route::middleware('admin')->group(function () {
+    // Admin or Director routes (Read only for Director)
+    Route::middleware('admin_or_director')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'index']);
+        Route::get('/employees/{id}/profile', [EmployeeController::class, 'getEmployeeProfile']);
+        Route::get('/admin/attendances', [AttendanceController::class, 'getAllAttendances']);
+        Route::get('/admin/sales-visits', [SalesVisitController::class, 'getAllVisits']);
+        Route::get('/admin/leaves', [LeaveController::class, 'getAllRequests']);
+        Route::get('/admin/payroll/configurations', [PayrollController::class, 'indexConfigurations']);
+        Route::get('/admin/payroll', [PayrollController::class, 'indexPayrolls']);
+        Route::get('/admin/inventories', [InventoryController::class, 'index']);
+        Route::get('/admin/inventories/{id}', [InventoryController::class, 'show']);
+        Route::get('/admin/reimbursements', [ReimbursementController::class, 'indexAdmin']);
+        Route::get('/admin/reimbursements/summary', [ReimbursementController::class, 'summaryAdmin']);
+        Route::get('/admin/bonuses', [BonusController::class, 'indexAdmin']);
+        Route::get('/admin/overtimes', [OvertimeController::class, 'indexAdmin']);
+        Route::get('/admin/overtimes/recap', [OvertimeController::class, 'recapAdmin']);
+    });
+
+    // Admin only modifying routes
+    Route::middleware('admin')->group(function () {
         Route::post('/employees', [EmployeeController::class, 'store']);
         Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
         Route::put('/employees/{id}', [EmployeeController::class, 'update']);
-        Route::get('/employees/{id}/profile', [EmployeeController::class, 'getEmployeeProfile']);
         Route::post('/employees/{id}/profile', [EmployeeController::class, 'updateEmployeeProfile']);
-        Route::get('/admin/attendances', [AttendanceController::class, 'getAllAttendances']);
-        Route::get('/admin/sales-visits', [SalesVisitController::class, 'getAllVisits']);
         Route::post('/admin/attendances', [AttendanceController::class, 'storeManualAttendance']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);
         Route::put('/admin/office-setting', [AttendanceController::class, 'updateOfficeSetting']);
         
         // Admin Leave routes
-        Route::get('/admin/leaves', [LeaveController::class, 'getAllRequests']);
         Route::put('/admin/leaves/{id}/approve', [LeaveController::class, 'approve']);
         Route::put('/admin/leaves/{id}/reject', [LeaveController::class, 'reject']);
 
         // Admin Payroll routes
-        Route::get('/admin/payroll/configurations', [PayrollController::class, 'indexConfigurations']);
         Route::post('/admin/payroll/configurations', [PayrollController::class, 'updateConfiguration']);
-        Route::get('/admin/payroll', [PayrollController::class, 'indexPayrolls']);
         Route::post('/admin/payroll/generate', [PayrollController::class, 'generatePayroll']);
         Route::put('/admin/payroll/{id}/pay', [PayrollController::class, 'updatePayrollStatus']);
         Route::put('/admin/payroll/{id}/update', [PayrollController::class, 'updatePayrollManual']);
         Route::delete('/admin/payroll/{id}', [PayrollController::class, 'destroyPayroll']);
+        Route::post('/admin/payroll/{id}/submit-approval', [PayrollController::class, 'submitPayrollApproval']);
+        Route::post('/admin/payroll/submit-all-approval', [PayrollController::class, 'submitAllPayrollApproval']);
 
         // Admin Inventory routes
-        Route::get('/admin/inventories', [InventoryController::class, 'index']);
         Route::post('/admin/inventories', [InventoryController::class, 'store']);
-        Route::get('/admin/inventories/{id}', [InventoryController::class, 'show']);
         Route::post('/admin/inventories/{id}/update', [InventoryController::class, 'update']);
         Route::delete('/admin/inventories/{id}', [InventoryController::class, 'destroy']);
 
         // Admin Reimbursement routes
-        Route::get('/admin/reimbursements', [ReimbursementController::class, 'indexAdmin']);
-        Route::get('/admin/reimbursements/summary', [ReimbursementController::class, 'summaryAdmin']);
         Route::put('/admin/reimbursements/{id}/approve', [ReimbursementController::class, 'approve']);
         Route::put('/admin/reimbursements/{id}/reject', [ReimbursementController::class, 'reject']);
 
         // Admin Bonus routes
-        Route::get('/admin/bonuses', [BonusController::class, 'indexAdmin']);
         Route::post('/admin/bonuses', [BonusController::class, 'store']);
         Route::put('/admin/bonuses/{id}', [BonusController::class, 'update']);
         Route::delete('/admin/bonuses/{id}', [BonusController::class, 'destroy']);
 
         // Admin Overtime routes
-        Route::get('/admin/overtimes', [OvertimeController::class, 'indexAdmin']);
-        Route::get('/admin/overtimes/recap', [OvertimeController::class, 'recapAdmin']);
         Route::put('/admin/overtimes/{id}/approve', [OvertimeController::class, 'approve']);
         Route::put('/admin/overtimes/{id}/reject', [OvertimeController::class, 'reject']);
+    });
+
+    // Director only approval routes
+    Route::middleware('director')->group(function () {
+        // Employee approvals
+        Route::put('/director/employees/{id}/approve', [EmployeeController::class, 'approveEmployee']);
+        Route::put('/director/employees/{id}/reject', [EmployeeController::class, 'rejectEmployee']);
+        Route::put('/director/employees/{id}/approve-delete', [EmployeeController::class, 'approveDeleteEmployee']);
+        Route::put('/director/employees/{id}/reject-delete', [EmployeeController::class, 'rejectDeleteEmployee']);
+
+        // Salary configuration approvals
+        Route::post('/director/payroll/configurations', [PayrollController::class, 'updateConfiguration']);
+        Route::put('/director/payroll/configurations/{id}/approve', [PayrollController::class, 'approveSalaryConfig']);
+        Route::put('/director/payroll/configurations/{id}/reject', [PayrollController::class, 'rejectSalaryConfig']);
+
+        // Payroll approvals
+        Route::put('/director/payroll/{id}/approve', [PayrollController::class, 'approvePayroll']);
+        Route::put('/director/payroll/{id}/reject', [PayrollController::class, 'rejectPayroll']);
+        Route::post('/director/payroll/approve-all', [PayrollController::class, 'approveAllPayroll']);
+        Route::post('/director/payroll/reject-all', [PayrollController::class, 'rejectAllPayroll']);
+
+        // Leave approvals
+        Route::put('/director/leaves/{id}/approve', [LeaveController::class, 'directorApprove']);
+        Route::put('/director/leaves/{id}/reject', [LeaveController::class, 'directorReject']);
+
+        // Overtime approvals
+        Route::put('/director/overtimes/{id}/approve', [OvertimeController::class, 'directorApprove']);
+        Route::put('/director/overtimes/{id}/reject', [OvertimeController::class, 'directorReject']);
+
+        // Reimbursement approvals
+        Route::put('/director/reimbursements/{id}/approve', [ReimbursementController::class, 'directorApprove']);
+        Route::put('/director/reimbursements/{id}/reject', [ReimbursementController::class, 'directorReject']);
+
+        // Bonus approvals
+        Route::put('/director/bonuses/{id}/approve', [BonusController::class, 'directorApprove']);
+        Route::put('/director/bonuses/{id}/reject', [BonusController::class, 'directorReject']);
+
+        // Attendance corrections approvals
+        Route::put('/director/attendances/{id}/approve', [AttendanceController::class, 'directorApprove']);
+        Route::put('/director/attendances/{id}/reject', [AttendanceController::class, 'directorReject']);
     });
 
     // Employee Payroll routes

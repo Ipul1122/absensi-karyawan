@@ -34,11 +34,12 @@ class EmployeeController extends Controller
             'password' => Hash::make($request->password),
             'password_plain' => $request->password,
             'role' => 'employee',
+            'status' => 'pending',
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Akun karyawan berhasil dibuat.',
+            'message' => 'Akun karyawan berhasil dibuat dan menunggu persetujuan Direktur.',
             'data' => $employee
         ], 201);
     }
@@ -54,12 +55,60 @@ class EmployeeController extends Controller
             ], 404);
         }
 
-        $employee->delete();
+        if ($employee->status === 'pending') {
+            $employee->delete();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pendaftaran karyawan yang tertunda berhasil dihapus.'
+            ]);
+        }
+
+        $employee->update(['status' => 'pending_delete']);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Akun karyawan berhasil dihapus.'
+            'message' => 'Pengajuan penghapusan karyawan berhasil dikirim ke Direktur.'
         ]);
+    }
+
+    public function approveEmployee($id)
+    {
+        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        if (!$employee) {
+            return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
+        }
+        $employee->update(['status' => 'active']);
+        return response()->json(['status' => 'success', 'message' => 'Karyawan berhasil disetujui.']);
+    }
+
+    public function rejectEmployee($id)
+    {
+        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        if (!$employee) {
+            return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
+        }
+        $employee->delete();
+        return response()->json(['status' => 'success', 'message' => 'Karyawan berhasil ditolak (dihapus).']);
+    }
+
+    public function approveDeleteEmployee($id)
+    {
+        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        if (!$employee) {
+            return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
+        }
+        $employee->delete();
+        return response()->json(['status' => 'success', 'message' => 'Penghapusan karyawan berhasil disetujui.']);
+    }
+
+    public function rejectDeleteEmployee($id)
+    {
+        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        if (!$employee) {
+            return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
+        }
+        $employee->update(['status' => 'active']);
+        return response()->json(['status' => 'success', 'message' => 'Penghapusan karyawan ditolak, status kembali aktif.']);
     }
 
     public function update(Request $request, $id)

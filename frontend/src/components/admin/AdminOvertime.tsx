@@ -30,7 +30,7 @@ interface Overtime {
   end_time: string
   duration: number
   reason: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
   user: UserDetails
@@ -58,6 +58,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
     active_month: new Date().toISOString().slice(0, 7),
     total_approved_hours_this_month: 0,
     pending_count: 0,
+    pending_director_count: 0,
     approved_count: 0,
     rejected_count: 0
   })
@@ -65,7 +66,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
   const [loading, setLoading] = useState(true)
   const [recapLoading, setRecapLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'pending_director' | 'approved' | 'rejected'>('all')
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7))
   
   // Pagination States
@@ -253,15 +254,17 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
     return timeString.substring(0, 5)
   }
 
-  const getStatusBadge = (status: 'pending' | 'approved' | 'rejected') => {
+  const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
     const badgeConfig = {
       pending: 'bg-amber-50 text-amber-700 border-amber-250',
+      pending_director: 'bg-blue-50 text-blue-700 border-blue-200',
       approved: 'bg-emerald-50 text-emerald-700 border-emerald-250',
       rejected: 'bg-rose-50 text-rose-700 border-rose-250'
     }
 
     const textMap = {
-      pending: 'Menunggu',
+      pending: 'Menunggu Admin',
+      pending_director: 'Menunggu Direktur',
       approved: 'Disetujui',
       rejected: 'Ditolak'
     }
@@ -290,7 +293,8 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
       const getStatusLabel = (status: string) => {
         if (status === 'approved') return 'Disetujui'
         if (status === 'rejected') return 'Ditolak'
-        return 'Menunggu Persetujuan'
+        if (status === 'pending_director') return 'Menunggu Direktur'
+        return 'Menunggu Admin'
       }
 
       htmlContent = `
@@ -458,7 +462,13 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
       `
 
       overtimes.forEach((item, idx) => {
-        const statusText = item.status === 'approved' ? 'Disetujui' : item.status === 'rejected' ? 'Ditolak' : 'Menunggu Persetujuan'
+        const statusText = item.status === 'approved' 
+          ? 'Disetujui' 
+          : item.status === 'rejected' 
+            ? 'Ditolak' 
+            : item.status === 'pending_director' 
+              ? 'Menunggu Direktur' 
+              : 'Menunggu Admin'
         excelContent += `
           <tr>
             <td>${idx + 1}</td>
@@ -568,7 +578,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
       </div>
 
       {/* KPI Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-5 gap-6">
         {/* Approved total monthly */}
         <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
           <div>
@@ -583,10 +593,21 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
         {/* Pending Card */}
         <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
           <div>
-            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Menunggu Persetujuan</span>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Menunggu Admin</span>
             <span className="text-3xl font-black text-slate-800 mt-1 block font-mono">{summary.pending_count}</span>
           </div>
           <div className="p-3 bg-amber-50 rounded-2xl text-amber-600 border border-amber-100">
+            <Clock className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Pending Director Card */}
+        <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Menunggu Direktur</span>
+            <span className="text-3xl font-black text-slate-800 mt-1 block font-mono">{summary.pending_director_count}</span>
+          </div>
+          <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 border border-blue-100">
             <Clock className="w-6 h-6" />
           </div>
         </div>
@@ -695,7 +716,8 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
               className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm h-[38px]"
             >
               <option value="all">Semua Status</option>
-              <option value="pending">Menunggu</option>
+              <option value="pending">Menunggu Admin</option>
+              <option value="pending_director">Menunggu Direktur</option>
               <option value="approved">Disetujui</option>
               <option value="rejected">Ditolak</option>
             </select>

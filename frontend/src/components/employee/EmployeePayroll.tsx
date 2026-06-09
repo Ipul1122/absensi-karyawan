@@ -326,10 +326,10 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
 
               <div className="meta">
                 <div>
-                  <strong>Nama Karyawan:</strong> {localStorage.getItem('auth_user') ? JSON.parse(localStorage.getItem('auth_user')!).name : 'Karyawan'}
+                  <strong>Nama Karyawan:</strong> {sessionStorage.getItem('auth_user') ? JSON.parse(sessionStorage.getItem('auth_user')!).name : 'Karyawan'}
                 </div>
                 <div>
-                  <strong>Email Karyawan:</strong> {localStorage.getItem('auth_user') ? JSON.parse(localStorage.getItem('auth_user')!).email : ''}
+                  <strong>Email Karyawan:</strong> {sessionStorage.getItem('auth_user') ? JSON.parse(sessionStorage.getItem('auth_user')!).email : ''}
                 </div>
                 <div>
                   <strong>Status Pembayaran:</strong> <span className="badge">Lunas</span>
@@ -420,7 +420,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                 <div className="signature">
                   <p>Penerima,</p>
                   <div className="line"></div>
-                  <p><strong>{localStorage.getItem('auth_user') ? JSON.parse(localStorage.getItem('auth_user')!).name : 'Karyawan'}</strong></p>
+                  <p><strong>{sessionStorage.getItem('auth_user') ? JSON.parse(sessionStorage.getItem('auth_user')!).name : 'Karyawan'}</strong></p>
                 </div>
                 <div className="signature">
                   <p>Manajer HRD,</p>

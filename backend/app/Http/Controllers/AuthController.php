@@ -26,6 +26,12 @@ class AuthController extends Controller
             ]);
         }
 
+        if (isset($user->status) && $user->status === 'pending') {
+            throw ValidationException::withMessages([
+                'email' => ['Pendaftaran akun Anda masih menunggu persetujuan dari Direktur.'],
+            ]);
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

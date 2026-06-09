@@ -21,7 +21,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'longitude_out',
     'photo_out',
     'notes_out',
-    'status_out'
+    'status_out',
+    'approval_status'
 ])]
 class Attendance extends Model
 {

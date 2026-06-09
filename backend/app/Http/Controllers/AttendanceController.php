@@ -365,6 +365,7 @@ class AttendanceController extends Controller
             'latitude_out' => $clockOut ? $latitude : null,
             'longitude_out' => $clockOut ? $longitude : null,
             'photo_out' => $clockOut ? $photoPath : null,
+            'approval_status' => 'pending',
         ]);
 
         if ($request->attendance_type === 'kunjungan' || $request->attendance_type === 'client') {
@@ -439,6 +440,7 @@ class AttendanceController extends Controller
             $attendance->status_out = null;
         }
 
+        $attendance->approval_status = 'pending';
         $attendance->save();
 
         return response()->json([
@@ -499,6 +501,20 @@ class AttendanceController extends Controller
         $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
         $c = 2 * atan2(sqrt($a), sqrt(1-$a));
         return $earthRadius * $c;
+    }
+
+    public function directorApprove($id)
+    {
+        $attendance = Attendance::findOrFail($id);
+        $attendance->update(['approval_status' => 'approved']);
+        return response()->json(['status' => 'success', 'message' => 'Koreksi absensi berhasil disetujui.']);
+    }
+
+    public function directorReject($id)
+    {
+        $attendance = Attendance::findOrFail($id);
+        $attendance->update(['approval_status' => 'rejected']);
+        return response()->json(['status' => 'success', 'message' => 'Koreksi absensi ditolak.']);
     }
 
     /**

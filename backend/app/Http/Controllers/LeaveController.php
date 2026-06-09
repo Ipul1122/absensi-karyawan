@@ -134,7 +134,7 @@ class LeaveController extends Controller
     }
 
     /**
-     * Approve a leave request (Admin).
+     * Verify a leave request (Admin).
      */
     public function approve(Request $request, $id)
     {
@@ -153,19 +153,19 @@ class LeaveController extends Controller
 
         try {
             $leave->update([
-                'status' => 'approved',
+                'status' => 'pending_director',
                 'admin_notes' => $request->admin_notes,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan cuti berhasil disetujui.',
+                'message' => 'Pengajuan cuti berhasil diverifikasi Admin. Menunggu persetujuan akhir Direktur.',
                 'data' => $leave
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal menyetujui pengajuan cuti: ' . $e->getMessage()
+                'message' => 'Gagal memverifikasi pengajuan cuti: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -196,7 +196,67 @@ class LeaveController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan cuti berhasil ditolak.',
+                'message' => 'Pengajuan cuti berhasil ditolak oleh Admin.',
+                'data' => $leave
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menolak pengajuan cuti: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve a leave request (Director).
+     */
+    public function directorApprove(Request $request, $id)
+    {
+        $request->validate([
+            'admin_notes' => 'nullable|string',
+        ]);
+
+        $leave = LeaveRequest::findOrFail($id);
+
+        try {
+            $leave->update([
+                'status' => 'approved',
+                'admin_notes' => $request->admin_notes ?: $leave->admin_notes,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengajuan cuti berhasil disetujui oleh Direktur.',
+                'data' => $leave
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menyetujui pengajuan cuti: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject a leave request (Director).
+     */
+    public function directorReject(Request $request, $id)
+    {
+        $request->validate([
+            'admin_notes' => 'nullable|string',
+        ]);
+
+        $leave = LeaveRequest::findOrFail($id);
+
+        try {
+            $leave->update([
+                'status' => 'rejected',
+                'admin_notes' => $request->admin_notes ?: $leave->admin_notes,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengajuan cuti berhasil ditolak oleh Direktur.',
                 'data' => $leave
             ]);
         } catch (\Exception $e) {

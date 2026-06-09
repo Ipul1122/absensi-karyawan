@@ -31,7 +31,7 @@ interface LeaveRequest {
   end_date: string
   reason: string
   image: string | null
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
   user: UserDetails
@@ -45,7 +45,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
   const [leaves, setLeaves] = useState<LeaveRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'pending_director' | 'approved' | 'rejected'>('all')
 
   const currentMonthStr = (() => {
     const now = new Date()
@@ -233,6 +233,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
   // Statistics calculation
   const totalPending = leaves.filter((l) => l.status === 'pending').length
+  const totalPendingDirector = leaves.filter((l) => l.status === 'pending_director').length
   const totalApproved = leaves.filter((l) => l.status === 'approved').length
   const totalRejected = leaves.filter((l) => l.status === 'rejected').length
 
@@ -255,7 +256,8 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     const getStatusLabel = (status: string) => {
       if (status === 'approved') return 'Disetujui'
       if (status === 'rejected') return 'Ditolak'
-      return 'Menunggu Persetujuan'
+      if (status === 'pending_director') return 'Menunggu Direktur'
+      return 'Menunggu Admin'
     }
 
     const htmlContent = `
@@ -401,7 +403,13 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
     filteredLeaves.forEach((leave, idx) => {
       const days = calculateDays(leave.start_date, leave.end_date)
-      const statusText = leave.status === 'approved' ? 'Disetujui' : leave.status === 'rejected' ? 'Ditolak' : 'Menunggu Persetujuan'
+      const statusText = leave.status === 'approved' 
+        ? 'Disetujui' 
+        : leave.status === 'rejected' 
+          ? 'Ditolak' 
+          : leave.status === 'pending_director' 
+            ? 'Menunggu Direktur' 
+            : 'Menunggu Admin'
       const catText = leave.category === 'LAINNYA' ? leave.custom_category : leave.category
 
       excelContent += `
@@ -445,15 +453,17 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     document.body.removeChild(link)
   }
 
-  const getStatusBadge = (status: 'pending' | 'approved' | 'rejected') => {
+  const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
     const badgeConfig = {
       pending: 'bg-amber-50 text-amber-700 border-amber-250',
+      pending_director: 'bg-blue-50 text-blue-700 border-blue-200',
       approved: 'bg-emerald-50 text-emerald-700 border-emerald-250',
       rejected: 'bg-rose-50 text-rose-700 border-rose-250'
     }
 
     const textMap = {
-      pending: 'Menunggu',
+      pending: 'Menunggu Admin',
+      pending_director: 'Menunggu Direktur',
       approved: 'Disetujui',
       rejected: 'Ditolak'
     }
@@ -501,14 +511,25 @@ export default function AdminCuti({ token }: AdminCutiProps) {
       </div>
 
       {/* Overview Stats Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {/* Pending Card */}
+      <section className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+        {/* Pending Admin Card */}
         <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
           <div>
-            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Menunggu Persetujuan</span>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Menunggu Admin</span>
             <span className="text-3xl font-black text-slate-800 mt-1 block font-mono">{totalPending}</span>
           </div>
           <div className="p-3 bg-amber-50 rounded-2xl text-amber-600 border border-amber-100">
+            <Clock className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Pending Director Card */}
+        <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Menunggu Direktur</span>
+            <span className="text-3xl font-black text-slate-800 mt-1 block font-mono">{totalPendingDirector}</span>
+          </div>
+          <div className="p-3 bg-blue-50 rounded-2xl text-blue-600 border border-blue-100">
             <Clock className="w-6 h-6" />
           </div>
         </div>
@@ -570,7 +591,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           </div>
 
           {/* Status Filter */}
-          <div className="space-y-1">
+          <div className="space-y-1 col-span-1 md:col-span-2">
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-slate-400" />
               Status Cuti
@@ -578,14 +599,15 @@ export default function AdminCuti({ token }: AdminCutiProps) {
             <div className="flex bg-orange-50/30 border border-orange-100 rounded-xl p-1 justify-between h-[38px] items-center shadow-sm">
               {[
                 { id: 'all', label: 'Semua' },
-                { id: 'pending', label: 'Menunggu' },
+                { id: 'pending', label: 'Menunggu Admin' },
+                { id: 'pending_director', label: 'Menunggu Dir.' },
                 { id: 'approved', label: 'Disetujui' },
                 { id: 'rejected', label: 'Ditolak' }
               ].map((filter) => (
                 <button
                   key={filter.id}
                   onClick={() => setStatusFilter(filter.id as any)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                  className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                     statusFilter === filter.id
                       ? 'bg-white border border-orange-100 text-red-500 shadow-sm font-extrabold'
                       : 'text-slate-500 hover:text-red-500'

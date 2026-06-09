@@ -27,9 +27,9 @@ interface LoginProps {
   isOnline: boolean
 }
 
+const BRAND_PRIMARY = '#ef4444'
+const BRAND_PRIMARY_DARK = '#dc2626'
 const BRAND_ORANGE = '#ea580c'
-const BRAND_ORANGE_DARK = '#c2410c'
-const PANEL_BG = '#ea580c'
 
 export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   const [email, setEmail] = useState('')
@@ -41,7 +41,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   const handleLogin = async (e?: React.FormEvent | React.MouseEvent) => {
     e?.preventDefault()
     if (!email || !password) {
-      Swal.fire({ title: 'Form Belum Lengkap', text: 'Silakan isi email dan kata sandi Anda.', icon: 'warning', background: '#fff7f5', color: '#3c1105', confirmButtonColor: BRAND_ORANGE })
+      Swal.fire({ title: 'Form Belum Lengkap', text: 'Silakan isi email dan kata sandi Anda.', icon: 'warning', background: '#fffdfb', color: '#3c1105', confirmButtonColor: BRAND_PRIMARY })
       return
     }
     setLoading(true)
@@ -49,14 +49,14 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
       const response = await axios.post('http://localhost:8000/api/login', { email, password })
       if (response.data.status === 'success') {
         const { token, user } = response.data
-        Swal.fire({ title: 'Login Berhasil!', text: `Selamat datang, ${user.name}!`, icon: 'success', timer: 1500, showConfirmButton: false, background: '#fff7f5', color: '#3c1105' })
+        Swal.fire({ title: 'Login Berhasil!', text: `Selamat datang, ${user.name}!`, icon: 'success', timer: 1500, showConfirmButton: false, background: '#fffdfb', color: '#3c1105' })
         onLoginSuccess(token, user)
       }
     } catch (err: any) {
       let msg = 'Terjadi kesalahan saat menghubungi server.'
       if (err.response?.data?.message) msg = err.response.data.message
       else if (err.response?.data?.errors) msg = Object.values(err.response.data.errors).flat().join('\n')
-      Swal.fire({ title: 'Login Gagal', text: msg, icon: 'error', background: '#fff7f5', color: '#3c1105', confirmButtonColor: BRAND_ORANGE })
+      Swal.fire({ title: 'Login Gagal', text: msg, icon: 'error', background: '#fffdfb', color: '#3c1105', confirmButtonColor: BRAND_PRIMARY })
     } finally {
       setLoading(false)
     }
@@ -68,7 +68,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white font-quicksand">
+    <div className="min-h-screen flex flex-col bg-[#fdfbf7] font-quicksand">
 
 
 
@@ -79,7 +79,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
 
         {/* ─── LEFT PANEL (hidden on mobile/tablet) ─── */}
         <div className="hidden lg:flex lg:w-[58%] xl:w-[60%] relative flex-col justify-between overflow-hidden"
-          style={{ background: `linear-gradient(145deg, ${BRAND_ORANGE} 0%, #c2410c 100%)` }}>
+          style={{ background: `linear-gradient(145deg, ${BRAND_PRIMARY} 0%, ${BRAND_ORANGE} 100%)` }}>
 
           {/* Decorative grid pattern */}
           <div className="absolute inset-0 opacity-10" style={{
@@ -165,7 +165,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
         <div className="flex-1 flex flex-col bg-white">
           {/* Mobile hero — only shown on small screens */}
           <div className="lg:hidden w-full py-8 px-6 flex flex-col items-center text-center"
-            style={{ background: `linear-gradient(160deg, ${BRAND_ORANGE}, #c2410c)` }}>
+            style={{ background: `linear-gradient(160deg, ${BRAND_PRIMARY}, ${BRAND_ORANGE})` }}>
             <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center mb-3">
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
@@ -204,7 +204,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="nama@perusahaan.com"
-                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-4 outline-none transition-all text-sm font-medium"
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-red-500 focus:ring-2 focus:ring-red-100 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-4 outline-none transition-all text-sm font-medium"
                     />
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                     <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
                       Kata Sandi
                     </label>
-                    <button type="button" className="text-xs font-bold hover:underline cursor-pointer" style={{ color: BRAND_ORANGE }}>
+                    <button type="button" className="text-xs font-bold hover:underline cursor-pointer text-red-500 hover:text-red-650" style={{ color: BRAND_PRIMARY }}>
                       Lupa Sandi?
                     </button>
                   </div>
@@ -230,7 +230,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-12 outline-none transition-all text-sm font-medium"
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-red-500 focus:ring-2 focus:ring-red-100 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-12 outline-none transition-all text-sm font-medium"
                     />
                     <button
                       type="button"
@@ -248,7 +248,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                   onClick={() => setRememberMe(v => !v)}
                   className="flex items-center gap-2.5 cursor-pointer group"
                 >
-                  <div className="text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" style={rememberMe ? { color: BRAND_ORANGE } : {}}>
+                  <div className="text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" style={rememberMe ? { color: BRAND_PRIMARY } : {}}>
                     {rememberMe
                       ? <CheckSquare className="w-4 h-4" />
                       : <Square className="w-4 h-4" />}
@@ -265,8 +265,8 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                   disabled={loading}
                   className="w-full py-3.5 px-4 flex items-center justify-center gap-2.5 text-white font-bold rounded-xl transition-all text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
                   style={{
-                    background: loading ? '#c2410c' : `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_ORANGE_DARK} 100%)`,
-                    boxShadow: `0 4px 18px rgba(234,88,12,0.35)`
+                    background: loading ? BRAND_PRIMARY_DARK : `linear-gradient(135deg, ${BRAND_PRIMARY} 0%, ${BRAND_ORANGE} 100%)`,
+                    boxShadow: '0 4px 18px rgba(239,68,68,0.25)'
                   }}
                 >
                   {loading ? (
@@ -296,16 +296,16 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
       {/* ══════════════════════════════════════
           FOOTER
       ══════════════════════════════════════ */}
-      <footer className="w-full border-t border-slate-100 bg-white px-5 sm:px-8 lg:px-12 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
+      <footer className="w-full border-t border-slate-100/80 bg-transparent px-5 sm:px-8 lg:px-12 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
         <p className="text-[11px] text-slate-400 font-semibold">
           © 2024 Portal Absensi Karyawan. All rights reserved.
         </p>
         <div className="flex items-center gap-4 text-[11px] text-slate-400 font-semibold">
-          <a href="#" className="hover:text-slate-600 transition-colors">Privacy Policy</a>
+          <a href="#" className="hover:text-slate-650 transition-colors">Privacy Policy</a>
           <span>·</span>
-          <a href="#" className="hover:text-slate-600 transition-colors">Terms of Service</a>
+          <a href="#" className="hover:text-slate-650 transition-colors">Terms of Service</a>
           <span>·</span>
-          <a href="#" className="hover:text-slate-600 transition-colors">Security Compliance</a>
+          <a href="#" className="hover:text-slate-650 transition-colors">Security Compliance</a>
         </div>
       </footer>
     </div>

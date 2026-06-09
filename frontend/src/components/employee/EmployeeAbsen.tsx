@@ -77,6 +77,7 @@ export default function EmployeeAbsen({
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
 
   // Refs for DOM nodes
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -148,7 +149,7 @@ export default function EmployeeAbsen({
     setCameraError(null)
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' }
+        video: { width: 640, height: 480, facingMode: facingMode }
       })
       setStream(mediaStream)
       if (videoRef.current) {
@@ -175,7 +176,7 @@ export default function EmployeeAbsen({
     return () => {
       stopCamera()
     }
-  }, [capturedPhoto, needsForm])
+  }, [capturedPhoto, needsForm, facingMode])
 
   // Memoized ref callback to bind camera stream and avoid flickering on updates
   const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
@@ -538,8 +539,19 @@ export default function EmployeeAbsen({
                         autoPlay 
                         playsInline 
                         muted 
-                        className="w-full h-full object-cover transform -scale-x-100" 
+                        className={`w-full h-full object-cover transform ${facingMode === 'user' ? '-scale-x-100' : ''}`} 
                       />
+                      {/* Floating camera switch button */}
+                      {!cameraError && stream && (
+                        <button
+                          type="button"
+                          onClick={() => setFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
+                          className="absolute top-4 right-4 z-20 p-2.5 bg-white/80 hover:bg-white border border-slate-200/50 backdrop-blur-md rounded-xl text-slate-700 hover:text-red-500 shadow-md transition-all cursor-pointer flex items-center justify-center group"
+                          title="Ganti Kamera"
+                        >
+                          <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                        </button>
+                      )}
                       {cameraError && (
                         <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2 font-quicksand">
                           <AlertCircle className="w-8 h-8 text-rose-500" />
@@ -884,8 +896,19 @@ export default function EmployeeAbsen({
                         autoPlay 
                         playsInline 
                         muted 
-                        className="w-full h-full object-cover transform -scale-x-100" 
+                        className={`w-full h-full object-cover transform ${facingMode === 'user' ? '-scale-x-100' : ''}`} 
                       />
+                      {/* Floating camera switch button */}
+                      {!cameraError && stream && (
+                        <button
+                          type="button"
+                          onClick={() => setFacingMode(prev => prev === 'user' ? 'environment' : 'user')}
+                          className="absolute top-4 right-4 z-20 p-2.5 bg-white/80 hover:bg-white border border-slate-200/50 backdrop-blur-md rounded-xl text-slate-700 hover:text-red-500 shadow-md transition-all cursor-pointer flex items-center justify-center group"
+                          title="Ganti Kamera"
+                        >
+                          <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                        </button>
+                      )}
                       {cameraError && (
                         <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2 font-quicksand">
                           <AlertCircle className="w-8 h-8 text-rose-500" />

@@ -40,6 +40,7 @@ interface Employee {
   password_plain?: string
   created_at: string
   updated_at: string
+  status?: 'active' | 'pending' | 'pending_delete'
 }
 
 interface Attendance {
@@ -348,10 +349,10 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
 
           if (response.data.status === 'success') {
             Swal.fire({
-              title: 'Dihapus!',
-              text: 'Akun karyawan berhasil dihapus.',
+              title: 'Berhasil!',
+              text: response.data.message || 'Akun karyawan berhasil diproses.',
               icon: 'success',
-              timer: 1500,
+              timer: 2000,
               showConfirmButton: false,
               background: '#1e293b',
               color: '#f8fafc'
@@ -744,6 +745,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                   setShowModal={setShowModal}
                   formatDate={formatDate}
                   token={token}
+                  onRefresh={fetchEmployees}
                 />
               } 
             />

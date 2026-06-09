@@ -15,6 +15,7 @@ class BonusController extends Controller
     {
         $user = Auth::user();
         $bonuses = Bonus::where('user_id', $user->id)
+                        ->where('status', 'approved')
                         ->orderBy('bonus_date', 'desc')
                         ->orderBy('created_at', 'desc')
                         ->get();
@@ -72,6 +73,7 @@ class BonusController extends Controller
                 'bonus_amount' => $request->bonus_amount,
                 'bonus_date' => $request->bonus_date,
                 'description' => $request->description,
+                'status' => 'pending',
             ]);
 
             // Load user info for response
@@ -79,7 +81,7 @@ class BonusController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Bonus berhasil ditambahkan.',
+                'message' => 'Bonus berhasil ditambahkan dan menunggu persetujuan Direktur.',
                 'data' => $bonus
             ], 201);
         } catch (\Exception $e) {
@@ -151,5 +153,19 @@ class BonusController extends Controller
                 'message' => 'Gagal menghapus bonus: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function directorApprove($id)
+    {
+        $bonus = Bonus::findOrFail($id);
+        $bonus->update(['status' => 'approved']);
+        return response()->json(['status' => 'success', 'message' => 'Bonus berhasil disetujui.']);
+    }
+
+    public function directorReject($id)
+    {
+        $bonus = Bonus::findOrFail($id);
+        $bonus->update(['status' => 'rejected']);
+        return response()->json(['status' => 'success', 'message' => 'Bonus ditolak.']);
     }
 }

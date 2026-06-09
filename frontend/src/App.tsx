@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './components/Login'
 import AdminDashboard from './components/AdminDashboard'
 import EmployeeDashboard from './components/EmployeeDashboard'
+import DirectorDashboard from './components/direktur/DirectorDashboard'
 
 interface HealthResponse {
   status: string
@@ -15,16 +16,16 @@ interface User {
   id: number
   name: string
   email: string
-  role: 'admin' | 'employee'
+  role: 'admin' | 'employee' | 'director'
 }
 
 function App() {
   const [backendStatus, setBackendStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle')
   
   // Auth state
-  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'))
+  const [token, setToken] = useState<string | null>(sessionStorage.getItem('auth_token'))
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('auth_user')
+    const saved = sessionStorage.getItem('auth_user')
     if (saved) {
       try {
         return JSON.parse(saved)
@@ -51,15 +52,15 @@ function App() {
   }, [])
 
   const handleLoginSuccess = (newToken: string, newUser: User) => {
-    localStorage.setItem('auth_token', newToken)
-    localStorage.setItem('auth_user', JSON.stringify(newUser))
+    sessionStorage.setItem('auth_token', newToken)
+    sessionStorage.setItem('auth_user', JSON.stringify(newUser))
     setToken(newToken)
     setUser(newUser)
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('auth_user')
+    sessionStorage.removeItem('auth_token')
+    sessionStorage.removeItem('auth_user')
     setToken(null)
     setUser(null)
   }
@@ -74,18 +75,28 @@ function App() {
                 path="/admin/*" 
                 element={
                   <div className="min-h-screen bg-[#fcf9f5] text-slate-800 flex flex-col">
-                    <AdminDashboard user={user} token={token} onLogout={handleLogout} />
+                    <AdminDashboard user={user as any} token={token} onLogout={handleLogout} />
                   </div>
                 } 
                 />
               <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+            </>
+          ) : user.role === 'director' ? (
+            <>
+              <Route 
+                path="/director/*" 
+                element={
+                  <DirectorDashboard user={user as any} token={token} onLogout={handleLogout} />
+                } 
+                />
+              <Route path="*" element={<Navigate to="/director/dashboard" replace />} />
             </>
           ) : (
             <>
               <Route 
                 path="/employee/*" 
                 element={
-                  <EmployeeDashboard user={user} token={token} onLogout={handleLogout} />
+                  <EmployeeDashboard user={user as any} token={token} onLogout={handleLogout} />
                 } 
               />
               <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />

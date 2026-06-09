@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('expense_date');
             $table->text('description')->nullable();
             $table->string('receipt_path');
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->string('status')->default('pending');
             $table->text('admin_notes')->nullable();
             $table->timestamps();
         });

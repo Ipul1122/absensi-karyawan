@@ -19,7 +19,7 @@ return new class extends Migration
             $table->time('end_time');
             $table->double('duration'); // in hours
             $table->text('reason');
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->string('status')->default('pending');
             $table->text('admin_notes')->nullable();
             $table->timestamps();
         });

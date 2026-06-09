@@ -196,6 +196,7 @@ class OvertimeController extends Controller
             ->sum('duration');
 
         $pendingCount = Overtime::where('status', 'pending')->count();
+        $pendingDirectorCount = Overtime::where('status', 'pending_director')->count();
         $approvedCount = Overtime::where('status', 'approved')->count();
         $rejectedCount = Overtime::where('status', 'rejected')->count();
 
@@ -212,6 +213,7 @@ class OvertimeController extends Controller
                 'active_month' => $activeMonth,
                 'total_approved_hours_this_month' => round($totalApprovedHoursThisMonth, 2),
                 'pending_count' => $pendingCount,
+                'pending_director_count' => $pendingDirectorCount,
                 'approved_count' => $approvedCount,
                 'rejected_count' => $rejectedCount
             ]
@@ -235,7 +237,7 @@ class OvertimeController extends Controller
                 ->sum('duration');
 
             $pendingHours = Overtime::where('user_id', $user->id)
-                ->where('status', 'pending')
+                ->whereIn('status', ['pending', 'pending_director'])
                 ->where('date', 'like', $activeMonth . '%')
                 ->sum('duration');
 
@@ -261,7 +263,7 @@ class OvertimeController extends Controller
     }
 
     /**
-     * Approve an overtime request.
+     * Verify an overtime request (Admin).
      */
     public function approve(Request $request, $id)
     {
@@ -276,25 +278,25 @@ class OvertimeController extends Controller
 
         try {
             $overtime->update([
-                'status' => 'approved',
-                'admin_notes' => $request->input('admin_notes', 'Disetujui oleh Admin.')
+                'status' => 'pending_director',
+                'admin_notes' => $request->input('admin_notes', 'Diverifikasi oleh Admin.')
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan lembur berhasil disetujui.',
+                'message' => 'Pengajuan lembur berhasil diverifikasi Admin. Menunggu persetujuan akhir Direktur.',
                 'data' => $overtime
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal menyetujui pengajuan lembur: ' . $e->getMessage()
+                'message' => 'Gagal memverifikasi pengajuan lembur: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Reject an overtime request.
+     * Reject an overtime request (Admin).
      */
     public function reject(Request $request, $id)
     {
@@ -321,7 +323,65 @@ class OvertimeController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan lembur berhasil ditolak.',
+                'message' => 'Pengajuan lembur berhasil ditolak oleh Admin.',
+                'data' => $overtime
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menolak pengajuan lembur: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve an overtime request (Director).
+     */
+    public function directorApprove(Request $request, $id)
+    {
+        $overtime = Overtime::findOrFail($id);
+
+        try {
+            $overtime->update([
+                'status' => 'approved',
+                'admin_notes' => $request->input('admin_notes', 'Disetujui oleh Direktur.')
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengajuan lembur berhasil disetujui oleh Direktur.',
+                'data' => $overtime
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menyetujui pengajuan lembur: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject an overtime request (Director).
+     */
+    public function directorReject(Request $request, $id)
+    {
+        $overtime = Overtime::findOrFail($id);
+
+        $request->validate([
+            'admin_notes' => 'required|string|max:1000'
+        ], [
+            'admin_notes.required' => 'Alasan penolakan wajib diisi.'
+        ]);
+
+        try {
+            $overtime->update([
+                'status' => 'rejected',
+                'admin_notes' => $request->admin_notes
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengajuan lembur berhasil ditolak oleh Direktur.',
                 'data' => $overtime
             ]);
         } catch (\Exception $e) {

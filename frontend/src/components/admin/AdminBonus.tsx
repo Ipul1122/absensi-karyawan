@@ -30,6 +30,7 @@ interface Bonus {
   description: string | null
   created_at: string
   user: UserDetails
+  status: 'pending' | 'approved' | 'rejected'
 }
 
 interface Employee {
@@ -50,6 +51,7 @@ export default function AdminBonus({ token }: AdminBonusProps) {
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedUserFilter, setSelectedUserFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
 
   // Form state for creating a bonus
   const [userId, setUserId] = useState('')
@@ -288,9 +290,13 @@ export default function AdminBonus({ token }: AdminBonusProps) {
   }
 
   // Calculation for KPI cards
-  const totalBonusAwarded = bonuses.reduce((acc, curr) => acc + curr.bonus_amount, 0)
-  const uniqueRecipients = new Set(bonuses.map((b) => b.user_id)).size
-  const latestBonusAmount = bonuses.length > 0 ? bonuses[0].bonus_amount : 0
+  const approvedBonuses = bonuses.filter(b => b.status === 'approved')
+  const pendingBonuses = bonuses.filter(b => b.status === 'pending')
+  const totalBonusAwarded = approvedBonuses.reduce((acc, curr) => acc + curr.bonus_amount, 0)
+  const uniqueRecipients = new Set(approvedBonuses.map((b) => b.user_id)).size
+  
+  const pendingCount = pendingBonuses.length
+  const totalPendingAmount = pendingBonuses.reduce((acc, curr) => acc + curr.bonus_amount, 0)
 
   // Filtered bonuses
   const filteredBonuses = bonuses.filter((item) => {
@@ -300,8 +306,9 @@ export default function AdminBonus({ token }: AdminBonusProps) {
       (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
 
     const matchesUser = selectedUserFilter === 'all' || item.user_id.toString() === selectedUserFilter
+    const matchesStatus = statusFilter === 'all' || item.status === statusFilter
 
-    return matchesSearch && matchesUser
+    return matchesSearch && matchesUser && matchesStatus
   })
 
   const displayRupiah = (number: number) => {
@@ -333,11 +340,11 @@ export default function AdminBonus({ token }: AdminBonusProps) {
       </div>
 
       {/* KPI Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-4 gap-6">
         {/* Total Bonus Awarded */}
         <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
           <div>
-            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Total Akumulasi Bonus</span>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Total Bonus Disetujui</span>
             <span className="text-xl font-black text-amber-600 mt-1 block font-mono">{displayRupiah(totalBonusAwarded)}</span>
           </div>
           <div className="p-3 bg-amber-50 rounded-2xl text-amber-600 border border-amber-100">
@@ -356,13 +363,24 @@ export default function AdminBonus({ token }: AdminBonusProps) {
           </div>
         </div>
 
-        {/* Latest Award Amount */}
+        {/* Menunggu Direktur Count */}
         <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
           <div>
-            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Nominal Terakhir Diberikan</span>
-            <span className="text-xl font-black text-emerald-600 mt-1 block font-mono">{displayRupiah(latestBonusAmount)}</span>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Menunggu Direktur</span>
+            <span className="text-3xl font-black text-amber-500 mt-1 block font-mono">{pendingCount} <span className="text-xs font-semibold text-slate-400">pengajuan</span></span>
           </div>
-          <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600 border border-emerald-100">
+          <div className="p-3 bg-amber-50 rounded-2xl text-amber-500 border border-amber-100">
+            <Gift className="w-6 h-6 animate-pulse" />
+          </div>
+        </div>
+
+        {/* Nominal Menunggu */}
+        <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="block text-[10px] text-slate-400 uppercase tracking-wider font-extrabold font-quicksand">Nominal Menunggu</span>
+            <span className="text-xl font-black text-slate-600 mt-1 block font-mono">{displayRupiah(totalPendingAmount)}</span>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-2xl text-slate-500 border border-slate-100">
             <TrendingUp className="w-6 h-6" />
           </div>
         </div>
@@ -470,7 +488,7 @@ export default function AdminBonus({ token }: AdminBonusProps) {
         <div className="lg:col-span-2 space-y-4">
           {/* Filters Bar */}
           <section className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Search */}
               <div className="space-y-1">
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cari Bonus</label>
@@ -502,6 +520,21 @@ export default function AdminBonus({ token }: AdminBonusProps) {
                   ))}
                 </select>
               </div>
+
+              {/* Status Filter */}
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filter Status</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="pending">Menunggu Direktur</option>
+                  <option value="approved">Disetujui</option>
+                  <option value="rejected">Ditolak</option>
+                </select>
+              </div>
             </div>
           </section>
 
@@ -526,6 +559,7 @@ export default function AdminBonus({ token }: AdminBonusProps) {
                         <th className="py-3.5 px-4">Jumlah Bonus</th>
                         <th className="py-3.5 px-4">Tanggal</th>
                         <th className="py-3.5 px-4">Keterangan</th>
+                        <th className="py-3.5 px-4">Status</th>
                         <th className="py-3.5 px-4 text-right">Aksi</th>
                       </tr>
                     </thead>
@@ -558,6 +592,25 @@ export default function AdminBonus({ token }: AdminBonusProps) {
                           {/* Description */}
                           <td className="py-3 px-4 text-slate-600 font-medium max-w-[150px] truncate" title={item.description || ''}>
                             {item.description || <span className="text-[10px] text-slate-400 italic">-</span>}
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3 px-4">
+                            {item.status === 'pending' && (
+                              <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-600 border border-amber-100">
+                                Menunggu Direktur
+                              </span>
+                            )}
+                            {item.status === 'approved' && (
+                              <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                Disetujui
+                              </span>
+                            )}
+                            {item.status === 'rejected' && (
+                              <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-100">
+                                Ditolak
+                              </span>
+                            )}
                           </td>
 
                           {/* Actions */}

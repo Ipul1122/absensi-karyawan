@@ -32,6 +32,7 @@ interface Employee {
   password_plain?: string
   created_at: string
   updated_at: string
+  status?: 'active' | 'pending' | 'pending_delete'
 }
 
 interface EmployeeProfile {
@@ -58,6 +59,7 @@ interface AkunKaryawanProps {
   setShowModal: (b: boolean) => void
   formatDate: (d: string) => string
   token: string
+  onRefresh?: () => void
 }
 
 export default function AkunKaryawan({
@@ -70,6 +72,7 @@ export default function AkunKaryawan({
   setShowModal,
   formatDate,
   token,
+  onRefresh,
 }: AkunKaryawanProps) {
   const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({})
 
@@ -237,6 +240,16 @@ export default function AkunKaryawan({
                 className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs"
               />
             </div>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs shrink-0 font-quicksand disabled:opacity-50"
+              >
+                <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Segarkan
+              </button>
+            )}
             <button
               onClick={() => setShowModal(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs shrink-0 font-quicksand"
@@ -256,6 +269,7 @@ export default function AkunKaryawan({
                   <th className="py-4 px-5">Nama</th>
                   <th className="py-4 px-5">Email</th>
                   <th className="py-4 px-5">Kata Sandi</th>
+                  <th className="py-4 px-5">Status</th>
                   <th className="py-4 px-5">Terdaftar</th>
                   <th className="py-4 px-5 text-center">Aksi</th>
                 </tr>
@@ -263,7 +277,7 @@ export default function AkunKaryawan({
               <tbody className="divide-y divide-orange-50 text-sm text-slate-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-500 font-medium">
+                    <td colSpan={6} className="py-8 text-center text-slate-500 font-medium">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                         Memuat data karyawan...
@@ -272,7 +286,7 @@ export default function AkunKaryawan({
                   </tr>
                 ) : filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400 font-semibold">
+                    <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold">
                       {searchQuery ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
                     </td>
                   </tr>
@@ -301,6 +315,24 @@ export default function AkunKaryawan({
                             {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                           </button>
                         </div>
+                      </td>
+                      {/* Status */}
+                      <td className="py-4 px-5">
+                        {(!emp.status || emp.status === 'active') && (
+                          <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                            Aktif
+                          </span>
+                        )}
+                        {emp.status === 'pending' && (
+                          <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-600 border border-amber-100 animate-pulse">
+                            Menunggu Direktur
+                          </span>
+                        )}
+                        {emp.status === 'pending_delete' && (
+                          <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-100 animate-pulse">
+                            Proses Hapus
+                          </span>
+                        )}
                       </td>
                       <td className="py-4 px-5 text-xs text-slate-500 font-quicksand">{formatDate(emp.created_at)}</td>
                       <td className="py-4 px-5">

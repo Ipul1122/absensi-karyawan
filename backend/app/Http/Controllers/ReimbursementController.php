@@ -154,7 +154,7 @@ class ReimbursementController extends Controller
     }
 
     /**
-     * Approve a reimbursement claim.
+     * Verify a reimbursement claim (Admin).
      */
     public function approve($id)
     {
@@ -169,24 +169,24 @@ class ReimbursementController extends Controller
 
         try {
             $reimbursement->update([
-                'status' => 'approved',
-                'admin_notes' => 'Disetujui oleh Admin.'
+                'status' => 'pending_director',
+                'admin_notes' => 'Diverifikasi oleh Admin.'
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan reimbursement berhasil disetujui.'
+                'message' => 'Pengajuan reimbursement berhasil diverifikasi Admin. Menunggu persetujuan akhir Direktur.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal menyetujui pengajuan: ' . $e->getMessage()
+                'message' => 'Gagal memverifikasi pengajuan: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Reject a reimbursement claim with reason.
+     * Reject a reimbursement claim (Admin).
      */
     public function reject(Request $request, $id)
     {
@@ -213,7 +213,63 @@ class ReimbursementController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan reimbursement berhasil ditolak.'
+                'message' => 'Pengajuan reimbursement berhasil ditolak oleh Admin.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menolak pengajuan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve a reimbursement claim (Director).
+     */
+    public function directorApprove($id)
+    {
+        $reimbursement = Reimbursement::findOrFail($id);
+
+        try {
+            $reimbursement->update([
+                'status' => 'approved',
+                'admin_notes' => 'Disetujui oleh Direktur.'
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengajuan reimbursement berhasil disetujui oleh Direktur.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menyetujui pengajuan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject a reimbursement claim (Director).
+     */
+    public function directorReject(Request $request, $id)
+    {
+        $reimbursement = Reimbursement::findOrFail($id);
+
+        $request->validate([
+            'admin_notes' => 'required|string|max:1000'
+        ], [
+            'admin_notes.required' => 'Alasan penolakan wajib diisi.'
+        ]);
+
+        try {
+            $reimbursement->update([
+                'status' => 'rejected',
+                'admin_notes' => $request->admin_notes
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Pengajuan reimbursement berhasil ditolak oleh Direktur.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -237,6 +293,7 @@ class ReimbursementController extends Controller
             ->sum('amount');
 
         $pendingCount = Reimbursement::where('status', 'pending')->count();
+        $pendingDirectorCount = Reimbursement::where('status', 'pending_director')->count();
         $approvedCount = Reimbursement::where('status', 'approved')->count();
         $rejectedCount = Reimbursement::where('status', 'rejected')->count();
 
@@ -251,6 +308,7 @@ class ReimbursementController extends Controller
             'data' => [
                 'total_approved_this_month' => $totalApprovedThisMonth,
                 'pending_count' => $pendingCount,
+                'pending_director_count' => $pendingDirectorCount,
                 'approved_count' => $approvedCount,
                 'rejected_count' => $rejectedCount,
                 'category_breakdown' => $categoryBreakdown

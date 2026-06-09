@@ -45,22 +45,43 @@ class PayrollController extends Controller
             'deduction_fixed' => 'required|numeric|min:0',
         ]);
 
-        $config = SalaryConfiguration::updateOrCreate(
-            ['user_id' => $request->user_id],
-            [
-                'basic_salary' => $request->basic_salary,
-                'allowance_meal_daily' => $request->allowance_meal_daily,
-                'allowance_transport_daily' => $request->allowance_transport_daily,
-                'allowance_position' => $request->allowance_position,
-                'deduction_late_daily' => $request->deduction_late_daily,
-                'deduction_absence_daily' => $request->deduction_absence_daily,
-                'deduction_fixed' => $request->deduction_fixed,
-            ]
-        );
+        $user = $request->user();
+
+        if ($user && $user->role === 'director') {
+            $config = SalaryConfiguration::updateOrCreate(
+                ['user_id' => $request->user_id],
+                [
+                    'basic_salary' => $request->basic_salary,
+                    'allowance_meal_daily' => $request->allowance_meal_daily,
+                    'allowance_transport_daily' => $request->allowance_transport_daily,
+                    'allowance_position' => $request->allowance_position,
+                    'deduction_late_daily' => $request->deduction_late_daily,
+                    'deduction_absence_daily' => $request->deduction_absence_daily,
+                    'deduction_fixed' => $request->deduction_fixed,
+                    'salary_change_status' => 'approved',
+                ]
+            );
+            $msg = 'Pengaturan gaji karyawan berhasil disimpan dan langsung disetujui.';
+        } else {
+            $config = SalaryConfiguration::updateOrCreate(
+                ['user_id' => $request->user_id],
+                [
+                    'pending_basic_salary' => $request->basic_salary,
+                    'pending_allowance_meal_daily' => $request->allowance_meal_daily,
+                    'pending_allowance_transport_daily' => $request->allowance_transport_daily,
+                    'pending_allowance_position' => $request->allowance_position,
+                    'pending_deduction_late_daily' => $request->deduction_late_daily,
+                    'pending_deduction_absence_daily' => $request->deduction_absence_daily,
+                    'pending_deduction_fixed' => $request->deduction_fixed,
+                    'salary_change_status' => 'pending',
+                ]
+            );
+            $msg = 'Perubahan gaji diajukan dan menunggu persetujuan Direktur.';
+        }
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Pengaturan gaji karyawan berhasil disimpan.',
+            'message' => $msg,
             'data' => $config
         ]);
     }
@@ -116,16 +137,18 @@ class PayrollController extends Controller
             DB::beginTransaction();
 
             foreach ($employees as $employee) {
-                // 1. Hitung total kehadiran (clock_in tidak null) di bulan tersebut
+                // 1. Hitung total kehadiran (clock_in tidak null) di bulan tersebut yang disetujui
                 $daysPresent = Attendance::where('user_id', $employee->id)
                     ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                     ->whereNotNull('clock_in')
+                    ->where('approval_status', 'approved')
                     ->count();
 
-                // 2. Hitung total keterlambatan (status_in = 'late')
+                // 2. Hitung total keterlambatan (status_in = 'late') yang disetujui
                 $daysLate = Attendance::where('user_id', $employee->id)
                     ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                     ->where('status_in', 'late')
+                    ->where('approval_status', 'approved')
                     ->count();
 
                 // 3. Hitung total hari cuti yang disetujui
@@ -367,5 +390,92 @@ class PayrollController extends Controller
             'status' => 'success',
             'data' => $payrolls
         ]);
+    }
+
+    public function approveSalaryConfig($id)
+    {
+        $config = SalaryConfiguration::findOrFail($id);
+        $config->update([
+            'basic_salary' => $config->pending_basic_salary ?? $config->basic_salary,
+            'allowance_meal_daily' => $config->pending_allowance_meal_daily ?? $config->allowance_meal_daily,
+            'allowance_transport_daily' => $config->pending_allowance_transport_daily ?? $config->allowance_transport_daily,
+            'allowance_position' => $config->pending_allowance_position ?? $config->allowance_position,
+            'deduction_late_daily' => $config->pending_deduction_late_daily ?? $config->deduction_late_daily,
+            'deduction_absence_daily' => $config->pending_deduction_absence_daily ?? $config->deduction_absence_daily,
+            'deduction_fixed' => $config->pending_deduction_fixed ?? $config->deduction_fixed,
+            'pending_basic_salary' => null,
+            'pending_allowance_meal_daily' => null,
+            'pending_allowance_transport_daily' => null,
+            'pending_allowance_position' => null,
+            'pending_deduction_late_daily' => null,
+            'pending_deduction_absence_daily' => null,
+            'pending_deduction_fixed' => null,
+            'salary_change_status' => 'approved'
+        ]);
+        return response()->json(['status' => 'success', 'message' => 'Perubahan gaji berhasil disetujui.']);
+    }
+
+    public function rejectSalaryConfig($id)
+    {
+        $config = SalaryConfiguration::findOrFail($id);
+        $config->update([
+            'pending_basic_salary' => null,
+            'pending_allowance_meal_daily' => null,
+            'pending_allowance_transport_daily' => null,
+            'pending_allowance_position' => null,
+            'pending_deduction_late_daily' => null,
+            'pending_deduction_absence_daily' => null,
+            'pending_deduction_fixed' => null,
+            'salary_change_status' => 'rejected'
+        ]);
+        return response()->json(['status' => 'success', 'message' => 'Perubahan gaji ditolak.']);
+    }
+
+    public function submitPayrollApproval(Request $request, $id)
+    {
+        $payroll = Payroll::findOrFail($id);
+        $payroll->update(['status' => 'pending_approval']);
+        return response()->json(['status' => 'success', 'message' => 'Payroll berhasil diajukan ke Direktur untuk disetujui.']);
+    }
+
+    public function submitAllPayrollApproval(Request $request)
+    {
+        $request->validate(['period_month' => 'required|string']);
+        Payroll::where('period_month', $request->period_month)
+            ->where('status', 'draft')
+            ->update(['status' => 'pending_approval']);
+        return response()->json(['status' => 'success', 'message' => 'Semua payroll pada periode ini berhasil diajukan ke Direktur.']);
+    }
+
+    public function approvePayroll($id)
+    {
+        $payroll = Payroll::findOrFail($id);
+        $payroll->update(['status' => 'unpaid']);
+        return response()->json(['status' => 'success', 'message' => 'Payroll disetujui, siap dibayarkan.']);
+    }
+
+    public function rejectPayroll($id)
+    {
+        $payroll = Payroll::findOrFail($id);
+        $payroll->update(['status' => 'draft']);
+        return response()->json(['status' => 'success', 'message' => 'Payroll ditolak dan dikembalikan sebagai draft.']);
+    }
+
+    public function approveAllPayroll(Request $request)
+    {
+        $request->validate(['period_month' => 'required|string']);
+        Payroll::where('period_month', $request->period_month)
+            ->where('status', 'pending_approval')
+            ->update(['status' => 'unpaid']);
+        return response()->json(['status' => 'success', 'message' => 'Semua payroll pada periode ini berhasil disetujui.']);
+    }
+
+    public function rejectAllPayroll(Request $request)
+    {
+        $request->validate(['period_month' => 'required|string']);
+        Payroll::where('period_month', $request->period_month)
+            ->where('status', 'pending_approval')
+            ->update(['status' => 'draft']);
+        return response()->json(['status' => 'success', 'message' => 'Semua payroll pada periode ini ditolak dan dikembalikan sebagai draft.']);
     }
 }

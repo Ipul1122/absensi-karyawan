@@ -25,6 +25,14 @@ interface SalaryConfig {
   deduction_late_daily: number
   deduction_absence_daily: number
   deduction_fixed: number
+  pending_basic_salary?: number | null
+  pending_allowance_meal_daily?: number | null
+  pending_allowance_transport_daily?: number | null
+  pending_allowance_position?: number | null
+  pending_deduction_late_daily?: number | null
+  pending_deduction_absence_daily?: number | null
+  pending_deduction_fixed?: number | null
+  salary_change_status?: 'none' | 'pending' | 'approved' | 'rejected'
 }
 
 interface AdminSalaryConfigProps {
@@ -79,13 +87,16 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
   const handleOpenConfig = (employee: User) => {
     setEditingEmployee(employee)
     if (employee.salary_configuration) {
-      setBasicSalary(String(employee.salary_configuration.basic_salary))
-      setAllowanceMealDaily(String(employee.salary_configuration.allowance_meal_daily ?? 0))
-      setAllowanceTransportDaily(String(employee.salary_configuration.allowance_transport_daily ?? 0))
-      setAllowancePosition(String(employee.salary_configuration.allowance_position ?? 0))
-      setDeductionLateDaily(String(employee.salary_configuration.deduction_late_daily))
-      setDeductionAbsenceDaily(String(employee.salary_configuration.deduction_absence_daily ?? 0))
-      setDeductionFixed(String(employee.salary_configuration.deduction_fixed))
+      const cfg = employee.salary_configuration
+      const isPending = cfg.salary_change_status === 'pending'
+      
+      setBasicSalary(String(isPending && cfg.pending_basic_salary !== null ? cfg.pending_basic_salary : cfg.basic_salary))
+      setAllowanceMealDaily(String(isPending && cfg.pending_allowance_meal_daily !== null ? cfg.pending_allowance_meal_daily : (cfg.allowance_meal_daily ?? 0)))
+      setAllowanceTransportDaily(String(isPending && cfg.pending_allowance_transport_daily !== null ? cfg.pending_allowance_transport_daily : (cfg.allowance_transport_daily ?? 0)))
+      setAllowancePosition(String(isPending && cfg.pending_allowance_position !== null ? cfg.pending_allowance_position : (cfg.allowance_position ?? 0)))
+      setDeductionLateDaily(String(isPending && cfg.pending_deduction_late_daily !== null ? cfg.pending_deduction_late_daily : cfg.deduction_late_daily))
+      setDeductionAbsenceDaily(String(isPending && cfg.pending_deduction_absence_daily !== null ? cfg.pending_deduction_absence_daily : (cfg.deduction_absence_daily ?? 0)))
+      setDeductionFixed(String(isPending && cfg.pending_deduction_fixed !== null ? cfg.pending_deduction_fixed : cfg.deduction_fixed))
     } else {
       setBasicSalary('4500000') // Default mock Gaji Pokok
       setAllowanceMealDaily('0')
@@ -124,9 +135,9 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
       if (response.data.status === 'success') {
         Swal.fire({
           title: 'Berhasil!',
-          text: 'Setelan gaji karyawan berhasil disimpan.',
+          text: 'Pengajuan perubahan gaji berhasil disimpan dan menunggu persetujuan Direktur.',
           icon: 'success',
-          timer: 1500,
+          timer: 2000,
           showConfirmButton: false
         })
         setShowConfigModal(false)
@@ -201,6 +212,16 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                         <div>
                           <p className="font-extrabold text-slate-800 text-[13px]">{emp.name}</p>
                           <p className="text-[10px] text-slate-450 mt-0.5">{emp.email}</p>
+                          {cfg && cfg.salary_change_status === 'pending' && (
+                            <span className="inline-flex items-center gap-1 mt-1.5 py-0.5 px-2 rounded-full text-[9px] font-extrabold bg-amber-50 text-amber-600 border border-amber-100 animate-pulse">
+                              Perubahan Menunggu Direktur
+                            </span>
+                          )}
+                          {cfg && cfg.salary_change_status === 'rejected' && (
+                            <span className="inline-flex items-center gap-1 mt-1.5 py-0.5 px-2 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-600 border border-rose-100">
+                              Perubahan Ditolak
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="py-4 px-5 font-bold text-slate-700">

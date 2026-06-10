@@ -33,7 +33,7 @@ export default function AdminNavbar({ user, title }: AdminNavbarProps) {
               className="w-10 h-10 rounded-full border border-slate-200 object-cover shadow-sm shrink-0"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full border border-slate-200 bg-gradient-to-tr from-orange-500 to-red-650 flex items-center justify-center text-white font-extrabold text-sm shadow-sm shrink-0">
+            <div className="w-10 h-10 rounded-full border border-slate-200 bg-gradient-to-tr from-orange-500 to-red-600 flex items-center justify-center text-white font-extrabold text-sm shadow-sm shrink-0">
               {user.name.charAt(0).toUpperCase()}
             </div>
           )}

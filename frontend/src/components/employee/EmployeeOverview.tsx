@@ -409,7 +409,7 @@ export default function EmployeeOverview({
                 disabled={attendanceState !== 'needs_checkout'}
                 className={`w-full py-3 px-4 rounded-2xl text-xs font-black flex items-center justify-center gap-2 border transition-all duration-300 shadow-md ${
                   attendanceState === 'needs_checkout'
-                    ? 'bg-gradient-to-r from-slate-800 to-slate-950 hover:from-slate-850 hover:to-black text-white border-transparent hover:-translate-y-0.5 shadow-slate-900/10 cursor-pointer'
+                    ? 'bg-gradient-to-r from-slate-800 to-slate-950 hover:from-slate-800 hover:to-black text-white border-transparent hover:-translate-y-0.5 shadow-slate-900/10 cursor-pointer'
                     : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed shadow-none'
                 }`}
               >
@@ -423,7 +423,7 @@ export default function EmployeeOverview({
         {/* Ringkasan Data & Statistik Terintegrasi */}
         <section className="space-y-4">
           <div className="flex items-center justify-between pl-2">
-            <h3 className="text-xs font-black text-slate-450 uppercase tracking-widest flex items-center gap-2 font-mono">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 font-mono">
               <TrendingUp className="w-4 h-4" /> Ringkasan Data Utama Anda
             </h3>
             {statsLoading && <span className="text-[10px] text-red-500 font-bold animate-pulse">Menyinkronkan data...</span>}
@@ -455,7 +455,7 @@ export default function EmployeeOverview({
                 </div>
                 <div>
                   <span className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">
-                    {approvedLeavesCount} <span className="text-xs text-slate-450 font-bold">Hari disetujui</span>
+                    {approvedLeavesCount} <span className="text-xs text-slate-400 font-bold">Hari disetujui</span>
                   </span>
                   <p className="text-[10px] text-slate-400 font-bold mt-1">
                     {pendingLeavesCount > 0 ? `${pendingLeavesCount} pengajuan sedang diproses` : 'Tidak ada pengajuan aktif'}
@@ -491,7 +491,7 @@ export default function EmployeeOverview({
                 </div>
                 <div>
                   <span className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">
-                    {approvedOvertimesDuration} <span className="text-xs text-slate-450 font-bold">Jam disetujui</span>
+                    {approvedOvertimesDuration} <span className="text-xs text-slate-400 font-bold">Jam disetujui</span>
                   </span>
                   <p className="text-[10px] text-slate-400 font-bold mt-1">
                     {pendingOvertimesCount > 0 ? `${pendingOvertimesCount} laporan dalam verifikasi` : 'Tidak ada laporan pending'}
@@ -511,7 +511,7 @@ export default function EmployeeOverview({
                   <span className="text-lg md:text-xl font-black text-emerald-600 tracking-tight font-mono block truncate" title={formatRupiah(totalBonusAmount)}>
                     {formatRupiah(totalBonusAmount)}
                   </span>
-                  <p className="text-[10px] text-slate-450 font-bold mt-1">
+                  <p className="text-[10px] text-slate-400 font-bold mt-1">
                     {totalBonusCount > 0 ? `Akumulasi dari ${totalBonusCount} kali penerimaan` : 'Belum ada bonus tercatat'}
                   </p>
                 </div>
@@ -523,7 +523,7 @@ export default function EmployeeOverview({
 
         {/* Quick Actions / Pintasan Cepat */}
         <section className="space-y-4">
-          <h3 className="text-xs font-black text-slate-450 uppercase tracking-widest pl-2 font-mono">
+          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2 font-mono">
             Menu Pintasan Cepat
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -580,7 +580,7 @@ export default function EmployeeOverview({
         {/* Digital ID Card (Highly Polished) */}
         <section className="bg-white border border-orange-100/80 rounded-3xl shadow-sm overflow-hidden group hover:shadow-md transition-shadow duration-300">
           <div className="h-24 bg-slate-800 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-650 via-orange-600 to-amber-550 opacity-90"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 opacity-90"></div>
             <div className="absolute inset-0 bg-grid-white/[0.05] [mask-image:linear-gradient(to_bottom,white,transparent)]"></div>
           </div>
           <div className="px-6 pb-6 pt-0 relative flex flex-col items-center">
@@ -600,16 +600,16 @@ export default function EmployeeOverview({
             </p>
             
             <div className="w-full space-y-3 border-t border-slate-100 mt-6 pt-5">
-              <div className="flex items-center gap-3 text-slate-655">
+              <div className="flex items-center gap-3 text-slate-600">
                 <Mail className="w-4 h-4 text-slate-400 shrink-0" />
                 <span className="text-xs font-semibold truncate" title={profile?.email || user.email}>{profile?.email || user.email}</span>
               </div>
-              <div className="flex items-center gap-3 text-slate-655">
+              <div className="flex items-center gap-3 text-slate-600">
                 <Briefcase className="w-4 h-4 text-slate-400 shrink-0" />
                 <span className="text-xs font-semibold">Divisi: {profile?.division || 'Belum Diatur'}</span>
               </div>
               {profile?.join_date && (
-                <div className="flex items-center gap-3 text-slate-655">
+                <div className="flex items-center gap-3 text-slate-600">
                   <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
                   <span className="text-xs font-semibold">Gabung: {new Date(profile.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                 </div>
@@ -620,13 +620,13 @@ export default function EmployeeOverview({
 
         {/* Kehadiran Statistik (Bulan Ini) */}
         <section className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm space-y-4">
-          <h4 className="text-xs font-black text-slate-450 uppercase tracking-widest pl-1 font-mono">
+          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 font-mono">
             Kehadiran Bulan Ini
           </h4>
           <div className="grid grid-cols-2 gap-3">
             
             <div className="bg-slate-50 border border-slate-150/60 rounded-2xl p-3.5 shadow-sm text-center">
-              <p className="text-[9px] font-bold text-slate-450 uppercase tracking-wider mb-1">Total Hadir</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Hadir</p>
               <p className="text-2xl font-black text-slate-800 font-mono">{workDays}</p>
             </div>
             
@@ -651,7 +651,7 @@ export default function EmployeeOverview({
         {/* Status Slip Gaji Terbaru (Payroll widget) */}
         <section className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm space-y-4 group">
           <div className="flex items-center justify-between pl-1">
-            <h4 className="text-xs font-black text-slate-450 uppercase tracking-widest font-mono">
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest font-mono">
               Slip Gaji Terbaru
             </h4>
             <button 
@@ -671,11 +671,11 @@ export default function EmployeeOverview({
           ) : latestPayroll ? (
             <div className="space-y-3.5">
               <div>
-                <p className="text-[10px] text-slate-450 font-bold uppercase">{getIndonesianMonthLabel(latestPayroll.period_month)}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase">{getIndonesianMonthLabel(latestPayroll.period_month)}</p>
                 <p className="text-xl font-black text-slate-800 mt-1 font-mono">{formatRupiah(latestPayroll.net_salary)}</p>
               </div>
               <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-                <span className="text-[10px] text-slate-450 font-bold">Status Pembayaran</span>
+                <span className="text-[10px] text-slate-400 font-bold">Status Pembayaran</span>
                 {latestPayroll.status === 'paid' ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 font-mono">
                     Paid (Lunas)

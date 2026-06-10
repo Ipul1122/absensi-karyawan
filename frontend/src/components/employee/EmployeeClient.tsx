@@ -338,7 +338,7 @@ export default function EmployeeClient({
             </div>
             <button
               onClick={() => setShowVisitModal(true)}
-              className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-655 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 cursor-pointer transition-all flex items-center gap-1.5 font-quicksand"
+              className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-700 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 cursor-pointer transition-all flex items-center gap-1.5 font-quicksand"
             >
               <Plus className="w-4 h-4" /> Lapor Kunjungan Baru
             </button>
@@ -374,7 +374,7 @@ export default function EmployeeClient({
                       </div>
                       
                       {visit.notes && (
-                        <p className="text-xs text-slate-655 font-medium font-quicksand leading-relaxed">
+                        <p className="text-xs text-slate-600 font-medium font-quicksand leading-relaxed">
                           {visit.notes}
                         </p>
                       )}
@@ -427,7 +427,7 @@ export default function EmployeeClient({
             <div className="space-y-4">
               {/* Client Name Input */}
               <div className="relative">
-                <label className="block text-xs font-bold text-slate-550 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Nama Klien / Instansi / Toko *
                 </label>
                 <input
@@ -468,7 +468,7 @@ export default function EmployeeClient({
 
               {/* Photo Input (Webcam / Upload) */}
               <div>
-                <label className="block text-xs font-bold text-slate-550 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Ambil Foto Bukti Kunjungan *
                 </label>
                 <div className="relative aspect-video w-full rounded-2xl bg-slate-100 border border-orange-100/60 overflow-hidden flex items-center justify-center shadow-inner">
@@ -484,14 +484,14 @@ export default function EmployeeClient({
                         className="w-full h-full object-cover transform -scale-x-100" 
                       />
                       {visitCameraError && (
-                        <div className="absolute inset-0 bg-slate-55 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2 font-quicksand">
+                        <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2 font-quicksand">
                           <AlertCircle className="w-8 h-8 text-rose-500" />
                           <p className="text-xs font-semibold leading-relaxed">{visitCameraError}</p>
                           <div className="flex flex-wrap gap-2 justify-center mt-2">
                             <button onClick={startVisitCamera} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
                               Coba Lagi
                             </button>
-                            <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">
+                            <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">
                               <Upload className="w-3.5 h-3.5" /> Pilih dari Galeri
                               <input 
                                 type="file" 
@@ -537,23 +537,23 @@ export default function EmployeeClient({
               {/* Location Tracker */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold text-slate-550 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Koordinat Geolocation (GPS) *
                   </label>
-                  <button onClick={fetchVisitLocation} disabled={visitLocationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-655 cursor-pointer font-quicksand">
+                  <button onClick={fetchVisitLocation} disabled={visitLocationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer font-quicksand">
                     <RefreshCw className={`w-3.5 h-3.5 ${visitLocationLoading ? 'animate-spin' : ''}`} /> Cari Ulang
                   </button>
                 </div>
                 
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center text-xs font-mono">
-                  <div className="flex items-center gap-1.5 text-slate-555">
+                  <div className="flex items-center gap-1.5 text-slate-500">
                     <MapPin className="w-3.5 h-3.5 text-red-500" />
                     <span className="font-quicksand font-bold">Koordinat:</span>
                   </div>
                   {visitLatitude && visitLongitude ? (
                     <span className="text-slate-700 text-[11px] font-bold">{visitLatitude.toFixed(6)}, {visitLongitude.toFixed(6)}</span>
                   ) : (
-                    <span className="text-slate-450 italic font-quicksand font-semibold">
+                    <span className="text-slate-400 italic font-quicksand font-semibold">
                       {visitLocationLoading ? 'Mengunci GPS...' : 'Lokasi belum dikunci'}
                     </span>
                   )}

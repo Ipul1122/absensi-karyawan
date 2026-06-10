@@ -117,7 +117,7 @@ export default function EmployeeAbsen({
           </div>
           <NavLink
             to={todayAttendance.attendance_type === 'kunjungan' ? '/employee/sales' : '/employee/client'}
-            className="mt-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-655 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer font-quicksand font-semibold"
+            className="mt-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer font-quicksand font-semibold"
           >
             Buka Absen {todayAttendance.attendance_type === 'kunjungan' ? 'Kunjungan Kerja' : 'Kunjungan Klien'}
           </NavLink>
@@ -570,7 +570,7 @@ export default function EmployeeAbsen({
                             <button onClick={startCamera} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
                               Coba Lagi
                             </button>
-                            <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">
+                            <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">
                               <Upload className="w-3.5 h-3.5" /> Pilih dari Galeri
                               <input 
                                 type="file" 
@@ -619,7 +619,7 @@ export default function EmployeeAbsen({
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
                     2. Lokasi Geolocation (GPS)
                   </label>
-                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-655 cursor-pointer font-quicksand">
+                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer font-quicksand">
                     <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} /> Cari Ulang
                   </button>
                 </div>
@@ -627,7 +627,7 @@ export default function EmployeeAbsen({
                 <div className="relative w-full h-[220px] rounded-2xl bg-slate-50 border border-orange-100/60 overflow-hidden flex items-center justify-center">
                   <div ref={mapRef} id="employee-map" className="w-full h-full z-10" />
                   {locationLoading && (
-                    <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-650 text-center gap-2">
+                    <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-600 text-center gap-2">
                       <RefreshCw className="w-7 h-7 animate-spin text-red-500" />
                       <p className="text-xs font-semibold">Mengunci sinyal koordinat GPS...</p>
                     </div>
@@ -649,7 +649,7 @@ export default function EmployeeAbsen({
                     {latitude && longitude ? (
                       <span className="text-slate-700 text-[11px] font-bold">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
                     ) : (
-                      <span className="text-slate-450 italic font-quicksand font-semibold">Lokasi belum dikunci</span>
+                      <span className="text-slate-400 italic font-quicksand font-semibold">Lokasi belum dikunci</span>
                     )}
                   </div>
 
@@ -673,7 +673,7 @@ export default function EmployeeAbsen({
             </div>
 
             <div className="space-y-2 pt-2 border-t border-orange-100">
-              <label className="block text-xs font-bold text-slate-550 uppercase tracking-wider flex items-center gap-1 font-quicksand">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 font-quicksand">
                 <FileText className="w-3.5 h-3.5 text-red-500" />
                 3. Catatan Presensi (Opsional)
               </label>
@@ -713,7 +713,7 @@ export default function EmployeeAbsen({
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
               <div className="md:col-span-7 space-y-4">
-                <div className="bg-slate-55 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
                   <div>
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Waktu Presensi Masuk</span>
                     <span className="text-3xl font-extrabold text-slate-800 font-mono">{todayAttendance.clock_in}</span>
@@ -723,28 +723,15 @@ export default function EmployeeAbsen({
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Tipe Presensi</span>
                       <span className="text-xs text-slate-700 font-extrabold capitalize">{todayAttendance.attendance_type || 'kantor'}</span>
                     </div>
-                    {todayAttendance.latitude_in && isNaN(parseFloat(todayAttendance.latitude_in)) ? (
-                      <div className="col-span-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Lokasi Absensi</span>
-                        <span className="text-xs text-slate-700 font-extrabold">{todayAttendance.latitude_in}</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Latitude GPS</span>
-                          <span className="text-xs text-slate-655 font-mono">{todayAttendance.latitude_in}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Longitude GPS</span>
-                          <span className="text-xs text-slate-655 font-mono">{todayAttendance.longitude_in}</span>
-                        </div>
-                      </>
-                    )}
+                    <div className="col-span-2">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Lokasi Absensi</span>
+                      <span className="text-xs text-slate-700 font-extrabold">Thamrin City Lantai 7</span>
+                    </div>
                   </div>
                   {todayAttendance.notes_in && (
                     <div className="pt-2 border-t border-slate-200">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Catatan Anda</span>
-                      <p className="text-xs text-slate-655 mt-1 font-medium font-quicksand">{todayAttendance.notes_in}</p>
+                      <p className="text-xs text-slate-600 mt-1 font-medium font-quicksand">{todayAttendance.notes_in}</p>
                     </div>
                   )}
                 </div>
@@ -776,7 +763,7 @@ export default function EmployeeAbsen({
             </div>
             <button
               onClick={() => setSelectedTab('in')}
-              className="mt-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer font-quicksand"
+              className="mt-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer font-quicksand"
             >
               Buka Absen Masuk
             </button>
@@ -874,7 +861,7 @@ export default function EmployeeAbsen({
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
                     2. Lokasi Geolocation (GPS)
                   </label>
-                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-655 cursor-pointer font-quicksand">
+                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer font-quicksand">
                     <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} /> Cari Ulang
                   </button>
                 </div>
@@ -882,7 +869,7 @@ export default function EmployeeAbsen({
                 <div className="relative w-full h-[220px] rounded-2xl bg-slate-50 border border-orange-100/60 overflow-hidden flex items-center justify-center">
                   <div ref={mapRef} id="employee-map" className="w-full h-full z-10" />
                   {locationLoading && (
-                    <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-650 text-center gap-2">
+                    <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-600 text-center gap-2">
                       <RefreshCw className="w-7 h-7 animate-spin text-red-500" />
                       <p className="text-xs font-semibold">Mengunci sinyal koordinat GPS...</p>
                     </div>
@@ -904,7 +891,7 @@ export default function EmployeeAbsen({
                     {latitude && longitude ? (
                       <span className="text-slate-700 text-[11px] font-bold">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
                     ) : (
-                      <span className="text-slate-450 italic font-quicksand font-semibold">Lokasi belum dikunci</span>
+                      <span className="text-slate-400 italic font-quicksand font-semibold">Lokasi belum dikunci</span>
                     )}
                   </div>
 
@@ -928,7 +915,7 @@ export default function EmployeeAbsen({
             </div>
 
             <div className="space-y-2 pt-2 border-t border-orange-100">
-              <label className="block text-xs font-bold text-slate-555 uppercase tracking-wider flex items-center gap-1 font-quicksand">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 font-quicksand">
                 <FileText className="w-3.5 h-3.5 text-red-500" />
                 3. Catatan Presensi (Opsional)
               </label>
@@ -975,22 +962,18 @@ export default function EmployeeAbsen({
                   </div>
                   <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-555 uppercase tracking-wider block font-quicksand">Tipe Presensi</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Tipe Presensi</span>
                       <span className="text-xs text-slate-700 font-extrabold capitalize">{todayAttendance.attendance_type || 'kantor'}</span>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-555 uppercase tracking-wider block font-quicksand">Latitude GPS</span>
-                      <span className="text-xs text-slate-655 font-mono">{todayAttendance.latitude_out}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-555 uppercase tracking-wider block font-quicksand">Longitude GPS</span>
-                      <span className="text-xs text-slate-655 font-mono">{todayAttendance.longitude_out}</span>
+                    <div className="col-span-2">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Lokasi Absensi</span>
+                      <span className="text-xs text-slate-700 font-extrabold">Thamrin City Lantai 7</span>
                     </div>
                   </div>
                   {todayAttendance.notes_out && (
                     <div className="pt-2 border-t border-slate-200">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Catatan Anda</span>
-                      <p className="text-xs text-slate-655 mt-1 font-medium font-quicksand">{todayAttendance.notes_out}</p>
+                      <p className="text-xs text-slate-600 mt-1 font-medium font-quicksand">{todayAttendance.notes_out}</p>
                     </div>
                   )}
                 </div>

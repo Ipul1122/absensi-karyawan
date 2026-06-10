@@ -193,7 +193,7 @@ export default function DetailAttendanceModal({
                     <div className="text-xs text-slate-600 bg-orange-50/30 p-2.5 rounded-xl border border-orange-100/50 flex gap-1.5">
                       <FileText className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold text-[10px] uppercase text-orange-655 block">Catatan:</span>
+                        <span className="font-bold text-[10px] uppercase text-orange-700 block">Catatan:</span>
                         {attendance.notes_in}
                       </div>
                     </div>
@@ -258,7 +258,7 @@ export default function DetailAttendanceModal({
                     <div className="text-xs text-slate-600 bg-orange-50/30 p-2.5 rounded-xl border border-orange-100/50 flex gap-1.5">
                       <FileText className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold text-[10px] uppercase text-orange-655 block">Catatan:</span>
+                        <span className="font-bold text-[10px] uppercase text-orange-700 block">Catatan:</span>
                         {attendance.notes_out}
                       </div>
                     </div>
@@ -330,13 +330,13 @@ export default function DetailAttendanceModal({
                         <span className="text-xs font-bold text-slate-800 block truncate" title={visit.client_name}>
                           {visit.client_name}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-55 text-orange-600 border border-orange-100 font-bold font-mono shrink-0">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-600 border border-orange-100 font-bold font-mono shrink-0">
                           {visit.visit_time.substring(0, 5)}
                         </span>
                       </div>
                       
                       {visit.notes && (
-                        <p className="text-[11px] text-slate-655 leading-relaxed font-medium line-clamp-2" title={visit.notes}>
+                        <p className="text-[11px] text-slate-600 leading-relaxed font-medium line-clamp-2" title={visit.notes}>
                           {visit.notes}
                         </p>
                       )}

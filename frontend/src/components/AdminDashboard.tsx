@@ -557,8 +557,8 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
       emp.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Get current date string (YYYY-MM-DD)
-  const todayStr = new Date().toISOString().split('T')[0]
+  // Get current date string (YYYY-MM-DD) local time
+  const todayStr = new Date().toLocaleDateString('en-CA')
 
   // Get list of employees present today
   const presentToday = attendances.filter(
@@ -645,7 +645,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
       {!mobileSidebarOpen && (
         <button
           onClick={() => setMobileSidebarOpen(true)}
-          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all cursor-pointer flex items-center"
+          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all cursor-pointer flex items-center"
           title="Buka Menu"
         >
           <ChevronRight className="w-5 h-5 animate-pulse" />
@@ -689,7 +689,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                 <DashboardOverview
                   loading={loading}
                   attendanceLoading={attendanceLoading}
-                  employeesCount={employees.length}
+                  employees={employees}
                   presentTodayCount={presentToday.length}
                   presentTodayList={presentToday}
                   todayStr={todayStr}
@@ -704,7 +704,6 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                   todayAttendance={adminAttendance}
                   fetchTodayAttendance={fetchAdminAttendance}
                   leaves={leaves}
-                  allAttendances={attendances}
                 />
               } 
             />
@@ -755,6 +754,8 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                   setOfficeRadius={setOfficeRadius}
                   savingOffice={savingOffice}
                   handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                  user={user}
+                  token={token}
                 />
               } 
             />

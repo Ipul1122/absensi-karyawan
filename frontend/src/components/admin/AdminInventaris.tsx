@@ -560,7 +560,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
         <div className="flex items-center gap-2.5">
           <button
             onClick={handleExportPDF}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
             title="Cetak Laporan PDF"
           >
             <Printer className="w-4 h-4" />
@@ -569,7 +569,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
 
           <button
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-650 hover:to-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
             title="Ekspor Excel"
           >
             <FileDown className="w-4 h-4" />
@@ -578,7 +578,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
 
           <button
             onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-700 hover:to-indigo-750 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-blue-500/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-750 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-blue-500/10 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Tambah Barang
@@ -711,7 +711,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-orange-55/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
+                  <tr className="bg-orange-50/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
                     <th className="py-4 px-5" style={{ width: '80px' }}>Foto</th>
                     <th className="py-4 px-5">Nama Barang</th>
                     <th className="py-4 px-5">Tgl Pembelian</th>
@@ -784,7 +784,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
                           className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${
                             item.kondisi_barang === 'ori'
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-250'
-                              : 'bg-amber-50 text-amber-700 border-amber-255'
+                              : 'bg-amber-50 text-amber-700 border-amber-200'
                           }`}
                         >
                           {item.kondisi_barang}
@@ -863,14 +863,14 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
                             <>
                               <button
                                 onClick={() => handleOpenEditModal(item)}
-                                className="p-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-650 hover:text-indigo-755 rounded-lg transition-all cursor-pointer shadow-sm"
+                                className="p-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-600 hover:text-indigo-800 rounded-lg transition-all cursor-pointer shadow-sm"
                                 title="Edit Barang"
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDelete(item.id, item.nama_barang)}
-                                className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-650 hover:text-rose-755 rounded-lg transition-all cursor-pointer shadow-sm"
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-800 rounded-lg transition-all cursor-pointer shadow-sm"
                                 title="Hapus Barang"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -938,7 +938,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
                       <button
                         type="button"
                         onClick={() => fotoInputRef.current?.click()}
-                        className="absolute -bottom-1.5 -right-1.5 w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-650 rounded-full flex items-center justify-center text-white shadow-md cursor-pointer hover:scale-110 transition-transform"
+                        className="absolute -bottom-1.5 -right-1.5 w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white shadow-md cursor-pointer hover:scale-110 transition-transform"
                       >
                         <Camera className="w-3 h-3" />
                       </button>
@@ -1102,7 +1102,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
                           className={`flex-1 flex items-center justify-center p-3 rounded-2xl border cursor-pointer transition-all gap-2 text-xs font-bold ${
                             kondisiBarang === c.id
                               ? 'bg-blue-50/50 border-blue-500 text-blue-700 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-655 hover:bg-slate-100'
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           <input
@@ -1126,7 +1126,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-grow flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-700 hover:to-indigo-750 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-grow flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-750 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-blue-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
                       <>

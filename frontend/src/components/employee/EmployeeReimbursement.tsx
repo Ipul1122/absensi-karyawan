@@ -323,7 +323,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer shadow-md w-full sm:w-auto justify-center ${
             showForm 
               ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200' 
-              : 'bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white shadow-red-500/10'
+              : 'bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white shadow-red-500/10'
           }`}
         >
           {showForm ? (
@@ -450,7 +450,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                     </div>
                   ) : (
                     <>
-                      <div className="p-4 bg-orange-50 rounded-2xl text-orange-655 border border-orange-100 mb-3 group-hover:scale-110 transition-transform">
+                      <div className="p-4 bg-orange-50 rounded-2xl text-orange-700 border border-orange-100 mb-3 group-hover:scale-110 transition-transform">
                         <Upload className="w-6 h-6" />
                       </div>
                       <span className="text-xs font-bold text-slate-700 font-quicksand">Klik untuk upload foto nota</span>
@@ -481,7 +481,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full sm:w-auto justify-center px-6 py-3 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-655 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand"
+                className="w-full sm:w-auto justify-center px-6 py-3 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand"
               >
                 {submitting ? 'Mengirim...' : 'Kirim Klaim Reimbursement'}
               </button>
@@ -572,7 +572,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                       <td className="py-4">
                         <button
                           onClick={() => handleShowReceipt(item.receipt_path)}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 hover:text-red-655 hover:underline bg-transparent border-none cursor-pointer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 hover:text-red-700 hover:underline bg-transparent border-none cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" /> Lihat Nota
                         </button>
@@ -684,7 +684,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                   <button
                     onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-655 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
                   >
                     Sebelumnya
                   </button>
@@ -695,7 +695,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         currentPage === page
                           ? 'bg-orange-500 border border-orange-500 text-white shadow-sm font-extrabold'
-                          : 'border border-slate-200 text-slate-650 hover:border-orange-500 hover:text-orange-655 bg-white'
+                          : 'border border-slate-200 text-slate-600 hover:border-orange-500 hover:text-orange-700 bg-white'
                       }`}
                     >
                       {page}
@@ -704,7 +704,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                   <button
                     onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-655 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
                   >
                     Selanjutnya
                   </button>

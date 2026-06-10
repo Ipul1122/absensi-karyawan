@@ -279,7 +279,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
         </div>
         <div>
           <p className="text-xs font-bold text-orange-700">Tips</p>
-          <p className="text-[11px] text-orange-650 font-medium">
+          <p className="text-[11px] text-orange-600 font-medium">
             Klik badge "Menunggu" di setiap kartu untuk langsung menuju item yang perlu tindakan Anda.
           </p>
         </div>

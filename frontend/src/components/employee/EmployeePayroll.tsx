@@ -199,7 +199,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
+              <tr className="bg-orange-50/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
                 <th className="py-4 px-5">Bulan Periode</th>
                 <th className="py-4 px-5 text-center">Kehadiran (H / T / C)</th>
                 <th className="py-4 px-5">Gaji Pokok</th>
@@ -217,7 +217,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
             <tbody className="divide-y divide-orange-100 text-xs text-slate-600">
               {loading ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-slate-450">
+                  <td colSpan={12} className="py-12 text-center text-slate-400">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                       Memuat data slip gaji Anda...
@@ -226,7 +226,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                 </tr>
               ) : payrolls.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-slate-450 font-semibold italic">
+                  <td colSpan={12} className="py-12 text-center text-slate-400 font-semibold italic">
                     Belum ada data slip gaji yang diterbitkan untuk Anda.
                   </td>
                 </tr>
@@ -243,7 +243,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
 
                   return (
                     <tr key={record.id} className="hover:bg-orange-50/10 transition-colors">
-                      <td className="py-4 px-5 font-bold text-slate-850">
+                      <td className="py-4 px-5 font-bold text-slate-800">
                         {getIndonesianMonthLabel(record.period_month)}
                       </td>
                       <td className="py-4 px-5 text-center">
@@ -346,7 +346,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                       <td className="py-4 px-5 text-center">
                         <button
                           onClick={() => handleOpenSlip(record)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
                         >
                           <FileText className="w-3.5 h-3.5" />
                           Lihat Slip Gaji

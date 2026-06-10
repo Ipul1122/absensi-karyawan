@@ -274,7 +274,7 @@ export default function ViewEmployeeModal({
   }
 
   const inputClass =
-    'w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-850 placeholder-slate-400 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs font-semibold'
+    'w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs font-semibold'
   const labelClass =
     'block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 font-quicksand'
 
@@ -510,7 +510,7 @@ export default function ViewEmployeeModal({
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="Alamat lengkap..."
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-850 placeholder-slate-400 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs resize-none font-semibold"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs resize-none font-semibold"
                     />
                   </div>
                 </div>
@@ -681,7 +681,7 @@ export default function ViewEmployeeModal({
                       href={localProfile.cv}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer"
+                      className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer"
                     >
                       Lihat / Unduh
                     </a>

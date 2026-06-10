@@ -711,7 +711,7 @@ export default function AdminBonus({ token }: AdminBonusProps) {
                   <button
                     type="submit"
                     disabled={updating}
-                    className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50"
+                    className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50"
                   >
                     {updating ? (
                       <>

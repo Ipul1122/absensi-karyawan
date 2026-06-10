@@ -202,8 +202,13 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
               <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
                 <th className="py-4 px-5">Bulan Periode</th>
                 <th className="py-4 px-5 text-center">Kehadiran (H / T / C)</th>
-                <th className="py-4 px-5">Total Penerimaan</th>
-                <th className="py-4 px-5">Total Potongan</th>
+                <th className="py-4 px-5">Gaji Pokok</th>
+                <th className="py-4 px-5">Tunj. Makan</th>
+                <th className="py-4 px-5">Tunj. Transport</th>
+                <th className="py-4 px-5">Tunj. Jabatan</th>
+                <th className="py-4 px-5">Pot. Telat</th>
+                <th className="py-4 px-5">Pot. Absen</th>
+                <th className="py-4 px-5">Pot. Tetap (BPJS)</th>
                 <th className="py-4 px-5">Gaji Bersih</th>
                 <th className="py-4 px-5 text-center">Status</th>
                 <th className="py-4 px-5 text-center">Aksi</th>
@@ -212,7 +217,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
             <tbody className="divide-y divide-orange-100 text-xs text-slate-600">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-450">
+                  <td colSpan={12} className="py-12 text-center text-slate-450">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                       Memuat data slip gaji Anda...
@@ -221,15 +226,21 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                 </tr>
               ) : payrolls.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-450 font-semibold italic">
+                  <td colSpan={12} className="py-12 text-center text-slate-450 font-semibold italic">
                     Belum ada data slip gaji yang diterbitkan untuk Anda.
                   </td>
                 </tr>
               ) : (
                 payrolls.map((record) => {
-                  const totalAllowances = record.basic_salary + (record.allowance_meal ?? 0) + record.allowance_transport + (record.allowance_position ?? 0) + record.allowance_fixed
-                  const totalDeductions = record.deduction_late + (record.deduction_absence ?? 0) + record.deduction_fixed
-                  
+                  // Derive per-day rates from totals
+                  const mealDaily = record.days_present > 0 ? (record.allowance_meal ?? 0) / record.days_present : 0
+                  const transportDaily = record.days_present > 0 ? (record.allowance_transport ?? 0) / record.days_present : 0
+                  const lateDaily = record.days_late > 0 ? record.deduction_late / record.days_late : 0
+                  // Parse days_absent from notes (format: "...Potongan tidak masuk: X hari.")
+                  const absenceMatch = record.notes?.match(/Potongan tidak masuk:\s*(\d+)\s*hari/)
+                  const daysAbsent = absenceMatch ? parseInt(absenceMatch[1], 10) : 0
+                  const absenceDaily = daysAbsent > 0 ? (record.deduction_absence ?? 0) / daysAbsent : 0
+
                   return (
                     <tr key={record.id} className="hover:bg-orange-50/10 transition-colors">
                       <td className="py-4 px-5 font-bold text-slate-850">
@@ -237,17 +248,82 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                       </td>
                       <td className="py-4 px-5 text-center">
                         <div className="inline-flex gap-1 text-[10px] font-bold">
-                          <span className="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">{record.days_present} Hari Hadir</span>
+                          <span className="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">{record.days_present} Hadir</span>
                           {record.days_late > 0 && (
-                            <span className="text-rose-700 bg-rose-50 px-1 py-0.5 rounded">{record.days_late} Terlambat</span>
+                            <span className="text-rose-700 bg-rose-50 px-1 py-0.5 rounded">{record.days_late} Telat</span>
+                          )}
+                          {record.days_leave > 0 && (
+                            <span className="text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded">{record.days_leave} Cuti</span>
                           )}
                         </div>
                       </td>
-                      <td className="py-4 px-5 font-semibold text-slate-700">
-                        {formatRupiah(totalAllowances)}
+                      <td className="py-4 px-5">
+                        <div className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</div>
+                        <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">Prorata bulanan</div>
                       </td>
-                      <td className="py-4 px-5 font-semibold text-rose-600">
-                        {totalDeductions > 0 ? `-${formatRupiah(totalDeductions)}` : '-'}
+                      <td className="py-4 px-5">
+                        {(record.allowance_meal ?? 0) > 0 ? (
+                          <div>
+                            <div className="font-semibold text-emerald-600">+{formatRupiah(record.allowance_meal)}</div>
+                            <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">{formatRupiah(mealDaily)}/hari × {record.days_present} hari</div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-5">
+                        {(record.allowance_transport ?? 0) > 0 ? (
+                          <div>
+                            <div className="font-semibold text-emerald-600">+{formatRupiah(record.allowance_transport)}</div>
+                            <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">{formatRupiah(transportDaily)}/hari × {record.days_present} hari</div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-5">
+                        {(record.allowance_position ?? 0) > 0 ? (
+                          <div>
+                            <div className="font-semibold text-emerald-600">+{formatRupiah(record.allowance_position)}</div>
+                            <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">Tunjangan bulanan</div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-5">
+                        {record.deduction_late > 0 ? (
+                          <div>
+                            <div className="font-semibold text-rose-600">-{formatRupiah(record.deduction_late)}</div>
+                            <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">{formatRupiah(lateDaily)}/hari × {record.days_late} hari</div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-5">
+                        {(record.deduction_absence ?? 0) > 0 ? (
+                          <div>
+                            <div className="font-semibold text-rose-600">-{formatRupiah(record.deduction_absence)}</div>
+                            {daysAbsent > 0 ? (
+                              <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">{formatRupiah(absenceDaily)}/hari × {daysAbsent} hari</div>
+                            ) : (
+                              <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">Potongan tidak masuk</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-5">
+                        {record.deduction_fixed > 0 ? (
+                          <div>
+                            <div className="font-semibold text-rose-600">-{formatRupiah(record.deduction_fixed)}</div>
+                            <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">Tetap bulanan</div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
                       </td>
                       <td className="py-4 px-5">
                         <span className="font-extrabold text-slate-900 text-sm">{formatRupiah(record.net_salary)}</span>

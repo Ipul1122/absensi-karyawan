@@ -90,21 +90,21 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
       const cfg = employee.salary_configuration
       const isPending = cfg.salary_change_status === 'pending'
       
-      setBasicSalary(String(isPending && cfg.pending_basic_salary !== null ? cfg.pending_basic_salary : cfg.basic_salary))
-      setAllowanceMealDaily(String(isPending && cfg.pending_allowance_meal_daily !== null ? cfg.pending_allowance_meal_daily : (cfg.allowance_meal_daily ?? 0)))
-      setAllowanceTransportDaily(String(isPending && cfg.pending_allowance_transport_daily !== null ? cfg.pending_allowance_transport_daily : (cfg.allowance_transport_daily ?? 0)))
-      setAllowancePosition(String(isPending && cfg.pending_allowance_position !== null ? cfg.pending_allowance_position : (cfg.allowance_position ?? 0)))
-      setDeductionLateDaily(String(isPending && cfg.pending_deduction_late_daily !== null ? cfg.pending_deduction_late_daily : cfg.deduction_late_daily))
-      setDeductionAbsenceDaily(String(isPending && cfg.pending_deduction_absence_daily !== null ? cfg.pending_deduction_absence_daily : (cfg.deduction_absence_daily ?? 0)))
-      setDeductionFixed(String(isPending && cfg.pending_deduction_fixed !== null ? cfg.pending_deduction_fixed : cfg.deduction_fixed))
+      setBasicSalary(formatInputRupiah(isPending && cfg.pending_basic_salary !== null ? cfg.pending_basic_salary : cfg.basic_salary))
+      setAllowanceMealDaily(formatInputRupiah(isPending && cfg.pending_allowance_meal_daily !== null ? cfg.pending_allowance_meal_daily : (cfg.allowance_meal_daily ?? 0)))
+      setAllowanceTransportDaily(formatInputRupiah(isPending && cfg.pending_allowance_transport_daily !== null ? cfg.pending_allowance_transport_daily : (cfg.allowance_transport_daily ?? 0)))
+      setAllowancePosition(formatInputRupiah(isPending && cfg.pending_allowance_position !== null ? cfg.pending_allowance_position : (cfg.allowance_position ?? 0)))
+      setDeductionLateDaily(formatInputRupiah(isPending && cfg.pending_deduction_late_daily !== null ? cfg.pending_deduction_late_daily : cfg.deduction_late_daily))
+      setDeductionAbsenceDaily(formatInputRupiah(isPending && cfg.pending_deduction_absence_daily !== null ? cfg.pending_deduction_absence_daily : (cfg.deduction_absence_daily ?? 0)))
+      setDeductionFixed(formatInputRupiah(isPending && cfg.pending_deduction_fixed !== null ? cfg.pending_deduction_fixed : cfg.deduction_fixed))
     } else {
-      setBasicSalary('4500000') // Default mock Gaji Pokok
+      setBasicSalary('0')
       setAllowanceMealDaily('0')
       setAllowanceTransportDaily('0')
       setAllowancePosition('0')
-      setDeductionLateDaily('20000') // Default mock Potongan telat harian
-      setDeductionAbsenceDaily('0') // Default mock Potongan tidak masuk harian
-      setDeductionFixed('100000') // Default mock Potongan tetap (BPJS)
+      setDeductionLateDaily('0')
+      setDeductionAbsenceDaily('0')
+      setDeductionFixed('0')
     }
     setShowConfigModal(true)
   }
@@ -120,14 +120,14 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
         'http://localhost:8000/api/admin/payroll/configurations',
         {
           user_id: editingEmployee.id,
-          basic_salary: parseFloat(basicSalary) || 0,
-          allowance_meal_daily: parseFloat(allowanceMealDaily) || 0,
-          allowance_transport_daily: parseFloat(allowanceTransportDaily) || 0,
-          allowance_position: parseFloat(allowancePosition) || 0,
+          basic_salary: parseFloat(parseInputRupiah(basicSalary)) || 0,
+          allowance_meal_daily: parseFloat(parseInputRupiah(allowanceMealDaily)) || 0,
+          allowance_transport_daily: parseFloat(parseInputRupiah(allowanceTransportDaily)) || 0,
+          allowance_position: parseFloat(parseInputRupiah(allowancePosition)) || 0,
           allowance_fixed: 0,
-          deduction_late_daily: parseFloat(deductionLateDaily) || 0,
-          deduction_absence_daily: parseFloat(deductionAbsenceDaily) || 0,
-          deduction_fixed: parseFloat(deductionFixed) || 0
+          deduction_late_daily: parseFloat(parseInputRupiah(deductionLateDaily)) || 0,
+          deduction_absence_daily: parseFloat(parseInputRupiah(deductionAbsenceDaily)) || 0,
+          deduction_fixed: parseFloat(parseInputRupiah(deductionFixed)) || 0
         },
         { headers: { Authorization: `Bearer ${token}` } }
       )
@@ -162,6 +162,29 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
       currency: 'IDR',
       minimumFractionDigits: 0
     }).format(number)
+  }
+
+  // Format number to Rupiah input display with dot separators (e.g. 5000000 -> 5.000.000)
+  const formatInputRupiah = (value: number | string | null | undefined): string => {
+    const num = typeof value === 'string' ? parseFloat(value) : (value ?? 0)
+    if (isNaN(num)) return '0'
+    const intValue = Math.round(num)
+    return new Intl.NumberFormat('id-ID').format(intValue)
+  }
+
+  // Parse formatted Rupiah input back to plain number string (e.g. 5.000.000 -> 5000000)
+  const parseInputRupiah = (formatted: string): string => {
+    return formatted.replace(/\./g, '')
+  }
+
+  // Handle Rupiah input change: strip non-digits, reformat with dots
+  const handleRupiahInput = (value: string, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    const raw = value.replace(/[^0-9]/g, '')
+    if (raw === '') {
+      setter('0')
+      return
+    }
+    setter(new Intl.NumberFormat('id-ID').format(parseInt(raw, 10)))
   }
 
   return (
@@ -288,10 +311,11 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={basicSalary}
-                    onChange={(e) => setBasicSalary(e.target.value)}
-                    placeholder="Contoh: 4000000"
+                    onChange={(e) => handleRupiahInput(e.target.value, setBasicSalary)}
+                    placeholder="Contoh: 4.000.000"
                     className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                     required
                   />
@@ -304,10 +328,11 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={allowanceMealDaily}
-                      onChange={(e) => setAllowanceMealDaily(e.target.value)}
-                      placeholder="Contoh: 15000"
+                      onChange={(e) => handleRupiahInput(e.target.value, setAllowanceMealDaily)}
+                      placeholder="Contoh: 15.000"
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -319,10 +344,11 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={allowanceTransportDaily}
-                      onChange={(e) => setAllowanceTransportDaily(e.target.value)}
-                      placeholder="Contoh: 20000"
+                      onChange={(e) => handleRupiahInput(e.target.value, setAllowanceTransportDaily)}
+                      placeholder="Contoh: 20.000"
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -335,10 +361,11 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={allowancePosition}
-                    onChange={(e) => setAllowancePosition(e.target.value)}
-                    placeholder="Contoh: 500000"
+                    onChange={(e) => handleRupiahInput(e.target.value, setAllowancePosition)}
+                    placeholder="Contoh: 500.000"
                     className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                     required
                   />
@@ -351,10 +378,11 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={deductionLateDaily}
-                      onChange={(e) => setDeductionLateDaily(e.target.value)}
-                      placeholder="Contoh: 15000"
+                      onChange={(e) => handleRupiahInput(e.target.value, setDeductionLateDaily)}
+                      placeholder="Contoh: 15.000"
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -366,10 +394,11 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={deductionAbsenceDaily}
-                      onChange={(e) => setDeductionAbsenceDaily(e.target.value)}
-                      placeholder="Contoh: 50000"
+                      onChange={(e) => handleRupiahInput(e.target.value, setDeductionAbsenceDaily)}
+                      placeholder="Contoh: 50.000"
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -382,10 +411,11 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={deductionFixed}
-                    onChange={(e) => setDeductionFixed(e.target.value)}
-                    placeholder="Contoh: 100000"
+                    onChange={(e) => handleRupiahInput(e.target.value, setDeductionFixed)}
+                    placeholder="Contoh: 100.000"
                     className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                     required
                   />

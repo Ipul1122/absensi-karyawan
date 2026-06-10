@@ -12,7 +12,8 @@ import {
   Loader2, 
   Info,
   HelpCircle,
-  FileDown
+  FileDown,
+  Plus
 } from 'lucide-react'
 
 interface PayrollRecord {
@@ -78,6 +79,120 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
   // Detail Slip modal
   const [showSlipModal, setShowSlipModal] = useState(false)
   const [selectedSlip, setSelectedSlip] = useState<PayrollRecord | null>(null)
+
+  // Tab & Holidays states
+  const [activeTab, setActiveTab] = useState<'payroll' | 'holidays'>('payroll')
+  const [holidays, setHolidays] = useState<any[]>([])
+  const [loadingHolidays, setLoadingHolidays] = useState(false)
+  const [newHolidayDate, setNewHolidayDate] = useState('')
+  const [newHolidayName, setNewHolidayName] = useState('')
+  const [savingHoliday, setSavingHoliday] = useState(false)
+
+  // Fetch holidays list
+  const fetchHolidays = async () => {
+    setLoadingHolidays(true)
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/holidays', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setHolidays(response.data.data)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingHolidays(false)
+    }
+  }
+
+  // Add new holiday date
+  const handleAddHoliday = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newHolidayDate || !newHolidayName) {
+      Swal.fire({
+        title: 'Form Belum Lengkap',
+        text: 'Silakan isi tanggal dan nama hari libur.',
+        icon: 'warning',
+        confirmButtonColor: '#ea580c'
+      })
+      return
+    }
+    setSavingHoliday(true)
+    try {
+      const response = await axios.post(
+        'http://localhost:8000/api/admin/holidays',
+        { holiday_date: newHolidayDate, name: newHolidayName },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (response.data.status === 'success') {
+        Swal.fire({
+          title: 'Berhasil!',
+          text: response.data.message,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        })
+        setNewHolidayDate('')
+        setNewHolidayName('')
+        fetchHolidays()
+      }
+    } catch (err: any) {
+      console.error(err)
+      const msg = err.response?.data?.message || 'Gagal menambahkan hari libur.'
+      Swal.fire({
+        title: 'Gagal',
+        text: msg,
+        icon: 'error'
+      })
+    } finally {
+      setSavingHoliday(false)
+    }
+  }
+
+  // Delete holiday
+  const handleDeleteHoliday = async (id: number, name: string) => {
+    Swal.fire({
+      title: 'Hapus Hari Libur?',
+      text: `Apakah Anda yakin ingin menghapus hari libur "${name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#475569',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await axios.delete(`http://localhost:8000/api/admin/holidays/${id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          if (response.data.status === 'success') {
+            Swal.fire({
+              title: 'Berhasil!',
+              text: response.data.message,
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false
+            })
+            fetchHolidays()
+          }
+        } catch (err: any) {
+          console.error(err)
+          Swal.fire({
+            title: 'Gagal',
+            text: err.response?.data?.message || 'Gagal menghapus hari libur.',
+            icon: 'error'
+          })
+        }
+      }
+    })
+  }
+
+  useEffect(() => {
+    if (activeTab === 'holidays') {
+      fetchHolidays()
+    }
+  }, [activeTab])
 
   // Fetch payroll transactions for selected month
   const fetchPayrolls = async () => {
@@ -682,8 +797,34 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
   return (
     <section className="space-y-6 font-quicksand">
-      {/* Tab 1: Process & History */}
-      <div className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in">
+      {/* Tab Switcher */}
+      <div className="flex gap-4 border-b border-orange-100 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('payroll')}
+          className={`pb-2 px-4 font-bold text-xs cursor-pointer transition-all ${
+            activeTab === 'payroll'
+              ? 'text-orange-600 border-b-2 border-orange-500 font-extrabold'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Pemrosesan Gaji
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('holidays')}
+          className={`pb-2 px-4 font-bold text-xs cursor-pointer transition-all ${
+            activeTab === 'holidays'
+              ? 'text-orange-600 border-b-2 border-orange-500 font-extrabold'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Kelola Hari Libur
+        </button>
+      </div>
+
+      {activeTab === 'payroll' ? (
+        <div className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-base font-bold text-slate-800 font-quicksand">Pemrosesan Gaji Bulanan</h3>
@@ -886,7 +1027,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                         </div>
                       </td>
                       <td className="py-4 px-5 space-y-0.5 text-[10px] font-semibold text-slate-500">
-                        <div>Gapok (Prorata): <span className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</span></div>
+                        <div>Gaji Pokok: <span className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</span></div>
                         {(record.allowance_meal ?? 0) > 0 && (
                           <div>Makan: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_meal)}</span></div>
                         )}
@@ -986,6 +1127,132 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           </div>
         </div>
       </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
+          {/* Form Tambah Hari Libur */}
+          <div className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-4 h-fit">
+            <div>
+              <h3 className="text-base font-bold text-slate-800 font-quicksand">Tambah Hari Libur</h3>
+              <p className="text-[11px] text-slate-500 font-medium">Daftarkan tanggal merah nasional baru agar otomatis memotong absen mangkir karyawan.</p>
+            </div>
+            
+            <form onSubmit={handleAddHoliday} className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Tanggal Kalender</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={newHolidayDate}
+                    onChange={(e) => setNewHolidayDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Nama Libur (Keterangan)</label>
+                <input
+                  type="text"
+                  value={newHolidayName}
+                  onChange={(e) => setNewHolidayName(e.target.value)}
+                  placeholder="Contoh: Hari Lahir Pancasila"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingHoliday}
+                className="w-full py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10"
+              >
+                {savingHoliday ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5" />
+                    Tambah Hari Libur
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Tabel Daftar Hari Libur */}
+          <div className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-4 lg:col-span-2">
+            <div>
+              <h3 className="text-base font-bold text-slate-800 font-quicksand">Daftar Tanggal Merah Terdaftar</h3>
+              <p className="text-[11px] text-slate-500 font-medium">Berikut adalah daftar hari libur nasional resmi yang terdaftar di database.</p>
+            </div>
+
+            <div className="border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
+                      <th className="py-3.5 px-5">No</th>
+                      <th className="py-3.5 px-5">Tanggal</th>
+                      <th className="py-3.5 px-5">Hari</th>
+                      <th className="py-3.5 px-5">Keterangan</th>
+                      <th className="py-3.5 px-5 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-orange-100 text-xs text-slate-600">
+                    {loadingHolidays ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-slate-450">
+                          <div className="flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-red-500" />
+                            Memuat data hari libur...
+                          </div>
+                        </td>
+                      </tr>
+                    ) : holidays.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-slate-450 font-semibold italic">
+                          Belum ada tanggal merah terdaftar. Silakan tambahkan pada form di samping.
+                        </td>
+                      </tr>
+                    ) : (
+                      holidays.map((h, index) => {
+                        const dateObj = new Date(h.holiday_date)
+                        const formattedDate = dateObj.toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })
+                        const dayName = dateObj.toLocaleDateString('id-ID', { weekday: 'long' })
+                        return (
+                          <tr key={h.id} className="hover:bg-orange-50/10 transition-colors">
+                            <td className="py-3.5 px-5 font-bold text-slate-400">{index + 1}</td>
+                            <td className="py-3.5 px-5 font-bold text-slate-800">{formattedDate}</td>
+                            <td className="py-3.5 px-5 font-semibold text-slate-500">{dayName}</td>
+                            <td className="py-3.5 px-5 font-medium text-slate-700">{h.name}</td>
+                            <td className="py-3.5 px-5 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteHoliday(h.id, h.name)}
+                                className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 border border-slate-200 hover:border-red-200 rounded-lg transition-all cursor-pointer"
+                                title="Hapus Tanggal Merah"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Adjust / Manual Edit Payroll */}
       {showAdjustModal && adjustingPayroll && (
@@ -1223,7 +1490,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 <div>
                   <div className="section-title">Penerimaan (Allowance)</div>
                   <div className="item-row">
-                    <span>Gaji Pokok (Prorata)</span>
+                    <span>Gaji Pokok</span>
                     <strong>{formatRupiah(selectedSlip.basic_salary)}</strong>
                   </div>
                   <div className="item-row">

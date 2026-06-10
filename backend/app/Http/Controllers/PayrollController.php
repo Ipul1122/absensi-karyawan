@@ -8,6 +8,7 @@ use App\Models\Attendance;
 use App\Models\LeaveRequest;
 use App\Models\Payroll;
 use App\Models\SalaryConfiguration;
+use App\Models\Holiday;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -118,9 +119,17 @@ class PayrollController extends Controller
 
         $period = $request->period_month;
         
-        // Dapatkan range tanggal awal & akhir bulan berjalan
-        $startOfMonth = Carbon::parse($period . '-01')->startOfMonth();
-        $endOfMonth = Carbon::parse($period . '-01')->endOfMonth();
+        // Dapatkan range tanggal cut-off (tanggal 4 bulan sebelumnya s.d tanggal 3 bulan terpilih)
+        $endOfMonth = Carbon::parse($period . '-03');
+        $startOfMonth = $endOfMonth->copy()->subMonth()->day(4);
+
+        // Ambil jumlah hari libur nasional (Senin-Sabtu) pada periode ini
+        $holidays = Holiday::whereBetween('holiday_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+            ->get()
+            ->filter(function($h) {
+                return Carbon::parse($h->holiday_date)->dayOfWeek !== Carbon::SUNDAY;
+            });
+        $holidaysCount = $holidays->count();
 
         $employees = User::where('role', 'employee')->get();
 
@@ -137,7 +146,7 @@ class PayrollController extends Controller
             DB::beginTransaction();
 
             foreach ($employees as $employee) {
-                // 1. Hitung total kehadiran (clock_in tidak null) di bulan tersebut yang disetujui
+                // 1. Hitung total kehadiran (clock_in tidak null) di rentang cut-off yang disetujui
                 $daysPresent = Attendance::where('user_id', $employee->id)
                     ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                     ->whereNotNull('clock_in')
@@ -152,7 +161,6 @@ class PayrollController extends Controller
                     ->count();
 
                 // 3. Hitung total hari cuti yang disetujui
-                // Mengambil cuti yang disetujui yang beririsan dengan bulan terpilih
                 $leaves = LeaveRequest::where('user_id', $employee->id)
                     ->where('status', 'approved')
                     ->where(function($query) use ($startOfMonth, $endOfMonth) {
@@ -161,7 +169,7 @@ class PayrollController extends Controller
                               ->orWhere(function($subQuery) use ($startOfMonth, $endOfMonth) {
                                   $subQuery->where('start_date', '<=', $startOfMonth->toDateString())
                                            ->where('end_date', '>=', $endOfMonth->toDateString());
-                              });
+                               });
                     })
                     ->get();
 
@@ -170,7 +178,7 @@ class PayrollController extends Controller
                     $leaveStart = Carbon::parse($leave->start_date);
                     $leaveEnd = Carbon::parse($leave->end_date);
                     
-                    // Batasi start & end date pada rentang bulan terpilih
+                    // Batasi start & end date pada rentang cut-off terpilih
                     $overlapStart = $leaveStart->max($startOfMonth);
                     $overlapEnd = $leaveEnd->min($endOfMonth);
                     
@@ -187,7 +195,7 @@ class PayrollController extends Controller
                 $deductDailyLate = $config ? $config->deduction_late_daily : 0;
                 $deductFixed = $config ? $config->deduction_fixed : 0;
 
-                // Hitung total hari kerja efektif (Senin - Sabtu) di bulan tersebut
+                // Hitung total hari kerja efektif (Senin - Sabtu) di rentang cut-off tersebut
                 $workingDaysInMonth = 0;
                 $tempDate = $startOfMonth->copy();
                 while ($tempDate->lte($endOfMonth)) {
@@ -197,11 +205,8 @@ class PayrollController extends Controller
                     $tempDate->addDay();
                 }
 
-                // Gaji Pokok dihitung prorata: (days_present / workingDaysInMonth) * Gaji Pokok
-                $proratedBasicSalary = 0;
-                if ($workingDaysInMonth > 0) {
-                    $proratedBasicSalary = ($daysPresent / $workingDaysInMonth) * $baseBasicSalary;
-                }
+                // Gaji Pokok bersifat Bulanan Tetap (Flat 100%)
+                $proratedBasicSalary = $baseBasicSalary;
 
                 // 5. Hitung total tunjangan & potongan
                 $allowanceMeal = $config ? ($daysPresent * $config->allowance_meal_daily) : 0;
@@ -210,11 +215,12 @@ class PayrollController extends Controller
                 $allowanceFixed = $config ? $config->allowance_fixed : 0;
                 $deductionLate = $daysLate * $deductDailyLate;
                 
-                // Hitung total potongan tidak masuk
-                $daysAbsent = max(0, $workingDaysInMonth - $daysPresent - $daysLeave);
+                // Hitung total potongan tidak masuk (mangkir)
+                // Mangkir = Hari kerja efektif - Kehadiran - Cuti - Hari Libur Nasional
+                $daysAbsent = max(0, $workingDaysInMonth - $daysPresent - $daysLeave - $holidaysCount);
                 $deductionAbsence = $config ? ($daysAbsent * $config->deduction_absence_daily) : 0;
                 
-                // Total Gaji Bersih = Gaji Pokok Prorata + Makan + Transport + Jabatan + Tetap - Potongan Telat - Potongan Tetap - Potongan Tidak Masuk
+                // Total Gaji Bersih
                 $netSalary = $proratedBasicSalary + $allowanceMeal + $allowanceTransport + $allowancePosition + $allowanceFixed - $deductionLate - $deductFixed - $deductionAbsence;
                 if ($netSalary < 0) {
                     $netSalary = 0; // Gaji tidak boleh negatif
@@ -240,7 +246,7 @@ class PayrollController extends Controller
                         'deduction_absence' => $deductionAbsence,
                         'net_salary' => $netSalary,
                         'status' => 'draft', // default ke draft
-                        'notes' => "Kalkulasi otomatis. Hari kerja efektif bulan ini: $workingDaysInMonth hari. Potongan tidak masuk: $daysAbsent hari."
+                        'notes' => "Kalkulasi otomatis. Rentang cut-off: " . $startOfMonth->toDateString() . " s.d " . $endOfMonth->toDateString() . ". Hari kerja efektif: $workingDaysInMonth hari (termasuk $holidaysCount hari libur nasional). Potongan tidak masuk: $daysAbsent hari."
                     ]
                 );
 
@@ -477,5 +483,44 @@ class PayrollController extends Controller
             ->where('status', 'pending_approval')
             ->update(['status' => 'draft']);
         return response()->json(['status' => 'success', 'message' => 'Semua payroll pada periode ini ditolak dan dikembalikan sebagai draft.']);
+    }
+
+    public function indexHolidays(Request $request)
+    {
+        $holidays = Holiday::orderBy('holiday_date', 'asc')->get();
+        return response()->json([
+            'status' => 'success',
+            'data' => $holidays
+        ]);
+    }
+
+    public function storeHoliday(Request $request)
+    {
+        $request->validate([
+            'holiday_date' => 'required|date|unique:holidays,holiday_date',
+            'name' => 'required|string|max:255',
+        ]);
+
+        $holiday = Holiday::create([
+            'holiday_date' => $request->holiday_date,
+            'name' => $request->name,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Hari libur nasional berhasil ditambahkan.',
+            'data' => $holiday
+        ]);
+    }
+
+    public function destroyHoliday($id)
+    {
+        $holiday = Holiday::findOrFail($id);
+        $holiday->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Hari libur nasional berhasil dihapus.'
+        ]);
     }
 }

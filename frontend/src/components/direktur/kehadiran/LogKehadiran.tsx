@@ -222,7 +222,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
   const getStatusInLabel = (status: string | null) => {
     if (!status) return null
     if (status === 'early') {
-      return <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-teal-50 text-teal-650 border border-teal-100">Awal</span>
+      return <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-teal-50 text-teal-600 border border-teal-100">Awal</span>
     }
     if (status === 'late') {
       return <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-600 border border-rose-100">Lambat</span>
@@ -236,7 +236,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
       return <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-600 border border-amber-100">Pulang Cepat</span>
     }
     if (status === 'overtime') {
-      return <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-50 text-purple-650 border border-purple-100">Lembur</span>
+      return <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-purple-50 text-purple-600 border border-purple-100">Lembur</span>
     }
     return <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-slate-50 text-slate-400 border border-slate-100">Normal</span>
   }
@@ -267,7 +267,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
   const getAttendanceTypeLabel = (type: string) => {
     switch (type) {
       case 'kantor':
-        return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-650 border border-blue-100">Kantor</span>
+        return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100">Kantor</span>
       case 'kunjungan':
         return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600 border border-orange-100">Kunjungan</span>
       case 'client':
@@ -292,7 +292,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
             <h2 className="text-sm font-bold text-slate-800">
               Laporan Kehadiran Bulanan
             </h2>
-            <p className="text-[11px] text-slate-450 font-medium mt-0.5">
+            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
               Antarmuka Kalender Interaktif - Klik tanggal untuk melihat daftar rincian kehadiran
             </p>
           </div>
@@ -316,7 +316,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
               className="px-3 py-1 bg-transparent text-orange-700 font-extrabold text-xs outline-none cursor-pointer border-none appearance-none pr-6 relative"
             >
               {availableMonths.map(m => (
-                <option key={m} value={m} className="font-semibold text-slate-850">
+                <option key={m} value={m} className="font-semibold text-slate-800">
                   {formatMonthYear(m)}
                 </option>
               ))}
@@ -350,7 +350,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
 
         {/* Card 2: Tepat Waktu */}
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-50/80 flex items-center justify-center text-teal-650 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-teal-50/80 flex items-center justify-center text-teal-600 shrink-0">
             <Clock className="w-5 h-5" />
           </div>
           <div>
@@ -372,7 +372,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
 
         {/* Card 4: Lembur */}
         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50/80 flex items-center justify-center text-purple-655 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-purple-50/80 flex items-center justify-center text-purple-700 shrink-0">
             <TrendingUp className="w-5 h-5" />
           </div>
           <div>
@@ -563,7 +563,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
               <div className="flex flex-col items-center justify-center py-20 text-center text-slate-400">
                 <Info className="w-8 h-8 opacity-30 mb-2" />
                 <p className="text-xs font-bold">Tidak ada data absensi</p>
-                <p className="text-[10px] text-slate-350 mt-0.5 max-w-[200px]">
+                <p className="text-[10px] text-slate-300 mt-0.5 max-w-[200px]">
                   Tidak ada catatan kehadiran karyawan yang cocok untuk tanggal {selectedDate} ini.
                 </p>
               </div>
@@ -584,7 +584,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
                           className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
                         />
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center text-orange-655 font-bold text-xs shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-bold text-xs shrink-0">
                           {record.user?.name?.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -609,12 +609,12 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-emerald-50/45 border border-emerald-100/60 rounded-xl p-2">
                       <span className="text-[8px] font-black text-emerald-600 uppercase tracking-wider block">Jam Masuk</span>
-                      <span className="font-extrabold text-slate-850 mt-0.5 block">{record.clock_in || '-'}</span>
+                      <span className="font-extrabold text-slate-800 mt-0.5 block">{record.clock_in || '-'}</span>
                       {record.clock_in && <div className="mt-1">{getStatusInLabel(record.status_in)}</div>}
                     </div>
                     <div className="bg-rose-50/45 border border-rose-100/60 rounded-xl p-2">
                       <span className="text-[8px] font-black text-red-500 uppercase tracking-wider block">Jam Keluar</span>
-                      <span className="font-extrabold text-slate-850 mt-0.5 block">{record.clock_out || '-'}</span>
+                      <span className="font-extrabold text-slate-800 mt-0.5 block">{record.clock_out || '-'}</span>
                       {record.clock_out && <div className="mt-1">{getStatusOutLabel(record.status_out)}</div>}
                     </div>
                   </div>
@@ -662,7 +662,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
                   className="w-11 h-11 rounded-full object-cover border border-slate-200"
                 />
               ) : (
-                <div className="w-11 h-11 rounded-full bg-orange-100 flex items-center justify-center text-orange-655 font-black text-sm">
+                <div className="w-11 h-11 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-black text-sm">
                   {selectedDetail.user?.name?.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -773,7 +773,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
 
               {/* Coordinates / Map details */}
               {(selectedDetail.latitude_in || selectedDetail.latitude_out) && (
-                <div className="p-3 bg-orange-50/20 border border-orange-100/60 rounded-2xl flex items-start gap-2 text-xs text-slate-650">
+                <div className="p-3 bg-orange-50/20 border border-orange-100/60 rounded-2xl flex items-start gap-2 text-xs text-slate-600">
                   <MapPin className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold text-orange-850">Lokasi GPS Koordinat:</p>

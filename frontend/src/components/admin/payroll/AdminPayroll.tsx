@@ -847,7 +847,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             <button
               onClick={handleGeneratePayroll}
               disabled={generating || loadingPayroll}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-40 shadow-md shadow-red-500/10"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-40 shadow-md shadow-red-500/10"
             >
               {generating ? (
                 <>
@@ -867,7 +867,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               <button
                 onClick={handleSubmitAllToDirector}
                 disabled={generating || loadingPayroll}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-650 hover:to-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-500/10 font-quicksand"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-indigo-500/10 font-quicksand"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Ajukan Semua ke Direktur
@@ -878,7 +878,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             <button
               onClick={handleExportPDF}
               disabled={generating || loadingPayroll || payrollRecords.length === 0}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-red-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand font-semibold"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-red-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand font-semibold"
               title="Ekspor PDF"
             >
               <FileDown className="w-3.5 h-3.5" />
@@ -889,7 +889,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             <button
               onClick={handleExportExcel}
               disabled={generating || loadingPayroll || payrollRecords.length === 0}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-650 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand font-semibold"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand font-semibold"
               title="Ekspor Excel"
             >
               <FileDown className="w-3.5 h-3.5" />
@@ -911,11 +911,11 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-fade-in">
             <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-100 rounded-2xl p-4 flex items-center justify-between shadow-sm">
               <div>
-                <span className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Total Gaji Dibayarkan</span>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Gaji Dibayarkan</span>
                 <span className="text-lg font-black text-orange-600 block mt-1">
                   {formatRupiah(payrollRecords.reduce((sum, r) => sum + r.net_salary, 0))}
                 </span>
-                <span className="text-[9px] text-slate-450 font-bold block mt-0.5">Untuk {payrollRecords.length} karyawan</span>
+                <span className="text-[9px] text-slate-400 font-bold block mt-0.5">Untuk {payrollRecords.length} karyawan</span>
               </div>
               <div className="p-3 bg-white/80 rounded-xl text-orange-600 shadow-sm">
                 <Coins className="w-5 h-5" />
@@ -924,11 +924,11 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between shadow-sm">
               <div>
-                <span className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Telah Dibayar (Paid)</span>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Telah Dibayar (Paid)</span>
                 <span className="text-lg font-black text-emerald-600 block mt-1">
                   {formatRupiah(payrollRecords.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.net_salary, 0))}
                 </span>
-                <span className="text-[9px] text-slate-450 font-bold block mt-0.5">
+                <span className="text-[9px] text-slate-400 font-bold block mt-0.5">
                   {payrollRecords.filter(r => r.status === 'paid').length} karyawan lunas
                 </span>
               </div>
@@ -939,11 +939,11 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
             <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100 rounded-2xl p-4 flex items-center justify-between shadow-sm">
               <div>
-                <span className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Belum Dibayar (Draft/Unpaid)</span>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Belum Dibayar (Draft/Unpaid)</span>
                 <span className="text-lg font-black text-amber-600 block mt-1">
                   {formatRupiah(payrollRecords.filter(r => r.status !== 'paid').reduce((sum, r) => sum + r.net_salary, 0))}
                 </span>
-                <span className="text-[9px] text-slate-450 font-bold block mt-0.5">
+                <span className="text-[9px] text-slate-400 font-bold block mt-0.5">
                   {payrollRecords.filter(r => r.status !== 'paid').length} karyawan tertunda
                 </span>
               </div>
@@ -959,7 +959,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
+                <tr className="bg-orange-50/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
                   <th className="py-4 px-5">Karyawan</th>
                   <th className="py-4 px-5 text-center">
                     <div className="flex items-center justify-center gap-1">
@@ -997,7 +997,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               <tbody className="divide-y divide-orange-100 text-xs text-slate-600">
                 {loadingPayroll ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-450">
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                         Memuat data rekap gaji bulanan...
@@ -1006,7 +1006,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   </tr>
                 ) : payrollRecords.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-450 font-semibold italic">
+                    <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold italic">
                       Belum ada data gaji yang di-generate pada periode ini ({getIndonesianMonthLabel(selectedMonth)}).
                     </td>
                   </tr>
@@ -1016,7 +1016,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                       <td className="py-4 px-5">
                         <div>
                           <p className="font-extrabold text-slate-800 text-[13px]">{record.user.name}</p>
-                          <p className="text-[10px] text-slate-450 mt-0.5">{record.user.email}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{record.user.email}</p>
                         </div>
                       </td>
                       <td className="py-4 px-5 text-center">
@@ -1275,7 +1275,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
             <form onSubmit={handleSaveAdjustment} className="space-y-4 font-semibold text-xs">
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Gaji Pokok</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gaji Pokok</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                   <input
@@ -1291,7 +1291,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Tunjangan Makan</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunjangan Makan</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
@@ -1306,7 +1306,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Tunjangan Transport</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunjangan Transport</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
@@ -1323,7 +1323,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Tunjangan Jabatan</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunjangan Jabatan</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
@@ -1338,7 +1338,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Tunjangan Tetap</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunjangan Tetap</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
@@ -1355,7 +1355,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-[9px] font-bold text-slate-555 uppercase tracking-wider">Potongan Telat</label>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Potongan Telat</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-1.5 flex items-center text-slate-400 font-bold text-[10px]">Rp</span>
                     <input
@@ -1370,7 +1370,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[9px] font-bold text-slate-555 uppercase tracking-wider">Potongan Absen</label>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Potongan Absen</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-1.5 flex items-center text-slate-400 font-bold text-[10px]">Rp</span>
                     <input
@@ -1385,7 +1385,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[9px] font-bold text-slate-555 uppercase tracking-wider">Potongan Tetap</label>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Potongan Tetap</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-1.5 flex items-center text-slate-400 font-bold text-[10px]">Rp</span>
                     <input
@@ -1401,7 +1401,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Catatan Penyesuaian</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Catatan Penyesuaian</label>
                 <textarea
                   value={adjustNotes}
                   onChange={(e) => setAdjustNotes(e.target.value)}
@@ -1421,7 +1421,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 <button
                   type="submit"
                   disabled={submittingAdjustment}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   {submittingAdjustment && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Simpan Penyesuaian
@@ -1558,7 +1558,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               </div>
 
               {selectedSlip.notes && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] text-slate-550 font-semibold italic">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] text-slate-500 font-semibold italic">
                   <strong>Catatan Gaji:</strong> {selectedSlip.notes}
                 </div>
               )}

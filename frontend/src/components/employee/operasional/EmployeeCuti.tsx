@@ -461,7 +461,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                     </div>
                   ) : (
                     <>
-                      <div className="p-4 bg-orange-50 rounded-2xl text-orange-655 border border-orange-100 mb-3 group-hover:scale-110 transition-transform">
+                      <div className="p-4 bg-orange-50 rounded-2xl text-orange-700 border border-orange-100 mb-3 group-hover:scale-110 transition-transform">
                         <Upload className="w-6 h-6" />
                       </div>
                       <span className="text-xs font-bold text-slate-700 font-quicksand">Klik untuk upload foto/bukti</span>
@@ -491,7 +491,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-3 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand"
+                className="px-6 py-3 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand"
               >
                 {submitting ? 'Mengirim Pengajuan...' : 'Kirim Pengajuan Cuti'}
               </button>
@@ -592,7 +592,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                               href={`http://localhost:8000${leave.image}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 hover:text-red-655 hover:underline"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 hover:text-red-700 hover:underline"
                             >
                               <FileText className="w-3.5 h-3.5" /> Lihat Bukti
                             </a>
@@ -648,7 +648,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                   <button
                     onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-655 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
                   >
                     Sebelumnya
                   </button>
@@ -659,7 +659,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         currentPage === page
                           ? 'bg-orange-500 border border-orange-500 text-white shadow-sm font-extrabold'
-                          : 'border border-slate-200 text-slate-650 hover:border-orange-500 hover:text-orange-655 bg-white'
+                          : 'border border-slate-200 text-slate-600 hover:border-orange-500 hover:text-orange-700 bg-white'
                       }`}
                     >
                       {page}
@@ -668,7 +668,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                   <button
                     onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-655 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
                   >
                     Selanjutnya
                   </button>

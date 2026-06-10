@@ -491,7 +491,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           {/* Export PDF Button */}
           <button
             onClick={handleExportPDF}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
             title="Ekspor PDF"
           >
             <Printer className="w-4 h-4" />
@@ -501,7 +501,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           {/* Export Excel Button */}
           <button
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-650 hover:to-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
             title="Ekspor Excel"
           >
             <FileDown className="w-4 h-4" />
@@ -654,7 +654,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse font-quicksand">
                 <thead>
-                  <tr className="bg-orange-55/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
+                  <tr className="bg-orange-50/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
                     <th className="py-4 px-5">Karyawan</th>
                     <th className="py-4 px-5">Kategori</th>
                     <th className="py-4 px-5">Masa Cuti</th>

@@ -541,7 +541,7 @@ export default function PersetujuanKaryawan({ token }: PersetujuanKaryawanProps)
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-6 text-slate-450">
+                <div className="flex flex-col items-center justify-center py-6 text-slate-400">
                   <AlertCircle className="w-8 h-8 text-rose-400 mb-2" />
                   <p className="text-xs font-quicksand">Gagal memuat detail profil.</p>
                 </div>

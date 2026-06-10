@@ -8,7 +8,6 @@ import {
   useLocation 
 } from 'react-router-dom'
 import { 
-  Clock, 
   Menu, 
   X, 
   ChevronRight
@@ -293,7 +292,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       {!mobileSidebarOpen && (
         <button
           onClick={() => setMobileSidebarOpen(true)}
-          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all cursor-pointer flex items-center"
+          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all cursor-pointer flex items-center"
           title="Buka Menu"
         >
           <ChevronRight className="w-5 h-5 animate-pulse" />
@@ -324,7 +323,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       {/* Main Content Area */}
       <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto">
         
-        {/* Dynamic header with page title & clock */}
+        {/* Dynamic header with page title */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-orange-100 pb-6 mb-8">
           <div>
             <div className="flex items-center gap-2">
@@ -339,15 +338,6 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
             <h1 className="text-2xl font-black text-slate-800 mt-1 font-quicksand capitalize">
               {routeInfo.title}
             </h1>
-          </div>
-
-          {/* Clock widget */}
-          <div className="flex items-center gap-3 bg-white border border-orange-100 px-4 py-2.5 rounded-2xl shadow-sm">
-            <Clock className="w-4.5 h-4.5 text-red-550 animate-pulse" />
-            <div>
-              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-wider font-quicksand">Jam Digital</span>
-              <span className="text-xs font-bold text-slate-800 font-mono">{time.toLocaleTimeString('id-ID')}</span>
-            </div>
           </div>
         </div>
 

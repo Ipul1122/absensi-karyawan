@@ -87,7 +87,7 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
         {/* Filter Bar */}
         <div className="space-y-4 border-b border-orange-50/50 pb-5">
           <div className="flex items-center gap-2 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest font-quicksand">
-            <Filter className="w-3.5 h-3.5 text-orange-550" />
+            <Filter className="w-3.5 h-3.5 text-orange-500" />
             <span>Filter Data Riwayat</span>
           </div>
 
@@ -186,7 +186,7 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse font-quicksand">
               <thead>
-                <tr className="bg-orange-55/30 text-slate-655 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
+                <tr className="bg-orange-50/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
                   <th className="py-4 px-6">Tanggal</th>
                   <th className="py-4 px-6">Tipe</th>
                   <th className="py-4 px-6">Masuk (Check-In)</th>

@@ -60,7 +60,7 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
 
         {/* User profile brief */}
         <div className="bg-gradient-to-tr from-red-500/5 to-orange-500/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-650 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-red-500/10">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-red-500/10">
             AD
           </div>
           <div className="overflow-hidden">
@@ -81,7 +81,7 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
                 className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
                   isActive 
                     ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md shadow-red-500/15' 
-                    : 'text-slate-655 hover:text-red-600 hover:bg-orange-50/40 border border-transparent'
+                    : 'text-slate-600 hover:text-red-600 hover:bg-orange-50/40 border border-transparent'
                 }`}
               >
                 {({ isActive }) => (
@@ -107,7 +107,7 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
         </div>
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-655 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand"
         >
           <LogOut className="w-4 h-4" />
           Keluar Aplikasi

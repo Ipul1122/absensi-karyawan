@@ -375,7 +375,7 @@ export default function AkunKaryawan({
                           {/* Hapus */}
                           <button
                             onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                            className="p-2 text-slate-400 hover:text-red-650 hover:bg-red-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
                             title="Hapus Karyawan"
                           >
                             <Trash2 className="w-4 h-4" />

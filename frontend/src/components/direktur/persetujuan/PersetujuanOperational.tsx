@@ -470,7 +470,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-slate-800">{r.nama_barang}</p>
-                              <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase bg-slate-50 text-slate-550 border-slate-200">
+                              <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase bg-slate-50 text-slate-500 border-slate-200">
                                 {r.kondisi_barang}
                               </span>
                             </div>

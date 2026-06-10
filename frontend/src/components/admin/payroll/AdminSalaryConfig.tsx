@@ -198,7 +198,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
+              <tr className="bg-orange-50/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
                 <th className="py-4 px-5">Karyawan</th>
                 <th className="py-4 px-5">Gaji Pokok (Base)</th>
                 <th className="py-4 px-5">Tunj. Makan (Harian)</th>
@@ -213,7 +213,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
             <tbody className="divide-y divide-orange-100 text-xs text-slate-600">
               {loadingEmployees ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-450">
+                  <td colSpan={9} className="py-12 text-center text-slate-400">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                       Memuat data karyawan...
@@ -222,7 +222,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 </tr>
               ) : employees.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-450 font-semibold">
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-semibold">
                     Tidak ada data karyawan ditemukan.
                   </td>
                 </tr>
@@ -234,7 +234,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                       <td className="py-4 px-5">
                         <div>
                           <p className="font-extrabold text-slate-800 text-[13px]">{emp.name}</p>
-                          <p className="text-[10px] text-slate-450 mt-0.5">{emp.email}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{emp.email}</p>
                           {cfg && cfg.salary_change_status === 'pending' && (
                             <span className="inline-flex items-center gap-1 mt-1.5 py-0.5 px-2 rounded-full text-[9px] font-extrabold bg-amber-50 text-amber-600 border border-amber-100 animate-pulse">
                               Perubahan Menunggu Direktur
@@ -307,7 +307,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
 
             <form onSubmit={handleSaveConfig} className="space-y-4 font-semibold text-xs">
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Gaji Pokok (Bulanan)</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gaji Pokok (Bulanan)</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                   <input
@@ -324,7 +324,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Tunj. Makan (Harian)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Makan (Harian)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
@@ -340,7 +340,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Tunj. Transport (Harian)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Transport (Harian)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
@@ -357,7 +357,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Tunj. Jabatan (Bulanan)</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Jabatan (Bulanan)</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                   <input
@@ -374,7 +374,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Potongan Telat (Harian)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Telat (Harian)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
@@ -390,7 +390,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider">Potongan Absen (Harian)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Absen (Harian)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
@@ -407,7 +407,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Potongan Tetap (BPJS dll)</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Tetap (BPJS dll)</label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                   <input
@@ -433,7 +433,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 <button
                   type="submit"
                   disabled={submittingConfig}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   {submittingConfig && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Simpan Setelan

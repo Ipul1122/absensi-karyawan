@@ -38,7 +38,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'standard' | 'director'>('standard')
 
-  const currentAccentColor = activeTab === 'director' ? '#d97706' : BRAND_ORANGE
+  const currentAccentColor = BRAND_ORANGE
 
   const handleTabChange = (tab: 'standard' | 'director') => {
     setActiveTab(tab)
@@ -88,9 +88,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
         {/* ─── LEFT PANEL (hidden on mobile/tablet) ─── */}
         <div className="hidden lg:flex lg:w-[58%] xl:w-[60%] relative flex-col justify-between overflow-hidden"
           style={{
-            background: activeTab === 'director'
-              ? 'linear-gradient(145deg, #0f172a 0%, #1e1b4b 100%)'
-              : `linear-gradient(145deg, ${BRAND_ORANGE} 0%, #c2410c 100%)`,
+            background: `linear-gradient(145deg, ${BRAND_ORANGE} 0%, #c2410c 100%)`,
             transition: 'background 0.5s ease'
           }}>
 
@@ -125,17 +123,10 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
           {/* Left panel content */}
           <div className="relative z-10 flex flex-col justify-center h-full px-10 xl:px-14 pb-10">
             {/* Badge */}
-            {activeTab === 'director' ? (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[11px] font-bold uppercase tracking-widest w-fit mb-10">
-                <ShieldCheck className="w-3.5 h-3.5 animate-pulse" />
-                Directorate Executive Portal
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-white/10 text-white text-[11px] font-bold uppercase tracking-widest w-fit mb-10">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Enterprise Security
-              </div>
-            )}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/30 bg-white/10 text-white text-[11px] font-bold uppercase tracking-widest w-fit mb-10">
+              <ShieldCheck className={`w-3.5 h-3.5 ${activeTab === 'director' ? 'animate-pulse' : ''}`} />
+              {activeTab === 'director' ? 'Directorate Executive Portal' : 'Enterprise Security'}
+            </div>
 
             {/* Heading */}
             <h1 className="text-3xl xl:text-4xl font-black text-white leading-tight mb-5 max-w-sm transition-all duration-300">
@@ -153,11 +144,11 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
             <div className="flex flex-wrap gap-3">
               {activeTab === 'director' ? (
                 <>
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-semibold backdrop-blur-sm hover:bg-amber-500/20 transition-all cursor-default">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/20 transition-all cursor-default">
                     <CheckSquare className="w-3.5 h-3.5" />
                     Executive Approvals
                   </div>
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-xs font-semibold backdrop-blur-sm hover:bg-amber-500/20 transition-all cursor-default">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/20 transition-all cursor-default">
                     <BarChart2 className="w-3.5 h-3.5 animate-bounce" />
                     Operational Overview
                   </div>
@@ -203,9 +194,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
           {/* Mobile hero — only shown on small screens */}
           <div className="lg:hidden w-full py-8 px-6 flex flex-col items-center text-center transition-all duration-500"
             style={{
-              background: activeTab === 'director'
-                ? 'linear-gradient(160deg, #0f172a, #1e1b4b)'
-                : `linear-gradient(160deg, ${BRAND_ORANGE}, #c2410c)`
+              background: `linear-gradient(160deg, ${BRAND_ORANGE}, #c2410c)`
             }}>
             <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center mb-3">
               <ShieldCheck className="w-6 h-6 text-white" />
@@ -239,9 +228,9 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                 <button
                   type="button"
                   onClick={() => handleTabChange('director')}
-                  className={`flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`flex-grow flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer ${
                     activeTab === 'director'
-                      ? 'bg-slate-900 text-amber-400 shadow-sm animate-pulse'
+                      ? 'bg-white text-orange-600 shadow-sm'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
@@ -281,11 +270,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       placeholder="nama@perusahaan.com"
-                      className={`w-full bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-4 outline-none transition-all text-sm font-medium ${
-                        activeTab === 'director'
-                          ? 'focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
-                          : 'focus:border-orange-500 focus:ring-2 focus:ring-orange-100'
-                      }`}
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-4 outline-none transition-all text-sm font-medium focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                     />
                   </div>
                 </div>
@@ -311,11 +296,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className={`w-full bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-12 outline-none transition-all text-sm font-medium ${
-                        activeTab === 'director'
-                          ? 'focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
-                          : 'focus:border-orange-500 focus:ring-2 focus:ring-orange-100'
-                      }`}
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-12 outline-none transition-all text-sm font-medium focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                     />
                     <button
                       type="button"
@@ -351,13 +332,9 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                   className="w-full py-3.5 px-4 flex items-center justify-center gap-2.5 text-white font-bold rounded-xl transition-all text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
                   style={{
                     background: loading 
-                      ? (activeTab === 'director' ? '#b45309' : '#c2410c') 
-                      : (activeTab === 'director'
-                          ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)'
-                          : `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_ORANGE_DARK} 100%)`),
-                    boxShadow: activeTab === 'director'
-                      ? '0 4px 18px rgba(217,119,6,0.35)'
-                      : `0 4px 18px rgba(234,88,12,0.35)`
+                      ? '#c2410c'
+                      : `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_ORANGE_DARK} 100%)`,
+                    boxShadow: `0 4px 18px rgba(234,88,12,0.35)`
                   }}
                 >
                   {loading ? (

@@ -21,6 +21,8 @@ import Logo from './layout/Logo'
 // Import subcomponents
 import EmployeeOverview from './employee/EmployeeOverview'
 import EmployeeAbsen from './employee/EmployeeAbsen'
+import EmployeeSales from './employee/EmployeeSales'
+import EmployeeClient from './employee/EmployeeClient'
 import EmployeeHistory from './employee/EmployeeHistory'
 import EmployeeSettings from './employee/EmployeeSettings'
 import EmployeeCuti from './employee/EmployeeCuti'
@@ -237,7 +239,13 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   const getRouteInfo = () => {
     const path = location.pathname
     if (path.includes('absen')) {
-      return { title: 'Formulir Absensi', subtitle: 'Clock In / Out' }
+      return { title: 'Absen Kantor', subtitle: 'Clock In / Out' }
+    }
+    if (path.includes('sales')) {
+      return { title: 'Kunjungan Lapangan & Sales', subtitle: 'Clock In / Out' }
+    }
+    if (path.includes('client')) {
+      return { title: 'Kunjungan Klien (Client Visit)', subtitle: 'Clock In / Out' }
     }
     if (path.includes('cuti')) {
       return { title: 'Pengajuan Cuti', subtitle: 'Leave Request' }
@@ -369,6 +377,32 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="absen" 
               element={
                 <EmployeeAbsen
+                  token={token}
+                  todayAttendance={todayAttendance}
+                  officeSetting={officeSetting}
+                  fetchTodayAttendance={fetchTodayAttendance}
+                  fetchHistory={fetchHistory}
+                  getStatusBadge={getStatusBadge}
+                />
+              } 
+            />
+            <Route 
+              path="sales" 
+              element={
+                <EmployeeSales
+                  token={token}
+                  todayAttendance={todayAttendance}
+                  officeSetting={officeSetting}
+                  fetchTodayAttendance={fetchTodayAttendance}
+                  fetchHistory={fetchHistory}
+                  getStatusBadge={getStatusBadge}
+                />
+              } 
+            />
+            <Route 
+              path="client" 
+              element={
+                <EmployeeClient
                   token={token}
                   todayAttendance={todayAttendance}
                   officeSetting={officeSetting}

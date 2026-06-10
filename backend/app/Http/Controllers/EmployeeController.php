@@ -10,32 +10,83 @@ use Illuminate\Support\Facades\Hash;
 
 class EmployeeController extends Controller
 {
+
     public function index()
     {
         $employees = User::where('role', 'employee')->orderBy('id', 'desc')->get();
-        
+
+        $data = $employees->map(function ($emp) {
+            return [
+                'id'              => $emp->id,
+                'name'            => $emp->name,
+                'email'           => $emp->email,
+                'password_plain'  => $emp->password_plain,
+                'role'            => $emp->role,
+                'status'          => $emp->status,
+                'photo'           => $emp->photo ? asset('storage/' . $emp->photo) : null,
+                'employee_number' => $emp->employee_number,
+                'division'        => $emp->division,
+                'gender'          => $emp->gender,
+                'join_date'       => $emp->join_date,
+                'created_at'      => $emp->created_at,
+                'updated_at'      => $emp->updated_at,
+            ];
+        });
+
         return response()->json([
             'status' => 'success',
-            'data' => $employees
+            'data'   => $data
         ]);
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
+            'name'            => 'required|string|max:255',
+            'email'           => 'required|string|email|max:255|unique:users',
+            'password'        => 'required|string|min:6',
+            'date_of_birth'   => 'nullable|date',
+            'address'         => 'nullable|string|max:500',
+            'employee_number' => 'nullable|string|max:50|unique:users,employee_number',
+            'join_date'       => 'nullable|date',
+            'gender'          => 'nullable|in:male,female',
+            'division'        => 'nullable|string|max:100',
+            'photo'           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+        ], [
+            'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
+            'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
+            'cv.file'                => 'File CV harus berupa dokumen.',
+            'cv.mimes'               => 'Format CV harus berupa PDF, DOC, atau DOCX.',
+            'cv.max'                 => 'Ukuran CV maksimal 5MB.',
         ]);
 
-        $employee = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'password_plain' => $request->password,
-            'role' => 'employee',
-            'status' => 'pending',
-        ]);
+        $data = [
+            'name'            => $request->name,
+            'email'           => $request->email,
+            'password'        => Hash::make($request->password),
+            'password_plain'  => $request->password,
+            'role'            => 'employee',
+            'status'          => 'pending',
+            'employee_number' => $request->employee_number,
+            'gender'          => $request->gender,
+            'division'        => $request->division,
+            'date_of_birth'   => $request->date_of_birth,
+            'join_date'       => $request->join_date,
+            'address'         => $request->address,
+        ];
+
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('photos', 'public');
+            $data['photo'] = $path;
+        }
+
+        if ($request->hasFile('cv')) {
+            $path = $request->file('cv')->store('cvs', 'public');
+            $data['cv'] = $path;
+        }
+
+        $employee = User::create($data);
 
         return response()->json([
             'status' => 'success',
@@ -178,6 +229,7 @@ class EmployeeController extends Controller
                 'employee_number' => $employee->employee_number,
                 'join_date'       => $employee->join_date,
                 'gender'          => $employee->gender,
+                'division'        => $employee->division,
                 'cv'              => $employee->cv ? asset('storage/' . $employee->cv) : null,
                 'created_at'      => $employee->created_at,
             ]
@@ -206,6 +258,7 @@ class EmployeeController extends Controller
             'employee_number' => 'nullable|string|max:50|unique:users,employee_number,' . $id,
             'join_date'       => 'nullable|date',
             'gender'          => 'nullable|in:male,female',
+            'division'        => 'nullable|string|max:100',
             'photo'           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
         ], [
@@ -216,7 +269,7 @@ class EmployeeController extends Controller
             'cv.max'                 => 'Ukuran CV maksimal 5MB.',
         ]);
 
-        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender']);
+        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division']);
 
         if ($request->hasFile('photo')) {
             if ($employee->photo) {
@@ -249,6 +302,7 @@ class EmployeeController extends Controller
                 'employee_number' => $employee->employee_number,
                 'join_date'       => $employee->join_date,
                 'gender'          => $employee->gender,
+                'division'        => $employee->division,
                 'cv'              => $employee->cv ? asset('storage/' . $employee->cv) : null,
             ]
         ]);

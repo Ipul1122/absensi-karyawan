@@ -30,6 +30,7 @@ import AdminBonus from './admin/AdminBonus'
 import AdminOvertime from './admin/AdminOvertime'
 import AddEmployeeModal from './admin/AddEmployeeModal'
 import EditEmployeeModal from './admin/EditEmployeeModal'
+import ViewEmployeeModal from './admin/ViewEmployeeModal'
 import DetailAttendanceModal from './admin/DetailAttendanceModal'
 import EditTimeModal from './admin/EditTimeModal'
 
@@ -38,6 +39,8 @@ interface Employee {
   name: string
   email: string
   password_plain?: string
+  photo?: string | null
+  division?: string | null
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
@@ -112,10 +115,11 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [savingOffice, setSavingOffice] = useState(false)
 
   // New Employee Form States
-  const [newName, setNewName] = useState('')
-  const [newEmail, setNewEmail] = useState('')
-  const [newPassword, setNewPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // View Biodata Modal States
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [viewProfile, setViewProfile] = useState<any | null>(null)
 
   // Edit Employee Form States
   const [showEditEmployeeModal, setShowEditEmployeeModal] = useState(false)
@@ -250,81 +254,71 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     }
   }
 
-  const handleAddEmployee = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!newName || !newEmail || !newPassword) {
-      Swal.fire({
-        title: 'Form Belum Lengkap',
-        text: 'Silakan isi semua kolom.',
-        icon: 'warning',
-        background: '#1e293b',
-        color: '#f8fafc',
-        confirmButtonColor: '#6366f1'
-      })
-      return
-    }
-
-    if (newPassword.length < 6) {
-      Swal.fire({
-        title: 'Password Terlalu Pendek',
-        text: 'Kata sandi minimal harus terdiri dari 6 karakter.',
-        icon: 'warning',
-        background: '#1e293b',
-        color: '#f8fafc',
-        confirmButtonColor: '#6366f1'
-      })
-      return
-    }
-
+  const handleAddEmployee = async (formData: FormData) => {
     setSubmitting(true)
-
     try {
       const response = await axios.post(
         'http://localhost:8000/api/employees',
+        formData,
         {
-          name: newName,
-          email: newEmail,
-          password: newPassword
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       )
 
       if (response.data.status === 'success') {
         Swal.fire({
           title: 'Berhasil!',
-          text: response.data.message || 'Akun karyawan baru berhasil dibuat.',
+          text: response.data.message || 'Akun karyawan baru berhasil dibuat dan menunggu persetujuan Direktur.',
           icon: 'success',
-          background: '#1e293b',
-          color: '#f8fafc',
-          confirmButtonColor: '#6366f1'
+          background: '#fffdfb',
+          color: '#3c1105',
+          timer: 2500,
+          showConfirmButton: false
         })
-
-        // Reset form & close modal
-        setNewName('')
-        setNewEmail('')
-        setNewPassword('')
         setShowModal(false)
-        
-        // Refresh list
         fetchEmployees()
       }
     } catch (err: any) {
       console.error(err)
-      let msg = 'Gagal menyimpan data karyawan.'
-      if (err.response && err.response.data && err.response.data.message) {
-        msg = err.response.data.message
-      }
+      const msg =
+        err.response?.data?.errors
+          ? Object.values(err.response.data.errors as Record<string, string[]>).flat().join('\n')
+          : err.response?.data?.message || 'Gagal menyimpan data karyawan.'
       Swal.fire({
         title: 'Registrasi Gagal',
         text: msg,
         icon: 'error',
-        background: '#1e293b',
-        color: '#f8fafc',
-        confirmButtonColor: '#ef4444'
+        background: '#fffdfb',
+        color: '#3c1105'
       })
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleViewBiodata = async (id: number) => {
+    setShowViewModal(true)
+    setViewProfile(null)
+    try {
+      const res = await axios.get(`http://localhost:8000/api/employees/${id}/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.data.status === 'success') {
+        setViewProfile(res.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal memuat profil:', err)
+      Swal.fire({
+        title: 'Gagal Memuat',
+        text: 'Tidak dapat memuat biodata.',
+        icon: 'error',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+      setShowViewModal(false)
     }
   }
 
@@ -831,12 +825,6 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         show={showModal}
         onClose={() => setShowModal(false)}
         onSubmit={handleAddEmployee}
-        newName={newName}
-        setNewName={setNewName}
-        newEmail={newEmail}
-        setNewEmail={setNewEmail}
-        newPassword={newPassword}
-        setNewPassword={setNewPassword}
         submitting={submitting}
       />
 
@@ -851,6 +839,19 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         password={editPassword}
         setPassword={setEditPassword}
         submitting={submittingEdit}
+        onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
+      />
+
+      {/* View Biodata Modal (Admin) */}
+      <ViewEmployeeModal
+        show={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        profile={viewProfile}
+        onRefresh={() => {
+          fetchEmployees()
+          setShowEditEmployeeModal(false)
+        }}
+        token={token}
       />
 
       {/* Detail Attendance Modal */}

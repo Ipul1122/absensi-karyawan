@@ -9,7 +9,6 @@ import {
   Eye,
   EyeOff,
   Edit,
-  BookUser,
   X,
   User,
   Mail,
@@ -19,10 +18,9 @@ import {
   Briefcase,
   Camera,
   Save,
-  CheckCircle2,
-  AlertCircle,
   FileText,
-  FileUp
+  FileUp,
+  Building2
 } from 'lucide-react'
 
 interface Employee {
@@ -30,6 +28,8 @@ interface Employee {
   name: string
   email: string
   password_plain?: string
+  photo?: string | null
+  division?: string | null
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
@@ -45,6 +45,7 @@ interface EmployeeProfile {
   employee_number: string | null
   join_date: string | null
   gender: string | null
+  division: string | null
   cv: string | null
   created_at: string
 }
@@ -76,14 +77,13 @@ export default function AkunKaryawan({
 }: AkunKaryawanProps) {
   const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({})
 
-  // ---- View Biodata Modal ----
-  const [showViewModal, setShowViewModal] = useState(false)
-  const [viewProfile, setViewProfile] = useState<EmployeeProfile | null>(null)
-  const [loadingProfile, setLoadingProfile] = useState(false)
+
 
   // ---- Edit Biodata Modal ----
   const [showEditBioModal, setShowEditBioModal] = useState(false)
   const [editProfile, setEditProfile] = useState<EmployeeProfile | null>(null)
+  const [divisionSelect, setDivisionSelect] = useState('')
+  const [divisionCustom, setDivisionCustom] = useState('')
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [cvFile, setCvFile] = useState<File | null>(null)
@@ -96,7 +96,6 @@ export default function AkunKaryawan({
   }
 
   const fetchEmployeeProfile = async (id: number) => {
-    setLoadingProfile(true)
     try {
       const res = await axios.get(`http://localhost:8000/api/employees/${id}/profile`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -107,24 +106,24 @@ export default function AkunKaryawan({
     } catch (err) {
       console.error('Gagal memuat profil karyawan:', err)
       Swal.fire({ title: 'Gagal Memuat', text: 'Tidak dapat memuat biodata karyawan.', icon: 'error', background: '#fffdfb', color: '#3c1105' })
-    } finally {
-      setLoadingProfile(false)
     }
     return null
-  }
-
-  const handleViewBiodata = async (emp: Employee) => {
-    const profile = await fetchEmployeeProfile(emp.id)
-    if (profile) {
-      setViewProfile(profile)
-      setShowViewModal(true)
-    }
   }
 
   const handleOpenEditBio = async (emp: Employee) => {
     const profile = await fetchEmployeeProfile(emp.id)
     if (profile) {
       setEditProfile(profile)
+      // Resolve division selection
+      const knownDivisions = ['IT', 'Keuangan', 'SDM', 'Pemasaran', 'Operasional', 'Produksi', 'Hukum']
+      const existingDiv = profile.division || ''
+      if (!existingDiv || knownDivisions.includes(existingDiv)) {
+        setDivisionSelect(existingDiv)
+        setDivisionCustom('')
+      } else {
+        setDivisionSelect('__custom__')
+        setDivisionCustom(existingDiv)
+      }
       setPhotoPreview(profile.photo)
       setPhotoFile(null)
       setCvFile(null)
@@ -194,6 +193,8 @@ export default function AkunKaryawan({
       if (editProfile.employee_number) formData.append('employee_number', editProfile.employee_number)
       if (editProfile.join_date) formData.append('join_date', editProfile.join_date)
       if (editProfile.gender) formData.append('gender', editProfile.gender)
+      const finalDivision = divisionSelect === '__custom__' ? divisionCustom.trim() : divisionSelect
+      if (finalDivision) formData.append('division', finalDivision)
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
 
@@ -207,6 +208,7 @@ export default function AkunKaryawan({
         setEditProfile(null)
         setPhotoFile(null)
         setCvFile(null)
+        onRefresh?.()
       }
     } catch (err: any) {
       Swal.fire({ title: 'Gagal Menyimpan', text: err.response?.data?.message || 'Gagal menyimpan biodata.', icon: 'error', background: '#fffdfb', color: '#3c1105' })
@@ -215,7 +217,7 @@ export default function AkunKaryawan({
     }
   }
 
-  const genderLabel = (g: string | null) => g === 'male' ? 'Laki-laki' : g === 'female' ? 'Perempuan' : '-'
+
 
   const inputClass = "w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-3 outline-none transition-all text-xs font-medium font-quicksand focus:ring-2 focus:ring-red-100"
   const labelClass = "block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1 font-quicksand"
@@ -295,10 +297,26 @@ export default function AkunKaryawan({
                     <tr key={emp.id} className="hover:bg-orange-50/20 transition-colors">
                       <td className="py-4 px-5 font-semibold text-slate-800">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-red-100 to-orange-100 text-red-500 flex items-center justify-center font-bold text-xs uppercase font-quicksand">
-                            {emp.name.substring(0, 2)}
+                          {emp.photo ? (
+                            <img
+                              src={emp.photo}
+                              alt={emp.name}
+                              className="w-9 h-9 rounded-xl object-cover border-2 border-orange-100 shadow-sm shrink-0"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-100 to-orange-100 text-red-500 flex items-center justify-center font-bold text-xs uppercase font-quicksand shrink-0 border border-orange-100">
+                              {emp.name.substring(0, 2)}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <span className="font-quicksand text-sm font-semibold text-slate-800 block truncate">{emp.name}</span>
+                            {emp.division && (
+                              <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-600 border border-violet-100">
+                                <Building2 className="w-2.5 h-2.5" />
+                                {emp.division}
+                              </span>
+                            )}
                           </div>
-                          <span className="font-quicksand text-sm">{emp.name}</span>
                         </div>
                       </td>
                       <td className="py-4 px-5 font-mono text-xs text-slate-600">{emp.email}</td>
@@ -337,14 +355,7 @@ export default function AkunKaryawan({
                       <td className="py-4 px-5 text-xs text-slate-500 font-quicksand">{formatDate(emp.created_at)}</td>
                       <td className="py-4 px-5">
                         <div className="flex items-center justify-center gap-1">
-                          {/* Lihat Biodata */}
-                          <button
-                            onClick={() => handleViewBiodata(emp)}
-                            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                            title="Lihat Biodata"
-                          >
-                            <BookUser className="w-4 h-4" />
-                          </button>
+
                           {/* Edit Akun Credentials */}
                           <button
                             onClick={() => onEditClick(emp)}
@@ -379,152 +390,6 @@ export default function AkunKaryawan({
           </div>
         </div>
       </section>
-
-      {/* ===========================
-          MODAL: LIHAT BIODATA
-          =========================== */}
-      {showViewModal && viewProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-zoom-in">
-            {/* Header gradient bar */}
-            <div className="h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400" />
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-                    <BookUser className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800 font-quicksand">Biodata Karyawan</h3>
-                    <p className="text-[10px] text-slate-400 font-quicksand">Data pribadi & informasi kerja</p>
-                  </div>
-                </div>
-                <button onClick={() => setShowViewModal(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {loadingProfile ? (
-                <div className="flex items-center justify-center py-10 gap-2 text-slate-400">
-                  <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-                  <span className="text-xs font-quicksand">Memuat...</span>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Photo + Name */}
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    {viewProfile.photo ? (
-                      <img src={viewProfile.photo} alt="Foto"
-                        className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-sm shrink-0" />
-                    ) : (
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center shrink-0 border-2 border-slate-200">
-                        <User className="w-7 h-7 text-blue-300" />
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="font-bold text-slate-800 font-quicksand truncate">{viewProfile.name}</p>
-                      <p className="text-[11px] text-slate-500 font-mono truncate">{viewProfile.email}</p>
-                      {viewProfile.employee_number && (
-                        <span className="inline-block mt-1 text-[10px] font-bold font-mono px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-full">
-                          #{viewProfile.employee_number}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Info Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { label: 'Jenis Kelamin', value: genderLabel(viewProfile.gender), icon: <User className="w-3 h-3" /> },
-                      { label: 'Tanggal Lahir', value: viewProfile.date_of_birth ? new Date(viewProfile.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Calendar className="w-3 h-3" /> },
-                      { label: 'Tanggal Bergabung', value: viewProfile.join_date ? new Date(viewProfile.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Briefcase className="w-3 h-3" /> },
-                      { label: 'Terdaftar Sistem', value: formatDate(viewProfile.created_at), icon: <Hash className="w-3 h-3" /> },
-                    ].map(item => (
-                      <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <div className="flex items-center gap-1 text-slate-400 mb-1">{item.icon}
-                          <span className="text-[9px] uppercase tracking-wider font-extrabold font-quicksand">{item.label}</span>
-                        </div>
-                        <p className="text-xs font-bold text-slate-700 font-quicksand">{item.value}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Alamat */}
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-1 text-slate-400 mb-1">
-                      <MapPin className="w-3 h-3" />
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold font-quicksand">Alamat</span>
-                    </div>
-                    <p className="text-xs font-semibold text-slate-700 font-quicksand leading-relaxed">
-                      {viewProfile.address || <span className="italic text-slate-400">Belum diisi</span>}
-                    </p>
-                  </div>
-
-                  {/* CV Document */}
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 font-quicksand">
-                    <div className="flex items-center gap-1 text-slate-400 mb-1.5">
-                      <FileText className="w-3.5 h-3.5" />
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold font-quicksand">Curriculum Vitae (CV)</span>
-                    </div>
-                    {viewProfile.cv ? (
-                      <div className="flex items-center justify-between gap-3 bg-white p-2 border border-slate-100 rounded-lg">
-                        <span className="text-xs font-semibold text-slate-600 truncate flex items-center gap-1.5">
-                          <FileText className="w-3.5 h-3.5 text-orange-500" />
-                          Dokumen CV Karyawan
-                        </span>
-                        <a
-                          href={viewProfile.cv}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer"
-                        >
-                          Lihat / Unduh
-                        </a>
-                      </div>
-                    ) : (
-                      <p className="text-xs font-semibold text-slate-400 italic">Belum diunggah oleh karyawan</p>
-                    )}
-                  </div>
-
-                  {/* Completeness indicator */}
-                  {(() => {
-                    const fields = [viewProfile.photo, viewProfile.date_of_birth, viewProfile.address, viewProfile.employee_number, viewProfile.join_date, viewProfile.gender, viewProfile.cv]
-                    const filled = fields.filter(Boolean).length
-                    const pct = Math.round((filled / fields.length) * 100)
-                    return (
-                      <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50">
-                        {pct === 100 ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />}
-                        <div className="flex-grow">
-                          <div className="flex justify-between mb-1">
-                            <span className="text-[10px] font-bold text-slate-500 font-quicksand">Kelengkapan Biodata</span>
-                            <span className={`text-[10px] font-bold font-mono ${pct === 100 ? 'text-emerald-600' : 'text-amber-500'}`}>{pct}%</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'}`}
-                              style={{ width: `${pct}%` }} />
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })()}
-
-                  <div className="flex justify-between gap-2 pt-1">
-                    <button onClick={() => { setShowViewModal(false); handleOpenEditBio({ id: viewProfile.id, name: viewProfile.name, email: viewProfile.email, created_at: viewProfile.created_at, updated_at: viewProfile.created_at }) }}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm font-quicksand">
-                      <Edit className="w-3.5 h-3.5" /> Edit Biodata
-                    </button>
-                    <button onClick={() => setShowViewModal(false)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm font-quicksand">
-                      <X className="w-3.5 h-3.5" /> Tutup
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ===========================
           MODAL: EDIT BIODATA
@@ -623,6 +488,35 @@ export default function AkunKaryawan({
                       <option value="female">Perempuan</option>
                     </select>
                   </div>
+                </div>
+                {/* Divisi */}
+                <div className="col-span-2">
+                  <label className={labelClass}>Divisi / Departemen</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Building2 className="w-3.5 h-3.5" /></div>
+                    <select value={divisionSelect}
+                      onChange={e => { setDivisionSelect(e.target.value); if (e.target.value !== '__custom__') setDivisionCustom('') }}
+                      className={`${inputClass} appearance-none cursor-pointer`}>
+                      <option value="">-- Pilih Divisi --</option>
+                      <option value="IT">IT / Teknologi</option>
+                      <option value="Keuangan">Keuangan &amp; Akuntansi</option>
+                      <option value="SDM">SDM / HR</option>
+                      <option value="Pemasaran">Pemasaran &amp; Sales</option>
+                      <option value="Operasional">Operasional</option>
+                      <option value="Produksi">Produksi</option>
+                      <option value="Hukum">Hukum &amp; Kepatuhan</option>
+                      <option value="__custom__">Lainnya (isi manual)</option>
+                    </select>
+                  </div>
+                  {divisionSelect === '__custom__' && (
+                    <div className="relative mt-2">
+                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Building2 className="w-3.5 h-3.5" /></div>
+                      <input type="text" placeholder="Ketik nama divisi..."
+                        value={divisionCustom}
+                        onChange={e => setDivisionCustom(e.target.value)}
+                        className={inputClass} />
+                    </div>
+                  )}
                 </div>
                 {/* Tgl Lahir */}
                 <div>

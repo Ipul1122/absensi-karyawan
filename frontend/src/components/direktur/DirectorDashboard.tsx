@@ -34,7 +34,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
   if (path.includes('/karyawan')) { pageTitle = 'Persetujuan Karyawan'; pageSubtitle = 'Kelola pendaftaran karyawan baru dan pengajuan penghapusan akun' }
   else if (path.includes('/gaji')) { pageTitle = 'Persetujuan Gaji'; pageSubtitle = 'Setujui atau tolak penyesuaian nominal gaji dan tunjangan karyawan' }
   else if (path.includes('/payroll')) { pageTitle = 'Persetujuan Payroll Bulanan'; pageSubtitle = 'Validasi dan sahkan rekap slip gaji karyawan sebelum ditransfer' }
-  else if (path.includes('/operasional')) { pageTitle = 'Persetujuan Operasional'; pageSubtitle = 'Proses pengajuan cuti, lembur, klaim biaya, dan bonus karyawan' }
+  else if (path.includes('/operasional')) { pageTitle = 'Persetujuan Operasional'; pageSubtitle = 'Proses pengajuan cuti, lembur, klaim biaya, bonus, dan inventaris barang' }
   else if (path.includes('/log-kehadiran')) { pageTitle = 'Log Kehadiran'; pageSubtitle = 'Pantau riwayat aktivitas absensi harian karyawan dan admin' }
 
   return (

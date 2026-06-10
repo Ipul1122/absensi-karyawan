@@ -180,6 +180,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // Attendance corrections approvals
         Route::put('/director/attendances/{id}/approve', [AttendanceController::class, 'directorApprove']);
         Route::put('/director/attendances/{id}/reject', [AttendanceController::class, 'directorReject']);
+
+        // Inventory approvals
+        Route::put('/director/inventories/{id}/approve', [InventoryController::class, 'directorApprove']);
+        Route::put('/director/inventories/{id}/reject', [InventoryController::class, 'directorReject']);
     });
 
     // Employee Payroll routes

@@ -103,6 +103,7 @@ class AuthController extends Controller
                 'employee_number' => $user->employee_number,
                 'join_date'       => $user->join_date,
                 'gender'          => $user->gender,
+                'division'        => $user->division,
                 'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
             ]
         ]);
@@ -118,6 +119,7 @@ class AuthController extends Controller
             'employee_number' => 'nullable|string|max:50|unique:users,employee_number,' . $request->user()->id,
             'join_date'       => 'nullable|date',
             'gender'          => 'nullable|in:male,female',
+            'division'        => 'nullable|string|max:100',
             'photo'           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
         ], [
@@ -131,7 +133,7 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
-        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender']);
+        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -169,6 +171,7 @@ class AuthController extends Controller
                 'employee_number' => $user->employee_number,
                 'join_date'       => $user->join_date,
                 'gender'          => $user->gender,
+                'division'        => $user->division,
                 'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
             ]
         ]);

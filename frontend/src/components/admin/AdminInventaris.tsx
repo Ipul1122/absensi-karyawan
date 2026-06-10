@@ -35,6 +35,8 @@ interface InventoryItem {
   struk_pembelian: string | null
   pemakai_barang: string | null
   kondisi_barang: 'ori' | 'second'
+  status: 'pending' | 'approved' | 'rejected'
+  admin_notes: string | null
   created_at: string
   updated_at: string
 }
@@ -718,6 +720,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
                     <th className="py-4 px-5">Pemakai</th>
                     <th className="py-4 px-5">Kondisi</th>
                     <th className="py-4 px-5">Struk</th>
+                    <th className="py-4 px-5">Status</th>
                     <th className="py-4 px-5 text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -810,23 +813,70 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
                         )}
                       </td>
 
+                      {/* Status */}
+                      <td className="py-4 px-5">
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider w-max ${
+                              item.status === 'approved'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-250'
+                                : item.status === 'rejected'
+                                ? 'bg-rose-50 text-rose-700 border-rose-250'
+                                : 'bg-amber-50 text-amber-700 border-amber-250'
+                            }`}
+                          >
+                            {item.status === 'approved'
+                              ? 'Disetujui'
+                              : item.status === 'rejected'
+                              ? 'Ditolak'
+                              : 'Pending'}
+                          </span>
+                          {item.status === 'rejected' && item.admin_notes && (
+                            <p className="text-[10px] text-rose-600 font-semibold italic max-w-[150px] truncate" title={item.admin_notes}>
+                              Ket: {item.admin_notes}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+
                       {/* Actions */}
                       <td className="py-4 px-5 text-right">
                         <div className="flex justify-end gap-1.5">
-                          <button
-                            onClick={() => handleOpenEditModal(item)}
-                            className="p-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-650 hover:text-indigo-755 rounded-lg transition-all cursor-pointer shadow-sm"
-                            title="Edit Barang"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id, item.nama_barang)}
-                            className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-650 hover:text-rose-755 rounded-lg transition-all cursor-pointer shadow-sm"
-                            title="Hapus Barang"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {item.status === 'approved' ? (
+                            <>
+                              <button
+                                disabled
+                                className="p-1.5 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg opacity-60 cursor-not-allowed"
+                                title="Barang telah disetujui Direktur (terkunci)"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                disabled
+                                className="p-1.5 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg opacity-60 cursor-not-allowed"
+                                title="Barang telah disetujui Direktur (terkunci)"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleOpenEditModal(item)}
+                                className="p-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-650 hover:text-indigo-755 rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Edit Barang"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(item.id, item.nama_barang)}
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-650 hover:text-rose-755 rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Hapus Barang"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

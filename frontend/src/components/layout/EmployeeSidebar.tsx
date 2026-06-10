@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { 
   LogOut, 
   LayoutDashboard, 
@@ -11,9 +12,27 @@ import {
   ReceiptText,
   Gift,
   Coins,
-  Clock
+  Clock,
+  Building,
+  Compass,
+  UserCheck,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import Logo from './Logo'
+
+interface SubMenuItem {
+  to: string
+  label: string
+  icon: any
+}
+
+interface MenuItem {
+  to?: string
+  label: string
+  icon: any
+  subItems?: SubMenuItem[]
+}
 
 interface User {
   id: number
@@ -29,9 +48,35 @@ interface EmployeeSidebarProps {
 }
 
 export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSidebarProps) {
-  const menuItems = [
+  const location = useLocation()
+  
+  const [isAbsenDropdownOpen, setIsAbsenDropdownOpen] = useState(() => {
+    return location.pathname.startsWith('/employee/absen') || 
+           location.pathname.startsWith('/employee/sales') || 
+           location.pathname.startsWith('/employee/client')
+  })
+
+  useEffect(() => {
+    if (
+      location.pathname.startsWith('/employee/absen') || 
+      location.pathname.startsWith('/employee/sales') || 
+      location.pathname.startsWith('/employee/client')
+    ) {
+      setIsAbsenDropdownOpen(true)
+    }
+  }, [location.pathname])
+
+  const menuItems: MenuItem[] = [
     { to: '/employee/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/employee/absen', label: 'Absen Mandiri', icon: CalendarCheck },
+    {
+      label: 'Absen Mandiri',
+      icon: CalendarCheck,
+      subItems: [
+        { to: '/employee/absen', label: 'Absen Kantor', icon: Building },
+        { to: '/employee/sales', label: 'Kunjungan Sales', icon: Compass },
+        { to: '/employee/client', label: 'Kunjungan Klien', icon: UserCheck }
+      ]
+    },
     { to: '/employee/cuti', label: 'Pengajuan Cuti', icon: CalendarDays },
     { to: '/employee/riwayat', label: 'Riwayat Absen', icon: History },
     { to: '/employee/reimbursement', label: 'Reimbursement', icon: ReceiptText },
@@ -69,11 +114,67 @@ export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSid
         {/* Menu Items */}
         <nav className="space-y-1.5 font-quicksand">
           {menuItems.map((item) => {
+            if (item.subItems) {
+              const IconComponent = item.icon
+              const isSubActive = item.subItems?.some(sub => location.pathname === sub.to) || false
+              return (
+                <div key={item.label} className="space-y-1">
+                  <button
+                    onClick={() => setIsAbsenDropdownOpen(!isAbsenDropdownOpen)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
+                      isSubActive 
+                        ? 'bg-gradient-to-r from-red-55/60 to-orange-55/60 border border-orange-100/80 text-red-600 shadow-sm' 
+                        : 'text-slate-600 hover:text-red-500 hover:bg-orange-50/30 border border-transparent'
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <IconComponent className={`w-4 h-4 transition-colors ${isSubActive ? 'text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
+                      {item.label}
+                    </span>
+                    {isAbsenDropdownOpen ? (
+                      <ChevronUp className="w-3.5 h-3.5 text-slate-400 group-hover:text-red-500" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-red-500" />
+                    )}
+                  </button>
+                  {isAbsenDropdownOpen && (
+                    <div className="pl-6 space-y-1.5 pt-0.5 animate-fade-in">
+                      {item.subItems?.map((subItem) => {
+                        const SubIcon = subItem.icon
+                        return (
+                          <NavLink
+                            key={subItem.to}
+                            to={subItem.to}
+                            onClick={handleLinkClick}
+                            className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer group ${
+                              isActive 
+                                ? 'bg-gradient-to-r from-red-55/40 to-orange-55/40 border border-orange-100/60 text-red-600 shadow-sm' 
+                                : 'text-slate-500 hover:text-red-500 hover:bg-orange-50/20 border border-transparent'
+                            }`}
+                          >
+                            {({ isActive }) => (
+                              <>
+                                <span className="flex items-center gap-2.5">
+                                  <SubIcon className={`w-3.5 h-3.5 transition-colors ${isActive ? 'text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
+                                  {subItem.label}
+                                </span>
+                                <ChevronRight className={`w-3 h-3 transition-all ${isActive ? 'opacity-100 text-red-500' : 'opacity-0 group-hover:opacity-100 text-slate-450'}`} />
+                              </>
+                            )}
+                          </NavLink>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
             const IconComponent = item.icon
             return (
               <NavLink
-                key={item.to}
-                to={item.to}
+                key={item.to || ''}
+                to={item.to || ''}
                 onClick={handleLinkClick}
                 className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
                   isActive 

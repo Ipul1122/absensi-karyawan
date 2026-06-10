@@ -393,58 +393,19 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
     })
   }
 
-  // Mark Payroll as Paid
-  const handlePayPayroll = (record: PayrollRecord) => {
-    Swal.fire({
-      title: 'Tandai Gaji Telah Dibayar?',
-      html: `Apakah Anda yakin ingin memproses pembayaran gaji untuk <strong>${record.user.name}</strong>?<br/>Nominal Bersih: <strong>${formatRupiah(record.net_salary)}</strong>`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#10b981',
-      cancelButtonColor: '#475569',
-      confirmButtonText: 'Ya, Bayar!',
-      cancelButtonText: 'Batal'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          const response = await axios.put(
-            `http://localhost:8000/api/admin/payroll/${record.id}/pay`,
-            { status: 'paid' },
-            { headers: { Authorization: `Bearer ${token}` } }
-          )
-          if (response.data.status === 'success') {
-            Swal.fire({
-              title: 'Berhasil!',
-              text: 'Status pembayaran gaji telah diperbarui menjadi PAID.',
-              icon: 'success',
-              timer: 1500,
-              showConfirmButton: false
-            })
-            fetchPayrolls()
-          }
-        } catch (err: any) {
-          console.error(err)
-          Swal.fire({
-            title: 'Gagal',
-            text: 'Tidak dapat memproses status pembayaran.',
-            icon: 'error'
-          })
-        }
-      }
-    })
-  }
+
 
   // Open Adjust Modal
   const handleOpenAdjust = (record: PayrollRecord) => {
     setAdjustingPayroll(record)
-    setAdjustBasic(String(record.basic_salary))
-    setAdjustMeal(String(record.allowance_meal ?? 0))
-    setAdjustTransport(String(record.allowance_transport ?? 0))
-    setAdjustPosition(String(record.allowance_position ?? 0))
-    setAdjustFixedAllow(String(record.allowance_fixed ?? 0))
-    setAdjustLateDeduct(String(record.deduction_late))
-    setAdjustFixedDeduct(String(record.deduction_fixed))
-    setAdjustAbsenceDeduct(String(record.deduction_absence ?? 0))
+    setAdjustBasic(formatInputRupiah(record.basic_salary))
+    setAdjustMeal(formatInputRupiah(record.allowance_meal ?? 0))
+    setAdjustTransport(formatInputRupiah(record.allowance_transport ?? 0))
+    setAdjustPosition(formatInputRupiah(record.allowance_position ?? 0))
+    setAdjustFixedAllow(formatInputRupiah(record.allowance_fixed ?? 0))
+    setAdjustLateDeduct(formatInputRupiah(record.deduction_late))
+    setAdjustFixedDeduct(formatInputRupiah(record.deduction_fixed))
+    setAdjustAbsenceDeduct(formatInputRupiah(record.deduction_absence ?? 0))
     setAdjustNotes(record.notes || '')
     setShowAdjustModal(true)
   }
@@ -459,14 +420,14 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
       const response = await axios.put(
         `http://localhost:8000/api/admin/payroll/${adjustingPayroll.id}/update`,
         {
-          basic_salary: parseFloat(adjustBasic) || 0,
-          allowance_meal: parseFloat(adjustMeal) || 0,
-          allowance_transport: parseFloat(adjustTransport) || 0,
-          allowance_position: parseFloat(adjustPosition) || 0,
-          allowance_fixed: parseFloat(adjustFixedAllow) || 0,
-          deduction_late: parseFloat(adjustLateDeduct) || 0,
-          deduction_fixed: parseFloat(adjustFixedDeduct) || 0,
-          deduction_absence: parseFloat(adjustAbsenceDeduct) || 0,
+          basic_salary: parseFloat(parseInputRupiah(adjustBasic)) || 0,
+          allowance_meal: parseFloat(parseInputRupiah(adjustMeal)) || 0,
+          allowance_transport: parseFloat(parseInputRupiah(adjustTransport)) || 0,
+          allowance_position: parseFloat(parseInputRupiah(adjustPosition)) || 0,
+          allowance_fixed: parseFloat(parseInputRupiah(adjustFixedAllow)) || 0,
+          deduction_late: parseFloat(parseInputRupiah(adjustLateDeduct)) || 0,
+          deduction_fixed: parseFloat(parseInputRupiah(adjustFixedDeduct)) || 0,
+          deduction_absence: parseFloat(parseInputRupiah(adjustAbsenceDeduct)) || 0,
           notes: adjustNotes
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -623,6 +584,30 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
       currency: 'IDR',
       minimumFractionDigits: 0
     }).format(number)
+  }
+
+  // Format number to Rupiah input display with dot separators (e.g. 5000000 -> 5.000.000)
+  const formatInputRupiah = (value: number | string): string => {
+    const num = typeof value === 'string' ? parseFloat(value) : value
+    if (isNaN(num)) return '0'
+    // Remove trailing .00 (cents) and format with dot separators
+    const intValue = Math.round(num) // strip any .00 decimals
+    return new Intl.NumberFormat('id-ID').format(intValue)
+  }
+
+  // Parse formatted Rupiah input back to plain number string (e.g. 5.000.000 -> 5000000)
+  const parseInputRupiah = (formatted: string): string => {
+    return formatted.replace(/\./g, '')
+  }
+
+  // Handle Rupiah input change: strip non-digits, reformat with dots
+  const handleRupiahInput = (value: string, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    const raw = value.replace(/[^0-9]/g, '')
+    if (raw === '') {
+      setter('0')
+      return
+    }
+    setter(new Intl.NumberFormat('id-ID').format(parseInt(raw, 10)))
   }
 
   const getIndonesianMonthLabel = (periodMonth: string) => {
@@ -968,13 +953,6 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                           {record.status !== 'paid' && record.status !== 'pending_approval' && (
                             <>
                               <button
-                                onClick={() => handlePayPayroll(record)}
-                                className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 text-emerald-700 rounded-lg font-bold transition-all cursor-pointer"
-                                title="Bayar Gaji"
-                              >
-                                Bayar
-                              </button>
-                              <button
                                 onClick={() => handleOpenAdjust(record)}
                                 className="p-1.5 bg-white border border-slate-200 hover:border-orange-500 hover:text-orange-500 text-slate-500 rounded-lg transition-all cursor-pointer"
                                 title="Sesuaikan Nominal"
@@ -1034,9 +1012,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={adjustBasic}
-                    onChange={(e) => setAdjustBasic(e.target.value)}
+                    onChange={(e) => handleRupiahInput(e.target.value, setAdjustBasic)}
                     className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                     required
                   />
@@ -1049,9 +1028,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={adjustMeal}
-                      onChange={(e) => setAdjustMeal(e.target.value)}
+                      onChange={(e) => handleRupiahInput(e.target.value, setAdjustMeal)}
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -1063,9 +1043,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={adjustTransport}
-                      onChange={(e) => setAdjustTransport(e.target.value)}
+                      onChange={(e) => handleRupiahInput(e.target.value, setAdjustTransport)}
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -1079,9 +1060,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={adjustPosition}
-                      onChange={(e) => setAdjustPosition(e.target.value)}
+                      onChange={(e) => handleRupiahInput(e.target.value, setAdjustPosition)}
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -1093,9 +1075,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={adjustFixedAllow}
-                      onChange={(e) => setAdjustFixedAllow(e.target.value)}
+                      onChange={(e) => handleRupiahInput(e.target.value, setAdjustFixedAllow)}
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -1109,9 +1092,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-1.5 flex items-center text-slate-400 font-bold text-[10px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={adjustLateDeduct}
-                      onChange={(e) => setAdjustLateDeduct(e.target.value)}
+                      onChange={(e) => handleRupiahInput(e.target.value, setAdjustLateDeduct)}
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2 pl-6 pr-1.5 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -1123,9 +1107,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-1.5 flex items-center text-slate-400 font-bold text-[10px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={adjustAbsenceDeduct}
-                      onChange={(e) => setAdjustAbsenceDeduct(e.target.value)}
+                      onChange={(e) => handleRupiahInput(e.target.value, setAdjustAbsenceDeduct)}
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2 pl-6 pr-1.5 outline-none transition-all font-bold text-xs"
                       required
                     />
@@ -1137,9 +1122,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-1.5 flex items-center text-slate-400 font-bold text-[10px]">Rp</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={adjustFixedDeduct}
-                      onChange={(e) => setAdjustFixedDeduct(e.target.value)}
+                      onChange={(e) => handleRupiahInput(e.target.value, setAdjustFixedDeduct)}
                       className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2 pl-6 pr-1.5 outline-none transition-all font-bold text-xs"
                       required
                     />

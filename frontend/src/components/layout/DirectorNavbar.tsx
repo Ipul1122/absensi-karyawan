@@ -34,9 +34,9 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
     <header
       className="hidden md:flex items-center justify-between px-8 py-4 sticky top-0 z-30 border-b"
       style={{
-        background: 'rgba(240, 244, 255, 0.90)',
+        background: 'rgba(253, 251, 247, 0.90)',
         backdropFilter: 'blur(20px)',
-        borderColor: 'rgba(99, 102, 241, 0.12)',
+        borderColor: 'rgba(251, 146, 60, 0.15)',
         fontFamily: "'Inter', 'system-ui', sans-serif"
       }}
     >
@@ -45,7 +45,7 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
         <div className="flex items-center gap-2">
           <div
             className="w-1 h-5 rounded-full shrink-0"
-            style={{ background: 'linear-gradient(180deg, #4f46e5, #7c3aed)' }}
+            style={{ background: 'linear-gradient(180deg, #ea580c, #c2410c)' }}
           />
           <h1 className="text-sm font-bold text-slate-800 tracking-tight">{title}</h1>
         </div>
@@ -58,7 +58,7 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
       <div className="flex items-center gap-3">
         {/* Notification bell */}
         <button
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all cursor-pointer"
+          className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-orange-600 hover:border-orange-200 hover:bg-orange-50 transition-all cursor-pointer"
           title="Notifikasi"
         >
           <Bell className="w-4 h-4" />
@@ -68,7 +68,7 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowDropdown(prev => !prev)}
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-indigo-200 hover:bg-white transition-all cursor-pointer"
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-orange-200 hover:bg-white transition-all cursor-pointer"
           >
             {user.photo ? (
               <img
@@ -79,14 +79,14 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
             ) : (
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0"
-                style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}
+                style={{ background: 'linear-gradient(135deg, #ea580c, #c2410c)' }}
               >
                 {user.name.charAt(0).toUpperCase()}
               </div>
             )}
             <div className="text-left hidden sm:block">
               <p className="text-xs font-semibold text-slate-800 leading-tight">{user.name}</p>
-              <p className="text-[9px] text-indigo-500 font-bold uppercase tracking-wider">Direktur Utama</p>
+              <p className="text-[9px] text-orange-600 font-bold uppercase tracking-wider">Direktur Utama</p>
             </div>
             <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
           </button>
@@ -100,8 +100,8 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
                 <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
                 <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  <Shield className="w-3 h-3 text-indigo-500" />
-                  <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wider">Direktur Utama</span>
+                  <Shield className="w-3 h-3 text-orange-500" />
+                  <span className="text-[9px] font-black text-orange-600 uppercase tracking-wider">Direktur Utama</span>
                 </div>
               </div>
               <div className="p-2">
@@ -130,16 +130,16 @@ export function DirectorMobileNavbar({ onMenuClick }: DirectorMobileNavbarProps)
     <header
       className="md:hidden flex items-center justify-between px-5 py-3.5 border-b"
       style={{
-        background: 'rgba(240, 244, 255, 0.95)',
+        background: 'rgba(253, 251, 247, 0.95)',
         backdropFilter: 'blur(20px)',
-        borderColor: 'rgba(99, 102, 241, 0.12)',
+        borderColor: 'rgba(251, 146, 60, 0.15)',
         fontFamily: "'Inter', 'system-ui', sans-serif"
       }}
     >
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all cursor-pointer"
+          className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all cursor-pointer"
         >
           <Menu className="w-4.5 h-4.5" />
         </button>

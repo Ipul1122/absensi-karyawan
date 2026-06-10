@@ -37,43 +37,31 @@ export default function DirectorSidebar({ user, onLogout, onClose }: DirectorSid
   const handleLinkClick = () => { if (onClose) onClose() }
 
   return (
-    <div className="flex flex-col h-full justify-between" style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}>
+    <div className="flex flex-col h-full justify-between font-quicksand">
       {/* Header Brand */}
-      <div className="space-y-5">
-        <div className="flex items-center gap-3 pb-5 border-b border-white/10">
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 px-3 py-2 border-b border-orange-100 pb-5">
           <Logo />
         </div>
 
         {/* Director Profile Card */}
-        <div
-          className="relative overflow-hidden rounded-2xl p-4"
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            backdropFilter: 'blur(10px)'
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-base shadow-lg shrink-0"
-              style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' }}
-            >
-              {user.name.charAt(0).toUpperCase()}
+        <div className="bg-orange-50/40 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-orange-500/10 shrink-0">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="overflow-hidden flex-1">
+            <div className="flex items-center gap-1">
+              <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest truncate">Direktur Utama</p>
             </div>
-            <div className="overflow-hidden flex-1">
-              <div className="flex items-center gap-1.5">
-                <Crown className="w-3 h-3 text-amber-300 shrink-0" />
-                <p className="text-[9px] font-black text-amber-300 uppercase tracking-widest truncate">Direktur Utama</p>
-              </div>
-              <h4 className="text-xs font-bold text-white truncate mt-0.5">{user.name}</h4>
-              <p className="text-[10px] text-white/50 truncate font-medium">{user.email}</p>
-            </div>
+            <h4 className="text-xs font-bold text-slate-800 truncate mt-0.5">{user.name}</h4>
+            <p className="text-[10px] text-slate-500 truncate font-medium">{user.email}</p>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="space-y-1">
-          <p className="text-[9px] font-black text-white/30 uppercase tracking-widest px-3 mb-2">Menu Persetujuan</p>
+        <nav className="space-y-1.5">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-3 mb-2">Menu Persetujuan</p>
           {menuItems.map((item) => {
             const IconComponent = item.icon
             return (
@@ -83,27 +71,20 @@ export default function DirectorSidebar({ user, onLogout, onClose }: DirectorSid
                 onClick={handleLinkClick}
                 end={item.to === '/director/dashboard'}
                 className={({ isActive }) =>
-                  `group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                  `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer group ${
                     isActive
-                      ? 'text-white shadow-lg'
-                      : 'text-white/60 hover:text-white hover:bg-white/8'
+                      ? 'bg-gradient-to-r from-red-65/60 to-orange-55/60 border border-orange-100/80 text-red-600 shadow-sm'
+                      : 'text-slate-600 hover:text-red-500 hover:bg-orange-50/30 border border-transparent'
                   }`
                 }
-                style={({ isActive }) => isActive ? {
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.10) 100%)',
-                  border: '1px solid rgba(255,255,255,0.20)',
-                  backdropFilter: 'blur(10px)'
-                } : {}}
               >
                 {({ isActive }) => (
                   <>
                     <span className="flex items-center gap-3">
-                      <div className={`p-1.5 rounded-lg transition-all duration-200 ${isActive ? 'bg-white/20' : 'bg-white/5 group-hover:bg-white/10'}`}>
-                        <IconComponent className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="leading-tight">{item.label}</span>
+                      <IconComponent className={`w-4 h-4 transition-colors ${isActive ? 'text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
+                      <span>{item.label}</span>
                     </span>
-                    <ChevronRight className={`w-3.5 h-3.5 transition-all duration-200 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1 group-hover:opacity-40 group-hover:translate-x-0'}`} />
+                    <ChevronRight className={`w-3.5 h-3.5 transition-all duration-200 ${isActive ? 'opacity-100 text-red-500' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
                   </>
                 )}
               </NavLink>
@@ -113,17 +94,17 @@ export default function DirectorSidebar({ user, onLogout, onClose }: DirectorSid
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-white/10 space-y-3">
-        <div className="flex items-center gap-2 px-3">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-          <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Akses Terautentikasi</span>
+      <div className="pt-6 border-t border-orange-100 space-y-3">
+        <div className="flex items-center gap-2 px-3 font-quicksand text-[10px] text-slate-500 font-bold">
+          <ShieldCheck className="w-4 h-4 text-red-500" />
+          <span className="uppercase tracking-wider text-[9px]">Akses Direktur Utama</span>
         </div>
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer text-white/60 hover:text-white hover:bg-white/8"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-655 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand"
         >
-          <LogOut className="w-3.5 h-3.5" />
-          Keluar dari Aplikasi
+          <LogOut className="w-4 h-4" />
+          Keluar Aplikasi
         </button>
       </div>
     </div>

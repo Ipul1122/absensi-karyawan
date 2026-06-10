@@ -129,7 +129,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32">
-        <Loader2 className="w-8 h-8 animate-spin mb-3" style={{ color: '#4f46e5' }} />
+        <Loader2 className="w-8 h-8 animate-spin mb-3" style={{ color: '#ea580c' }} />
         <p className="text-sm text-slate-400 font-medium">Memuat rangkuman persetujuan...</p>
       </div>
     )
@@ -145,26 +145,26 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
       {/* Hero Welcome Banner */}
       <div
         className="relative overflow-hidden rounded-3xl p-8 text-white"
-        style={{ background: 'linear-gradient(135deg, #1a1f5e 0%, #2d2fa3 50%, #1e3a8a 100%)' }}
+        style={{ background: 'linear-gradient(135deg, #ea580c 0%, #f97316 50%, #dc2626 100%)' }}
       >
         {/* Decorative blobs */}
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-20"
-          style={{ background: 'radial-gradient(circle, #818cf8, transparent)' }} />
+          style={{ background: 'radial-gradient(circle, #ffedd5, transparent)' }} />
         <div className="absolute bottom-0 left-1/3 w-32 h-32 rounded-full opacity-15"
-          style={{ background: 'radial-gradient(circle, #a78bfa, transparent)' }} />
+          style={{ background: 'radial-gradient(circle, #fed7aa, transparent)' }} />
         
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-300" />
-                <span className="text-xs font-semibold text-indigo-200">{greeting}, Direktur</span>
+                <span className="text-xs font-semibold text-orange-100">{greeting}, Direktur</span>
               </div>
               <h2 className="text-2xl font-bold leading-snug">
                 Portal Pengesahan<br />
-                <span className="text-indigo-300">Direktur Utama</span>
+                <span className="text-amber-200">Direktur Utama</span>
               </h2>
-              <p className="text-sm text-indigo-200/80 max-w-md leading-relaxed font-medium">
+              <p className="text-sm text-orange-100/85 max-w-md leading-relaxed font-medium">
                 Pantau dan kelola seluruh pengajuan dari tim administrasi. Keputusan Anda menentukan kelancaran operasional perusahaan.
               </p>
             </div>
@@ -177,7 +177,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
                   <div>
                     <p className="text-lg font-black text-white leading-tight">{totalPending}</p>
-                    <p className="text-[10px] text-indigo-200 font-semibold">Menunggu Tindakan</p>
+                    <p className="text-[10px] text-orange-100 font-semibold">Menunggu Tindakan</p>
                   </div>
                 </div>
               ) : (
@@ -186,14 +186,14 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
                   <div>
                     <p className="text-sm font-bold text-white leading-tight">Semua Bersih</p>
-                    <p className="text-[10px] text-indigo-200 font-semibold">Tidak ada pending</p>
+                    <p className="text-[10px] text-orange-100 font-semibold">Tidak ada pending</p>
                   </div>
                 </div>
               )}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
                 style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)' }}>
-                <TrendingUp className="w-3.5 h-3.5 text-indigo-300" />
-                <span className="text-[10px] text-indigo-200 font-semibold">
+                <TrendingUp className="w-3.5 h-3.5 text-amber-250 shrink-0" />
+                <span className="text-[10px] text-orange-100 font-semibold">
                   {now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </span>
               </div>
@@ -250,7 +250,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                 )}
               </div>
 
-              <h4 className="text-sm font-bold text-slate-800 mb-1 group-hover:text-indigo-700 transition-colors">
+              <h4 className="text-sm font-bold text-slate-800 mb-1 group-hover:text-orange-600 transition-colors">
                 {card.title}
               </h4>
               <p className="text-xs text-slate-400 font-medium mb-5">{card.desc(stats)}</p>
@@ -272,14 +272,14 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
       </div>
 
       {/* Quick tip */}
-      <div className="rounded-2xl p-4 flex items-center gap-3 border border-indigo-100"
-        style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%)' }}>
-        <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-          <Sparkles className="w-4 h-4 text-indigo-500" />
+      <div className="rounded-2xl p-4 flex items-center gap-3 border border-orange-100"
+        style={{ background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)' }}>
+        <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+          <Sparkles className="w-4 h-4 text-orange-500" />
         </div>
         <div>
-          <p className="text-xs font-bold text-indigo-700">Tips</p>
-          <p className="text-[11px] text-indigo-500 font-medium">
+          <p className="text-xs font-bold text-orange-700">Tips</p>
+          <p className="text-[11px] text-orange-650 font-medium">
             Klik badge "Menunggu" di setiap kartu untuk langsung menuju item yang perlu tindakan Anda.
           </p>
         </div>

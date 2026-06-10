@@ -1,5 +1,4 @@
-import React from 'react'
-import { X, User, Mail, Lock, Loader2, Edit3 } from 'lucide-react'
+import { X, User, Mail, Lock, Loader2, Edit3, BookUser } from 'lucide-react'
 
 interface EditEmployeeModalProps {
   show: boolean
@@ -11,6 +10,7 @@ interface EditEmployeeModalProps {
   password: string
   setPassword: (v: string) => void
   submitting: boolean
+  onViewBiodata?: () => void
 }
 
 export default function EditEmployeeModal({
@@ -23,6 +23,7 @@ export default function EditEmployeeModal({
   password,
   setPassword,
   submitting,
+  onViewBiodata,
 }: EditEmployeeModalProps) {
   if (!show) return null
 
@@ -46,6 +47,21 @@ export default function EditEmployeeModal({
 
         {/* Modal Form */}
         <form onSubmit={onSubmit} className="space-y-4">
+          {onViewBiodata && (
+            <div className="p-3.5 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center justify-between gap-3 mb-2 font-quicksand shadow-sm">
+              <div className="flex items-center gap-2 min-w-0">
+                <BookUser className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">Biodata Lengkap</span>
+              </div>
+              <button
+                type="button"
+                onClick={onViewBiodata}
+                className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap"
+              >
+                Lihat Biodata
+              </button>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
               Nama Lengkap

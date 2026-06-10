@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'struk_pembelian',
     'pemakai_barang',
     'kondisi_barang',
+    'status',
+    'admin_notes',
 ])]
 class Inventory extends Model
 {

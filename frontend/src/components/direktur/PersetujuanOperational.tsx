@@ -12,7 +12,8 @@ import {
   Gift, 
   CalendarDays,
   ExternalLink,
-  CheckCircle2
+  CheckCircle2,
+  Package
 } from 'lucide-react'
 
 interface UserBrief { id: number; name: string; email: string }
@@ -39,8 +40,22 @@ interface BonusRequest {
   description: string | null; status: string; user: UserBrief
 }
 
+interface InventoryRequest {
+  id: number
+  nama_barang: string
+  tanggal_pembelian: string
+  harga: number
+  foto: string | null
+  lokasi: string
+  struk_pembelian: string | null
+  pemakai_barang: string | null
+  kondisi_barang: 'ori' | 'second'
+  status: string
+  admin_notes: string | null
+}
+
 interface PersetujuanOperationalProps { token: string }
-type ActiveSubTab = 'cuti' | 'lembur' | 'reimbursement' | 'bonus'
+type ActiveSubTab = 'cuti' | 'lembur' | 'reimbursement' | 'bonus' | 'inventaris'
 
 const S = { fontFamily: "'Inter', 'system-ui', sans-serif" }
 
@@ -49,6 +64,7 @@ const tabDefs = [
   { key: 'lembur' as const, label: 'Lembur', icon: Clock, color: '#d97706', bg: 'rgba(217,119,6,0.08)', border: 'rgba(217,119,6,0.20)', gradient: 'linear-gradient(135deg,#d97706,#b45309)' },
   { key: 'reimbursement' as const, label: 'Klaim Biaya', icon: Receipt, color: '#0891b2', bg: 'rgba(8,145,178,0.08)', border: 'rgba(8,145,178,0.20)', gradient: 'linear-gradient(135deg,#0891b2,#0e7490)' },
   { key: 'bonus' as const, label: 'Bonus', icon: Gift, color: '#059669', bg: 'rgba(5,150,105,0.08)', border: 'rgba(5,150,105,0.20)', gradient: 'linear-gradient(135deg,#059669,#047857)' },
+  { key: 'inventaris' as const, label: 'Inventaris', icon: Package, color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.20)', gradient: 'linear-gradient(135deg,#f97316,#ea580c)' },
 ]
 
 export default function PersetujuanOperational({ token }: PersetujuanOperationalProps) {
@@ -58,21 +74,24 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
   const [overtimes, setOvertimes] = useState<OvertimeRequest[]>([])
   const [reimbursements, setReimbursements] = useState<ReimbursementRequest[]>([])
   const [bonuses, setBonuses] = useState<BonusRequest[]>([])
+  const [inventories, setInventories] = useState<InventoryRequest[]>([])
 
   const fetchData = async () => {
     setLoading(true)
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      const [r1, r2, r3, r4] = await Promise.all([
+      const [r1, r2, r3, r4, r5] = await Promise.all([
         axios.get('http://localhost:8000/api/admin/leaves', { headers }).catch(() => ({ data: { data: [] } })),
         axios.get('http://localhost:8000/api/admin/overtimes', { headers }).catch(() => ({ data: { data: [] } })),
         axios.get('http://localhost:8000/api/admin/reimbursements', { headers }).catch(() => ({ data: { data: [] } })),
         axios.get('http://localhost:8000/api/admin/bonuses', { headers }).catch(() => ({ data: { data: [] } })),
+        axios.get('http://localhost:8000/api/admin/inventories', { headers }).catch(() => ({ data: { data: [] } })),
       ])
       setLeaves(r1.data?.data || [])
       setOvertimes(r2.data?.data || [])
       setReimbursements(r3.data?.data || [])
       setBonuses(r4.data?.data || [])
+      setInventories(r5.data?.data || [])
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
@@ -85,12 +104,14 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
   const pendingOvertimes = overtimes.filter(o => o.status === 'pending_director')
   const pendingReimbursements = reimbursements.filter(r => r.status === 'pending_director')
   const pendingBonuses = bonuses.filter(b => b.status === 'pending')
+  const pendingInventories = inventories.filter(i => i.status === 'pending')
 
   const counts: Record<ActiveSubTab, number> = {
     cuti: pendingLeaves.length,
     lembur: pendingOvertimes.length,
     reimbursement: pendingReimbursements.length,
-    bonus: pendingBonuses.length
+    bonus: pendingBonuses.length,
+    inventaris: pendingInventories.length
   }
 
   // Actions
@@ -377,7 +398,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
             )
 
           /* ── BONUS ── */
-          ) : (
+          ) : activeTab === 'bonus' ? (
             pendingBonuses.length === 0 ? (
               <EmptyState text="Tidak ada pengajuan bonus yang menunggu persetujuan." />
             ) : (
@@ -411,6 +432,77 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                             rejectUrl={`http://localhost:8000/api/director/bonuses/${r.id}/reject`}
                             name={r.user?.name}
                             simpleReject
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          ) : (
+            /* ── INVENTARIS ── */
+            pendingInventories.length === 0 ? (
+              <EmptyState text="Tidak ada pengajuan inventaris barang yang menunggu persetujuan." />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-slate-100">
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Barang</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Tgl Pembelian & Harga</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Detail</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Berkas</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Tindakan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                    {pendingInventories.map(r => (
+                      <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden bg-slate-50 shadow-sm" style={{ background: currentTab.bg, borderColor: currentTab.border }}>
+                              {r.foto ? (
+                                <img src={`http://localhost:8000${r.foto}`} alt={r.nama_barang} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="font-extrabold text-xs" style={{ color: currentTab.color }}>{r.nama_barang?.charAt(0)?.toUpperCase()}</span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-800">{r.nama_barang}</p>
+                              <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase bg-slate-50 text-slate-550 border-slate-200">
+                                {r.kondisi_barang}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <p className="text-xs text-slate-500 font-medium">
+                            {new Date(r.tanggal_pembelian).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                          <p className="text-xs font-black text-slate-800 mt-1">{fmt(r.harga)}</p>
+                        </td>
+                        <td className="py-4 px-6">
+                          <p className="text-xs text-slate-600 font-medium"><span className="text-slate-400 font-semibold">Lokasi:</span> {r.lokasi}</p>
+                          <p className="text-xs text-slate-600 font-medium mt-1">
+                            <span className="text-slate-400 font-semibold">Pemakai:</span> {r.pemakai_barang || 'Kantor'}
+                          </p>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <div className="flex flex-col gap-1 items-center justify-center">
+                            {r.struk_pembelian ? (
+                              <a href={`http://localhost:8000${r.struk_pembelian}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold hover:underline" style={{ color: currentTab.color }}>
+                                <ExternalLink className="w-3 h-3" /> Struk
+                              </a>
+                            ) : <span className="text-slate-300 text-[10px] font-medium">-</span>}
+                          </div>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <ActionButtons
+                            approveUrl={`http://localhost:8000/api/director/inventories/${r.id}/approve`}
+                            rejectUrl={`http://localhost:8000/api/director/inventories/${r.id}/reject`}
+                            rejectLabel="Alasan Penolakan Barang Inventaris"
+                            name={r.nama_barang}
                           />
                         </td>
                       </tr>

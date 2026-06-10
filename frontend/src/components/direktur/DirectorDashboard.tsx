@@ -3,12 +3,12 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { X } from 'lucide-react'
 import DirectorSidebar from '../layout/DirectorSidebar'
 import DirectorNavbar, { DirectorMobileNavbar } from '../layout/DirectorNavbar'
-import DirekturOverview from './DirekturOverview'
-import PersetujuanKaryawan from './PersetujuanKaryawan'
-import PersetujuanGaji from './PersetujuanGaji'
-import PersetujuanPayroll from './PersetujuanPayroll'
-import PersetujuanOperational from './PersetujuanOperational'
-import LogKehadiran from './LogKehadiran'
+import DirekturOverview from './dashboard/DirekturOverview'
+import PersetujuanKaryawan from './persetujuan/PersetujuanKaryawan'
+import PersetujuanGaji from './persetujuan/PersetujuanGaji'
+import PersetujuanPayroll from './persetujuan/PersetujuanPayroll'
+import PersetujuanOperational from './persetujuan/PersetujuanOperational'
+import LogKehadiran from './kehadiran/LogKehadiran'
 
 interface User {
   id: number

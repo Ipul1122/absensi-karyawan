@@ -19,17 +19,17 @@ import EmployeeSidebar from './layout/EmployeeSidebar'
 import Logo from './layout/Logo'
 
 // Import subcomponents
-import EmployeeOverview from './employee/EmployeeOverview'
-import EmployeeAbsen from './employee/EmployeeAbsen'
-import EmployeeSales from './employee/EmployeeSales'
-import EmployeeClient from './employee/EmployeeClient'
-import EmployeeHistory from './employee/EmployeeHistory'
-import EmployeeSettings from './employee/EmployeeSettings'
-import EmployeeCuti from './employee/EmployeeCuti'
-import EmployeePayroll from './employee/EmployeePayroll'
-import EmployeeReimbursement from './employee/EmployeeReimbursement'
-import EmployeeBonus from './employee/EmployeeBonus'
-import EmployeeOvertime from './employee/EmployeeOvertime'
+import EmployeeOverview from './employee/dashboard/EmployeeOverview'
+import EmployeeAbsen from './employee/absensi/EmployeeAbsen'
+import EmployeeSales from './employee/absensi/EmployeeSales'
+import EmployeeClient from './employee/absensi/EmployeeClient'
+import EmployeeHistory from './employee/absensi/EmployeeHistory'
+import EmployeeSettings from './employee/pengaturan/EmployeeSettings'
+import EmployeeCuti from './employee/operasional/EmployeeCuti'
+import EmployeePayroll from './employee/payroll/EmployeePayroll'
+import EmployeeReimbursement from './employee/operasional/EmployeeReimbursement'
+import EmployeeBonus from './employee/payroll/EmployeeBonus'
+import EmployeeOvertime from './employee/operasional/EmployeeOvertime'
 
 interface User {
   id: number

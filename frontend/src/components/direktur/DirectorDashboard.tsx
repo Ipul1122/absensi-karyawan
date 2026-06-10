@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { X } from 'lucide-react'
 import DirectorSidebar from '../layout/DirectorSidebar'
 import DirectorNavbar, { DirectorMobileNavbar } from '../layout/DirectorNavbar'
 import DirekturOverview from './DirekturOverview'
@@ -35,14 +36,10 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
   else if (path.includes('/operasional')) { pageTitle = 'Persetujuan Operasional'; pageSubtitle = 'Proses pengajuan cuti, lembur, klaim biaya, dan bonus karyawan' }
 
   return (
-    <div className="flex min-h-screen text-slate-800" style={{ fontFamily: "'Inter', 'system-ui', sans-serif", background: '#f0f4ff' }}>
+    <div className="flex min-h-screen text-slate-800" style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}>
       {/* Sidebar - Desktop */}
-      <aside
-        className="hidden md:flex flex-col w-64 shrink-0 h-screen sticky top-0 overflow-y-auto p-5"
-        style={{
-          background: 'linear-gradient(180deg, #1a1f5e 0%, #1e2460 40%, #0f1547 100%)',
-        }}
-      >
+      {/* Sidebar - Desktop */}
+      <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm sticky top-0 h-screen overflow-y-auto">
         <DirectorSidebar user={user} onLogout={onLogout} />
       </aside>
 
@@ -58,10 +55,13 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
               className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
               onClick={() => setShowMobileSidebar(false)}
             />
-            <div
-              className="relative w-64 max-w-xs h-full flex flex-col p-5 shadow-2xl overflow-y-auto"
-              style={{ background: 'linear-gradient(180deg, #1a1f5e 0%, #1e2460 40%, #0f1547 100%)' }}
-            >
+            <div className="relative w-64 max-w-xs h-full flex flex-col p-6 bg-white border-r border-orange-100 shadow-2xl overflow-y-auto">
+              <button
+                onClick={() => setShowMobileSidebar(false)}
+                className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer z-10"
+              >
+                <X className="w-4 h-4" />
+              </button>
               <DirectorSidebar user={user} onLogout={onLogout} onClose={() => setShowMobileSidebar(false)} />
             </div>
           </div>

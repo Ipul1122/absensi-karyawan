@@ -145,21 +145,24 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           </style>
         </head>
         <body>
+          <div style="display:flex; align-items:center; gap:16px; margin-bottom:4px;">
+            <img src="${window.location.origin}/logo-perusahaan.png" alt="Logo" style="height:52px; width:auto; object-fit:contain;" />
+          </div>
           <h1>Laporan Bulanan Payroll Karyawan</h1>
           <h3>Periode: ${displayMonthName} | Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</h3>
           
           <div class="totals">
             <div class="totals-card">
               <div class="label">Total Pengeluaran Gaji</div>
-              <div class="count" style="color: #ea580c;">${formatRupiah(totalSalary)}</div>
+              <div class="count" style="color: #000000;">${formatRupiah(totalSalary)}</div>
             </div>
             <div class="totals-card">
               <div class="label">Telah Dibayar (Paid)</div>
-              <div class="count" style="color: #059669;">${formatRupiah(paidSalary)}</div>
+              <div class="count" style="color: #000000;">${formatRupiah(paidSalary)}</div>
             </div>
             <div class="totals-card">
               <div class="label">Belum Dibayar (Draft/Unpaid)</div>
-              <div class="count" style="color: #d97706;">${formatRupiah(unpaidSalary)}</div>
+              <div class="count" style="color: #000000;">${formatRupiah(unpaidSalary)}</div>
             </div>
           </div>
 
@@ -653,7 +656,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; }
             .slip-card { border: 2px solid #e2e8f0; border-radius: 16px; padding: 30px; background-color: #ffffff; max-width: 650px; margin: 0 auto; }
             .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #fed7aa; padding-bottom: 20px; margin-bottom: 25px; }
-            .logo { font-size: 20px; font-weight: 800; color: #ea580c; text-transform: uppercase; letter-spacing: 1px; }
+            .logo img { height: 48px; width: auto; object-fit: contain; }
             .title { text-align: right; }
             .title h2 { margin: 0; color: #0f172a; font-size: 18px; font-weight: 800; text-transform: uppercase; }
             .title p { margin: 4px 0 0 0; font-size: 11px; color: #64748b; font-weight: 600; }
@@ -665,7 +668,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             .item-row.bold { font-weight: 700; color: #0f172a; border-top: 1px dashed #e2e8f0; padding-top: 8px; margin-top: 10px; }
             .total-section { background: linear-gradient(to right, #fff7ed, #ffedd5); border: 1px solid #fed7aa; border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
             .total-label { font-size: 12px; font-weight: 800; color: #c2410c; text-transform: uppercase; }
-            .total-value { font-size: 18px; font-weight: 800; color: #ea580c; }
+            .total-value { font-size: 18px; font-weight: 800; color: #000000; }
             .footer { display: flex; justify-content: space-between; margin-top: 50px; font-size: 11px; }
             .signature { text-align: center; width: 150px; }
             .signature .line { border-bottom: 1px solid #94a3b8; height: 50px; margin-bottom: 6px; }
@@ -1206,8 +1209,8 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             {/* Slip Printable area */}
             <div id="slip-print-area" className="border border-slate-200 rounded-2xl p-5 space-y-5 bg-white text-slate-700">
               <div className="header">
-                <div className="logo font-sans">
-                  <strong>Absensi</strong><span style={{ color: '#f97316' }}>Digital</span>
+                <div className="logo">
+                  <img src="/logo-perusahaan.png" alt="PT. Cakrawala Parama Internasional" />
                 </div>
                 <div className="title">
                   <h2>SLIP GAJI RESMI</h2>

@@ -457,7 +457,7 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
       </div>
 
       {/* KPI Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-5 gap-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Approved total monthly */}
         <div className="bg-white border border-orange-100 rounded-3xl p-5 shadow-sm flex items-center justify-between">
           <div>
@@ -610,117 +610,200 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
             <p>Tidak ditemukan klaim reimbursement yang sesuai filter.</p>
           </div>
         ) : (
-          <div className="border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse font-quicksand">
-                <thead>
-                  <tr className="bg-orange-55/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
-                    <th className="py-4 px-5">Karyawan</th>
-                    <th className="py-4 px-5">Keperluan / Keterangan</th>
-                    <th className="py-4 px-5">Kategori</th>
-                    <th className="py-4 px-5">Nominal Klaim</th>
-                    <th className="py-4 px-5">Tanggal Nota</th>
-                    <th className="py-4 px-5">Nota Bukti</th>
-                    <th className="py-4 px-5">Status</th>
-                    <th className="py-4 px-5">Catatan Admin</th>
-                    <th className="py-4 px-5 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-orange-100 text-xs font-semibold text-slate-700">
-                  {filteredReimbursements.map((item) => (
-                    <tr key={item.id} className="hover:bg-orange-50/10 transition-colors">
-                      {/* Employee detail */}
-                      <td className="py-4 px-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs">
-                            {item.user.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <span className="block font-bold text-slate-800">{item.user.name}</span>
-                            <span className="text-[10px] text-slate-400 font-medium">{item.user.email}</span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Title & Desc */}
-                      <td className="py-4 px-5">
-                        <span className="block font-bold text-slate-800">{item.title}</span>
-                        <span className="text-[10px] text-slate-400 font-medium max-w-[200px] truncate block">
-                          {item.description || '-'}
-                        </span>
-                      </td>
-
-                      {/* Category */}
-                      <td className="py-4 px-5">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold border text-slate-700 bg-slate-100 border-slate-200">
-                          {item.category}
-                        </span>
-                      </td>
-
-                      {/* Amount */}
-                      <td className="py-4 px-5 font-bold text-slate-800 font-mono">
-                        {displayRupiah(item.amount)}
-                      </td>
-
-                      {/* Date */}
-                      <td className="py-4 px-5 text-slate-500">
-                        {formatDate(item.expense_date)}
-                      </td>
-
-                      {/* Struk */}
-                      <td className="py-4 px-5">
-                        <button
-                          type="button"
-                          onClick={() => viewProofImage(item.receipt_path, item.user.name)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-all border border-orange-150 cursor-pointer text-[10px] font-bold"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> Lihat Nota
-                        </button>
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-4 px-5">
-                        {getStatusBadge(item.status)}
-                      </td>
-
-                      {/* Admin notes */}
-                      <td className="py-4 px-5 max-w-[150px] truncate" title={item.admin_notes || ''}>
-                        {item.admin_notes ? (
-                          <span className="text-slate-600 font-medium italic">"{item.admin_notes}"</span>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 italic font-medium">-</span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 px-5 text-right">
-                        {item.status === 'pending' ? (
-                          <div className="flex justify-end gap-1.5">
-                            <button
-                              onClick={() => handleApprove(item.id, item.user.name, item.amount)}
-                              className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
-                              title="Setujui"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleReject(item.id, item.user.name)}
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
-                              title="Tolak"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-slate-400 font-bold">-</span>
-                        )}
-                      </td>
+          <>
+            {/* Desktop View: Table */}
+            <div className="hidden md:block border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse font-quicksand">
+                  <thead>
+                    <tr className="bg-orange-55/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
+                      <th className="py-4 px-5">Karyawan</th>
+                      <th className="py-4 px-5">Keperluan / Keterangan</th>
+                      <th className="py-4 px-5">Kategori</th>
+                      <th className="py-4 px-5">Nominal Klaim</th>
+                      <th className="py-4 px-5">Tanggal Nota</th>
+                      <th className="py-4 px-5">Nota Bukti</th>
+                      <th className="py-4 px-5">Status</th>
+                      <th className="py-4 px-5">Catatan Admin</th>
+                      <th className="py-4 px-5 text-right">Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-orange-100 text-xs font-semibold text-slate-700">
+                    {filteredReimbursements.map((item) => (
+                      <tr key={item.id} className="hover:bg-orange-50/10 transition-colors">
+                        {/* Employee detail */}
+                        <td className="py-4 px-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs">
+                              {item.user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="block font-bold text-slate-800">{item.user.name}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">{item.user.email}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Title & Desc */}
+                        <td className="py-4 px-5">
+                          <span className="block font-bold text-slate-800">{item.title}</span>
+                          <span className="text-[10px] text-slate-400 font-medium max-w-[200px] truncate block">
+                            {item.description || '-'}
+                          </span>
+                        </td>
+
+                        {/* Category */}
+                        <td className="py-4 px-5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold border text-slate-700 bg-slate-100 border-slate-200">
+                            {item.category}
+                          </span>
+                        </td>
+
+                        {/* Amount */}
+                        <td className="py-4 px-5 font-bold text-slate-800 font-mono">
+                          {displayRupiah(item.amount)}
+                        </td>
+
+                        {/* Date */}
+                        <td className="py-4 px-5 text-slate-500">
+                          {formatDate(item.expense_date)}
+                        </td>
+
+                        {/* Struk */}
+                        <td className="py-4 px-5">
+                          <button
+                            type="button"
+                            onClick={() => viewProofImage(item.receipt_path, item.user.name)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-all border border-orange-150 cursor-pointer text-[10px] font-bold"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> Lihat Nota
+                          </button>
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-4 px-5">
+                          {getStatusBadge(item.status)}
+                        </td>
+
+                        {/* Admin notes */}
+                        <td className="py-4 px-5 max-w-[150px] truncate" title={item.admin_notes || ''}>
+                          {item.admin_notes ? (
+                            <span className="text-slate-600 font-medium italic">"{item.admin_notes}"</span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic font-medium">-</span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-4 px-5 text-right">
+                          {item.status === 'pending' ? (
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={() => handleApprove(item.id, item.user.name, item.amount)}
+                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Setujui"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleReject(item.id, item.user.name)}
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Tolak"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-bold">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+
+            {/* Mobile View: Cards */}
+            <div className="space-y-4 md:hidden">
+              {filteredReimbursements.map((item) => (
+                <div key={item.id} className="bg-orange-50/5 border border-orange-100/80 rounded-2xl p-4 space-y-3 shadow-sm hover:border-orange-200 transition-colors">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs shrink-0">
+                        {item.user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <span className="block font-bold text-slate-800 text-xs">{item.user.name}</span>
+                        <span className="text-[9px] text-slate-450 font-medium block">{item.user.email}</span>
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      {getStatusBadge(item.status)}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-orange-100/55 pt-2">
+                    <span className="block font-bold text-slate-800 text-sm">{item.title}</span>
+                    <span className="text-[10px] text-slate-400 font-medium mt-0.5 block line-clamp-2">
+                      {item.description || 'Tidak ada deskripsi'}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-xs border-t border-b border-orange-100/50 py-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase tracking-wider font-bold">Kategori</span>
+                      <span className="font-semibold text-slate-700">{item.category}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase tracking-wider font-bold">Tanggal Nota</span>
+                      <span className="font-semibold text-slate-700">{formatDate(item.expense_date)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-1 gap-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase tracking-wider font-bold">Jumlah Klaim</span>
+                      <span className="text-sm font-extrabold text-slate-900 font-mono">{displayRupiah(item.amount)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => viewProofImage(item.receipt_path, item.user.name)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl text-xs font-bold transition-all border border-orange-100 cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Nota
+                      </button>
+                      {item.status === 'pending' && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleApprove(item.id, item.user.name, item.amount)}
+                            className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                            title="Setujui"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleReject(item.id, item.user.name)}
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                            title="Tolak"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {item.admin_notes && (
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-2 text-[10px] text-slate-500 font-medium italic">
+                      <strong>Catatan Admin:</strong> "{item.admin_notes}"
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
 

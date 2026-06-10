@@ -560,7 +560,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
           {/* Export PDF Button */}
           <button
             onClick={handleExportPDF}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             Cetak Laporan
@@ -569,7 +569,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
           {/* Export Excel Button */}
           <button
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-650 hover:to-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
           >
             <FileDown className="w-4 h-4" />
             Ekspor Excel
@@ -645,7 +645,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
           className={`pb-3 text-xs font-bold transition-all px-4 cursor-pointer relative ${
             activeTab === 'logs' 
               ? 'text-red-500 border-b-2 border-red-500 font-extrabold' 
-              : 'text-slate-400 hover:text-slate-650'
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <span className="flex items-center gap-1.5">
@@ -657,7 +657,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
           className={`pb-3 text-xs font-bold transition-all px-4 cursor-pointer relative ${
             activeTab === 'recap' 
               ? 'text-red-500 border-b-2 border-red-500 font-extrabold' 
-              : 'text-slate-400 hover:text-slate-650'
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <span className="flex items-center gap-1.5">
@@ -761,7 +761,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse font-quicksand">
                   <thead>
-                    <tr className="bg-orange-55/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
+                    <tr className="bg-orange-50/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
                       <th className="py-4 px-5">Karyawan</th>
                       <th className="py-4 px-5">Tanggal</th>
                       <th className="py-4 px-5">Jam Lembur</th>
@@ -868,7 +868,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse font-quicksand">
                   <thead>
-                    <tr className="bg-orange-55/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
+                    <tr className="bg-orange-50/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
                       <th className="py-4 px-5">Nama Karyawan</th>
                       <th className="py-4 px-5">Email</th>
                       <th className="py-4 px-5">Total Jam Disetujui</th>
@@ -891,7 +891,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
                         <td className="py-4 px-5 text-amber-600 font-mono">
                           {item.pending_hours} jam
                         </td>
-                        <td className="py-4 px-5 text-slate-650 font-mono">
+                        <td className="py-4 px-5 text-slate-600 font-mono">
                           {item.request_count} kali
                         </td>
                       </tr>
@@ -914,7 +914,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={pagination.current_page === 1}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-655 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
               >
                 Sebelumnya
               </button>
@@ -925,7 +925,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     pagination.current_page === page
                       ? 'bg-orange-500 border border-orange-500 text-white shadow-sm font-extrabold'
-                      : 'border border-slate-200 text-slate-650 hover:border-orange-500 hover:text-orange-655 bg-white'
+                      : 'border border-slate-200 text-slate-600 hover:border-orange-500 hover:text-orange-700 bg-white'
                   }`}
                 >
                   {page}
@@ -934,7 +934,7 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
               <button
                 onClick={() => setCurrentPage((prev) => Math.min(prev + 1, pagination.last_page))}
                 disabled={pagination.current_page === pagination.last_page}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-655 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:border-orange-500 hover:text-orange-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer bg-white"
               >
                 Selanjutnya
               </button>

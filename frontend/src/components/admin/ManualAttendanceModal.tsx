@@ -281,7 +281,7 @@ export default function ManualAttendanceModal({
             <select
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
-              className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-550 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-semibold"
+              className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-semibold"
               required
             >
               <option value="">-- Pilih Karyawan --</option>
@@ -293,14 +293,14 @@ export default function ManualAttendanceModal({
 
           {/* Date Input */}
           <div>
-            <label className="block text-xs font-bold text-slate-555 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
               Tanggal Absensi *
             </label>
             <input
               type="date"
               value={manualDate}
               onChange={(e) => setManualDate(e.target.value)}
-              className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-550 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-semibold"
+              className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-semibold"
               required
             />
           </div>
@@ -338,7 +338,7 @@ export default function ManualAttendanceModal({
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="manual-photo-upload"
-                className="flex items-center justify-center gap-2 w-full bg-orange-50/20 border border-dashed border-orange-200 hover:border-orange-500 rounded-xl py-3 px-4 outline-none transition-all text-xs font-bold text-orange-655 cursor-pointer text-center"
+                className="flex items-center justify-center gap-2 w-full bg-orange-50/20 border border-dashed border-orange-200 hover:border-orange-500 rounded-xl py-3 px-4 outline-none transition-all text-xs font-bold text-orange-700 cursor-pointer text-center"
               >
                 <Upload className="w-4 h-4 text-orange-500" />
                 {photoName ? 'Ubah Foto' : 'Pilih Foto dari Galeri'}
@@ -411,7 +411,7 @@ export default function ManualAttendanceModal({
                 type="time"
                 value={manualClockIn}
                 onChange={(e) => setManualClockIn(e.target.value)}
-                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-550 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
+                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
                 required
               />
             </div>

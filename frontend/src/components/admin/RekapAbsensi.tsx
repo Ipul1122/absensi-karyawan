@@ -492,7 +492,7 @@ export default function RekapAbsensi({
           onClick={() => setActiveSubTab('attendance')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeSubTab === 'attendance'
-              ? 'bg-gradient-to-r from-red-55 to-orange-55 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
               : 'text-slate-500 hover:text-red-500 border border-transparent'
           }`}
         >
@@ -503,7 +503,7 @@ export default function RekapAbsensi({
           onClick={() => setActiveSubTab('sales_visits')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeSubTab === 'sales_visits'
-              ? 'bg-gradient-to-r from-red-55 to-orange-55 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
               : 'text-slate-500 hover:text-red-500 border border-transparent'
           }`}
         >
@@ -514,7 +514,7 @@ export default function RekapAbsensi({
           onClick={() => setActiveSubTab('client_visits')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeSubTab === 'client_visits'
-              ? 'bg-gradient-to-r from-red-55 to-orange-55 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
               : 'text-slate-500 hover:text-red-500 border border-transparent'
           }`}
         >
@@ -538,7 +538,7 @@ export default function RekapAbsensi({
           <button
             onClick={() => setShowManualModal(true)}
             disabled={attendanceLoading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-655 hover:text-orange-600 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-600 hover:text-orange-600 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
             title="Absensikan Karyawan (Manual)"
           >
             <Clock className="w-4 h-4 text-orange-500" />
@@ -549,7 +549,7 @@ export default function RekapAbsensi({
           <button
             onClick={handleExportPDF}
             disabled={attendanceLoading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
             title="Ekspor PDF"
           >
             <FileDown className="w-4 h-4" />
@@ -560,7 +560,7 @@ export default function RekapAbsensi({
           <button
             onClick={handleExportExcel}
             disabled={attendanceLoading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-650 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
             title="Ekspor Excel"
           >
             <FileDown className="w-4 h-4" />
@@ -583,7 +583,7 @@ export default function RekapAbsensi({
         
         {/* Search Filter */}
         <div className="space-y-1">
-          <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Cari Karyawan</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cari Karyawan</label>
           <div className="relative">
             <Search className="absolute inset-y-0 left-0 pl-3 w-4.5 h-4.5 my-auto text-slate-400" />
             <input
@@ -598,7 +598,7 @@ export default function RekapAbsensi({
 
         {/* Report Month Filter (Month Picker) */}
         <div className="space-y-1">
-          <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider flex items-center gap-1">
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5 text-red-500" />
             Bulan Laporan
           </label>
@@ -644,7 +644,7 @@ export default function RekapAbsensi({
           <select
             value={statusIn}
             onChange={(e) => setStatusIn(e.target.value)}
-            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-755 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
           >
             <option value="all">Semua Status Masuk</option>
             <option value="early">Datang Lebih Awal</option>
@@ -655,11 +655,11 @@ export default function RekapAbsensi({
 
         {/* Status Keluar Filter */}
         <div className="space-y-1">
-          <label className="block text-[10px] font-bold text-slate-555 uppercase tracking-wider">Status Keluar</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status Keluar</label>
           <select
             value={statusOut}
             onChange={(e) => setStatusOut(e.target.value)}
-            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-755 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
           >
             <option value="all">Semua Status Keluar</option>
             <option value="normal">Normal</option>
@@ -693,7 +693,7 @@ export default function RekapAbsensi({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse font-quicksand">
             <thead>
-              <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
+              <tr className="bg-orange-50/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
                 <th className="py-4 px-6">Karyawan</th>
                 <th className="py-4 px-6">Tanggal</th>
                 <th className="py-4 px-6">Tipe</th>
@@ -706,7 +706,7 @@ export default function RekapAbsensi({
             <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
               {attendanceLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-450 font-medium">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                       Memuat rekam absensi...
@@ -715,7 +715,7 @@ export default function RekapAbsensi({
                 </tr>
               ) : paginatedAttendances.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-450 font-semibold">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-semibold">
                     Data absensi tidak ditemukan.
                   </td>
                 </tr>
@@ -725,7 +725,7 @@ export default function RekapAbsensi({
                     <td className="py-4 px-6">
                       <div>
                         <p className="font-extrabold text-slate-800 font-quicksand">{att.user.name}</p>
-                        <p className="text-[11px] text-slate-450 font-medium mt-0.5">{att.user.email}</p>
+                        <p className="text-[11px] text-slate-400 font-medium mt-0.5">{att.user.email}</p>
                       </div>
                     </td>
                     <td className="py-4 px-6 font-extrabold text-slate-700 text-xs">
@@ -769,14 +769,14 @@ export default function RekapAbsensi({
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => setSelectedAttendance(att)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-red-500 text-slate-655 hover:text-red-500 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-red-500 text-slate-600 hover:text-red-500 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           Detail
                         </button>
                         <button
                           onClick={() => handleOpenEditModal(att)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-655 hover:text-orange-600 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-600 hover:text-orange-600 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm"
                         >
                           <Clock className="w-3.5 h-3.5" />
                           Edit

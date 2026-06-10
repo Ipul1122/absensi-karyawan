@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { 
@@ -17,7 +18,15 @@ import {
   AlertTriangle,
   Building,
   Compass,
-  UserCheck
+  UserCheck,
+  TrendingUp,
+  DollarSign,
+  ArrowRight,
+  ExternalLink,
+  Map,
+  ShieldAlert,
+  Search,
+  CheckCircle
 } from 'lucide-react'
 
 interface Attendance {
@@ -50,10 +59,22 @@ interface OfficeSetting {
   radius: number
 }
 
+interface Employee {
+  id: number
+  name: string
+  email: string
+  password_plain?: string
+  photo?: string | null
+  division?: string | null
+  created_at: string
+  updated_at: string
+  status?: 'active' | 'pending' | 'pending_delete'
+}
+
 interface DashboardOverviewProps {
   loading: boolean
   attendanceLoading: boolean
-  employeesCount: number
+  employees: Employee[]
   presentTodayCount: number
   presentTodayList: Attendance[]
   todayStr: string
@@ -70,13 +91,12 @@ interface DashboardOverviewProps {
   todayAttendance: Attendance | null
   fetchTodayAttendance: () => Promise<void>
   leaves: any[]
-  allAttendances: Attendance[]
 }
 
 export default function DashboardOverview({
   loading,
   attendanceLoading,
-  employeesCount,
+  employees,
   presentTodayCount,
   presentTodayList,
   todayStr,
@@ -86,8 +106,7 @@ export default function DashboardOverview({
   officeSetting,
   todayAttendance,
   fetchTodayAttendance,
-  leaves,
-  allAttendances
+  leaves
 }: DashboardOverviewProps) {
   // Modal State for Check-In/Check-Out Camera
   const [showCheckInModal, setShowCheckInModal] = useState(false)
@@ -109,23 +128,97 @@ export default function DashboardOverview({
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
+  // ---------- Additional Local States for Monitoring & Sync ----------
+  const navigate = useNavigate()
+  const [reimbursements, setReimbursements] = useState<any[]>([])
+  const [overtimes, setOvertimes] = useState<any[]>([])
+  const [activeAttendanceTab, setActiveAttendanceTab] = useState<'hadir' | 'cuti' | 'belum_hadir'>('hadir')
+  const [searchEmployeeQuery, setSearchEmployeeQuery] = useState('')
+
+  useEffect(() => {
+    fetchReimbursementsAndOvertimes()
+  }, [])
+
+  const fetchReimbursementsAndOvertimes = async () => {
+    try {
+      const [reimResponse, otResponse] = await Promise.all([
+        axios.get('http://localhost:8000/api/admin/reimbursements', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get('http://localhost:8000/api/admin/overtimes', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ])
+      if (reimResponse.data.status === 'success') {
+        setReimbursements(reimResponse.data.data)
+      }
+      if (otResponse.data.status === 'success') {
+        setOvertimes(otResponse.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data reimbursement/lembur:', err)
+    }
+  }
+
   // Live seconds for the clock circular progress
   const seconds = time.getSeconds()
-  const circumference = 2 * Math.PI * 70 // radius 70 = 439.8px
-  const strokeDashoffset = circumference - (seconds / 60) * circumference
 
-  // Calculate statistics
-  const lateTodayCount = allAttendances.filter(
-    (att) => att.date === todayStr && att.status_in === 'late'
+  // Standarize photo URLs
+  const getFullPhotoUrl = (path: string | null | undefined) => {
+    if (!path) return null
+    if (path.startsWith('http')) return path
+    if (path.startsWith('/storage/')) return `http://localhost:8000${path}`
+    if (path.startsWith('storage/')) return `http://localhost:8000/${path}`
+    return `http://localhost:8000/storage/${path}`
+  }
+
+  // Dynamic statistics calculations (fully synced!)
+  const activeEmployees = employees.filter(e => e.status === 'active')
+  const employeesCount = activeEmployees.length
+
+  // presentTodayList and presentTodayCount are passed down as props
+
+  const lateTodayCount = presentTodayList.filter(
+    (att) => att.status_in === 'late'
   ).length
 
-  const cutiTodayCount = leaves.filter(
+  const cutiTodayList = leaves.filter(
     (l) => l.status === 'approved' && todayStr >= l.start_date && todayStr <= l.end_date
-  ).length
+  )
+  const cutiTodayCount = cutiTodayList.length
+
+  const absentTodayList = activeEmployees.filter(
+    (emp) => 
+      !presentTodayList.some(att => att.user.id === emp.id) &&
+      !cutiTodayList.some(l => l.user_id === emp.id)
+  )
+  const absentTodayCount = absentTodayList.length
 
   const presencePercentage = employeesCount > 0 
     ? Math.round((presentTodayCount / employeesCount) * 100)
     : 0
+
+  // Pending items count
+  const pendingLeavesCount = leaves.filter(l => l.status === 'pending').length
+  const pendingReimbursementsCount = reimbursements.filter(r => r.status === 'pending').length
+  const pendingOvertimesCount = overtimes.filter(o => o.status === 'pending').length
+  const pendingRegistrationsCount = employees.filter(e => e.status === 'pending' || e.status === 'pending_delete').length
+
+  // Filtered lists for the tabs based on query search
+  const filteredPresentList = presentTodayList.filter(att => 
+    att.user.name.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
+  )
+
+  const filteredCutiList = cutiTodayList.map(l => {
+    const emp = employees.find(e => e.id === l.user_id)
+    return { ...l, employee: emp }
+  }).filter(l => 
+    l.employee?.name?.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
+  )
+
+  const filteredAbsentList = absentTodayList.filter(emp =>
+    emp.name.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
+  )
 
   // Format date helper
   const getIndonesianDate = (d: Date) => {
@@ -144,8 +237,6 @@ export default function DashboardOverview({
     if (hrs < 18) return 'Selamat Sore'
     return 'Selamat Malam'
   }
-
-
 
   // Open modal handler
   const handleOpenCheckInModal = (type: 'check-in' | 'check-out') => {
@@ -331,7 +422,7 @@ export default function DashboardOverview({
 
   // Format single recent attendance log status badge
   const getBadgeStyle = (status: string | null) => {
-    if (!status) return 'bg-slate-100 text-slate-700'
+    if (!status) return 'bg-slate-100 text-slate-700 border border-slate-200'
     if (status === 'early' || status === 'normal') {
       return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     }
@@ -353,299 +444,550 @@ export default function DashboardOverview({
   return (
     <div className="space-y-6 animate-fade-in font-quicksand">
       
-      {/* 2-Column Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Column (Check-In Widget & 2x2 Stats) */}
-        <div className="lg:col-span-7 space-y-8">
-          
-          {/* Circular Check-In Card */}
-          <section className="relative bg-white border border-slate-100/80 rounded-[32px] p-8 shadow-sm flex flex-col md:flex-row items-center gap-8 overflow-hidden hover:shadow-md transition-all duration-300">
-            {/* Soft decorative light gradient glow */}
-            <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            {/* SVG dial & live clock on the left */}
-            <div className="relative flex-shrink-0 flex items-center justify-center">
-              <svg className="w-44 h-44 transform -rotate-90">
-                <circle
-                  cx="88"
-                  cy="88"
-                  r="70"
-                  className="stroke-slate-100"
-                  strokeWidth="8"
-                  fill="transparent"
-                />
-                <circle
-                  cx="88"
-                  cy="88"
-                  r="70"
-                  className="stroke-[url(#orangeRedGradient)] transition-all duration-1000 ease-out"
-                  strokeWidth="10"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  strokeLinecap="round"
-                  fill="transparent"
-                />
-                <defs>
-                  <linearGradient id="orangeRedGradient" x1="1" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#dc2626" />
-                    <stop offset="100%" stopColor="#ea580c" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              
-              <div className="absolute flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-black text-slate-800 tracking-tight font-mono">
-                  {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                  WIB
-                </span>
-              </div>
+      {/* 1. GREETING BANNER */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-red-600 to-orange-600 rounded-[32px] p-8 text-white shadow-lg shadow-red-500/10">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 select-none">
+              Akses Admin Utama HR
+            </span>
+            <h1 className="text-3xl font-black mt-3 font-quicksand capitalize">
+              {getGreeting()}, {user.name}!
+            </h1>
+            <p className="text-xs text-orange-50 font-medium mt-1">
+              Kelola dan pantau seluruh aktivitas absensi serta perizinan staf Anda secara realtime.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. STATS KPI GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Employees */}
+        <div className="bg-white border border-orange-100/60 rounded-[28px] p-6 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Staf Aktif</p>
+              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono">
+                {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : employeesCount}
+              </h3>
             </div>
-
-            {/* Check-In Details and Action Button on the right */}
-            <div className="flex-grow flex flex-col justify-between items-center md:items-start text-center md:text-left space-y-4">
-              <div>
-                <span className="text-[10px] font-black tracking-widest text-orange-600 uppercase">
-                  {getGreeting()}, {user.name.split(' ')[0]}!
-                </span>
-                <h2 className="text-xl font-black text-slate-800 mt-0.5">
-                  {todayAttendance?.clock_in ? 'CHECK-IN BERHASIL' : 'BELUM PRESENSI'}
-                </h2>
-                <p className="text-xs text-slate-500 font-bold flex items-center justify-center md:justify-start gap-1.5 mt-1 font-mono">
-                  <Calendar className="w-3.5 h-3.5 text-slate-450" />
-                  {getIndonesianDate(time)}
-                </p>
-              </div>
-
-              {/* Status and Location Details */}
-              <div className="text-xs text-slate-600 font-semibold space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400 font-bold">Waktu Sekarang:</span>
-                  <span className="font-mono font-bold text-slate-700">
-                    {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} WIB
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400 font-bold">Tipe Lokasi:</span>
-                  <span className="font-bold text-slate-700 capitalize">
-                    {todayAttendance?.attendance_type || 'Kantor Pusat'}
-                  </span>
-                </div>
-                {todayAttendance?.clock_in && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400 font-bold">Jam Masuk:</span>
-                    <span className="font-mono font-bold text-emerald-600">
-                      {todayAttendance.clock_in}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Functional check-in button */}
-              <div className="pt-2 w-full">
-                {todayAttendance?.clock_in && todayAttendance?.clock_out ? (
-                  <div className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 font-extrabold text-xs rounded-xl shadow-xs">
-                    <Check className="w-4 h-4" /> Presensi Hari Ini Selesai
-                  </div>
-                ) : todayAttendance?.clock_in ? (
-                  <button
-                    onClick={() => handleOpenCheckInModal('check-out')}
-                    className="px-6 py-3 bg-gradient-to-r from-red-650 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/20 cursor-pointer text-xs uppercase tracking-wider hover:scale-103 active:scale-98"
-                  >
-                    Check-Out Sekarang
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleOpenCheckInModal('check-in')}
-                    className="px-6 py-3 bg-gradient-to-r from-red-650 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/20 cursor-pointer text-xs uppercase tracking-wider hover:scale-103 active:scale-98"
-                  >
-                    Check-In Sekarang
-                  </button>
-                )}
-              </div>
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100 group-hover:scale-110 transition-transform">
+              <Users className="w-5.5 h-5.5" />
             </div>
-          </section>
-
-          {/* 2x2 Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            
-            {/* Stat 1: Total Karyawan */}
-            <div className="relative bg-white border border-slate-100/80 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Karyawan</p>
-                  <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono">
-                    {loading ? (
-                      <Loader2 className="w-7 h-7 animate-spin text-slate-350 mt-1" />
-                    ) : (
-                      employeesCount
-                    )}
-                  </h3>
-                </div>
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100">
-                  <Users className="w-6 h-6" />
-                </div>
-              </div>
-            </div>
-
-            {/* Stat 2: Hadir Hari Ini */}
-            <div className="relative bg-white border border-slate-100/80 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Hadir Hari Ini</p>
-                  <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono flex items-baseline gap-2">
-                    {attendanceLoading ? (
-                      <Loader2 className="w-7 h-7 animate-spin text-slate-350 mt-1" />
-                    ) : (
-                      <>
-                        {presentTodayCount}
-                        <span className="text-xs font-bold text-slate-400 font-quicksand">({presencePercentage}%)</span>
-                      </>
-                    )}
-                  </h3>
-                </div>
-                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-              </div>
-              
-              {/* Progress bar matching layout */}
-              <div className="mt-4 w-full">
-                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-1000"
-                    style={{ width: `${presencePercentage}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Stat 3: Terlambat */}
-            <div className="relative bg-white border border-slate-100/80 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Terlambat</p>
-                  <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono">
-                    {attendanceLoading ? (
-                      <Loader2 className="w-7 h-7 animate-spin text-slate-350 mt-1" />
-                    ) : (
-                      lateTodayCount
-                    )}
-                  </h3>
-                </div>
-                <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100">
-                  <Clock className="w-6 h-6" />
-                </div>
-              </div>
-            </div>
-
-            {/* Stat 4: Izin/Cuti */}
-            <div className="relative bg-white border border-slate-100/80 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Izin / Cuti</p>
-                  <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono">
-                    {loading ? (
-                      <Loader2 className="w-7 h-7 animate-spin text-slate-350 mt-1" />
-                    ) : (
-                      cutiTodayCount
-                    )}
-                  </h3>
-                </div>
-                <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100">
-                  <FileText className="w-6 h-6" />
-                </div>
-              </div>
-            </div>
-
+          </div>
+          <div className="mt-3 text-[10px] text-slate-500 font-semibold flex items-center gap-1 select-none">
+            <TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Karyawan terdaftar aktif
           </div>
         </div>
 
-        {/* Right Column (Recent Attendance Logs) */}
-        <section className="lg:col-span-5 bg-white border border-slate-100/80 rounded-[32px] p-6 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 min-h-[480px]">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-800">
-                  Log Kehadiran Terbaru
-                </h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                  Realtime Attendance
-                </p>
+        {/* Present Today */}
+        <div className="bg-white border border-orange-100/60 rounded-[28px] p-6 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Hadir Hari Ini</p>
+              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono flex items-baseline gap-1.5">
+                {attendanceLoading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : presentTodayCount}
+                <span className="text-xs text-slate-400 font-bold font-quicksand">({presencePercentage}%)</span>
+              </h3>
+            </div>
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 group-hover:scale-110 transition-transform">
+              <CheckCircle2 className="w-5.5 h-5.5" />
+            </div>
+          </div>
+          <div className="mt-3.5 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden select-none">
+            <div className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-1000" style={{ width: `${presencePercentage}%` }}></div>
+          </div>
+        </div>
+
+        {/* Late Today */}
+        <div className="bg-white border border-orange-100/60 rounded-[28px] p-6 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Datang Terlambat</p>
+              <h3 className="text-3xl font-black text-rose-600 mt-2 font-mono">
+                {attendanceLoading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : lateTodayCount}
+              </h3>
+            </div>
+            <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 group-hover:scale-110 transition-transform">
+              <Clock className="w-5.5 h-5.5" />
+            </div>
+          </div>
+          <div className="mt-3 text-[10px] text-slate-500 font-semibold flex items-center gap-1 select-none">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> Check-in setelah jam 09:00 WIB
+          </div>
+        </div>
+
+        {/* On Leave / Cuti */}
+        <div className="bg-white border border-orange-100/60 rounded-[28px] p-6 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Izin & Cuti Aktif</p>
+              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono">
+                {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : cutiTodayCount}
+              </h3>
+            </div>
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100 group-hover:scale-110 transition-transform">
+              <FileText className="w-5.5 h-5.5" />
+            </div>
+          </div>
+          <div className="mt-3 text-[10px] text-slate-500 font-semibold flex items-center gap-1 select-none">
+            <Calendar className="w-3.5 h-3.5 text-amber-500" /> Berdasarkan persetujuan Admin
+          </div>
+        </div>
+      </div>
+
+      {/* 3. PENDING ACTION PANEL */}
+      <div className="bg-white border border-orange-100/60 rounded-[32px] p-6 shadow-xs space-y-4">
+        <div className="flex items-center gap-2 border-b border-orange-50 pb-3">
+          <ShieldAlert className="w-5 h-5 text-red-500 animate-pulse" />
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Permintaan Menunggu Tindakan (HR Verifikasi)</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* Leaves */}
+          <button
+            onClick={() => navigate('/admin/cuti')}
+            className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group select-none ${
+              pendingLeavesCount > 0
+                ? 'bg-red-50/40 border-red-200 hover:border-red-300 shadow-sm shadow-red-500/5 hover:scale-101'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${pendingLeavesCount > 0 ? 'bg-red-500 text-white shadow-md shadow-red-300' : 'bg-slate-100 text-slate-400'}`}>
+                <Calendar className="w-4.5 h-4.5" />
               </div>
-              <button className="text-slate-400 hover:text-red-500 font-bold text-lg p-1.5 transition-colors cursor-pointer leading-none">
-                •••
-              </button>
+              <div className="text-left min-w-0">
+                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Persetujuan Cuti</span>
+                <span className={`text-[11px] font-black truncate block ${pendingLeavesCount > 0 ? 'text-red-700' : 'text-slate-600'}`}>
+                  {pendingLeavesCount > 0 ? `${pendingLeavesCount} Berkas` : 'Selesai'}
+                </span>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform animate-pulse" />
+          </button>
+
+          {/* Reimbursement */}
+          <button
+            onClick={() => navigate('/admin/reimbursement')}
+            className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group select-none ${
+              pendingReimbursementsCount > 0
+                ? 'bg-orange-50/40 border-orange-200 hover:border-orange-300 shadow-sm shadow-orange-500/5 hover:scale-101'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${pendingReimbursementsCount > 0 ? 'bg-orange-500 text-white shadow-md shadow-orange-300' : 'bg-slate-100 text-slate-400'}`}>
+                <DollarSign className="w-4.5 h-4.5" />
+              </div>
+              <div className="text-left min-w-0">
+                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Klaim Biaya</span>
+                <span className={`text-[11px] font-black truncate block ${pendingReimbursementsCount > 0 ? 'text-orange-700' : 'text-slate-600'}`}>
+                  {pendingReimbursementsCount > 0 ? `${pendingReimbursementsCount} Berkas` : 'Selesai'}
+                </span>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          {/* Overtimes */}
+          <button
+            onClick={() => navigate('/admin/lembur')}
+            className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group select-none ${
+              pendingOvertimesCount > 0
+                ? 'bg-amber-50/40 border-amber-200 hover:border-amber-300 shadow-sm shadow-amber-500/5 hover:scale-101'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${pendingOvertimesCount > 0 ? 'bg-amber-500 text-white shadow-md shadow-amber-300' : 'bg-slate-100 text-slate-400'}`}>
+                <Clock className="w-4.5 h-4.5" />
+              </div>
+              <div className="text-left min-w-0">
+                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Verifikasi Lembur</span>
+                <span className={`text-[11px] font-black truncate block ${pendingOvertimesCount > 0 ? 'text-amber-700' : 'text-slate-600'}`}>
+                  {pendingOvertimesCount > 0 ? `${pendingOvertimesCount} Berkas` : 'Selesai'}
+                </span>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          {/* Account Verification */}
+          <button
+            onClick={() => navigate('/admin/akunKaryawan')}
+            className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group select-none ${
+              pendingRegistrationsCount > 0
+                ? 'bg-blue-50/40 border-blue-200 hover:border-blue-300 shadow-sm shadow-blue-500/5 hover:scale-101'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${pendingRegistrationsCount > 0 ? 'bg-blue-500 text-white shadow-md shadow-blue-300' : 'bg-slate-100 text-slate-400'}`}>
+                <Users className="w-4.5 h-4.5" />
+              </div>
+              <div className="text-left min-w-0">
+                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Pendaftaran Karyawan</span>
+                <span className={`text-[11px] font-black truncate block ${pendingRegistrationsCount > 0 ? `${pendingRegistrationsCount} Akun` : 'Selesai'}`}>
+                  {pendingRegistrationsCount > 0 ? `${pendingRegistrationsCount} Akun` : 'Selesai'}
+                </span>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+      </div>
+
+      {/* 4. MAIN MONITORING & SELF CHECK-IN GRID (2 Columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Left Column: Workforce Presence Monitor (7 Columns) */}
+        <section className="lg:col-span-7 bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 min-h-[520px] flex flex-col justify-between">
+          <div className="space-y-5">
+            {/* Header + Search bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800">Pusat Pemantauan Kehadiran</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Real-time Employee Status</p>
+              </div>
+              
+              {/* Simple Search Input */}
+              <div className="relative shrink-0 w-full sm:w-48">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Search className="w-3.5 h-3.5" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Cari nama..."
+                  value={searchEmployeeQuery}
+                  onChange={(e) => setSearchEmployeeQuery(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-1.5 pl-9 pr-3 outline-none transition-all text-xs font-semibold"
+                />
+              </div>
             </div>
 
-            {/* Attendance list container */}
-            <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
-              {attendanceLoading ? (
-                <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-450 font-bold text-xs">
-                  <Loader2 className="w-6 h-6 animate-spin text-red-500" />
-                  Memuat log kehadiran...
-                </div>
-              ) : presentTodayList.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 font-bold text-xs italic">
-                  Belum ada karyawan yang presensi hari ini.
-                </div>
-              ) : (
-                presentTodayList.slice(0, 8).map((att) => {
-                  const userPhoto = att.user.photo
-                  const photoUrl = userPhoto
-                    ? (userPhoto.startsWith('http') ? userPhoto : `http://localhost:8000/storage/${userPhoto}`)
-                    : null
-                  const gradients = [
-                    'from-orange-400 to-red-500',
-                    'from-amber-400 to-orange-500',
-                    'from-rose-400 to-red-650',
-                    'from-red-400 to-orange-600'
-                  ]
-                  const gradientClass = gradients[att.user.id % gradients.length]
+            {/* Tab controls */}
+            <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl">
+              {[
+                { id: 'hadir', label: 'Hadir', count: presentTodayCount, color: 'text-emerald-600 bg-white border-slate-200 shadow-xs' },
+                { id: 'cuti', label: 'Izin/Cuti', count: cutiTodayCount, color: 'text-amber-600 bg-white border-slate-200 shadow-xs' },
+                { id: 'belum_hadir', label: 'Belum Hadir', count: absentTodayCount, color: 'text-rose-600 bg-white border-slate-200 shadow-xs' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveAttendanceTab(tab.id as any)}
+                  className={`flex-grow flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-extrabold cursor-pointer transition-all ${
+                    activeAttendanceTab === tab.id
+                      ? 'bg-white text-slate-800 border border-orange-100 shadow-xs shadow-orange-500/5'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
+                  }`}
+                >
+                  {tab.label}
+                  <span className={`px-2 py-0.2 rounded-full text-[9px] font-bold font-mono ${
+                    activeAttendanceTab === tab.id
+                      ? (tab.id === 'hadir' ? 'bg-emerald-50 text-emerald-700' : tab.id === 'cuti' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700')
+                      : 'bg-slate-200/60 text-slate-600'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
 
-                  return (
-                    <div key={att.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50/50 transition-colors duration-200">
-                      <div className="flex items-center gap-3">
-                        {photoUrl ? (
-                          <img
-                            src={photoUrl}
-                            alt={att.user.name}
-                            className="w-10 h-10 rounded-full border border-slate-100 object-cover shadow-inner shrink-0"
-                          />
-                        ) : (
-                          <div className={`w-10 h-10 rounded-full border border-slate-100 bg-gradient-to-tr ${gradientClass} flex items-center justify-center text-white font-extrabold text-sm shadow-inner shrink-0`}>
-                            {att.user.name.charAt(0).toUpperCase()}
+            {/* Tab content lists */}
+            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+              {attendanceLoading ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-400 font-bold text-xs">
+                  <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+                  Memproses data pemantauan...
+                </div>
+              ) : activeAttendanceTab === 'hadir' ? (
+                filteredPresentList.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400 font-bold text-xs italic">
+                    {searchEmployeeQuery ? 'Nama tidak ditemukan.' : 'Belum ada karyawan yang hadir hari ini.'}
+                  </div>
+                ) : (
+                  filteredPresentList.map((att) => {
+                    const photoUrl = getFullPhotoUrl(att.user.photo)
+                    const checkinPhoto = getFullPhotoUrl(att.photo_in)
+
+                    return (
+                      <div key={att.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50/50 transition-colors duration-150 animate-fade-in">
+                        <div className="flex items-center gap-3">
+                          {photoUrl ? (
+                            <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-400 to-red-500 border border-slate-100 flex items-center justify-center text-white font-extrabold text-xs shadow-inner shrink-0 select-none">
+                              {att.user.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-xs font-black text-slate-800">{att.user.name}</h4>
+                              <span className="px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded text-[8px] font-bold uppercase font-mono tracking-wider">
+                                {employees.find(e => e.id === att.user.id)?.division || 'Umum'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono">
+                                {att.clock_in ? att.clock_in.substring(0, 5) : '-'} WIB
+                              </span>
+                              <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                              <span className="text-[9px] text-slate-400 font-extrabold capitalize">
+                                {att.attendance_type === 'kantor' ? 'Kantor Utama' : att.attendance_type === 'client' ? 'Visit Klien' : 'Dinas Luar'}
+                              </span>
+                            </div>
                           </div>
-                        )}
-                        <div>
-                          <h4 className="text-xs font-black text-slate-800">{att.user.name}</h4>
-                          <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                            {att.clock_in ? att.clock_in.substring(0, 5) + ' WIB' : '-'}
-                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider ${getBadgeStyle(att.status_in)}`}>
+                            {getStatusText(att.status_in)}
+                          </span>
+                          {checkinPhoto && (
+                            <button
+                              onClick={() => {
+                                Swal.fire({
+                                  title: `Bukti Foto Check-In: ${att.user.name}`,
+                                  imageUrl: checkinPhoto,
+                                  imageAlt: 'Check-In Foto Wajah',
+                                  confirmButtonColor: '#ea580c',
+                                  confirmButtonText: 'Tutup',
+                                  background: '#ffffff',
+                                })
+                              }}
+                              className="p-1 text-slate-400 hover:text-orange-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              title="Lihat Foto Absen"
+                            >
+                              <Camera className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
-                      
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider ${getBadgeStyle(att.status_in)}`}>
-                          {getStatusText(att.status_in)}
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-bold capitalize">
-                          {att.attendance_type === 'kantor' ? 'Kantor Pusat' : att.attendance_type === 'client' ? 'Client' : 'Dinas Lapangan'}
-                        </span>
+                    )
+                  })
+                )
+              ) : activeAttendanceTab === 'cuti' ? (
+                filteredCutiList.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400 font-bold text-xs italic">
+                    {searchEmployeeQuery ? 'Nama tidak ditemukan.' : 'Tidak ada karyawan yang izin/cuti hari ini.'}
+                  </div>
+                ) : (
+                  filteredCutiList.map((l) => {
+                    const photoUrl = getFullPhotoUrl(l.employee?.photo)
+                    return (
+                      <div key={l.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50/50 transition-colors duration-150 animate-fade-in">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {photoUrl ? (
+                            <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 border border-slate-100 flex items-center justify-center text-white font-extrabold text-xs shadow-inner shrink-0 select-none">
+                              {l.employee?.name ? l.employee.name.charAt(0).toUpperCase() : '?'}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-xs font-black text-slate-800 truncate">{l.employee?.name || 'Karyawan'}</h4>
+                              <span className="px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded text-[8px] font-bold uppercase font-mono tracking-wider shrink-0">
+                                {l.employee?.division || 'Umum'}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5">
+                              Alasan: <strong className="text-slate-600 font-bold">{l.reason}</strong>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                            {l.leave_type ? l.leave_type.toUpperCase() : 'CUTI'}
+                          </span>
+                          <span className="block text-[8px] text-slate-400 font-semibold font-mono mt-1 select-none">
+                            {l.start_date.substring(5)} s/d {l.end_date.substring(5)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })
+                    )
+                  })
+                )
+              ) : (
+                filteredAbsentList.length === 0 ? (
+                  <div className="text-center py-16 text-slate-400 font-bold text-xs italic">
+                    {searchEmployeeQuery ? 'Nama tidak ditemukan.' : 'Seluruh staf telah melakukan absensi masuk.'}
+                  </div>
+                ) : (
+                  filteredAbsentList.map((emp) => {
+                    const photoUrl = getFullPhotoUrl(emp.photo)
+                    const mailSubject = encodeURIComponent("Pemberitahuan Absensi Hari Ini - " + todayStr)
+                    const mailBody = encodeURIComponent(`Halo ${emp.name},\n\nKami mendeteksi Anda belum melakukan absensi masuk (check-in) pada hari ini tanggal ${getIndonesianDate(new Date())} di aplikasi E-Absensi Karyawan.\n\nMohon lakukan absensi masuk segera atau hubungi pihak HR/Admin jika ada kendala atau jika Anda berhalangan hadir.\n\nTerima kasih,\nTim HR / Admin`)
+                    return (
+                      <div key={emp.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50/50 transition-colors duration-150 animate-fade-in">
+                        <div className="flex items-center gap-3">
+                          {photoUrl ? (
+                            <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-slate-300 to-slate-500 border border-slate-100 flex items-center justify-center text-white font-extrabold text-xs shadow-inner shrink-0 select-none">
+                              {emp.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <h4 className="text-xs font-black text-slate-800">{emp.name}</h4>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono mt-0.5">
+                              {emp.division || 'Umum'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+                            BELUM PRESENSI
+                          </span>
+                          <a
+                            href={`mailto:${emp.email}?subject=${mailSubject}&body=${mailBody}`}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Kirim Email Pengingat"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </div>
+                      </div>
+                    )
+                  })
+                )
               )}
             </div>
           </div>
         </section>
 
+        {/* Right Column: Admin Self Presence & Radius Widget (5 Columns) */}
+        <section className="lg:col-span-5 space-y-6">
+          
+          {/* Admin Self Check-In Circular Dial */}
+          <div className="relative bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div className="flex flex-col items-center text-center space-y-5">
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-b border-orange-50 pb-1.5 w-full select-none">Presensi Mandiri Admin HR</span>
+              
+              {/* Circular Clock Dial */}
+              <div className="relative flex-shrink-0 flex items-center justify-center select-none">
+                <svg className="w-36 h-36 transform -rotate-90">
+                  <circle cx="72" cy="72" r="56" className="stroke-slate-50" strokeWidth="6" fill="transparent" />
+                  <circle
+                    cx="72"
+                    cy="72"
+                    r="56"
+                    className="stroke-[url(#adminGrad)] transition-all duration-1000 ease-out"
+                    strokeWidth="8"
+                    strokeDasharray={2 * Math.PI * 56}
+                    strokeDashoffset={2 * Math.PI * 56 - (seconds / 60) * (2 * Math.PI * 56)}
+                    strokeLinecap="round"
+                    fill="transparent"
+                  />
+                  <defs>
+                    <linearGradient id="adminGrad" x1="1" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#dc2626" />
+                      <stop offset="100%" stopColor="#ea580c" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className="text-xl font-black text-slate-800 font-mono tracking-tight">
+                    {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider font-mono">WIB</span>
+                </div>
+              </div>
+
+              {/* Status details */}
+              <div className="w-full bg-slate-50/50 rounded-2xl p-4 border border-slate-100 space-y-2 text-left text-xs font-semibold text-slate-700">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Status Absen:</span>
+                  <span className={`px-2 py-0.2 rounded-md text-[9px] font-black font-mono tracking-wider ${todayAttendance?.clock_in ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                    {todayAttendance?.clock_in ? 'HADIR' : 'BELUM HADIR'}
+                  </span>
+                </div>
+                {todayAttendance?.clock_in && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Jam Masuk:</span>
+                    <span className="font-mono text-emerald-600 font-bold">{todayAttendance.clock_in}</span>
+                  </div>
+                )}
+                {todayAttendance?.clock_out && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Jam Keluar:</span>
+                    <span className="font-mono text-orange-600 font-bold">{todayAttendance.clock_out}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Checkin button */}
+              <div className="w-full">
+                {todayAttendance?.clock_in && todayAttendance?.clock_out ? (
+                  <div className="w-full text-center py-2.5 bg-emerald-50 border border-emerald-250 text-emerald-700 text-xs font-extrabold rounded-2xl shadow-xs flex items-center justify-center gap-1.5 select-none">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 animate-pulse" /> Presensi Hari Ini Lengkap
+                  </div>
+                ) : todayAttendance?.clock_in ? (
+                  <button
+                    onClick={() => handleOpenCheckInModal('check-out')}
+                    className="w-full py-3 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs uppercase tracking-wider hover:scale-102 active:scale-98"
+                  >
+                    Check-Out Mandiri
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleOpenCheckInModal('check-in')}
+                    className="w-full py-3 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs uppercase tracking-wider hover:scale-102 active:scale-98"
+                  >
+                    Check-In Mandiri
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+
+          {/* Active Radius Peta Mini / GPS Information */}
+          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="flex items-center gap-2 border-b border-slate-50 pb-3 mb-3">
+              <Map className="w-4.5 h-4.5 text-orange-600" />
+              <h4 className="text-xs font-bold text-slate-800">Status GPS & Radius Kantor</h4>
+            </div>
+
+            <div className="space-y-3 font-semibold text-xs text-slate-700">
+              <div className="p-3 bg-orange-50/20 border border-orange-100/50 rounded-2xl space-y-2">
+                {officeSetting ? (
+                  <>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">Koordinat Kantor:</span>
+                      <span className="font-mono text-slate-700 font-bold">{parseFloat(officeSetting.latitude).toFixed(4)}, {parseFloat(officeSetting.longitude).toFixed(4)}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-slate-400">Radius Batas Absen:</span>
+                      <span className="font-mono text-slate-700 font-bold">{officeSetting.radius} meter</span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[10px] text-slate-400 text-center italic">Lokasi kantor belum dikonfigurasi.</p>
+                )}
+              </div>
+              <button
+                onClick={() => navigate('/admin/lokasiKantor')}
+                className="w-full py-2 bg-slate-50 hover:bg-orange-50/50 border border-slate-200 hover:border-orange-200 text-slate-600 hover:text-red-700 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs select-none"
+              >
+                Atur Koordinat & Radius Kantor
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+        </section>
+
       </div>
 
-      {/* Check-In / Check-Out Video Camera Modal */}
+      {/* 5. WEBCAM CAMERA MODAL */}
       {showCheckInModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-fade-in p-4">
           <div className="bg-white border border-slate-100 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-scale-up">
@@ -654,7 +996,7 @@ export default function DashboardOverview({
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
               <div>
                 <h3 className="text-base font-black text-slate-800 capitalize">
-                  Formulir Presensi: {modalType === 'check-in' ? 'Masuk' : 'Keluar'}
+                  Formulir Presensi Mandiri Admin: {modalType === 'check-in' ? 'Masuk' : 'Keluar'}
                 </h3>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Webcam & Geolocation</p>
               </div>
@@ -670,7 +1012,7 @@ export default function DashboardOverview({
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
-                {/* 1. Camera Section */}
+                {/* Camera Section */}
                 <div className="space-y-3">
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                     1. Foto Wajah Webcam
@@ -707,7 +1049,7 @@ export default function DashboardOverview({
                     {capturedPhoto ? (
                       <button
                         onClick={retakePhoto}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-350 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
                       >
                         <RefreshCw className="w-3.5 h-3.5" /> Foto Ulang
                       </button>
@@ -715,7 +1057,7 @@ export default function DashboardOverview({
                       <button
                         onClick={capturePhoto}
                         disabled={!!cameraError}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-650 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/15 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/15 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Camera className="w-4 h-4" /> Ambil Foto Wajah
                       </button>
@@ -723,11 +1065,11 @@ export default function DashboardOverview({
                   </div>
                 </div>
 
-                {/* 2. Geolocation Section */}
+                {/* Geolocation Section */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                      2. Sinyal Koordinat GPS
+                      2. Koordinat Lokasi GPS
                     </label>
                     <button 
                       onClick={fetchLocation} 
@@ -780,7 +1122,7 @@ export default function DashboardOverview({
                       ) : (
                         <div className="p-2.5 rounded-xl border text-[11px] font-bold leading-relaxed text-emerald-700 bg-emerald-50 border-emerald-250 flex items-start gap-1.5">
                           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>Koordinat aman untuk tipe {activeTab === 'kunjungan' ? 'Kunjungan Kerja' : 'Kunjungan Klien'}. Radius bebas.</span>
+                          <span>Koordinat aman untuk tipe {activeTab === 'kunjungan' ? 'Dinas Luar' : 'Visit Klien'}. Radius bebas.</span>
                         </div>
                       )
                     )}
@@ -788,7 +1130,7 @@ export default function DashboardOverview({
                 </div>
               </div>
 
-              {/* 3. Tipe Presensi (check-in only) */}
+              {/* Tipe Presensi (check-in only) */}
               {modalType === 'check-in' && (
                 <div className="space-y-3 pt-2 border-t border-slate-100">
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
@@ -820,7 +1162,7 @@ export default function DashboardOverview({
                             </div>
                             <div>
                               <span className="block text-xs font-bold text-slate-800">{tab.label}</span>
-                              <span className="text-[9px] text-slate-450 font-bold">{tab.desc}</span>
+                              <span className="text-[9px] text-slate-400 font-bold">{tab.desc}</span>
                             </div>
                           </div>
                         </button>
@@ -830,7 +1172,7 @@ export default function DashboardOverview({
                 </div>
               )}
 
-              {/* 4. Notes */}
+              {/* Notes */}
               <div className="space-y-1.5 pt-2 border-t border-slate-100">
                 <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                   Keterangan Catatan
@@ -858,7 +1200,7 @@ export default function DashboardOverview({
               <button
                 onClick={handleSubmit}
                 disabled={submitting || !capturedPhoto || !latitude || !longitude || (modalType === 'check-in' && activeTab === 'kantor' && officeSetting !== null && !isWithinRadius)}
-                className="px-5 py-2.5 bg-gradient-to-r from-red-650 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-xl text-xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-500/10 flex items-center gap-1.5"
+                className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-xl text-xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-500/10 flex items-center gap-1.5"
               >
                 {submitting ? (
                   <>

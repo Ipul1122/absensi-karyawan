@@ -211,7 +211,7 @@ export default function EmployeeBonus({ token }: EmployeeBonusProps) {
                       {/* Date */}
                       <td className="py-4 px-4 text-slate-800">
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-orange-50 rounded-lg text-orange-650">
+                          <div className="p-1.5 bg-orange-50 rounded-lg text-orange-600">
                             <CalendarDays className="w-3.5 h-3.5" />
                           </div>
                           <span>{formatDate(item.bonus_date)}</span>

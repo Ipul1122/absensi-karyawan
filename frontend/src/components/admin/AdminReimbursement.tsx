@@ -439,7 +439,7 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
           {/* Export PDF Button */}
           <button
             onClick={handleExportPDF}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             Ekspor PDF
@@ -448,7 +448,7 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
           {/* Export Excel Button */}
           <button
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-650 hover:to-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer"
           >
             <FileDown className="w-4 h-4" />
             Ekspor Excel
@@ -616,7 +616,7 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse font-quicksand">
                   <thead>
-                    <tr className="bg-orange-55/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
+                    <tr className="bg-orange-50/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
                       <th className="py-4 px-5">Karyawan</th>
                       <th className="py-4 px-5">Keperluan / Keterangan</th>
                       <th className="py-4 px-5">Kategori</th>
@@ -735,7 +735,7 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                       </div>
                       <div>
                         <span className="block font-bold text-slate-800 text-xs">{item.user.name}</span>
-                        <span className="text-[9px] text-slate-450 font-medium block">{item.user.email}</span>
+                        <span className="text-[9px] text-slate-400 font-medium block">{item.user.email}</span>
                       </div>
                     </div>
                     <div className="shrink-0">

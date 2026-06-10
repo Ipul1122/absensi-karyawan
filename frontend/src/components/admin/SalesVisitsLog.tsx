@@ -323,7 +323,7 @@ export default function SalesVisitsLog({
           <button
             onClick={handleExportPDF}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-655 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
             title="Ekspor PDF"
           >
             <FileDown className="w-4 h-4" />
@@ -334,7 +334,7 @@ export default function SalesVisitsLog({
           <button
             onClick={handleExportExcel}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-655 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
             title="Ekspor Excel"
           >
             <FileDown className="w-4 h-4" />
@@ -356,7 +356,7 @@ export default function SalesVisitsLog({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl">
         {/* Search */}
         <div className="space-y-1">
-          <label className="block text-[10px] font-bold text-slate-550 uppercase tracking-wider">Cari Kunjungan</label>
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cari Kunjungan</label>
           <div className="relative">
             <Search className="absolute inset-y-0 left-0 pl-3 w-4.5 h-4.5 my-auto text-slate-400" />
             <input
@@ -391,7 +391,7 @@ export default function SalesVisitsLog({
               setFilterDate('')
             }}
             disabled={!search && !filterDate}
-            className="w-full py-2.5 bg-white border border-slate-255 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 font-bold rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow"
+            className="w-full py-2.5 bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 font-bold rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow"
           >
             Bersihkan Filter
           </button>
@@ -440,7 +440,7 @@ export default function SalesVisitsLog({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-orange-55/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
+              <tr className="bg-orange-50/30 text-slate-600 text-xs font-bold uppercase tracking-wider border-b border-orange-100">
                 <th className="py-4 px-6">Karyawan</th>
                 <th className="py-4 px-6">Tanggal & Waktu</th>
                 <th className="py-4 px-6">Nama Klien / Tujuan</th>
@@ -452,7 +452,7 @@ export default function SalesVisitsLog({
             <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-450 font-medium">
+                  <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="w-5 h-5 animate-spin text-orange-500" />
                       Memuat data kunjungan...
@@ -461,7 +461,7 @@ export default function SalesVisitsLog({
                 </tr>
               ) : paginatedVisits.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-450 font-semibold">
+                  <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold">
                     Tidak ada log kunjungan sales yang ditemukan.
                   </td>
                 </tr>
@@ -472,7 +472,7 @@ export default function SalesVisitsLog({
                     <td className="py-4 px-6">
                       <div>
                         <p className="font-extrabold text-slate-800">{visit.user.name}</p>
-                        <p className="text-[11px] text-slate-455 font-medium mt-0.5">{visit.user.email}</p>
+                        <p className="text-[11px] text-slate-400 font-medium mt-0.5">{visit.user.email}</p>
                       </div>
                     </td>
 
@@ -505,7 +505,7 @@ export default function SalesVisitsLog({
                     {/* GPS Location (Resolved Location Name) */}
                     <td className="py-4 px-6">
                       <div className="flex flex-col gap-1">
-                        <span className="font-bold text-slate-850 text-xs leading-tight">
+                        <span className="font-bold text-slate-800 text-xs leading-tight">
                           {resolvedAddresses[visit.id] ? (
                             resolvedAddresses[visit.id]
                           ) : (
@@ -531,7 +531,7 @@ export default function SalesVisitsLog({
                     {/* Notes */}
                     <td className="py-4 px-6">
                       {visit.notes ? (
-                        <p className="text-xs text-slate-655 font-medium max-w-xs leading-relaxed truncate hover:text-clip hover:whitespace-normal" title={visit.notes}>
+                        <p className="text-xs text-slate-600 font-medium max-w-xs leading-relaxed truncate hover:text-clip hover:whitespace-normal" title={visit.notes}>
                           {visit.notes}
                         </p>
                       ) : (

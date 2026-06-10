@@ -75,7 +75,7 @@ export default function DirectorSidebar({ user, onLogout, onClose }: DirectorSid
                 className={({ isActive }) =>
                   `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer group ${
                     isActive
-                      ? 'bg-gradient-to-r from-red-65/60 to-orange-55/60 border border-orange-100/80 text-red-600 shadow-sm'
+                      ? 'bg-gradient-to-r from-red-100/60 to-orange-50/60 border border-orange-100/80 text-red-600 shadow-sm'
                       : 'text-slate-600 hover:text-red-500 hover:bg-orange-50/30 border border-transparent'
                   }`
                 }
@@ -103,7 +103,7 @@ export default function DirectorSidebar({ user, onLogout, onClose }: DirectorSid
         </div>
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-655 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand"
         >
           <LogOut className="w-4 h-4" />
           Keluar Aplikasi

@@ -363,13 +363,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               element={
                 <EmployeeOverview
                   user={user}
+                  token={token}
                   time={time}
                   todayAttendance={todayAttendance}
                   attendanceState={attendanceState}
                   getLiveCheckInStatus={getLiveCheckInStatus}
                   getLiveCheckOutStatus={getLiveCheckOutStatus}
                   formatDate={formatDate}
-                  getStatusBadge={getStatusBadge}
+                  history={history}
                 />
               } 
             />

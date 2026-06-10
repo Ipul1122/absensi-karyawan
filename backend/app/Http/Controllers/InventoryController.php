@@ -99,6 +99,7 @@ class InventoryController extends Controller
                 'struk_pembelian' => $strukPath,
                 'pemakai_barang' => $request->pemakai_barang,
                 'kondisi_barang' => $request->kondisi_barang,
+                'status' => 'pending',
             ]);
 
             return response()->json([
@@ -249,6 +250,62 @@ class InventoryController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal menghapus data inventaris: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve an inventory item (Director).
+     */
+    public function directorApprove($id)
+    {
+        $inventory = Inventory::findOrFail($id);
+
+        try {
+            $inventory->update([
+                'status' => 'approved',
+                'admin_notes' => 'Disetujui oleh Direktur.'
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Barang inventaris berhasil disetujui oleh Direktur.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menyetujui barang: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject an inventory item (Director).
+     */
+    public function directorReject(Request $request, $id)
+    {
+        $inventory = Inventory::findOrFail($id);
+
+        $request->validate([
+            'admin_notes' => 'required|string|max:1000'
+        ], [
+            'admin_notes.required' => 'Alasan penolakan wajib diisi.'
+        ]);
+
+        try {
+            $inventory->update([
+                'status' => 'rejected',
+                'admin_notes' => $request->admin_notes
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Barang inventaris berhasil ditolak oleh Direktur.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menolak barang: ' . $e->getMessage()
             ], 500);
         }
     }

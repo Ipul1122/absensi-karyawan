@@ -98,6 +98,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/bonuses', [BonusController::class, 'indexAdmin']);
         Route::get('/admin/overtimes', [OvertimeController::class, 'indexAdmin']);
         Route::get('/admin/overtimes/recap', [OvertimeController::class, 'recapAdmin']);
+        Route::get('/admin/holidays', [PayrollController::class, 'indexHolidays']);
     });
 
     // Admin only modifying routes
@@ -122,6 +123,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/admin/payroll/{id}', [PayrollController::class, 'destroyPayroll']);
         Route::post('/admin/payroll/{id}/submit-approval', [PayrollController::class, 'submitPayrollApproval']);
         Route::post('/admin/payroll/submit-all-approval', [PayrollController::class, 'submitAllPayrollApproval']);
+        Route::post('/admin/holidays', [PayrollController::class, 'storeHoliday']);
+        Route::delete('/admin/holidays/{id}', [PayrollController::class, 'destroyHoliday']);
 
         // Admin Inventory routes
         Route::post('/admin/inventories', [InventoryController::class, 'store']);

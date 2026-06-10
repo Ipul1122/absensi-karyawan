@@ -259,7 +259,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                       </td>
                       <td className="py-4 px-5">
                         <div className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</div>
-                        <div className="text-[9px] text-slate-400 mt-0.5 font-semibold">Prorata bulanan</div>
+                        <div className="text-[9px] text-slate-450 mt-0.5 font-semibold">Bulanan Tetap</div>
                       </td>
                       <td className="py-4 px-5">
                         {(record.allowance_meal ?? 0) > 0 ? (
@@ -419,7 +419,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                 <div>
                   <div className="section-title">Penerimaan (Allowance)</div>
                   <div className="item-row">
-                    <span>Gaji Pokok (Prorata)</span>
+                    <span>Gaji Pokok</span>
                     <strong>{formatRupiah(selectedSlip.basic_salary)}</strong>
                   </div>
                   <div className="item-row">

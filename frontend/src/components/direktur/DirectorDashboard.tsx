@@ -8,6 +8,7 @@ import PersetujuanKaryawan from './PersetujuanKaryawan'
 import PersetujuanGaji from './PersetujuanGaji'
 import PersetujuanPayroll from './PersetujuanPayroll'
 import PersetujuanOperational from './PersetujuanOperational'
+import LogKehadiran from './LogKehadiran'
 
 interface User {
   id: number
@@ -34,6 +35,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
   else if (path.includes('/gaji')) { pageTitle = 'Persetujuan Gaji'; pageSubtitle = 'Setujui atau tolak penyesuaian nominal gaji dan tunjangan karyawan' }
   else if (path.includes('/payroll')) { pageTitle = 'Persetujuan Payroll Bulanan'; pageSubtitle = 'Validasi dan sahkan rekap slip gaji karyawan sebelum ditransfer' }
   else if (path.includes('/operasional')) { pageTitle = 'Persetujuan Operasional'; pageSubtitle = 'Proses pengajuan cuti, lembur, klaim biaya, dan bonus karyawan' }
+  else if (path.includes('/log-kehadiran')) { pageTitle = 'Log Kehadiran'; pageSubtitle = 'Pantau riwayat aktivitas absensi harian karyawan dan admin' }
 
   return (
     <div className="flex min-h-screen text-slate-800" style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}>
@@ -77,6 +79,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
             <Route path="gaji" element={<PersetujuanGaji token={token} />} />
             <Route path="payroll" element={<PersetujuanPayroll token={token} />} />
             <Route path="operasional" element={<PersetujuanOperational token={token} />} />
+            <Route path="log-kehadiran" element={<LogKehadiran token={token} />} />
             <Route path="*" element={<Navigate to="dashboard" replace />} />
           </Routes>
         </main>

@@ -83,13 +83,10 @@ class AttendanceController extends Controller
             $timeStr = $now->format('H:i:s');
             
             // Rules:
-            // - Before 08:30: early (Datang Lebih Awal)
-            // - 08:30 - 09:00: normal (Normal)
+            // - Before or equal to 09:00: normal (Normal)
             // - After 09:00: late (Terlambat)
             $status = 'normal';
-            if ($timeStr < '08:30:00') {
-                $status = 'early';
-            } elseif ($timeStr > '09:00:00') {
+            if ($timeStr > '09:00:00') {
                 $status = ($attendanceType === 'kantor') ? 'late' : 'normal';
             }
 
@@ -268,7 +265,7 @@ class AttendanceController extends Controller
      */
     public function getAllAttendances(Request $request)
     {
-        $attendances = Attendance::with('user:id,name,email,photo')
+        $attendances = Attendance::with('user:id,name,email,photo,role')
             ->orderBy('date', 'desc')
             ->orderBy('clock_in', 'desc')
             ->get();
@@ -314,9 +311,7 @@ class AttendanceController extends Controller
         // Calculate status_in
         $clockIn = Carbon::parse($request->clock_in)->format('H:i:s');
         $statusIn = 'normal';
-        if ($clockIn < '08:30:00') {
-            $statusIn = 'early';
-        } elseif ($clockIn > '09:00:00') {
+        if ($clockIn > '09:00:00') {
             $statusIn = ($request->attendance_type === 'kantor') ? 'late' : 'normal';
         }
 
@@ -415,9 +410,7 @@ class AttendanceController extends Controller
         if ($clockIn) {
             $clockIn = Carbon::parse($clockIn)->format('H:i:s');
             $statusIn = 'normal';
-            if ($clockIn < '08:30:00') {
-                $statusIn = 'early';
-            } elseif ($clockIn > '09:00:00') {
+            if ($clockIn > '09:00:00') {
                 $statusIn = ($attendance->attendance_type === 'kantor') ? 'late' : 'normal';
             }
             $attendance->clock_in = $clockIn;

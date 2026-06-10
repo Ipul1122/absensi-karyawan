@@ -21,28 +21,18 @@ class SalesVisitController extends Controller
             'longitude' => 'required|string',
             'photo' => 'required|string', // base64 string
             'notes' => 'nullable|string',
+            'visit_type' => 'nullable|string|in:sales,client',
         ]);
 
         $user = $request->user();
         $today = Carbon::today()->toDateString();
-
-        // 1. Verify employee has checked in today
-        $attendance = Attendance::where('user_id', $user->id)
-            ->where('date', $today)
-            ->first();
-
-        if (!$attendance || !$attendance->clock_in) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal melaporkan kunjungan! Anda harus melakukan absen masuk (check-in) terlebih dahulu hari ini.'
-            ], 422);
-        }
+        $visitType = $request->input('visit_type', 'sales');
 
         try {
-            // 2. Save photo
+            // Save photo
             $photoPath = $this->saveBase64Image($request->photo, 'visit_' . $user->id);
 
-            // 3. Create record
+            // Create record
             $visit = SalesVisit::create([
                 'user_id' => $user->id,
                 'date' => $today,
@@ -52,18 +42,19 @@ class SalesVisitController extends Controller
                 'longitude' => $request->longitude,
                 'photo_path' => $photoPath,
                 'notes' => $request->notes,
+                'visit_type' => $visitType,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Kunjungan sales berhasil dilaporkan!',
+                'message' => 'Kunjungan berhasil dilaporkan!',
                 'data' => $visit
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal memproses kunjungan sales: ' . $e->getMessage()
+                'message' => 'Gagal memproses laporan kunjungan: ' . $e->getMessage()
             ], 500);
         }
     }

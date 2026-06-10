@@ -60,7 +60,7 @@ export default function RekapAbsensi({
   officeLatitude = '-6.2088',
   officeLongitude = '106.8456',
 }: RekapAbsensiProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'visits'>('attendance')
+  const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'sales_visits' | 'client_visits'>('attendance')
 
   // Filter States
   const [search, setSearch] = useState('')
@@ -492,7 +492,7 @@ export default function RekapAbsensi({
           onClick={() => setActiveSubTab('attendance')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
             activeSubTab === 'attendance'
-              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              ? 'bg-gradient-to-r from-red-55 to-orange-55 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
               : 'text-slate-500 hover:text-red-500 border border-transparent'
           }`}
         >
@@ -500,15 +500,26 @@ export default function RekapAbsensi({
           Log Absensi Harian
         </button>
         <button
-          onClick={() => setActiveSubTab('visits')}
+          onClick={() => setActiveSubTab('sales_visits')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-            activeSubTab === 'visits'
-              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+            activeSubTab === 'sales_visits'
+              ? 'bg-gradient-to-r from-red-55 to-orange-55 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
               : 'text-slate-500 hover:text-red-500 border border-transparent'
           }`}
         >
           <Compass className="w-4.5 h-4.5" />
           Kunjungan Lapangan / Sales
+        </button>
+        <button
+          onClick={() => setActiveSubTab('client_visits')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+            activeSubTab === 'client_visits'
+              ? 'bg-gradient-to-r from-red-55 to-orange-55 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              : 'text-slate-500 hover:text-red-500 border border-transparent'
+          }`}
+        >
+          <Compass className="w-4.5 h-4.5" />
+          Kunjungan Klien
         </button>
       </div>
 
@@ -862,6 +873,16 @@ export default function RekapAbsensi({
         officeLongitude={officeLongitude}
       />
         </section>
+      ) : activeSubTab === 'sales_visits' ? (
+        <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
+          <SalesVisitsLog 
+            token={token} 
+            formatDate={formatDate} 
+            officeLatitude={officeLatitude} 
+            officeLongitude={officeLongitude} 
+            visitType="sales"
+          />
+        </section>
       ) : (
         <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
           <SalesVisitsLog 
@@ -869,6 +890,7 @@ export default function RekapAbsensi({
             formatDate={formatDate} 
             officeLatitude={officeLatitude} 
             officeLongitude={officeLongitude} 
+            visitType="client"
           />
         </section>
       )}

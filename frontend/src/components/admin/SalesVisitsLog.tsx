@@ -20,6 +20,7 @@ interface Visit {
   longitude: string
   photo_path: string
   notes?: string | null
+  visit_type?: string | null
   created_at: string
   user: User
 }
@@ -29,13 +30,15 @@ interface SalesVisitsLogProps {
   formatDate: (d: string) => string
   officeLatitude?: string
   officeLongitude?: string
+  visitType?: 'sales' | 'client'
 }
 
 export default function SalesVisitsLog({ 
   token, 
   formatDate,
   officeLatitude = '-6.2088',
-  officeLongitude = '106.8456'
+  officeLongitude = '106.8456',
+  visitType = 'sales'
 }: SalesVisitsLogProps) {
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
@@ -79,7 +82,17 @@ export default function SalesVisitsLog({
     setCurrentPage(1)
   }, [search, filterDate, itemsPerPage])
 
+  const isClient = visitType === 'client'
+  const titleText = isClient ? 'Kunjungan Klien' : 'Kunjungan Lapangan / Sales'
+  const subtitleText = isClient 
+    ? 'Monitoring rute kunjungan klien secara realtime.' 
+    : 'Monitoring rute kunjungan klien dan laporan lapangan secara realtime.'
+  const userCountLabel = isClient ? 'Karyawan Aktif' : 'Sales Aktif'
+  const exportFilename = isClient ? 'Rekap_Kunjungan_Klien' : 'Rekap_Kunjungan_Sales'
+
   const filteredVisits = visits.filter(visit => {
+    const matchesType = (visit.visit_type || 'sales') === visitType
+
     const matchesSearch = 
       !search ||
       visit.user.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -88,7 +101,7 @@ export default function SalesVisitsLog({
 
     const matchesDate = !filterDate || visit.date === filterDate
 
-    return matchesSearch && matchesDate
+    return matchesType && matchesSearch && matchesDate
   })
 
   // Pagination Logic
@@ -166,7 +179,7 @@ export default function SalesVisitsLog({
     const htmlContent = `
       <html>
         <head>
-          <title>Rekap Laporan Kunjungan Sales</title>
+          <title>Rekap Laporan ${titleText}</title>
           <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; padding: 25px; line-height: 1.5; }
             h1 { text-align: center; color: #1e293b; margin-bottom: 5px; font-size: 20px; font-weight: 800; }
@@ -181,7 +194,7 @@ export default function SalesVisitsLog({
           </style>
         </head>
         <body>
-          <h1>Rekap Laporan Kunjungan Lapangan / Sales</h1>
+          <h1>Rekap Laporan ${titleText}</h1>
           <h3>Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</h3>
           
           <table>
@@ -239,7 +252,7 @@ export default function SalesVisitsLog({
         </style>
       </head>
       <body>
-        <h2>Rekap Kunjungan Lapangan / Sales</h2>
+        <h2>Rekap ${titleText}</h2>
         <table>
           <thead>
             <tr>
@@ -290,7 +303,7 @@ export default function SalesVisitsLog({
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `Rekap_Kunjungan_Sales_${new Date().toISOString().split('T')[0]}.xls`
+    link.download = `${exportFilename}_${new Date().toISOString().split('T')[0]}.xls`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -301,8 +314,8 @@ export default function SalesVisitsLog({
       {/* Header Panel */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-bold text-slate-800">Log Kunjungan Sales / Lapangan</h3>
-          <p className="text-xs text-slate-500 font-medium">Monitoring rute kunjungan klien dan laporan lapangan secara realtime.</p>
+          <h3 className="text-lg font-bold text-slate-800">Log {titleText}</h3>
+          <p className="text-xs text-slate-500 font-medium">{subtitleText}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -348,7 +361,7 @@ export default function SalesVisitsLog({
             <Search className="absolute inset-y-0 left-0 pl-3 w-4.5 h-4.5 my-auto text-slate-400" />
             <input
               type="text"
-              placeholder="Nama sales, email, atau klien..."
+              placeholder={isClient ? "Nama karyawan, email, atau klien..." : "Nama sales, email, atau klien..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all text-xs font-semibold shadow-sm"
@@ -411,7 +424,7 @@ export default function SalesVisitsLog({
 
         <div className="bg-gradient-to-br from-red-50 to-orange-50/50 border border-orange-100 p-5 rounded-2xl flex items-center justify-between shadow-sm">
           <div>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand font-semibold">Sales Aktif</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand font-semibold">{userCountLabel}</p>
             <p className="text-2xl font-extrabold text-slate-800 mt-1 font-quicksand">
               {new Set(filteredVisits.map(v => v.user_id)).size}
             </p>

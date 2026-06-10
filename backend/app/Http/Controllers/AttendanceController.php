@@ -133,6 +133,7 @@ class AttendanceController extends Controller
                     'longitude' => $request->longitude,
                     'photo_path' => $photoPath,
                     'notes' => 'Absen Masuk Pertama Kali (' . ($attendanceType === 'client' ? 'Kunjungan Klien' : 'Kunjungan Lapangan') . ')',
+                    'visit_type' => $attendanceType === 'client' ? 'client' : 'sales',
                 ]);
             }
 
@@ -382,6 +383,7 @@ class AttendanceController extends Controller
                 'longitude' => $longitude,
                 'photo_path' => $photoPath ?: '',
                 'notes' => 'Absen Masuk Manual oleh Admin',
+                'visit_type' => $request->attendance_type === 'client' ? 'client' : 'sales',
             ]);
         }
 

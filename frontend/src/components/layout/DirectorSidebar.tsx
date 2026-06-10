@@ -8,7 +8,8 @@ import {
   Wallet,
   Coins,
   ChevronRight,
-  Crown
+  Crown,
+  Clock
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -31,6 +32,7 @@ const menuItems = [
   { to: '/director/gaji', label: 'Persetujuan Gaji', icon: Wallet, description: 'Penyesuaian kompensasi' },
   { to: '/director/payroll', label: 'Persetujuan Payroll', icon: Coins, description: 'Rollout gaji bulanan' },
   { to: '/director/operasional', label: 'Persetujuan Operasional', icon: FileCheck, description: 'Cuti, lembur & klaim' },
+  { to: '/director/log-kehadiran', label: 'Log Kehadiran', icon: Clock, description: 'Aktivitas absensi staf' },
 ]
 
 export default function DirectorSidebar({ user, onLogout, onClose }: DirectorSidebarProps) {

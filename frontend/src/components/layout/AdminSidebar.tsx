@@ -1,10 +1,12 @@
-import { NavLink } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { 
   LogOut, 
   Users, 
   ShieldCheck, 
   LayoutDashboard, 
   ChevronRight,
+  ChevronDown,
   Clock,
   CalendarDays,
   Package,
@@ -12,7 +14,8 @@ import {
   Settings,
   Gift,
   Coins,
-  Wallet
+  Wallet,
+  ClipboardList
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -30,17 +33,89 @@ interface AdminSidebarProps {
 }
 
 export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarProps) {
+  const location = useLocation()
+  
+  const [isDataKaryawanOpen, setIsDataKaryawanOpen] = useState(() => {
+    return (
+      location.pathname === '/admin/akunKaryawan' ||
+      location.pathname === '/admin/rekapAbsensi'
+    )
+  })
+
+  const [isOperasionalOpen, setIsOperasionalOpen] = useState(() => {
+    return [
+      '/admin/cuti',
+      '/admin/inventaris',
+      '/admin/reimbursement',
+      '/admin/bonus',
+      '/admin/lembur'
+    ].includes(location.pathname)
+  })
+
+  const [isGajiOpen, setIsGajiOpen] = useState(() => {
+    return [
+      '/admin/payroll-config',
+      '/admin/payroll'
+    ].includes(location.pathname)
+  })
+
+  useEffect(() => {
+    if (
+      location.pathname === '/admin/akunKaryawan' ||
+      location.pathname === '/admin/rekapAbsensi'
+    ) {
+      setIsDataKaryawanOpen(true)
+    }
+    if (
+      [
+        '/admin/cuti',
+        '/admin/inventaris',
+        '/admin/reimbursement',
+        '/admin/bonus',
+        '/admin/lembur'
+      ].includes(location.pathname)
+    ) {
+      setIsOperasionalOpen(true)
+    }
+    if (
+      [
+        '/admin/payroll-config',
+        '/admin/payroll'
+      ].includes(location.pathname)
+    ) {
+      setIsGajiOpen(true)
+    }
+  }, [location.pathname])
+
   const menuItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/admin/akunKaryawan', label: 'Karyawan', icon: Users },
-    { to: '/admin/rekapAbsensi', label: 'Kehadiran', icon: Clock },
-    { to: '/admin/cuti', label: 'Cuti', icon: CalendarDays },
-    { to: '/admin/inventaris', label: 'Inventaris', icon: Package },
-    { to: '/admin/reimbursement', label: 'Reimbursement', icon: ReceiptText },
-    { to: '/admin/bonus', label: 'Bonus Karyawan', icon: Gift },
-    { to: '/admin/lembur', label: 'Lembur Karyawan', icon: Clock },
-    { to: '/admin/payroll-config', label: 'Setelan Gaji', icon: Wallet },
-    { to: '/admin/payroll', label: 'Kelola Payroll', icon: Coins },
+    {
+      label: 'Data Karyawan',
+      icon: Users,
+      children: [
+        { to: '/admin/akunKaryawan', label: 'Akun', icon: Users },
+        { to: '/admin/rekapAbsensi', label: 'Rekap Absensi', icon: Clock },
+      ]
+    },
+    {
+      label: 'Operasional',
+      icon: ClipboardList,
+      children: [
+        { to: '/admin/cuti', label: 'Cuti', icon: CalendarDays },
+        { to: '/admin/inventaris', label: 'Inventaris', icon: Package },
+        { to: '/admin/reimbursement', label: 'Reimburse', icon: ReceiptText },
+        { to: '/admin/bonus', label: 'Bonus', icon: Gift },
+        { to: '/admin/lembur', label: 'Lembur', icon: Clock },
+      ]
+    },
+    {
+      label: 'Gaji',
+      icon: Wallet,
+      children: [
+        { to: '/admin/payroll-config', label: 'Setelan Gaji', icon: Wallet },
+        { to: '/admin/payroll', label: 'Bayar Gaji', icon: Coins },
+      ]
+    },
     { to: '/admin/lokasiKantor', label: 'Pengaturan', icon: Settings },
   ]
 
@@ -72,11 +147,83 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
         {/* Menu Items */}
         <nav className="space-y-1 font-quicksand">
           {menuItems.map((item) => {
+            if (item.children) {
+              const IconComponent = item.icon
+              const isChildActive = item.children.some(child => location.pathname === child.to)
+              
+              let isOpen = false
+              let toggleOpen = () => {}
+              
+              if (item.label === 'Data Karyawan') {
+                isOpen = isDataKaryawanOpen
+                toggleOpen = () => setIsDataKaryawanOpen(!isDataKaryawanOpen)
+              } else if (item.label === 'Operasional') {
+                isOpen = isOperasionalOpen
+                toggleOpen = () => setIsOperasionalOpen(!isOperasionalOpen)
+              } else if (item.label === 'Gaji') {
+                isOpen = isGajiOpen
+                toggleOpen = () => setIsGajiOpen(!isGajiOpen)
+              }
+              
+              return (
+                <div key={item.label} className="space-y-1">
+                  <button
+                    onClick={toggleOpen}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group border border-transparent ${
+                      isChildActive
+                        ? 'text-red-600 bg-orange-50/30'
+                        : 'text-slate-600 hover:text-red-600 hover:bg-orange-50/40'
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <IconComponent className={`w-4.5 h-4.5 transition-colors ${isChildActive ? 'text-red-600' : 'text-slate-400 group-hover:text-red-500'}`} />
+                      {item.label}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-red-600' : 'text-slate-400 group-hover:text-red-500'}`} />
+                  </button>
+                  
+                  <div 
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      isOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+                    }`}
+                  >
+                    <div className="pl-6 border-l border-orange-100 ml-6 mt-1 space-y-1">
+                      {item.children.map((child) => {
+                        const ChildIcon = child.icon
+                        return (
+                          <NavLink
+                            key={child.to}
+                            to={child.to}
+                            onClick={handleLinkClick}
+                            className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
+                              isActive 
+                                ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md shadow-red-500/15' 
+                                : 'text-slate-600 hover:text-red-600 hover:bg-orange-50/40 border border-transparent'
+                            }`}
+                          >
+                            {({ isActive }) => (
+                              <>
+                                <span className="flex items-center gap-2.5">
+                                  <ChildIcon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`} />
+                                  {child.label}
+                                </span>
+                                <ChevronRight className={`w-3.5 h-3.5 transition-all ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
+                              </>
+                            )}
+                          </NavLink>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
             const IconComponent = item.icon
             return (
               <NavLink
                 key={item.to}
-                to={item.to}
+                to={item.to!}
                 onClick={handleLinkClick}
                 className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
                   isActive 

@@ -99,6 +99,13 @@ class BonusController extends Controller
     {
         $bonus = Bonus::findOrFail($id);
 
+        if ($bonus->status !== 'pending') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Bonus yang sudah diproses (disetujui/ditolak) tidak dapat diubah lagi.'
+            ], 422);
+        }
+
         $request->validate([
             'bonus_amount' => 'required|numeric|min:1',
             'bonus_date' => 'required|date',
@@ -139,6 +146,13 @@ class BonusController extends Controller
     public function destroy($id)
     {
         $bonus = Bonus::findOrFail($id);
+
+        if ($bonus->status !== 'pending') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Bonus yang sudah diproses (disetujui/ditolak) tidak dapat dihapus.'
+            ], 422);
+        }
 
         try {
             $bonus->delete();

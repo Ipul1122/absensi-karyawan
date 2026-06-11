@@ -501,6 +501,14 @@ class AttendanceController extends Controller
     public function directorApprove($id)
     {
         $attendance = Attendance::findOrFail($id);
+
+        if ($attendance->approval_status !== 'pending') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Koreksi absensi ini sudah diproses sebelumnya.'
+            ], 422);
+        }
+
         $attendance->update(['approval_status' => 'approved']);
         return response()->json(['status' => 'success', 'message' => 'Koreksi absensi berhasil disetujui.']);
     }
@@ -508,6 +516,14 @@ class AttendanceController extends Controller
     public function directorReject($id)
     {
         $attendance = Attendance::findOrFail($id);
+
+        if ($attendance->approval_status !== 'pending') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Koreksi absensi ini sudah diproses sebelumnya.'
+            ], 422);
+        }
+
         $attendance->update(['approval_status' => 'rejected']);
         return response()->json(['status' => 'success', 'message' => 'Koreksi absensi ditolak.']);
     }

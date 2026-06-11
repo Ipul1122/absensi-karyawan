@@ -193,7 +193,8 @@ export default function EmployeeClient({
     setVisitsLoading(true)
     try {
       const response = await axios.get('http://localhost:8000/api/sales-visits/today', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        params: { visit_type: 'client' }
       })
       if (response.data.status === 'success') {
         setVisitsList(response.data.data)

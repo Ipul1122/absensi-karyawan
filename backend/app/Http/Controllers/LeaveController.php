@@ -218,6 +218,13 @@ class LeaveController extends Controller
 
         $leave = LeaveRequest::findOrFail($id);
 
+        if ($leave->status !== 'pending_director') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Pengajuan cuti ini belum diverifikasi oleh Admin atau sudah diproses sebelumnya.'
+            ], 422);
+        }
+
         try {
             $leave->update([
                 'status' => 'approved',
@@ -247,6 +254,13 @@ class LeaveController extends Controller
         ]);
 
         $leave = LeaveRequest::findOrFail($id);
+
+        if ($leave->status !== 'pending_director') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Pengajuan cuti ini belum diverifikasi oleh Admin atau sudah diproses sebelumnya.'
+            ], 422);
+        }
 
         try {
             $leave->update([

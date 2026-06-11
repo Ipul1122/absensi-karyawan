@@ -67,10 +67,15 @@ class SalesVisitController extends Controller
         $userId = $request->user()->id;
         $today = Carbon::today()->toDateString();
 
-        $visits = SalesVisit::where('user_id', $userId)
-            ->whereDate('date', $today)
-            ->orderBy('visit_time', 'asc')
-            ->get();
+        $query = SalesVisit::where('user_id', $userId)
+            ->whereDate('date', $today);
+
+        // Filter berdasarkan visit_type jika diberikan (sales atau client)
+        if ($request->has('visit_type') && in_array($request->visit_type, ['sales', 'client'])) {
+            $query->where('visit_type', $request->visit_type);
+        }
+
+        $visits = $query->orderBy('visit_time', 'asc')->get();
 
         return response()->json([
             'status' => 'success',

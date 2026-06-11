@@ -361,7 +361,7 @@ class AttendanceController extends Controller
             'latitude_out' => $clockOut ? $latitude : null,
             'longitude_out' => $clockOut ? $longitude : null,
             'photo_out' => $clockOut ? $photoPath : null,
-            'approval_status' => 'pending',
+            'approval_status' => 'approved',
         ]);
 
         if ($request->attendance_type === 'kunjungan' || $request->attendance_type === 'client') {
@@ -435,7 +435,7 @@ class AttendanceController extends Controller
             $attendance->status_out = null;
         }
 
-        $attendance->approval_status = 'pending';
+        $attendance->approval_status = 'approved';
         $attendance->save();
 
         return response()->json([

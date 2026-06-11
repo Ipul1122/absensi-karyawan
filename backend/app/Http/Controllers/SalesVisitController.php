@@ -68,7 +68,7 @@ class SalesVisitController extends Controller
         $today = Carbon::today()->toDateString();
 
         $visits = SalesVisit::where('user_id', $userId)
-            ->where('date', $today)
+            ->whereDate('date', $today)
             ->orderBy('visit_time', 'asc')
             ->get();
 
@@ -90,7 +90,7 @@ class SalesVisitController extends Controller
         }
 
         if ($request->has('date')) {
-            $query->where('date', $request->date);
+            $query->whereDate('date', $request->date);
         }
 
         $visits = $query->orderBy('date', 'desc')

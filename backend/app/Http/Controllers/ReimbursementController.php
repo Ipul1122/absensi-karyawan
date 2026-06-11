@@ -18,7 +18,11 @@ class ReimbursementController extends Controller
         $query = Reimbursement::where('user_id', $user->id);
 
         if ($request->has('status') && $request->status != 'all') {
-            $query->where('status', $request->status);
+            if ($request->status === 'pending') {
+                $query->whereIn('status', ['pending', 'pending_director']);
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         $reimbursements = $query->orderBy('expense_date', 'desc')

@@ -343,6 +343,13 @@ class OvertimeController extends Controller
     {
         $overtime = Overtime::findOrFail($id);
 
+        if ($overtime->status !== 'pending_director') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Pengajuan lembur ini belum diverifikasi oleh Admin atau sudah diproses sebelumnya.'
+            ], 400);
+        }
+
         try {
             $overtime->update([
                 'status' => 'approved',
@@ -368,6 +375,13 @@ class OvertimeController extends Controller
     public function directorReject(Request $request, $id)
     {
         $overtime = Overtime::findOrFail($id);
+
+        if ($overtime->status !== 'pending_director') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Pengajuan lembur ini belum diverifikasi oleh Admin atau sudah diproses sebelumnya.'
+            ], 400);
+        }
 
         $request->validate([
             'admin_notes' => 'required|string|max:1000'

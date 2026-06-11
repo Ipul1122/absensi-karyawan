@@ -190,7 +190,15 @@ class PayrollController extends Controller
                     $overlapEnd = $leaveEnd->min($endOfMonth);
                     
                     if ($overlapStart <= $overlapEnd) {
-                        $daysLeave += $overlapStart->diffInDays($overlapEnd) + 1;
+                        // Hitung hanya hari kerja (Senin–Sabtu), skip hari Minggu
+                        // agar konsisten dengan kalkulasi workingDaysInMonth
+                        $tempLeaveDate = $overlapStart->copy();
+                        while ($tempLeaveDate->lte($overlapEnd)) {
+                            if ($tempLeaveDate->dayOfWeek !== Carbon::SUNDAY) {
+                                $daysLeave++;
+                            }
+                            $tempLeaveDate->addDay();
+                        }
                     }
                 }
 

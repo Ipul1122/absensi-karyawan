@@ -100,6 +100,24 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
 
   const fmt = (num: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num)
 
+  const formatTime = (timeString: string) => {
+    if (!timeString) return ''
+    const cleanTime = timeString.substring(0, 5)
+    const [hourStr] = cleanTime.split(':')
+    const hour = parseInt(hourStr, 10)
+    
+    let period = 'malam'
+    if (hour >= 4 && hour < 11) {
+      period = 'pagi'
+    } else if (hour >= 11 && hour < 15) {
+      period = 'siang'
+    } else if (hour >= 15 && hour < 18) {
+      period = 'sore'
+    }
+    
+    return `${cleanTime} ${period}`
+  }
+
   const pendingLeaves = leaves.filter(l => l.status === 'pending_director')
   const pendingOvertimes = overtimes.filter(o => o.status === 'pending_director')
   const pendingReimbursements = reimbursements.filter(r => r.status === 'pending_director')
@@ -324,7 +342,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                         </td>
                         <td className="py-4 px-6">
                           <p className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-slate-300" /> {r.start_time.substring(0, 5)} – {r.end_time.substring(0, 5)}
+                            <Clock className="w-3 h-3 text-slate-300" /> {formatTime(r.start_time)} – {formatTime(r.end_time)}
                           </p>
                         </td>
                         <td className="py-4 px-6 max-w-[180px]">

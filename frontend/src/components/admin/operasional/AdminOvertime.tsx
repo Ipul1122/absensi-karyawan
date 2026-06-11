@@ -251,7 +251,21 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
   }
 
   const formatTime = (timeString: string) => {
-    return timeString.substring(0, 5)
+    if (!timeString) return ''
+    const cleanTime = timeString.substring(0, 5)
+    const [hourStr] = cleanTime.split(':')
+    const hour = parseInt(hourStr, 10)
+    
+    let period = 'malam'
+    if (hour >= 4 && hour < 11) {
+      period = 'pagi'
+    } else if (hour >= 11 && hour < 15) {
+      period = 'siang'
+    } else if (hour >= 15 && hour < 18) {
+      period = 'sore'
+    }
+    
+    return `${cleanTime} ${period}`
   }
 
   const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
@@ -475,8 +489,8 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
             <td><b>${item.user.name}</b></td>
             <td>${item.user.email}</td>
             <td>${item.date}</td>
-            <td>${item.start_time}</td>
-            <td>${item.end_time}</td>
+            <td>${formatTime(item.start_time)}</td>
+            <td>${formatTime(item.end_time)}</td>
             <td>${item.duration}</td>
             <td>${item.reason}</td>
             <td>${statusText}</td>

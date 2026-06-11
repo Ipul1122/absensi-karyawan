@@ -674,7 +674,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
       )}
 
       {/* Main Area Wrapper */}
-      <div className="flex-grow flex flex-col min-h-screen">
+      <div className="flex-grow flex flex-col min-h-screen min-w-0">
         
         {/* Desktop Navbar Header */}
         <AdminNavbar user={user} title={routeInfo.title} />

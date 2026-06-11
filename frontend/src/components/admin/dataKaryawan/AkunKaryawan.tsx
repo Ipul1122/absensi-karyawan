@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+  import { useState, useRef } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import {
@@ -47,6 +47,8 @@ interface EmployeeProfile {
   gender: string | null
   division: string | null
   cv: string | null
+  no_rekening: string | null
+  company: string | null
   created_at: string
 }
 
@@ -195,6 +197,8 @@ export default function AkunKaryawan({
       if (editProfile.gender) formData.append('gender', editProfile.gender)
       const finalDivision = divisionSelect === '__custom__' ? divisionCustom.trim() : divisionSelect
       if (finalDivision) formData.append('division', finalDivision)
+      if (editProfile.no_rekening) formData.append('no_rekening', editProfile.no_rekening)
+      if (editProfile.company) formData.append('company', editProfile.company)
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
 
@@ -395,8 +399,8 @@ export default function AkunKaryawan({
           MODAL: EDIT BIODATA
           =========================== */}
       {showEditBioModal && editProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg my-8 overflow-hidden animate-zoom-in">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg my-8 overflow-hidden animate-zoom-in flex flex-col">
             <div className="h-1 bg-gradient-to-r from-red-500 via-orange-500 to-orange-400" />
             <div className="p-6 space-y-5">
               <div className="flex items-start justify-between">
@@ -547,6 +551,31 @@ export default function AkunKaryawan({
                       onChange={e => setEditProfile(p => p ? { ...p, address: e.target.value } : p)}
                       placeholder="Alamat lengkap karyawan..."
                       className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-3 outline-none transition-all text-xs font-medium font-quicksand focus:ring-2 focus:ring-red-100 resize-none" />
+                  </div>
+                </div>
+
+                {/* No. Rekening */}
+                <div>
+                  <label className={labelClass}>No. Rekening</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Hash className="w-3.5 h-3.5" /></div>
+                    <input type="text" value={editProfile.no_rekening ?? ''}
+                      onChange={e => setEditProfile(p => p ? { ...p, no_rekening: e.target.value } : p)}
+                      placeholder="Nomor rekening bank..." className={inputClass} />
+                  </div>
+                </div>
+                {/* Perusahaan */}
+                <div>
+                  <label className={labelClass}>Perusahaan</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Building2 className="w-3.5 h-3.5" /></div>
+                    <select value={editProfile.company ?? ''}
+                      onChange={e => setEditProfile(p => p ? { ...p, company: e.target.value } : p)}
+                      className={`${inputClass} appearance-none cursor-pointer`}>
+                      <option value="">-- Pilih Perusahaan --</option>
+                      <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
+                      <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
+                    </select>
                   </div>
                 </div>
 

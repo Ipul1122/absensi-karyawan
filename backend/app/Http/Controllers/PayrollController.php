@@ -131,7 +131,26 @@ class PayrollController extends Controller
             });
         $holidaysCount = $holidays->count();
 
-        $employees = User::where('role', 'employee')->get();
+        $employees = User::where('role', 'employee')
+            ->with([
+                'salaryConfiguration',
+                'attendances' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                          ->where('approval_status', 'approved');
+                },
+                'leaveRequests' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                              $q->whereBetween('start_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                                ->orWhereBetween('end_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                                ->orWhere(function ($sub) use ($startOfMonth, $endOfMonth) {
+                                    $sub->where('start_date', '<=', $startOfMonth->toDateString())
+                                        ->where('end_date', '>=', $endOfMonth->toDateString());
+                                });
+                          });
+                }
+            ])
+            ->get();
 
         if ($employees->isEmpty()) {
             return response()->json([
@@ -147,31 +166,19 @@ class PayrollController extends Controller
 
             foreach ($employees as $employee) {
                 // 1. Hitung total kehadiran (clock_in tidak null) di rentang cut-off yang disetujui
-                $daysPresent = Attendance::where('user_id', $employee->id)
-                    ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-                    ->whereNotNull('clock_in')
-                    ->where('approval_status', 'approved')
+                $daysPresent = $employee->attendances
+                    ->filter(function ($att) {
+                        return !is_null($att->clock_in);
+                    })
                     ->count();
 
                 // 2. Hitung total keterlambatan (status_in = 'late') yang disetujui
-                $daysLate = Attendance::where('user_id', $employee->id)
-                    ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                $daysLate = $employee->attendances
                     ->where('status_in', 'late')
-                    ->where('approval_status', 'approved')
                     ->count();
 
                 // 3. Hitung total hari cuti yang disetujui
-                $leaves = LeaveRequest::where('user_id', $employee->id)
-                    ->where('status', 'approved')
-                    ->where(function($query) use ($startOfMonth, $endOfMonth) {
-                        $query->whereBetween('start_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-                              ->orWhereBetween('end_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-                              ->orWhere(function($subQuery) use ($startOfMonth, $endOfMonth) {
-                                  $subQuery->where('start_date', '<=', $startOfMonth->toDateString())
-                                           ->where('end_date', '>=', $endOfMonth->toDateString());
-                               });
-                    })
-                    ->get();
+                $leaves = $employee->leaveRequests;
 
                 $daysLeave = 0;
                 foreach ($leaves as $leave) {
@@ -196,7 +203,7 @@ class PayrollController extends Controller
                 }
 
                 // 4. Ambil konfigurasi gaji karyawan
-                $config = SalaryConfiguration::where('user_id', $employee->id)->first();
+                $config = $employee->salaryConfiguration;
                 
                 // Jika setelan gaji belum diatur, default ke 4.500.000
                 $baseBasicSalary = $config ? $config->basic_salary : 4500000;

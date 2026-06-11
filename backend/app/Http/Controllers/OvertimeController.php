@@ -231,31 +231,29 @@ class OvertimeController extends Controller
     {
         $activeMonth = $request->input('month', now()->format('Y-m'));
 
+        // Fetch aggregated overtime statistics for this month grouped by user_id
+        $overtimeStats = Overtime::where('date', 'like', $activeMonth . '%')
+            ->select('user_id')
+            ->selectRaw("SUM(CASE WHEN status = 'approved' THEN duration ELSE 0 END) as approved_hours")
+            ->selectRaw("SUM(CASE WHEN status IN ('pending', 'pending_director') THEN duration ELSE 0 END) as pending_hours")
+            ->selectRaw("COUNT(*) as request_count")
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
+
         // Fetch all employees
         $users = \App\Models\User::where('role', 'employee')->get();
 
-        $recap = $users->map(function ($user) use ($activeMonth) {
-            $approvedHours = Overtime::where('user_id', $user->id)
-                ->where('status', 'approved')
-                ->where('date', 'like', $activeMonth . '%')
-                ->sum('duration');
-
-            $pendingHours = Overtime::where('user_id', $user->id)
-                ->whereIn('status', ['pending', 'pending_director'])
-                ->where('date', 'like', $activeMonth . '%')
-                ->sum('duration');
-
-            $requestCount = Overtime::where('user_id', $user->id)
-                ->where('date', 'like', $activeMonth . '%')
-                ->count();
+        $recap = $users->map(function ($user) use ($overtimeStats) {
+            $stats = $overtimeStats->get($user->id);
 
             return [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'approved_hours' => round($approvedHours, 2),
-                'pending_hours' => round($pendingHours, 2),
-                'request_count' => $requestCount
+                'approved_hours' => round($stats ? $stats->approved_hours : 0, 2),
+                'pending_hours' => round($stats ? $stats->pending_hours : 0, 2),
+                'request_count' => $stats ? $stats->request_count : 0
             ];
         });
 

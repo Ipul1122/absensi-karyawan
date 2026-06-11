@@ -32,6 +32,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the attendances for the user.
+     */
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    /**
      * Get the leave requests for the user.
      */
     public function leaveRequests()

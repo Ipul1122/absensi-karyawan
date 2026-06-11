@@ -205,9 +205,12 @@ class PayrollController extends Controller
                 // 4. Ambil konfigurasi gaji karyawan
                 $config = $employee->salaryConfiguration;
                 
-                // Jika setelan gaji belum diatur, default ke 4.500.000
+                // Jika setelan gaji belum diatur, gunakan nilai default
                 $baseBasicSalary = $config ? $config->basic_salary : 4500000;
-                $deductDailyLate = $config ? $config->deduction_late_daily : 0;
+                $allowanceMealDaily = $config ? $config->allowance_meal_daily : 20000;
+                $allowanceTransportDaily = $config ? $config->allowance_transport_daily : 15000;
+                $deductDailyLate = $config ? $config->deduction_late_daily : 25000;
+                $deductAbsenceDaily = $config ? $config->deduction_absence_daily : 100000;
                 $deductFixed = $config ? $config->deduction_fixed : 0;
 
                 // Hitung total hari kerja efektif (Senin - Sabtu) di rentang cut-off tersebut
@@ -220,20 +223,20 @@ class PayrollController extends Controller
                     $tempDate->addDay();
                 }
 
-                // Gaji Pokok bersifat Bulanan Tetap (Flat 100%)
-                $proratedBasicSalary = $baseBasicSalary;
-
                 // 5. Hitung total tunjangan & potongan
-                $allowanceMeal = $config ? ($daysPresent * $config->allowance_meal_daily) : 0;
-                $allowanceTransport = $config ? ($daysPresent * $config->allowance_transport_daily) : 0;
+                $allowanceMeal = $daysPresent * $allowanceMealDaily;
+                $allowanceTransport = $daysPresent * $allowanceTransportDaily;
                 $allowancePosition = $config ? $config->allowance_position : 0;
                 $allowanceFixed = $config ? $config->allowance_fixed : 0;
                 $deductionLate = $daysLate * $deductDailyLate;
                 
+                // Gaji Pokok murni setelah dikurangi tunjangan makan & transport (penggabungan)
+                $proratedBasicSalary = max(0, $baseBasicSalary - $allowanceMeal - $allowanceTransport);
+                
                 // Hitung total potongan tidak masuk (mangkir)
                 // Mangkir = Hari kerja efektif - Kehadiran - Cuti - Hari Libur Nasional
                 $daysAbsent = max(0, $workingDaysInMonth - $daysPresent - $daysLeave - $holidaysCount);
-                $deductionAbsence = $config ? ($daysAbsent * $config->deduction_absence_daily) : 0;
+                $deductionAbsence = $daysAbsent * $deductAbsenceDaily;
                 
                 // Total Gaji Bersih
                 $netSalary = $proratedBasicSalary + $allowanceMeal + $allowanceTransport + $allowancePosition + $allowanceFixed - $deductionLate - $deductFixed - $deductionAbsence;

@@ -325,7 +325,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <td class="text-right" style="font-weight: bold; color: #0f172a;">${formatRupiah(record.net_salary)}</td>
                   <td class="text-center">
                     <span class="badge badge-${record.status}">
-                      ${record.status === 'paid' ? 'Lunas' : record.status === 'unpaid' ? 'Belum Bayar' : 'Draft'}
+                      ${record.status === 'paid' ? 'Lunas' : record.status === 'unpaid' ? 'Belum Bayar' : record.status === 'pending_approval' ? 'Menunggu Direktur' : 'Draft'}
                     </span>
                   </td>
                 </tr>
@@ -427,7 +427,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           <td class="text-right">${record.deduction_absence}</td>
           <td class="text-right">${record.deduction_fixed}</td>
           <td class="text-right" style="font-weight: bold;">${record.net_salary}</td>
-          <td class="text-center">${record.status === 'paid' ? 'Paid' : record.status === 'unpaid' ? 'Unpaid' : 'Draft'}</td>
+          <td class="text-center">${record.status === 'paid' ? 'Paid' : record.status === 'unpaid' ? 'Unpaid' : record.status === 'pending_approval' ? 'Pending Approval' : 'Draft'}</td>
         </tr>
       `
     })
@@ -646,6 +646,46 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           Swal.fire({
             title: 'Gagal',
             text: err.response?.data?.message || 'Gagal mengajukan payroll.',
+            icon: 'error'
+          })
+        }
+      }
+    })
+  }
+
+  const handleMarkPaid = (record: PayrollRecord) => {
+    Swal.fire({
+      title: 'Tandai Gaji Lunas?',
+      html: `Konfirmasi pembayaran gaji <strong>${record.user.name}</strong> sebesar <strong>${formatRupiah(record.net_salary)}</strong> untuk periode ${getIndonesianMonthLabel(record.period_month)}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#475569',
+      confirmButtonText: 'Ya, Tandai Lunas',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await axios.put(
+            `http://localhost:8000/api/admin/payroll/${record.id}/pay`,
+            { status: 'paid' },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+          if (response.data.status === 'success') {
+            Swal.fire({
+              title: 'Berhasil!',
+              text: 'Gaji karyawan berhasil ditandai lunas (Paid).',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false
+            })
+            fetchPayrolls()
+          }
+        } catch (err: any) {
+          console.error(err)
+          Swal.fire({
+            title: 'Gagal',
+            text: err.response?.data?.message || 'Gagal menandai gaji sebagai lunas.',
             icon: 'error'
           })
         }
@@ -902,7 +942,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
         <div className="flex items-start gap-3 bg-amber-50/60 border border-amber-100 p-4 rounded-2xl text-xs text-amber-800 leading-relaxed font-semibold">
           <Info className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
           <div>
-            <strong>Petunjuk Perhitungan:</strong> Tunjangan transport harian didasarkan pada total check-in sukses. Potongan keterlambatan dihitung otomatis jika jam check-in melewati pukul 09:00:00. Potongan tidak masuk dihitung per hari ketidakhadiran tanpa cuti. Hasil generate berstatus <strong>Draft</strong> dapat Anda sesuaikan sebelum ditandai sebagai <strong>Paid (Lunas)</strong>.
+            <strong>Petunjuk Perhitungan:</strong> Periode mengikuti <strong>bulan kalender penuh</strong> (tanggal 1 s.d akhir bulan). Kehadiran dihitung dari absen yang disetujui (mandiri/kantor, kunjungan, klien). Tunjangan harian mengikuti total check-in sukses. Potongan keterlambatan jika check-in kantor setelah 09:00:00. Hasil generate berstatus <strong>Draft</strong> dapat disesuaikan sebelum diajukan ke Direktur.
           </div>
         </div>
 
@@ -1089,6 +1129,15 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                               title="Ajukan ke Direktur"
                             >
                               Ajukan
+                            </button>
+                          )}
+                          {record.status === 'unpaid' && (
+                            <button
+                              onClick={() => handleMarkPaid(record)}
+                              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 text-emerald-700 rounded-lg font-bold transition-all cursor-pointer font-quicksand"
+                              title="Tandai Sudah Dibayar"
+                            >
+                              Bayar
                             </button>
                           )}
                           {record.status !== 'paid' && record.status !== 'pending_approval' && (
@@ -1479,10 +1528,22 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <strong>Email Karyawan:</strong> {selectedSlip.user.email}
                 </div>
                 <div>
-                  <strong>Status Pembayaran:</strong> <span className="badge">Lunas</span>
+                  <strong>Status Pembayaran:</strong>{' '}
+                  <span className="badge">
+                    {selectedSlip.status === 'paid'
+                      ? 'Lunas'
+                      : selectedSlip.status === 'unpaid'
+                        ? 'Belum Dibayar'
+                        : selectedSlip.status === 'pending_approval'
+                          ? 'Menunggu Direktur'
+                          : 'Draft'}
+                  </span>
                 </div>
                 <div>
-                  <strong>Tanggal Proses:</strong> {new Date(selectedSlip.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  <strong>Tanggal Proses:</strong>{' '}
+                  {selectedSlip.status === 'paid' && selectedSlip.paid_at
+                    ? new Date(selectedSlip.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                    : new Date(selectedSlip.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
               </div>
 

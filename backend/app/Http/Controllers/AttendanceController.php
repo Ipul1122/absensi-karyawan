@@ -100,6 +100,7 @@ class AttendanceController extends Controller
                     'photo_in' => $photoPath,
                     'notes_in' => $request->notes,
                     'status_in' => $status,
+                    'approval_status' => 'approved',
                 ]);
                 $attendance = $existing;
             } else {
@@ -113,6 +114,7 @@ class AttendanceController extends Controller
                     'photo_in' => $photoPath,
                     'notes_in' => $request->notes,
                     'status_in' => $status,
+                    'approval_status' => 'approved',
                 ]);
             }
 

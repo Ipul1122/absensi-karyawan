@@ -434,6 +434,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               element={
                 <EmployeePayroll
                   token={token}
+                  user={user}
                 />
               } 
             />

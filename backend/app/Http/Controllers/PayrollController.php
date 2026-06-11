@@ -15,6 +15,28 @@ use Illuminate\Support\Facades\DB;
 class PayrollController extends Controller
 {
     /**
+     * Rentang periode payroll: tanggal 1 s.d akhir bulan kalender (sesuai label YYYY-MM).
+     */
+    private function getPayrollPeriodRange(string $period): array
+    {
+        $start = Carbon::parse($period . '-01')->startOfMonth();
+        $end = Carbon::parse($period . '-01')->endOfMonth();
+
+        return [$start, $end];
+    }
+
+    /**
+     * Absensi yang dihitung untuk payroll (disetujui atau absen mandiri normal).
+     */
+    private function approvedAttendanceQuery($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('approval_status', 'approved')
+              ->orWhereNull('approval_status');
+        });
+    }
+
+    /**
      * Tampilkan konfigurasi gaji untuk semua karyawan.
      */
     public function indexConfigurations(Request $request)
@@ -118,10 +140,8 @@ class PayrollController extends Controller
         ]);
 
         $period = $request->period_month;
-        
-        // Dapatkan range tanggal cut-off (tanggal 4 bulan sebelumnya s.d tanggal 3 bulan terpilih)
-        $endOfMonth = Carbon::parse($period . '-03');
-        $startOfMonth = $endOfMonth->copy()->subMonth()->day(4);
+
+        [$startOfMonth, $endOfMonth] = $this->getPayrollPeriodRange($period);
 
         // Ambil jumlah hari libur nasional (Senin-Sabtu) pada periode ini
         $holidays = Holiday::whereBetween('holiday_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
@@ -135,8 +155,8 @@ class PayrollController extends Controller
             ->with([
                 'salaryConfiguration',
                 'attendances' => function ($query) use ($startOfMonth, $endOfMonth) {
-                    $query->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-                          ->where('approval_status', 'approved');
+                    $this->approvedAttendanceQuery($query)
+                        ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
                 },
                 'leaveRequests' => function ($query) use ($startOfMonth, $endOfMonth) {
                     $query->where('status', 'approved')
@@ -245,27 +265,38 @@ class PayrollController extends Controller
                 }
 
                 // 6. Buat atau perbarui transaksi payroll
+                $existing = Payroll::where('user_id', $employee->id)
+                    ->where('period_month', $period)
+                    ->first();
+
+                // Jangan timpa payroll yang sudah lunas atau sedang menunggu persetujuan direktur
+                if ($existing && in_array($existing->status, ['paid', 'pending_approval'], true)) {
+                    continue;
+                }
+
+                $payrollData = [
+                    'days_present' => $daysPresent,
+                    'days_late' => $daysLate,
+                    'days_leave' => $daysLeave,
+                    'basic_salary' => $proratedBasicSalary,
+                    'allowance_meal' => $allowanceMeal,
+                    'allowance_transport' => $allowanceTransport,
+                    'allowance_fixed' => $allowanceFixed,
+                    'allowance_position' => $allowancePosition,
+                    'deduction_late' => $deductionLate,
+                    'deduction_fixed' => $deductFixed,
+                    'deduction_absence' => $deductionAbsence,
+                    'net_salary' => $netSalary,
+                    'status' => 'draft',
+                    'notes' => "Kalkulasi otomatis. Rentang cut-off: " . $startOfMonth->toDateString() . " s.d " . $endOfMonth->toDateString() . ". Hari kerja efektif: $workingDaysInMonth hari (termasuk $holidaysCount hari libur nasional). Potongan tidak masuk: $daysAbsent hari.",
+                ];
+
                 Payroll::updateOrCreate(
                     [
                         'user_id' => $employee->id,
                         'period_month' => $period
                     ],
-                    [
-                        'days_present' => $daysPresent,
-                        'days_late' => $daysLate,
-                        'days_leave' => $daysLeave,
-                        'basic_salary' => $proratedBasicSalary,
-                        'allowance_meal' => $allowanceMeal,
-                        'allowance_transport' => $allowanceTransport,
-                        'allowance_fixed' => $allowanceFixed,
-                        'allowance_position' => $allowancePosition,
-                        'deduction_late' => $deductionLate,
-                        'deduction_fixed' => $deductFixed,
-                        'deduction_absence' => $deductionAbsence,
-                        'net_salary' => $netSalary,
-                        'status' => 'draft', // default ke draft
-                        'notes' => "Kalkulasi otomatis. Rentang cut-off: " . $startOfMonth->toDateString() . " s.d " . $endOfMonth->toDateString() . ". Hari kerja efektif: $workingDaysInMonth hari (termasuk $holidaysCount hari libur nasional). Potongan tidak masuk: $daysAbsent hari."
-                    ]
+                    $payrollData
                 );
 
                 $generatedCount++;
@@ -297,6 +328,14 @@ class PayrollController extends Controller
         ]);
 
         $payroll = Payroll::findOrFail($id);
+
+        if ($request->status === 'paid' && $payroll->status !== 'unpaid') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Hanya payroll berstatus Belum Dibayar (unpaid) yang dapat ditandai lunas.'
+            ], 422);
+        }
+
         $payroll->status = $request->status;
         
         if ($request->status === 'paid') {
@@ -402,7 +441,8 @@ class PayrollController extends Controller
     public function getEmployeePayrolls(Request $request)
     {
         $userId = $request->user()->id;
-        $query = Payroll::where('user_id', $userId);
+        $query = Payroll::where('user_id', $userId)
+            ->whereIn('status', ['unpaid', 'paid']);
 
         if ($request->filled('period_month')) {
             $query->where('period_month', $request->period_month);

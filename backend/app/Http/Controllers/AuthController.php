@@ -105,6 +105,8 @@ class AuthController extends Controller
                 'gender'          => $user->gender,
                 'division'        => $user->division,
                 'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
+                'no_rekening'     => $user->no_rekening,
+                'company'         => $user->company,
             ]
         ]);
     }

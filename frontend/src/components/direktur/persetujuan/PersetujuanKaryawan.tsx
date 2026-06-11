@@ -429,7 +429,7 @@ export default function PersetujuanKaryawan({ token }: PersetujuanKaryawanProps)
                       { label: 'Jenis Kelamin', value: selectedProfile.gender === 'male' ? 'Laki-laki' : selectedProfile.gender === 'female' ? 'Perempuan' : '-', icon: <User className="w-3 h-3" /> },
                       { label: 'Tanggal Lahir', value: selectedProfile.date_of_birth ? new Date(selectedProfile.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Calendar className="w-3 h-3" /> },
                       { label: 'Tanggal Bergabung', value: selectedProfile.join_date ? new Date(selectedProfile.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Briefcase className="w-3 h-3" /> },
-                      { label: 'Role Pengajuan', value: 'Karyawan', icon: <Shield className="w-3 h-3" /> },
+                      { label: 'Role Pengajuan', value: selectedProfile.division || 'Karyawan', icon: <Shield className="w-3 h-3" /> },
                     ].map(item => (
                       <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <div className="flex items-center gap-1 text-slate-400 mb-1">

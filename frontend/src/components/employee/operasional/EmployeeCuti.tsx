@@ -23,7 +23,7 @@ interface LeaveRequest {
   end_date: string
   reason: string
   image: string | null
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
 }
@@ -278,11 +278,16 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
     })
   }
 
-  const getStatusBadge = (status: 'pending' | 'approved' | 'rejected') => {
+  const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
     const config = {
       pending: {
-        text: 'Menunggu Persetujuan',
+        text: 'Menunggu Persetujuan Admin',
         classes: 'bg-amber-50 text-amber-700 border-amber-200',
+        icon: <Clock className="w-3.5 h-3.5" />
+      },
+      pending_director: {
+        text: 'Menunggu Persetujuan Direktur',
+        classes: 'bg-blue-50 text-blue-700 border-blue-200',
         icon: <Clock className="w-3.5 h-3.5" />
       },
       approved: {

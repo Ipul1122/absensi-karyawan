@@ -24,7 +24,7 @@ interface Reimbursement {
   expense_date: string
   description: string | null
   receipt_path: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
 }
@@ -264,11 +264,16 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
     })
   }
 
-  const getStatusBadge = (status: 'pending' | 'approved' | 'rejected') => {
+  const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
     const config = {
       pending: {
-        text: 'Menunggu Persetujuan',
+        text: 'Menunggu Persetujuan Admin',
         classes: 'bg-amber-50 text-amber-700 border-amber-200',
+        icon: <Clock className="w-3.5 h-3.5" />
+      },
+      pending_director: {
+        text: 'Menunggu Persetujuan Direktur',
+        classes: 'bg-blue-50 text-blue-700 border-blue-200',
         icon: <Clock className="w-3.5 h-3.5" />
       },
       approved: {
@@ -296,6 +301,9 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
   // Filter & Pagination Calculations
   const filteredReimbursements = reimbursements.filter((item) => {
     if (statusFilter === 'all') return true
+    if (statusFilter === 'pending') {
+      return item.status === 'pending' || item.status === 'pending_director'
+    }
     return item.status === statusFilter
   })
 

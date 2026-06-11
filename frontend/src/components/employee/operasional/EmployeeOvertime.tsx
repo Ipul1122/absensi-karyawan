@@ -21,7 +21,7 @@ interface Overtime {
   end_time: string
   duration: number
   reason: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
 }
@@ -220,14 +220,33 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
   }
 
   const formatTime = (timeString: string) => {
-    return timeString.substring(0, 5)
+    if (!timeString) return ''
+    const cleanTime = timeString.substring(0, 5)
+    const [hourStr] = cleanTime.split(':')
+    const hour = parseInt(hourStr, 10)
+    
+    let period = 'malam'
+    if (hour >= 4 && hour < 11) {
+      period = 'pagi'
+    } else if (hour >= 11 && hour < 15) {
+      period = 'siang'
+    } else if (hour >= 15 && hour < 18) {
+      period = 'sore'
+    }
+    
+    return `${cleanTime} ${period}`
   }
 
-  const getStatusBadge = (status: 'pending' | 'approved' | 'rejected') => {
+  const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
     const config = {
       pending: {
-        text: 'Menunggu Persetujuan',
+        text: 'Menunggu Persetujuan Admin',
         classes: 'bg-amber-50 text-amber-700 border-amber-250',
+        icon: <Clock className="w-3.5 h-3.5" />
+      },
+      pending_director: {
+        text: 'Menunggu Persetujuan Direktur',
+        classes: 'bg-blue-50 text-blue-700 border-blue-250',
         icon: <Clock className="w-3.5 h-3.5" />
       },
       approved: {
@@ -377,8 +396,8 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
         <tr>
           <td>${idx + 1}</td>
           <td>${item.date}</td>
-          <td>${item.start_time}</td>
-          <td>${item.end_time}</td>
+          <td>${formatTime(item.start_time)}</td>
+          <td>${formatTime(item.end_time)}</td>
           <td>${item.duration}</td>
           <td>${item.reason}</td>
           <td>${statusText}</td>

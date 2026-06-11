@@ -18,7 +18,11 @@ class OvertimeController extends Controller
 
         // Filter by status
         if ($request->has('status') && $request->status != 'all') {
-            $query->where('status', $request->status);
+            if ($request->status === 'pending') {
+                $query->whereIn('status', ['pending', 'pending_director']);
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         // Filter by month (YYYY-MM)
@@ -42,7 +46,7 @@ class OvertimeController extends Controller
             ->sum('duration');
 
         $pendingCount = Overtime::where('user_id', $user->id)
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'pending_director'])
             ->count();
 
         $approvedCount = Overtime::where('user_id', $user->id)

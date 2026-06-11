@@ -321,7 +321,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       )}
 
       {/* Main Content Area */}
-      <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto">
+      <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto min-w-0">
         
         {/* Dynamic header with page title */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-orange-100 pb-6 mb-8">

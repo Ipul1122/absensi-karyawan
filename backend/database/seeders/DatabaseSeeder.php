@@ -164,11 +164,35 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Pending Attendance Correction (Waiting for Director)
+        // Absensi mandiri disetujui (masuk perhitungan payroll bulan berjalan)
+        foreach ([2, 3, 4, 5, 6, 9, 10] as $dayOffset) {
+            $attendanceDate = now()->startOfMonth()->addDays($dayOffset);
+            if ($attendanceDate->isSunday() || $attendanceDate->isFuture()) {
+                continue;
+            }
+            \App\Models\Attendance::updateOrCreate(
+                [
+                    'user_id' => $karyawan->id,
+                    'date' => $attendanceDate->toDateString(),
+                ],
+                [
+                    'attendance_type' => 'kantor',
+                    'clock_in' => '08:30:00',
+                    'clock_out' => '17:00:00',
+                    'status_in' => 'normal',
+                    'status_out' => 'normal',
+                    'notes_in' => 'Absen kantor reguler',
+                    'notes_out' => 'Pulang reguler',
+                    'approval_status' => 'approved',
+                ]
+            );
+        }
+
+        // Koreksi absensi pending (menunggu Direktur, tidak masuk payroll)
         \App\Models\Attendance::updateOrCreate(
             [
                 'user_id' => $karyawan->id,
-                'date' => now()->subDays(3)->toDateString(),
+                'date' => now()->subDays(1)->toDateString(),
             ],
             [
                 'attendance_type' => 'kantor',
@@ -180,26 +204,35 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Pending Payroll (Waiting for Director)
+        // Payroll contoh bulan berjalan (draft, akan sinkron saat admin generate ulang)
+        $approvedDays = \App\Models\Attendance::where('user_id', $karyawan->id)
+            ->whereBetween('date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+            ->where(function ($q) {
+                $q->where('approval_status', 'approved')->orWhereNull('approval_status');
+            })
+            ->whereNotNull('clock_in')
+            ->count();
+
         \App\Models\Payroll::updateOrCreate(
             [
                 'user_id' => $karyawan->id,
                 'period_month' => now()->format('Y-m'),
             ],
             [
-                'days_present' => 20,
-                'days_late' => 2,
-                'days_leave' => 1,
+                'days_present' => $approvedDays,
+                'days_late' => 0,
+                'days_leave' => 0,
                 'basic_salary' => 4500000,
-                'allowance_meal' => 400000,
-                'allowance_transport' => 300000,
+                'allowance_meal' => $approvedDays * 20000,
+                'allowance_transport' => $approvedDays * 15000,
                 'allowance_position' => 500000,
                 'allowance_fixed' => 0,
-                'deduction_late' => 50000,
+                'deduction_late' => 0,
                 'deduction_absence' => 0,
                 'deduction_fixed' => 150000,
-                'net_salary' => 5500000,
+                'net_salary' => 4500000 + ($approvedDays * 35000) + 500000 - 150000,
                 'status' => 'pending_approval',
+                'notes' => 'Kalkulasi otomatis. Rentang periode: ' . now()->startOfMonth()->toDateString() . ' s.d ' . now()->endOfMonth()->toDateString() . '.',
             ]
         );
     }

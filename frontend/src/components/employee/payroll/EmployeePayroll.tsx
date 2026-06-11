@@ -37,9 +37,21 @@ interface PayrollRecord {
 
 interface EmployeePayrollProps {
   token: string
+  user?: { name: string; email: string }
 }
 
-export default function EmployeePayroll({ token }: EmployeePayrollProps) {
+const getPaymentStatusLabel = (status: PayrollRecord['status']) => {
+  switch (status) {
+    case 'paid':
+      return 'Lunas'
+    case 'unpaid':
+      return 'Belum Dibayar'
+    default:
+      return 'Draft'
+  }
+}
+
+export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
   const [payrolls, setPayrolls] = useState<PayrollRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [showSlipModal, setShowSlipModal] = useState(false)
@@ -56,8 +68,6 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
-        // Hanya tampilkan yang berstatus 'paid' (atau paid dan unpaid)
-        // Kita tampilkan semua transaksi gaji agar transparan bagi karyawan
         setPayrolls(response.data.data)
       }
     } catch (err) {
@@ -94,6 +104,32 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ]
     return `${monthNames[parseInt(month, 10) - 1]} ${year}`
+  }
+
+  const getEmployeeDisplayName = () => {
+    if (user?.name) return user.name
+    const saved = sessionStorage.getItem('auth_user')
+    if (saved) {
+      try {
+        return JSON.parse(saved).name as string
+      } catch {
+        return 'Karyawan'
+      }
+    }
+    return 'Karyawan'
+  }
+
+  const getEmployeeDisplayEmail = () => {
+    if (user?.email) return user.email
+    const saved = sessionStorage.getItem('auth_user')
+    if (saved) {
+      try {
+        return JSON.parse(saved).email as string
+      } catch {
+        return ''
+      }
+    }
+    return ''
   }
 
   const handleOpenSlip = (record: PayrollRecord) => {
@@ -227,7 +263,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
               ) : payrolls.length === 0 ? (
                 <tr>
                   <td colSpan={12} className="py-12 text-center text-slate-400 font-semibold italic">
-                    Belum ada data slip gaji yang diterbitkan untuk Anda.
+                    Belum ada slip gaji yang disahkan. Slip akan muncul setelah disetujui Direktur.
                   </td>
                 </tr>
               ) : (
@@ -259,7 +295,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                       </td>
                       <td className="py-4 px-5">
                         <div className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</div>
-                        <div className="text-[9px] text-slate-450 mt-0.5 font-semibold">Bulanan Tetap</div>
+                        <div className="text-[9px] text-slate-450 mt-0.5 font-semibold">Prorata</div>
                       </td>
                       <td className="py-4 px-5">
                         {(record.allowance_meal ?? 0) > 0 ? (
@@ -402,16 +438,20 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
 
               <div className="meta">
                 <div>
-                  <strong>Nama Karyawan:</strong> {sessionStorage.getItem('auth_user') ? JSON.parse(sessionStorage.getItem('auth_user')!).name : 'Karyawan'}
+                  <strong>Nama Karyawan:</strong> {getEmployeeDisplayName()}
                 </div>
                 <div>
-                  <strong>Email Karyawan:</strong> {sessionStorage.getItem('auth_user') ? JSON.parse(sessionStorage.getItem('auth_user')!).email : ''}
+                  <strong>Email Karyawan:</strong> {getEmployeeDisplayEmail()}
                 </div>
                 <div>
-                  <strong>Status Pembayaran:</strong> <span className="badge">Lunas</span>
+                  <strong>Status Pembayaran:</strong>{' '}
+                  <span className="badge">{getPaymentStatusLabel(selectedSlip.status)}</span>
                 </div>
                 <div>
-                  <strong>Tanggal Proses:</strong> {new Date(selectedSlip.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  <strong>Tanggal Proses:</strong>{' '}
+                  {selectedSlip.status === 'paid' && selectedSlip.paid_at
+                    ? new Date(selectedSlip.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                    : new Date(selectedSlip.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
               </div>
 
@@ -496,7 +536,7 @@ export default function EmployeePayroll({ token }: EmployeePayrollProps) {
                 <div className="signature">
                   <p>Penerima,</p>
                   <div className="line"></div>
-                  <p><strong>{sessionStorage.getItem('auth_user') ? JSON.parse(sessionStorage.getItem('auth_user')!).name : 'Karyawan'}</strong></p>
+                  <p><strong>{getEmployeeDisplayName()}</strong></p>
                 </div>
                 <div className="signature">
                   <p>Manajer HRD,</p>

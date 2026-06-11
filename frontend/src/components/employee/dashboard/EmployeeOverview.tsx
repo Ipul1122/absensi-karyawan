@@ -678,22 +678,18 @@ export default function EmployeeOverview({
                 <span className="text-[10px] text-slate-400 font-bold">Status Pembayaran</span>
                 {latestPayroll.status === 'paid' ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 font-mono">
-                    Paid (Lunas)
-                  </span>
-                ) : latestPayroll.status === 'unpaid' ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-100 font-mono">
-                    Unpaid
+                    Lunas (Paid)
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 font-mono">
-                    Draft (Verifikasi)
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-100 font-mono">
+                    Belum Dibayar
                   </span>
                 )}
               </div>
             </div>
           ) : (
             <div className="text-center py-6 text-slate-400 text-xs italic font-medium">
-              Belum ada slip gaji diterbitkan.
+              Belum ada slip gaji yang disahkan untuk Anda.
             </div>
           )}
         </section>

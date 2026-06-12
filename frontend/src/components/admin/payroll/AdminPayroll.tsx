@@ -13,7 +13,8 @@ import {
   Info,
   HelpCircle,
   FileDown,
-  Plus
+  Plus,
+  CalendarRange
 } from 'lucide-react'
 
 interface PayrollRecord {
@@ -87,6 +88,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
   const [newHolidayDate, setNewHolidayDate] = useState('')
   const [newHolidayName, setNewHolidayName] = useState('')
   const [savingHoliday, setSavingHoliday] = useState(false)
+  const [seedingHolidays, setSeedingHolidays] = useState(false)
 
   // Fetch holidays list
   const fetchHolidays = async () => {
@@ -183,6 +185,52 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             text: err.response?.data?.message || 'Gagal menghapus hari libur.',
             icon: 'error'
           })
+        }
+      }
+    })
+  }
+
+  // Import Holidays automatically based on the selected month's year
+  const handleImportHolidays = async () => {
+    const yearStr = selectedMonth ? selectedMonth.split('-')[0] : String(new Date().getFullYear())
+    const year = parseInt(yearStr, 10) || new Date().getFullYear()
+
+    Swal.fire({
+      title: `Impor Libur Nasional & Cuti ${year}?`,
+      text: `Sistem akan mengambil data dari API publik untuk mengimpor semua hari libur nasional resmi Indonesia tahun ${year} ke database.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#475569',
+      confirmButtonText: 'Ya, Impor Semua!',
+      cancelButtonText: 'Batal'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setSeedingHolidays(true)
+        try {
+          const response = await axios.post(
+            'http://localhost:8000/api/admin/holidays/import',
+            { year },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+          if (response.data.status === 'success') {
+            Swal.fire({
+              title: 'Berhasil!',
+              text: response.data.message,
+              icon: 'success'
+            })
+            fetchHolidays()
+          }
+        } catch (err: any) {
+          console.error(err)
+          const msg = err.response?.data?.message || 'Gagal mengimpor hari libur.'
+          Swal.fire({
+            title: 'Gagal',
+            text: msg,
+            icon: 'error'
+          })
+        } finally {
+          setSeedingHolidays(false)
         }
       }
     })
@@ -287,7 +335,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 <th style="width: 3%; text-align: center;">No</th>
                 <th style="width: 15%;">Karyawan</th>
                 <th style="width: 10%; text-align: center;">Kehadiran (H/T/C)</th>
-                <th style="width: 12%; text-align: right;">Gaji Pokok (Prorata)</th>
+                <th style="width: 12%; text-align: right;">Gaji Pokok</th>
                 <th style="width: 25%;">Tunjangan</th>
                 <th style="width: 18%;">Potongan</th>
                 <th style="width: 12%; text-align: right;">Gaji Bersih</th>
@@ -394,7 +442,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               <th>Hari Hadir (H)</th>
               <th>Hari Terlambat (T)</th>
               <th>Hari Cuti (C)</th>
-              <th>Gaji Pokok (Prorata)</th>
+              <th>Gaji Pokok</th>
               <th>Tunjangan Makan</th>
               <th>Tunjangan Transport</th>
               <th>Tunjangan Jabatan</th>
@@ -1183,6 +1231,32 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             <div>
               <h3 className="text-base font-bold text-slate-800 font-quicksand">Tambah Hari Libur</h3>
               <p className="text-[11px] text-slate-500 font-medium">Daftarkan tanggal merah nasional baru agar otomatis memotong absen mangkir karyawan.</p>
+            </div>
+            
+            {/* Auto Import Button */}
+            <button
+              type="button"
+              onClick={handleImportHolidays}
+              disabled={seedingHolidays || loadingHolidays}
+              className="w-full py-2.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              {seedingHolidays ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Mengimpor...
+                </>
+              ) : (
+                <>
+                  <CalendarRange className="w-3.5 h-3.5" />
+                  Impor Otomatis Libur & Cuti {selectedMonth ? selectedMonth.split('-')[0] : new Date().getFullYear()}
+                </>
+              )}
+            </button>
+            
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-slate-100"></div>
+              <span className="flex-shrink mx-3 text-[9px] text-slate-400 font-bold uppercase">Atau Input Manual</span>
+              <div className="flex-grow border-t border-slate-100"></div>
             </div>
             
             <form onSubmit={handleAddHoliday} className="space-y-4">

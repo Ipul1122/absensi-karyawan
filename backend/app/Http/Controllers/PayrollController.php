@@ -11,6 +11,7 @@ use App\Models\SalaryConfiguration;
 use App\Models\Holiday;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class PayrollController extends Controller
 {
@@ -230,7 +231,6 @@ class PayrollController extends Controller
                 $allowanceMealDaily = $config ? $config->allowance_meal_daily : 20000;
                 $allowanceTransportDaily = $config ? $config->allowance_transport_daily : 15000;
                 $deductDailyLate = $config ? $config->deduction_late_daily : 25000;
-                $deductAbsenceDaily = $config ? $config->deduction_absence_daily : 100000;
                 $deductFixed = $config ? $config->deduction_fixed : 0;
 
                 // Hitung total hari kerja efektif (Senin - Sabtu) di rentang cut-off tersebut
@@ -243,23 +243,24 @@ class PayrollController extends Controller
                     $tempDate->addDay();
                 }
 
-                // 5. Hitung total tunjangan & potongan
+                // Potongan absen per hari dihitung secara proporsional dari Gaji Pokok dibagi hari kerja efektif
+                $deductAbsenceDaily = ($workingDaysInMonth > 0) ? ($baseBasicSalary / $workingDaysInMonth) : 0;
+
+                // 5. Hitung tunjangan & potongan (rumus sederhana, tiap komponen terpisah)
                 $allowanceMeal = $daysPresent * $allowanceMealDaily;
                 $allowanceTransport = $daysPresent * $allowanceTransportDaily;
                 $allowancePosition = $config ? $config->allowance_position : 0;
                 $allowanceFixed = $config ? $config->allowance_fixed : 0;
                 $deductionLate = $daysLate * $deductDailyLate;
-                
-                // Gaji Pokok murni setelah dikurangi tunjangan makan & transport (penggabungan)
-                $proratedBasicSalary = max(0, $baseBasicSalary - $allowanceMeal - $allowanceTransport);
-                
-                // Hitung total potongan tidak masuk (mangkir)
-                // Mangkir = Hari kerja efektif - Kehadiran - Cuti - Hari Libur Nasional
+
+                // Mangkir = hari kerja (Sen–Sab) − hadir − cuti disetujui − libur nasional (Sen–Sab)
                 $daysAbsent = max(0, $workingDaysInMonth - $daysPresent - $daysLeave - $holidaysCount);
                 $deductionAbsence = $daysAbsent * $deductAbsenceDaily;
-                
-                // Total Gaji Bersih
-                $netSalary = $proratedBasicSalary + $allowanceMeal + $allowanceTransport + $allowancePosition + $allowanceFixed - $deductionLate - $deductFixed - $deductionAbsence;
+
+                // Gaji bersih = semua penerimaan − semua potongan
+                $totalAllowance = $baseBasicSalary + $allowanceMeal + $allowanceTransport + $allowancePosition + $allowanceFixed;
+                $totalDeduction = $deductionLate + $deductFixed + $deductionAbsence;
+                $netSalary = $totalAllowance - $totalDeduction;
                 if ($netSalary < 0) {
                     $netSalary = 0; // Gaji tidak boleh negatif
                 }
@@ -278,7 +279,7 @@ class PayrollController extends Controller
                     'days_present' => $daysPresent,
                     'days_late' => $daysLate,
                     'days_leave' => $daysLeave,
-                    'basic_salary' => $proratedBasicSalary,
+                    'basic_salary' => $baseBasicSalary,
                     'allowance_meal' => $allowanceMeal,
                     'allowance_transport' => $allowanceTransport,
                     'allowance_fixed' => $allowanceFixed,
@@ -288,7 +289,7 @@ class PayrollController extends Controller
                     'deduction_absence' => $deductionAbsence,
                     'net_salary' => $netSalary,
                     'status' => 'draft',
-                    'notes' => "Kalkulasi otomatis. Rentang cut-off: " . $startOfMonth->toDateString() . " s.d " . $endOfMonth->toDateString() . ". Hari kerja efektif: $workingDaysInMonth hari (termasuk $holidaysCount hari libur nasional). Potongan tidak masuk: $daysAbsent hari.",
+                    'notes' => "Periode: " . $startOfMonth->toDateString() . " s.d " . $endOfMonth->toDateString() . ". Hari kerja: $workingDaysInMonth (Sen–Sab). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount.",
                 ];
 
                 Payroll::updateOrCreate(
@@ -580,5 +581,108 @@ class PayrollController extends Controller
             'status' => 'success',
             'message' => 'Hari libur nasional berhasil dihapus.'
         ]);
+    }
+
+    public function importHolidays(Request $request)
+    {
+        $request->validate([
+            'year' => 'required|integer|min:2020|max:2035',
+        ]);
+
+        $year = $request->year;
+        $importedCount = 0;
+        $success = false;
+
+        try {
+            // Panggil API Hari Libur Nasional & Cuti Bersama Indonesia (timeout 8 detik)
+            $response = Http::timeout(8)->get("https://api-hari-libur.vercel.app/api?year={$year}");
+
+            if ($response->successful()) {
+                $body = $response->json();
+                $holidays = $body['data'] ?? [];
+
+                foreach ($holidays as $holiday) {
+                    $date = $holiday['date'] ?? null;
+                    $name = $holiday['description'] ?? null;
+
+                    if ($date && $name) {
+                        $existing = Holiday::whereDate('holiday_date', $date)->first();
+                        if ($existing) {
+                            $existing->update(['name' => $name]);
+                        } else {
+                            Holiday::create([
+                                'holiday_date' => $date,
+                                'name' => $name
+                            ]);
+                            $importedCount++;
+                        }
+                    }
+                }
+                $success = true;
+            }
+        } catch (\Exception $e) {
+            // Catat error jika API gagal
+        }
+
+        if ($success) {
+            return response()->json([
+                'status' => 'success',
+                'message' => "Berhasil mengimpor {$importedCount} Hari Libur Nasional & Cuti Bersama tahun {$year} dari API!"
+            ]);
+        }
+
+        // Jika API gagal / offline, gunakan fallback hardcoded khusus untuk tahun 2026
+        if ($year == 2026) {
+            $fallbackHolidays = [
+                // Hari Libur Nasional 2026
+                ['holiday_date' => '2026-01-01', 'name' => 'Tahun Baru 2026 Masehi'],
+                ['holiday_date' => '2026-01-16', 'name' => 'Isra Mikraj Nabi Muhammad S.A.W.'],
+                ['holiday_date' => '2026-02-17', 'name' => 'Tahun Baru Imlek 2577 Kongzili'],
+                ['holiday_date' => '2026-03-19', 'name' => 'Hari Suci Nyepi (Tahun Baru Saka 1948)'],
+                ['holiday_date' => '2026-03-21', 'name' => 'Hari Raya Idul Fitri 1447 Hijriah'],
+                ['holiday_date' => '2026-03-22', 'name' => 'Hari Raya Idul Fitri 1447 Hijriah'],
+                ['holiday_date' => '2026-04-03', 'name' => 'Wafat Yesus Kristus'],
+                ['holiday_date' => '2026-04-05', 'name' => 'Kebangkitan Yesus Kristus (Paskah)'],
+                ['holiday_date' => '2026-05-01', 'name' => 'Hari Buruh Internasional'],
+                ['holiday_date' => '2026-05-14', 'name' => 'Kenaikan Yesus Kristus'],
+                ['holiday_date' => '2026-05-27', 'name' => 'Hari Raya Idul Adha 1447 Hijriah'],
+                ['holiday_date' => '2026-05-31', 'name' => 'Hari Raya Waisak 2570 BE'],
+                ['holiday_date' => '2026-06-01', 'name' => 'Hari Lahir Pancasila'],
+                ['holiday_date' => '2026-06-16', 'name' => 'Tahun Baru Islam 1448 Hijriah'],
+                ['holiday_date' => '2026-08-17', 'name' => 'Proklamasi Kemerdekaan RI'],
+                ['holiday_date' => '2026-08-25', 'name' => 'Maulid Nabi Muhammad S.A.W.'],
+                ['holiday_date' => '2026-12-25', 'name' => 'Kelahiran Yesus Kristus (Natal)'],
+
+                // Cuti Bersama 2026
+                ['holiday_date' => '2026-02-16', 'name' => 'Cuti Bersama Tahun Baru Imlek 2577 Kongzili'],
+                ['holiday_date' => '2026-03-18', 'name' => 'Cuti Bersama Hari Suci Nyepi'],
+                ['holiday_date' => '2026-03-20', 'name' => 'Cuti Bersama Hari Raya Idul Fitri 1447 Hijriah'],
+                ['holiday_date' => '2026-03-23', 'name' => 'Cuti Bersama Hari Raya Idul Fitri 1447 Hijriah'],
+                ['holiday_date' => '2026-03-24', 'name' => 'Cuti Bersama Hari Raya Idul Fitri 1447 Hijriah'],
+                ['holiday_date' => '2026-05-15', 'name' => 'Cuti Bersama Kenaikan Yesus Kristus'],
+                ['holiday_date' => '2026-05-28', 'name' => 'Cuti Bersama Hari Raya Idul Adha 1447 Hijriah'],
+                ['holiday_date' => '2026-12-24', 'name' => 'Cuti Bersama Kelahiran Yesus Kristus'],
+            ];
+
+            foreach ($fallbackHolidays as $holiday) {
+                $existing = Holiday::whereDate('holiday_date', $holiday['holiday_date'])->first();
+                if ($existing) {
+                    $existing->update(['name' => $holiday['name']]);
+                } else {
+                    Holiday::create($holiday);
+                    $importedCount++;
+                }
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "Koneksi API gagal. Berhasil mengimpor {$importedCount} Hari Libur tahun 2026 dari data cadangan lokal."
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => "Gagal terhubung ke API Hari Libur Nasional untuk mengambil data tahun {$year}."
+        ], 502);
     }
 }

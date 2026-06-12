@@ -719,7 +719,6 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                   formatDate={formatDate}
                   getStatusBadge={getStatusBadge}
                   setSelectedAttendance={setSelectedAttendance}
-                  handleOpenEditModal={handleOpenEditModal}
                   officeLatitude={officeLatitude}
                   officeLongitude={officeLongitude}
                 />
@@ -864,6 +863,10 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         token={token}
         officeLatitude={officeLatitude}
         officeLongitude={officeLongitude}
+        onEditClick={selectedAttendance ? () => {
+          handleOpenEditModal(selectedAttendance)
+          setSelectedAttendance(null)
+        } : undefined}
       />
 
       {/* Edit Time Modal */}

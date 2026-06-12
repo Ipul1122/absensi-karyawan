@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
-import { Search, Calendar, RefreshCw, MapPin, Image, FileDown, Compass } from 'lucide-react'
+import { Search, Calendar, RefreshCw, MapPin, Image, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
 
 interface User {
   id: number
@@ -46,6 +46,9 @@ export default function SalesVisitsLog({
   const [filterDate, setFilterDate] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(15) // Default to 15 (> 10)
+  
+  // Mobile Filters Collapsible State
+  const [showFilters, setShowFilters] = useState(false)
   
   const [resolvedAddresses, setResolvedAddresses] = useState<Record<number, string>>({})
 
@@ -103,6 +106,9 @@ export default function SalesVisitsLog({
 
     return matchesType && matchesSearch && matchesDate
   })
+
+  // Count active filters
+  const activeFilterCount = (search ? 1 : 0) + (filterDate ? 1 : 0)
 
   // Pagination Logic
   const totalItems = filteredVisits.length
@@ -318,12 +324,12 @@ export default function SalesVisitsLog({
           <p className="text-xs text-slate-500 font-medium">{subtitleText}</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Export PDF Button */}
           <button
             onClick={handleExportPDF}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98]"
             title="Ekspor PDF"
           >
             <FileDown className="w-4 h-4" />
@@ -334,7 +340,7 @@ export default function SalesVisitsLog({
           <button
             onClick={handleExportExcel}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98]"
             title="Ekspor Excel"
           >
             <FileDown className="w-4 h-4" />
@@ -344,7 +350,7 @@ export default function SalesVisitsLog({
           <button
             onClick={fetchVisits}
             disabled={loading}
-            className="p-2.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-500 hover:text-orange-500 rounded-xl transition-all cursor-pointer inline-flex items-center shrink-0 disabled:opacity-50 shadow-sm"
+            className="p-2.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-500 hover:text-orange-500 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center shrink-0 disabled:opacity-50 shadow-sm hover:scale-[1.02] active:scale-[0.98] h-[38px] w-[38px]"
             title="Segarkan Log"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -352,8 +358,26 @@ export default function SalesVisitsLog({
         </div>
       </div>
 
+      {/* Mobile Toggle Filters Button */}
+      <div className="block md:hidden">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="w-full flex items-center justify-center gap-2 py-3 bg-white border border-orange-100 hover:border-orange-200 text-slate-700 font-bold rounded-2xl text-xs transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]"
+        >
+          <SlidersHorizontal className="w-4 h-4 text-orange-500" />
+          <span>{showFilters ? 'Sembunyikan Filter & Pencarian' : 'Tampilkan Filter & Pencarian'}</span>
+          {activeFilterCount > 0 && (
+            <span className="flex items-center justify-center bg-orange-500 text-white text-[10px] w-5 h-5 rounded-full font-extrabold shadow-sm animate-pulse">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Filters Panel */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl">
+      <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl ${
+        showFilters ? 'grid' : 'hidden md:grid'
+      }`}>
         {/* Search */}
         <div className="space-y-1">
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cari Kunjungan</label>
@@ -435,8 +459,8 @@ export default function SalesVisitsLog({
         </div>
       </div>
 
-      {/* Table Section */}
-      <div className="border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
+      {/* Table Section - Desktop */}
+      <div className="hidden md:block border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -544,6 +568,104 @@ export default function SalesVisitsLog({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card List Section */}
+      <div className="block md:hidden space-y-4">
+        {loading ? (
+          <div className="py-8 text-center text-slate-400 font-medium bg-white border border-orange-100 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-center gap-2">
+              <RefreshCw className="w-5 h-5 animate-spin text-orange-500" />
+              <span>Memuat data kunjungan...</span>
+            </div>
+          </div>
+        ) : paginatedVisits.length === 0 ? (
+          <div className="py-8 text-center text-slate-400 font-semibold bg-white border border-orange-100 rounded-2xl shadow-sm">
+            Tidak ada log kunjungan sales yang ditemukan.
+          </div>
+        ) : (
+          paginatedVisits.map((visit) => (
+            <div key={visit.id} className="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm space-y-4 hover:border-orange-200 hover:shadow-md transition-all">
+              {/* Card Header: User avatar, name, date & photo */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
+                    {visit.user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-slate-805 text-sm">{visit.user.name}</h4>
+                    <p className="text-[11px] text-slate-400 font-medium">{visit.user.email}</p>
+                  </div>
+                </div>
+                <div className="text-right flex flex-col items-end gap-1.5 shrink-0">
+                  <span className="text-[10px] font-extrabold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 block">
+                    {formatDate(visit.date)}
+                  </span>
+                  <span className="font-mono text-[10px] text-orange-600 font-bold block">
+                    {visit.visit_time.substring(0, 5)} WIB
+                  </span>
+                </div>
+              </div>
+
+              {/* Card Body: Client details & Maps */}
+              <div className="bg-orange-50/10 p-3 border border-orange-100/50 rounded-xl space-y-2">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Klien / Tujuan</span>
+                  <span className="text-xs font-bold text-slate-800 block">{visit.client_name}</span>
+                </div>
+                
+                <div className="border-t border-orange-100/30 pt-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lokasi Kunjungan</span>
+                  <div className="flex flex-col gap-1 mt-0.5">
+                    <span className="text-xs font-semibold text-slate-700 leading-tight">
+                      {resolvedAddresses[visit.id] ? (
+                        resolvedAddresses[visit.id]
+                      ) : (
+                        <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
+                          Mencari nama lokasi...
+                        </span>
+                      )}
+                    </span>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-bold w-fit"
+                      title="Buka di Google Maps"
+                    >
+                      <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                      <span>Buka Peta</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Catatan Lapangan</span>
+                {visit.notes ? (
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    {visit.notes}
+                  </p>
+                ) : (
+                  <span className="text-xs text-slate-400 italic block">-</span>
+                )}
+              </div>
+
+              {/* Actions Footer */}
+              <div className="pt-2 border-t border-orange-50">
+                <button
+                  onClick={() => showPhoto(visit)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                >
+                  <Image className="w-4 h-4 text-orange-500" />
+                  <span>Lihat Foto Bukti</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Pagination Footer */}

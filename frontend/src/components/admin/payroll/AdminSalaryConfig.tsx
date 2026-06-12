@@ -426,7 +426,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 <button
                   type="button"
                   onClick={() => setShowConfigModal(false)}
-                  className="flex-1 py-2.5 border border-slate-250 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                  className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
                 >
                   Batal
                 </button>

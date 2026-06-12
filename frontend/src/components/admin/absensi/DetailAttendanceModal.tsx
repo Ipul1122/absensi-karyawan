@@ -35,6 +35,7 @@ interface DetailAttendanceModalProps {
   token: string
   officeLatitude?: string
   officeLongitude?: string
+  onEditClick?: () => void
 }
 
 export default function DetailAttendanceModal({
@@ -45,6 +46,7 @@ export default function DetailAttendanceModal({
   token,
   officeLatitude = '-6.2088',
   officeLongitude = '106.8456',
+  onEditClick,
 }: DetailAttendanceModalProps) {
   const [visits, setVisits] = useState<any[]>([])
   const [visitsLoading, setVisitsLoading] = useState(false)
@@ -375,7 +377,18 @@ export default function DetailAttendanceModal({
         )}
 
         {/* Modal Footer */}
-        <div className="mt-6 pt-4 border-t border-orange-100 flex justify-end">
+        <div className="mt-6 pt-4 border-t border-orange-100 flex justify-between items-center">
+          {onEditClick ? (
+            <button
+              onClick={onEditClick}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-transparent border-0 text-transparent rounded-xl text-xs font-bold cursor-default font-quicksand opacity-0 select-none"
+            >
+              <Clock className="w-4 h-4 text-transparent" />
+              Edit Jam Kerja
+            </button>
+          ) : (
+            <div />
+          )}
           <button
             onClick={onClose}
             className="px-5 py-2.5 bg-orange-50/50 border border-orange-100 hover:bg-orange-50 text-slate-600 rounded-xl transition-all cursor-pointer text-xs font-bold font-quicksand"

@@ -124,6 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/payroll/{id}/submit-approval', [PayrollController::class, 'submitPayrollApproval']);
         Route::post('/admin/payroll/submit-all-approval', [PayrollController::class, 'submitAllPayrollApproval']);
         Route::post('/admin/holidays', [PayrollController::class, 'storeHoliday']);
+        Route::post('/admin/holidays/import', [PayrollController::class, 'importHolidays']);
         Route::delete('/admin/holidays/{id}', [PayrollController::class, 'destroyHoliday']);
 
         // Admin Inventory routes

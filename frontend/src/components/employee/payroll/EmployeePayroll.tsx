@@ -295,7 +295,7 @@ export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
                       </td>
                       <td className="py-4 px-5">
                         <div className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</div>
-                        <div className="text-[9px] text-slate-450 mt-0.5 font-semibold">Prorata</div>
+                        <div className="text-[9px] text-slate-450 mt-0.5 font-semibold">Bulanan tetap</div>
                       </td>
                       <td className="py-4 px-5">
                         {(record.allowance_meal ?? 0) > 0 ? (

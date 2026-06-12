@@ -24,6 +24,8 @@ interface DirectorSidebarProps {
   user: User
   onLogout: () => void
   onClose?: () => void
+  pendingKaryawanCount?: number
+  pendingGajiCount?: number
 }
 
 const menuItems = [
@@ -35,7 +37,13 @@ const menuItems = [
   { to: '/director/log-kehadiran', label: 'Log Kehadiran', icon: Clock, description: 'Aktivitas absensi staf' },
 ]
 
-export default function DirectorSidebar({ user, onLogout, onClose }: DirectorSidebarProps) {
+export default function DirectorSidebar({ 
+  user, 
+  onLogout, 
+  onClose, 
+  pendingKaryawanCount = 0,
+  pendingGajiCount = 0 
+}: DirectorSidebarProps) {
   const handleLinkClick = () => { if (onClose) onClose() }
 
   return (
@@ -66,6 +74,17 @@ export default function DirectorSidebar({ user, onLogout, onClose }: DirectorSid
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-3 mb-2">Menu Persetujuan</p>
           {menuItems.map((item) => {
             const IconComponent = item.icon
+            const isEmployeeApproval = item.to === '/director/karyawan'
+            const isSalaryApproval = item.to === '/director/gaji'
+
+            const badgeCount = isEmployeeApproval 
+              ? pendingKaryawanCount 
+              : isSalaryApproval 
+                ? pendingGajiCount 
+                : 0
+
+            const showBadge = badgeCount > 0
+
             return (
               <NavLink
                 key={item.to}
@@ -85,6 +104,11 @@ export default function DirectorSidebar({ user, onLogout, onClose }: DirectorSid
                     <span className="flex items-center gap-3">
                       <IconComponent className={`w-4 h-4 transition-colors ${isActive ? 'text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
                       <span>{item.label}</span>
+                      {showBadge && (
+                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
+                          {badgeCount}
+                        </span>
+                      )}
                     </span>
                     <ChevronRight className={`w-3.5 h-3.5 transition-all duration-200 ${isActive ? 'opacity-100 text-red-500' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
                   </>

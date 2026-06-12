@@ -147,7 +147,7 @@ class PayrollController extends Controller
         $holidays = Holiday::whereBetween('holiday_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
             ->get()
             ->filter(function($h) {
-                return Carbon::parse($h->holiday_date)->dayOfWeek !== Carbon::SUNDAY;
+                return !Carbon::parse($h->holiday_date)->isSunday();
             });
         $holidaysCount = $holidays->count();
 
@@ -214,7 +214,7 @@ class PayrollController extends Controller
                         // agar konsisten dengan kalkulasi workingDaysInMonth
                         $tempLeaveDate = $overlapStart->copy();
                         while ($tempLeaveDate->lte($overlapEnd)) {
-                            if ($tempLeaveDate->dayOfWeek !== Carbon::SUNDAY) {
+                            if (!$tempLeaveDate->isSunday()) {
                                 $daysLeave++;
                             }
                             $tempLeaveDate->addDay();
@@ -237,7 +237,7 @@ class PayrollController extends Controller
                 $workingDaysInMonth = 0;
                 $tempDate = $startOfMonth->copy();
                 while ($tempDate->lte($endOfMonth)) {
-                    if ($tempDate->dayOfWeek !== Carbon::SUNDAY) {
+                    if (!$tempDate->isSunday()) {
                         $workingDaysInMonth++;
                     }
                     $tempDate->addDay();

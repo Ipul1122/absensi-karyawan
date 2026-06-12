@@ -40,11 +40,12 @@ interface EmployeeWithConfig {
 
 interface PersetujuanGajiProps {
   token: string
+  onApprovalChange?: () => void
 }
 
 const S = { fontFamily: "'Inter', 'system-ui', sans-serif" }
 
-export default function PersetujuanGaji({ token }: PersetujuanGajiProps) {
+export default function PersetujuanGaji({ token, onApprovalChange }: PersetujuanGajiProps) {
   const [data, setData] = useState<EmployeeWithConfig[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -54,7 +55,10 @@ export default function PersetujuanGaji({ token }: PersetujuanGajiProps) {
       const response = await axios.get('http://localhost:8000/api/admin/payroll/configurations', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (response.data.status === 'success') setData(response.data.data)
+      if (response.data.status === 'success') {
+        setData(response.data.data)
+        onApprovalChange?.()
+      }
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }

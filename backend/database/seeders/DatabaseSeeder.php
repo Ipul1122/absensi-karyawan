@@ -164,25 +164,54 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Absensi mandiri disetujui (masuk perhitungan payroll bulan berjalan)
-        foreach ([2, 3, 4, 5, 6, 9, 10] as $dayOffset) {
-            $attendanceDate = now()->startOfMonth()->addDays($dayOffset);
-            if ($attendanceDate->isSunday() || $attendanceDate->isFuture()) {
+        // Absensi mandiri disetujui (1 - 30 Juni 2026, Senin - Sabtu, tanggal 1 & 16 libur)
+        $startDate = \Carbon\Carbon::create(2026, 6, 1);
+        $endDate = \Carbon\Carbon::create(2026, 6, 30);
+
+        for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+            // Lewati hari Minggu
+            if ($date->isSunday()) {
                 continue;
             }
+
+            // Lewati tanggal 1 Juni dan 16 Juni (libur)
+            if ($date->day === 1 || $date->day === 16) {
+                continue;
+            }
+
+            $isSaturday = $date->isSaturday();
+            
+            // Variasi masuk terlambat (20% kemungkinan)
+            $isLate = rand(1, 10) > 8;
+            $clockInTime = $isLate ? '09:' . rand(10, 25) . ':00' : '08:' . rand(10, 29) . ':00';
+            
+            // Jam pulang Sabtu biasanya setengah hari
+            if ($isSaturday) {
+                $clockOutTime = '15:0' . rand(0, 9) . ':00'; // Pulang jam 3 sore
+                $statusOut = 'early_departure';
+            } else {
+                $isOvertime = rand(1, 10) > 8; // 20% lembur di hari biasa
+                $clockOutTime = $isOvertime ? '18:' . rand(15, 45) . ':00' : '17:0' . rand(0, 9) . ':00';
+                $statusOut = $isOvertime ? 'overtime' : 'normal';
+            }
+
             \App\Models\Attendance::updateOrCreate(
                 [
                     'user_id' => $karyawan->id,
-                    'date' => $attendanceDate->toDateString(),
+                    'date' => $date->toDateString(),
                 ],
                 [
                     'attendance_type' => 'kantor',
-                    'clock_in' => '08:30:00',
-                    'clock_out' => '17:00:00',
-                    'status_in' => 'normal',
-                    'status_out' => 'normal',
-                    'notes_in' => 'Absen kantor reguler',
-                    'notes_out' => 'Pulang reguler',
+                    'clock_in' => $clockInTime,
+                    'status_in' => $isLate ? 'late' : 'normal',
+                    'notes_in' => $isLate ? 'Terlambat karena macet' : 'Absen masuk kantor reguler',
+                    'latitude_in' => '-6.1942189',
+                    'longitude_in' => '106.815998',
+                    'clock_out' => $clockOutTime,
+                    'status_out' => $statusOut,
+                    'notes_out' => $isSaturday ? 'Pulang kerja Sabtu setengah hari' : ($statusOut === 'overtime' ? 'Lembur menyelesaikan tugas' : 'Pulang reguler'),
+                    'latitude_out' => '-6.1942189',
+                    'longitude_out' => '106.815998',
                     'approval_status' => 'approved',
                 ]
             );

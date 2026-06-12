@@ -123,9 +123,10 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
 
 interface DirectorMobileNavbarProps {
   onMenuClick: () => void
+  pendingCount?: number
 }
 
-export function DirectorMobileNavbar({ onMenuClick }: DirectorMobileNavbarProps) {
+export function DirectorMobileNavbar({ onMenuClick, pendingCount = 0 }: DirectorMobileNavbarProps) {
   return (
     <header
       className="md:hidden flex items-center justify-between px-5 py-3.5 border-b"
@@ -139,9 +140,14 @@ export function DirectorMobileNavbar({ onMenuClick }: DirectorMobileNavbarProps)
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all cursor-pointer"
+          className="relative w-9 h-9 flex items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all cursor-pointer"
         >
           <Menu className="w-4.5 h-4.5" />
+          {pendingCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-[9px] font-black w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
+              {pendingCount}
+            </span>
+          )}
         </button>
         <Logo />
       </div>

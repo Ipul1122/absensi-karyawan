@@ -595,7 +595,7 @@ class PayrollController extends Controller
 
         try {
             // Panggil API Hari Libur Nasional & Cuti Bersama Indonesia (timeout 8 detik)
-            $response = Http::timeout(8)->get("https://api-hari-libur.vercel.app/api?year={$year}");
+            $response = Http::withoutVerifying()->timeout(8)->get("https://api-hari-libur.vercel.app/api?year={$year}");
 
             if ($response->successful()) {
                 $body = $response->json();
@@ -606,7 +606,7 @@ class PayrollController extends Controller
                     $name = $holiday['description'] ?? null;
 
                     if ($date && $name) {
-                        $existing = Holiday::whereDate('holiday_date', $date)->first();
+                        $existing = Holiday::where('holiday_date', 'like', $date . '%')->first();
                         if ($existing) {
                             $existing->update(['name' => $name]);
                         } else {
@@ -622,6 +622,7 @@ class PayrollController extends Controller
             }
         } catch (\Exception $e) {
             // Catat error jika API gagal
+            \Log::error("Import Holidays API Error: " . $e->getMessage());
         }
 
         if ($success) {
@@ -665,7 +666,7 @@ class PayrollController extends Controller
             ];
 
             foreach ($fallbackHolidays as $holiday) {
-                $existing = Holiday::whereDate('holiday_date', $holiday['holiday_date'])->first();
+                $existing = Holiday::where('holiday_date', 'like', $holiday['holiday_date'] . '%')->first();
                 if ($existing) {
                     $existing->update(['name' => $holiday['name']]);
                 } else {

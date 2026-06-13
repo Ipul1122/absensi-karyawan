@@ -322,6 +322,20 @@ class PayrollController extends Controller
 
         $generatedCount = 0;
 
+        // Tentukan rentang bulan dari period_month (format YYYY-MM)
+        $startOfMonth = Carbon::createFromFormat('Y-m', $period)->startOfMonth()->startOfDay();
+        $endOfMonth   = Carbon::createFromFormat('Y-m', $period)->endOfMonth()->endOfDay();
+
+        // Ambil semua hari libur nasional (Sen–Sab) yang jatuh di bulan ini
+        $holidays = Holiday::whereBetween('holiday_date', [
+            $startOfMonth->toDateString(),
+            $endOfMonth->toDateString()
+        ])->where(function ($q) {
+            $q->whereRaw('DAYOFWEEK(holiday_date) != 1'); // bukan Minggu
+        })->get();
+
+        $holidaysCount = $holidays->count();
+
         try {
             DB::beginTransaction();
 

@@ -502,7 +502,7 @@ export default function EmployeeAbsen({
           }`}
         >
           <Clock className="w-4.5 h-4.5" />
-          Absen Masuk (Check-In)
+          Absen Masuk
           {todayAttendance?.clock_in && (
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           )}
@@ -516,7 +516,7 @@ export default function EmployeeAbsen({
           }`}
         >
           <Clock className="w-4.5 h-4.5" />
-          Absen Keluar (Check-Out)
+          Absen Keluar 
           {todayAttendance?.clock_out && (
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           )}
@@ -595,7 +595,7 @@ export default function EmployeeAbsen({
                   ) : (
                     <>
                       <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
-                        <Camera className="w-4 h-4" /> Tangkap Foto Wajah
+                        <Camera className="w-4 h-4" /> Absen Masuk
                       </button>
                       {cameraError && (
                         <label className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
@@ -837,7 +837,7 @@ export default function EmployeeAbsen({
                   ) : (
                     <>
                       <button onClick={capturePhoto} disabled={!!cameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
-                        <Camera className="w-4 h-4" /> Tangkap Foto Wajah
+                        <Camera className="w-4 h-4" /> Absen Keluar
                       </button>
                       {cameraError && (
                         <label className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">

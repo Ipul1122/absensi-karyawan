@@ -330,7 +330,7 @@ export default function EmployeeSales({
           <div>
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 font-quicksand">
               <Compass className="w-5 h-5 text-orange-500" />
-              Laporan Kunjungan Lapangan / Sales
+              Dokumentasi Sales
             </h2>
             <p className="text-xs text-slate-500 mt-1">
               Gunakan formulir ini untuk melaporkan setiap kunjungan ke klien atau lapangan selama jam kerja.
@@ -340,7 +340,7 @@ export default function EmployeeSales({
             onClick={() => setShowVisitModal(true)}
             className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-700 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-500/10 cursor-pointer transition-all flex items-center gap-1.5 font-quicksand"
           >
-            <Plus className="w-4 h-4" /> Lapor Kunjungan Baru
+            <Plus className="w-4 h-4" /> Buat Baru
           </button>
         </div>
 

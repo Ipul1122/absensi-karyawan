@@ -94,7 +94,6 @@ export default function DirectorSidebar({
                     : isOperationalApproval
                       ? pendingOperasionalCount
                       : 0
-                  : 0
 
               const showBadge = badgeCount > 0
 

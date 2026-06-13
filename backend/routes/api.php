@@ -15,6 +15,7 @@ use App\Http\Controllers\ReimbursementController;
 use App\Http\Controllers\BonusController;
 use App\Http\Controllers\SalesVisitController;
 use App\Http\Controllers\OvertimeController;
+use App\Http\Controllers\NotificationController;
 
 Route::get('/health-check', function () {
     try {
@@ -192,4 +193,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Employee Payroll routes
     Route::get('/payroll/my-slips', [PayrollController::class, 'getEmployeePayrolls']);
+
+    // Sidebar Notification routes
+    Route::get('/sidebar/notification-counts', [NotificationController::class, 'getCounts']);
 });

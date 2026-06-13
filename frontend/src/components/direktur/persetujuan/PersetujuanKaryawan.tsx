@@ -49,11 +49,12 @@ interface EmployeeProfile {
 
 interface PersetujuanKaryawanProps {
   token: string
+  onApprovalChange?: () => void
 }
 
 const S = { fontFamily: "'Inter', 'system-ui', sans-serif" }
 
-export default function PersetujuanKaryawan({ token }: PersetujuanKaryawanProps) {
+export default function PersetujuanKaryawan({ token, onApprovalChange }: PersetujuanKaryawanProps) {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -97,6 +98,7 @@ export default function PersetujuanKaryawan({ token }: PersetujuanKaryawanProps)
         headers: { Authorization: `Bearer ${token}` }
       })
       setEmployees(res.data?.data || [])
+      onApprovalChange?.()
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }

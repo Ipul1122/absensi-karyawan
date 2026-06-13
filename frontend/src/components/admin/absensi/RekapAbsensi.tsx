@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass } from 'lucide-react'
+import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
 import ManualAttendanceModal from './ManualAttendanceModal'
 import SalesVisitsLog from './SalesVisitsLog'
 
@@ -42,7 +42,6 @@ interface RekapAbsensiProps {
   formatDate: (d: string) => string
   getStatusBadge: (s: string | null) => React.ReactNode
   setSelectedAttendance: (a: Attendance) => void
-  handleOpenEditModal: (a: Attendance) => void
   officeLatitude?: string
   officeLongitude?: string
 }
@@ -56,7 +55,6 @@ export default function RekapAbsensi({
   formatDate,
   getStatusBadge,
   setSelectedAttendance,
-  handleOpenEditModal,
   officeLatitude = '-6.2088',
   officeLongitude = '106.8456',
 }: RekapAbsensiProps) {
@@ -79,6 +77,9 @@ export default function RekapAbsensi({
 
   // Manual Attendance Modal States
   const [showManualModal, setShowManualModal] = useState(false)
+
+  // Mobile Filters Collapsible State
+  const [showFilters, setShowFilters] = useState(false)
 
   // Reset page when filters change
   useEffect(() => {
@@ -112,6 +113,14 @@ export default function RekapAbsensi({
 
     return matchesSearch && matchesDate && matchesStatusIn && matchesStatusOut
   })
+
+  // Count active filters (excluding reportMonth as it defaults to current month)
+  const activeFilterCount =
+    (search ? 1 : 0) +
+    (startDate ? 1 : 0) +
+    (endDate ? 1 : 0) +
+    (statusIn !== 'all' ? 1 : 0) +
+    (statusOut !== 'all' ? 1 : 0)
 
   // Pagination Logic
   const totalItems = filteredAttendances.length
@@ -487,10 +496,10 @@ export default function RekapAbsensi({
   return (
     <div className="space-y-6">
       {/* Tab Selector */}
-      <div className="flex bg-orange-50/30 border border-orange-100 rounded-2xl p-1.5 backdrop-blur-md">
+      <div className="flex overflow-x-auto scrollbar-none bg-orange-50/30 border border-orange-100 rounded-2xl p-1.5 backdrop-blur-md gap-1">
         <button
           onClick={() => setActiveSubTab('attendance')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+          className={`flex-1 shrink-0 sm:shrink flex items-center justify-center gap-2 py-3 px-4 sm:px-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
             activeSubTab === 'attendance'
               ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
               : 'text-slate-500 hover:text-red-500 border border-transparent'
@@ -501,7 +510,7 @@ export default function RekapAbsensi({
         </button>
         <button
           onClick={() => setActiveSubTab('sales_visits')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+          className={`flex-1 shrink-0 sm:shrink flex items-center justify-center gap-2 py-3 px-4 sm:px-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
             activeSubTab === 'sales_visits'
               ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
               : 'text-slate-500 hover:text-red-500 border border-transparent'
@@ -512,7 +521,7 @@ export default function RekapAbsensi({
         </button>
         <button
           onClick={() => setActiveSubTab('client_visits')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+          className={`flex-1 shrink-0 sm:shrink flex items-center justify-center gap-2 py-3 px-4 sm:px-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
             activeSubTab === 'client_visits'
               ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
               : 'text-slate-500 hover:text-red-500 border border-transparent'
@@ -533,12 +542,12 @@ export default function RekapAbsensi({
           <p className="text-xs text-slate-500 font-quicksand font-medium">Monitoring waktu, lokasi, foto, dan status absensi seluruh karyawan.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Absensi Manual Button */}
           <button
             onClick={() => setShowManualModal(true)}
             disabled={attendanceLoading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-600 hover:text-orange-600 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-600 hover:text-orange-600 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98]"
             title="Absensikan Karyawan (Manual)"
           >
             <Clock className="w-4 h-4 text-orange-500" />
@@ -549,7 +558,7 @@ export default function RekapAbsensi({
           <button
             onClick={handleExportPDF}
             disabled={attendanceLoading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98]"
             title="Ekspor PDF"
           >
             <FileDown className="w-4 h-4" />
@@ -560,7 +569,7 @@ export default function RekapAbsensi({
           <button
             onClick={handleExportExcel}
             disabled={attendanceLoading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98]"
             title="Ekspor Excel"
           >
             <FileDown className="w-4 h-4" />
@@ -570,7 +579,7 @@ export default function RekapAbsensi({
           <button
             onClick={fetchAttendances}
             disabled={attendanceLoading}
-            className="p-2.5 bg-white border border-slate-200 hover:border-red-500 text-slate-500 hover:text-red-500 rounded-xl transition-all cursor-pointer inline-flex items-center shrink-0 disabled:opacity-50 shadow-sm"
+            className="p-2.5 bg-white border border-slate-200 hover:border-red-500 text-slate-500 hover:text-red-500 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center shrink-0 disabled:opacity-50 shadow-sm hover:scale-[1.02] active:scale-[0.98] h-[38px] w-[38px]"
             title="Segarkan Log"
           >
             <RefreshCw className={`w-4 h-4 ${attendanceLoading ? 'animate-spin' : ''}`} />
@@ -578,8 +587,26 @@ export default function RekapAbsensi({
         </div>
       </div>
 
+      {/* Mobile Toggle Filters Button */}
+      <div className="block md:hidden">
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="w-full flex items-center justify-center gap-2 py-3 bg-white border border-orange-100 hover:border-orange-200 text-slate-700 font-bold rounded-2xl text-xs transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]"
+        >
+          <SlidersHorizontal className="w-4 h-4 text-orange-500" />
+          <span>{showFilters ? 'Sembunyikan Filter & Pencarian' : 'Tampilkan Filter & Pencarian'}</span>
+          {activeFilterCount > 0 && (
+            <span className="flex items-center justify-center bg-orange-500 text-white text-[10px] w-5 h-5 rounded-full font-extrabold shadow-sm animate-pulse">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Modern Filters Panel */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl font-quicksand">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl font-quicksand ${
+        showFilters ? 'grid' : 'hidden md:grid'
+      }`}>
         
         {/* Search Filter */}
         <div className="space-y-1">
@@ -688,8 +715,8 @@ export default function RekapAbsensi({
         </div>
       </div>
 
-      {/* Attendances Table */}
-      <div className="border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
+      {/* Attendances Table - Desktop */}
+      <div className="hidden md:block border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse font-quicksand">
             <thead>
@@ -772,14 +799,6 @@ export default function RekapAbsensi({
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-red-500 text-slate-600 hover:text-red-500 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          Detail
-                        </button>
-                        <button
-                          onClick={() => handleOpenEditModal(att)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-600 hover:text-orange-600 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm"
-                        >
-                          <Clock className="w-3.5 h-3.5" />
-                          Edit
                         </button>
                       </div>
                     </td>
@@ -789,6 +808,101 @@ export default function RekapAbsensi({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Attendances Mobile Card View */}
+      <div className="block md:hidden space-y-4">
+        {attendanceLoading ? (
+          <div className="py-8 text-center text-slate-400 font-medium bg-white border border-orange-100 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-red-500" />
+              <span>Memuat rekam absensi...</span>
+            </div>
+          </div>
+        ) : paginatedAttendances.length === 0 ? (
+          <div className="py-8 text-center text-slate-400 font-semibold bg-white border border-orange-100 rounded-2xl shadow-sm">
+            Data absensi tidak ditemukan.
+          </div>
+        ) : (
+          paginatedAttendances.map((att) => (
+            <div key={att.id} className="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm space-y-4 hover:border-orange-200 hover:shadow-md transition-all">
+              {/* Card Header: Name and Date */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
+                    {att.user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-slate-800 text-sm">{att.user.name}</h4>
+                    <p className="text-[11px] text-slate-400 font-medium">{att.user.email}</p>
+                  </div>
+                </div>
+                <div className="text-right flex flex-col items-end gap-1.5">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border capitalize ${
+                    att.attendance_type === 'kunjungan' 
+                      ? 'text-emerald-700 bg-emerald-50 border-emerald-250' 
+                      : att.attendance_type === 'client' 
+                      ? 'text-amber-700 bg-amber-50 border-amber-250' 
+                      : 'text-indigo-700 bg-indigo-50 border-indigo-250'
+                  }`}>
+                    {att.attendance_type || 'kantor'}
+                  </span>
+                  <span className="text-[10px] font-extrabold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                    {formatDate(att.date)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Card Body: Clock In & Clock Out Info */}
+              <div className="grid grid-cols-2 gap-3 bg-orange-50/10 p-3 border border-orange-100/50 rounded-xl">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Clock In (Masuk)</span>
+                  {att.clock_in ? (
+                    <div className="space-y-1">
+                      <p className="font-mono text-sm font-extrabold text-slate-800">{att.clock_in}</p>
+                      <div>{getStatusBadge(att.status_in)}</div>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic font-semibold block">Belum masuk</span>
+                  )}
+                </div>
+                <div className="space-y-1 border-l border-orange-100/50 pl-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Clock Out (Keluar)</span>
+                  {att.clock_out ? (
+                    <div className="space-y-1">
+                      <p className="font-mono text-sm font-extrabold text-slate-800">{att.clock_out}</p>
+                      <div>{getStatusBadge(att.status_out)}</div>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic font-semibold block">Belum keluar</span>
+                  )}
+                </div>
+              </div>
+
+              {/* GPS Location Info */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lokasi Absen</span>
+                <div className="flex items-start gap-1.5">
+                  <Compass className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                  <span className="text-xs font-bold text-slate-700 leading-tight">
+                    {getLokasiLabel(att)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="pt-2 border-t border-orange-50">
+                <button
+                  onClick={() => setSelectedAttendance(att)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-slate-200 hover:border-red-500 text-slate-700 hover:text-red-500 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                >
+                  <Eye className="w-4 h-4 text-slate-500" />
+                  <span>Lihat Detail Absensi</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Pagination Footer */}

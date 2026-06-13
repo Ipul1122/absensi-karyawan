@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import axios from 'axios'
 import { X } from 'lucide-react'
 import DirectorSidebar from '../layout/DirectorSidebar'
 import DirectorNavbar, { DirectorMobileNavbar } from '../layout/DirectorNavbar'
@@ -29,6 +30,39 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
   const location = useLocation()
   const path = location.pathname
 
+  const [pendingKaryawanCount, setPendingKaryawanCount] = useState(0)
+  const [pendingGajiCount, setPendingGajiCount] = useState(0)
+
+  const fetchPendingCounts = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/api/employees', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const employees = res.data?.data || []
+      const pending = employees.filter((e: any) => e.status === 'pending' || e.status === 'pending_delete')
+      setPendingKaryawanCount(pending.length)
+    } catch (err) {
+      console.error('Failed to fetch pending employees count:', err)
+    }
+
+    try {
+      const res = await axios.get('http://localhost:8000/api/admin/payroll/configurations', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const configs = res.data?.data || []
+      const pending = configs.filter((e: any) => e.salary_configuration?.salary_change_status === 'pending')
+      setPendingGajiCount(pending.length)
+    } catch (err) {
+      console.error('Failed to fetch pending salary count:', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchPendingCounts()
+    const interval = setInterval(fetchPendingCounts, 15000)
+    return () => clearInterval(interval)
+  }, [token])
+
   let pageTitle = 'Dashboard Utama'
   let pageSubtitle = 'Selamat datang, pantau semua persetujuan yang menunggu tindakan Anda'
   if (path.includes('/karyawan')) { pageTitle = 'Persetujuan Karyawan'; pageSubtitle = 'Kelola pendaftaran karyawan baru dan pengajuan penghapusan akun' }
@@ -42,13 +76,13 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
       {/* Sidebar - Desktop */}
       {/* Sidebar - Desktop */}
       <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm sticky top-0 h-screen overflow-y-auto">
-        <DirectorSidebar user={user} onLogout={onLogout} />
+        <DirectorSidebar user={user} onLogout={onLogout} pendingKaryawanCount={pendingKaryawanCount} pendingGajiCount={pendingGajiCount} />
       </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <DirectorNavbar user={user} title={pageTitle} subtitle={pageSubtitle} />
-        <DirectorMobileNavbar onMenuClick={() => setShowMobileSidebar(true)} />
+        <DirectorMobileNavbar onMenuClick={() => setShowMobileSidebar(true)} pendingCount={pendingKaryawanCount + pendingGajiCount} />
         
         {/* Mobile Sidebar Drawer */}
         {showMobileSidebar && (
@@ -64,7 +98,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
               >
                 <X className="w-4 h-4" />
               </button>
-              <DirectorSidebar user={user} onLogout={onLogout} onClose={() => setShowMobileSidebar(false)} />
+              <DirectorSidebar user={user} onLogout={onLogout} onClose={() => setShowMobileSidebar(false)} pendingKaryawanCount={pendingKaryawanCount} pendingGajiCount={pendingGajiCount} />
             </div>
           </div>
         )}
@@ -75,8 +109,8 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
         >
           <Routes>
             <Route path="dashboard" element={<DirekturOverview token={token} />} />
-            <Route path="karyawan" element={<PersetujuanKaryawan token={token} />} />
-            <Route path="gaji" element={<PersetujuanGaji token={token} />} />
+            <Route path="karyawan" element={<PersetujuanKaryawan token={token} onApprovalChange={fetchPendingCounts} />} />
+            <Route path="gaji" element={<PersetujuanGaji token={token} onApprovalChange={fetchPendingCounts} />} />
             <Route path="payroll" element={<PersetujuanPayroll token={token} />} />
             <Route path="operasional" element={<PersetujuanOperational token={token} />} />
             <Route path="log-kehadiran" element={<LogKehadiran token={token} />} />

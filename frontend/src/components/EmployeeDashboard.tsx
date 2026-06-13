@@ -297,6 +297,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   }
 
   const routeInfo = getRouteInfo()
+  const totalPending = sidebarCounts.operasionalCount + sidebarCounts.unpaidPayrollCount
 
   return (
     <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#fdfaf7]">
@@ -306,9 +307,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileSidebarOpen(true)}
-            className="p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50/50 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
+            className="relative p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50/50 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
           >
             <Menu className="w-5 h-5" />
+            {totalPending > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-[9px] font-black w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
+                {totalPending}
+              </span>
+            )}
           </button>
           <Logo className="w-8 h-8" />
         </div>
@@ -322,6 +328,11 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
           title="Buka Menu"
         >
           <ChevronRight className="w-5 h-5 animate-pulse" />
+          {totalPending > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full text-[9px] font-black w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
+              {totalPending}
+            </span>
+          )}
         </button>
       )}
 

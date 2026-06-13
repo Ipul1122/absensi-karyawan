@@ -51,17 +51,23 @@ export default function AdminNavbar({ user, title }: AdminNavbarProps) {
 
 interface AdminMobileNavbarProps {
   onMenuClick: () => void
+  pendingCount?: number
 }
 
-export function AdminMobileNavbar({ onMenuClick }: AdminMobileNavbarProps) {
+export function AdminMobileNavbar({ onMenuClick, pendingCount = 0 }: AdminMobileNavbarProps) {
   return (
     <header className="md:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-orange-100 shadow-sm">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
-          className="p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50/50 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
+          className="relative p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50/50 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
         >
           <Menu className="w-5 h-5" />
+          {pendingCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-[9px] font-black w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
+              {pendingCount}
+            </span>
+          )}
         </button>
         <Logo className="w-8 h-8" />
       </div>

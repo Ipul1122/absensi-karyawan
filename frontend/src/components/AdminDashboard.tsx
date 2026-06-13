@@ -661,12 +661,13 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   }
 
   const routeInfo = getRouteInfo()
+  const totalPending = sidebarCounts.pendingKaryawanCount + sidebarCounts.operasionalCount + sidebarCounts.unpaidPayrollCount
 
   return (
     <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#f8fafc]">
       
       {/* Mobile Top Navbar Header */}
-      <AdminMobileNavbar onMenuClick={() => setMobileSidebarOpen(true)} />
+      <AdminMobileNavbar onMenuClick={() => setMobileSidebarOpen(true)} pendingCount={totalPending} />
 
       {/* Floating Toggle Button on Left Middle Edge */}
       {!mobileSidebarOpen && (
@@ -676,6 +677,11 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
           title="Buka Menu"
         >
           <ChevronRight className="w-5 h-5 animate-pulse" />
+          {totalPending > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full text-[9px] font-black w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
+              {totalPending}
+            </span>
+          )}
         </button>
       )}
 

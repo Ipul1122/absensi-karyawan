@@ -84,7 +84,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <DirectorNavbar user={user} title={pageTitle} subtitle={pageSubtitle} />
-        <DirectorMobileNavbar onMenuClick={() => setShowMobileSidebar(true)} pendingCount={pendingKaryawanCount + pendingGajiCount} />
+        <DirectorMobileNavbar onMenuClick={() => setShowMobileSidebar(true)} pendingCount={pendingKaryawanCount + pendingGajiCount + pendingPayrollCount + pendingOperasionalCount} />
         
         {/* Mobile Sidebar Drawer */}
         {showMobileSidebar && (

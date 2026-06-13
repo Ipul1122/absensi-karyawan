@@ -108,4 +108,21 @@ body {
   border-radius: 1rem;
 }
 
-
+/* Sidebar scrollbar style */
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #fed7aa transparent;
+}
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #fed7aa;
+  border-radius: 9999px;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #fdba74;
+}

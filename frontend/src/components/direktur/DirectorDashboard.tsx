@@ -32,28 +32,23 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
 
   const [pendingKaryawanCount, setPendingKaryawanCount] = useState(0)
   const [pendingGajiCount, setPendingGajiCount] = useState(0)
+  const [pendingPayrollCount, setPendingPayrollCount] = useState(0)
+  const [pendingOperasionalCount, setPendingOperasionalCount] = useState(0)
 
   const fetchPendingCounts = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/employees', {
+      const res = await axios.get('http://localhost:8000/api/sidebar/counts', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      const employees = res.data?.data || []
-      const pending = employees.filter((e: any) => e.status === 'pending' || e.status === 'pending_delete')
-      setPendingKaryawanCount(pending.length)
+      if (res.data.status === 'success') {
+        const d = res.data.data
+        setPendingKaryawanCount(d.pendingKaryawanCount || 0)
+        setPendingGajiCount(d.pendingGajiCount || 0)
+        setPendingPayrollCount(d.pendingPayrollCount || 0)
+        setPendingOperasionalCount(d.pendingOperasionalCount || 0)
+      }
     } catch (err) {
-      console.error('Failed to fetch pending employees count:', err)
-    }
-
-    try {
-      const res = await axios.get('http://localhost:8000/api/admin/payroll/configurations', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      const configs = res.data?.data || []
-      const pending = configs.filter((e: any) => e.salary_configuration?.salary_change_status === 'pending')
-      setPendingGajiCount(pending.length)
-    } catch (err) {
-      console.error('Failed to fetch pending salary count:', err)
+      console.error('Failed to fetch pending counts:', err)
     }
   }
 
@@ -74,15 +69,24 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
   return (
     <div className="flex min-h-screen text-slate-800" style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}>
       {/* Sidebar - Desktop */}
-      {/* Sidebar - Desktop */}
       <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm sticky top-0 h-screen overflow-y-auto">
-        <DirectorSidebar user={user} onLogout={onLogout} pendingKaryawanCount={pendingKaryawanCount} pendingGajiCount={pendingGajiCount} />
+        <DirectorSidebar 
+          user={user} 
+          onLogout={onLogout} 
+          pendingKaryawanCount={pendingKaryawanCount} 
+          pendingGajiCount={pendingGajiCount} 
+          pendingPayrollCount={pendingPayrollCount}
+          pendingOperasionalCount={pendingOperasionalCount}
+        />
       </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <DirectorNavbar user={user} title={pageTitle} subtitle={pageSubtitle} />
-        <DirectorMobileNavbar onMenuClick={() => setShowMobileSidebar(true)} pendingCount={pendingKaryawanCount + pendingGajiCount} />
+        <DirectorMobileNavbar 
+          onMenuClick={() => setShowMobileSidebar(true)} 
+          pendingCount={pendingKaryawanCount + pendingGajiCount + pendingPayrollCount + pendingOperasionalCount} 
+        />
         
         {/* Mobile Sidebar Drawer */}
         {showMobileSidebar && (
@@ -98,7 +102,15 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
               >
                 <X className="w-4 h-4" />
               </button>
-              <DirectorSidebar user={user} onLogout={onLogout} onClose={() => setShowMobileSidebar(false)} pendingKaryawanCount={pendingKaryawanCount} pendingGajiCount={pendingGajiCount} />
+              <DirectorSidebar 
+                user={user} 
+                onLogout={onLogout} 
+                onClose={() => setShowMobileSidebar(false)} 
+                pendingKaryawanCount={pendingKaryawanCount} 
+                pendingGajiCount={pendingGajiCount} 
+                pendingPayrollCount={pendingPayrollCount}
+                pendingOperasionalCount={pendingOperasionalCount}
+              />
             </div>
           </div>
         )}

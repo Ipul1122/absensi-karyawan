@@ -90,6 +90,27 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   
   const [loading, setLoading] = useState(true)
   const [attendanceLoading, setAttendanceLoading] = useState(true)
+  const [sidebarCounts, setSidebarCounts] = useState<{
+    pendingCutiCount: number
+    pendingReimburseCount: number
+    pendingLemburCount: number
+    unpaidPayrollCount: number
+    operasionalCount: number
+    pendingKaryawanCount: number
+  } | undefined>(undefined)
+
+  const fetchSidebarCounts = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/sidebar/counts', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setSidebarCounts(response.data.data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch sidebar counts:', err)
+    }
+  }
   const [showModal, setShowModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [time, setTime] = useState(new Date())
@@ -229,7 +250,13 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     fetchOfficeSetting()
     fetchAdminAttendance()
     fetchLeaves()
+    fetchSidebarCounts()
   }, [])
+
+  useEffect(() => {
+    const interval = setInterval(fetchSidebarCounts, 15000)
+    return () => clearInterval(interval)
+  }, [token])
 
   const handleLogoutClick = async () => {
     try {
@@ -280,6 +307,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         })
         setShowModal(false)
         fetchEmployees()
+        fetchSidebarCounts()
       }
     } catch (err: any) {
       console.error(err)
@@ -352,6 +380,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
               color: '#f8fafc'
             })
             fetchEmployees()
+            fetchSidebarCounts()
           }
         } catch (err: any) {
           console.error(err)
@@ -639,7 +668,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#f8fafc]">
       
       {/* Mobile Top Navbar Header */}
-      <AdminMobileNavbar onMenuClick={() => setMobileSidebarOpen(true)} />
+      <AdminMobileNavbar 
+        onMenuClick={() => setMobileSidebarOpen(true)} 
+        pendingCount={
+          sidebarCounts 
+            ? (sidebarCounts.operasionalCount + sidebarCounts.unpaidPayrollCount + sidebarCounts.pendingKaryawanCount) 
+            : 0
+        } 
+      />
 
       {/* Floating Toggle Button on Left Middle Edge */}
       {!mobileSidebarOpen && (
@@ -654,7 +690,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
 
       {/* Desktop Left Sidebar (Fixed) */}
       <aside className="hidden md:block w-64 bg-white border-r border-slate-100 p-6 flex-shrink-0 shadow-sm">
-        <AdminSidebar user={user} onLogout={handleLogoutClick} />
+        <AdminSidebar user={user} onLogout={handleLogoutClick} counts={sidebarCounts} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
@@ -667,7 +703,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
             >
               <X className="w-4 h-4" />
             </button>
-            <AdminSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} />
+            <AdminSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} />
           </div>
           <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
         </div>

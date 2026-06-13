@@ -76,6 +76,26 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   const [history, setHistory] = useState<Attendance[]>([])
   const [loading, setLoading] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [sidebarCounts, setSidebarCounts] = useState<{
+    pendingCutiCount: number
+    pendingLemburCount: number
+    pendingReimburseCount: number
+    unpaidPayrollCount: number
+    operasionalCount: number
+  } | undefined>(undefined)
+
+  const fetchSidebarCounts = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/sidebar/counts', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setSidebarCounts(response.data.data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch sidebar counts:', err)
+    }
+  }
 
   // Live clock
   useEffect(() => {
@@ -131,7 +151,13 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     fetchTodayAttendance()
     fetchOfficeSetting()
     fetchHistory()
+    fetchSidebarCounts()
   }, [])
+
+  useEffect(() => {
+    const interval = setInterval(fetchSidebarCounts, 15000)
+    return () => clearInterval(interval)
+  }, [token])
 
   // Determine current step
   const getAttendanceState = () => {
@@ -280,9 +306,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileSidebarOpen(true)}
-            className="p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50/50 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
+            className="relative p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50/50 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
           >
             <Menu className="w-5 h-5" />
+            {sidebarCounts && (sidebarCounts.operasionalCount + sidebarCounts.unpaidPayrollCount) > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-[9px] font-black w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
+                {sidebarCounts.operasionalCount + sidebarCounts.unpaidPayrollCount}
+              </span>
+            )}
           </button>
           <Logo className="w-8 h-8" />
         </div>
@@ -301,7 +332,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
 
       {/* Desktop Left Sidebar (Fixed) */}
       <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm">
-        <EmployeeSidebar user={user} onLogout={handleLogoutClick} />
+        <EmployeeSidebar user={user} onLogout={handleLogoutClick} counts={sidebarCounts} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
@@ -314,7 +345,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
             >
               <X className="w-4 h-4" />
             </button>
-            <EmployeeSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} />
+            <EmployeeSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} />
           </div>
           <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
         </div>

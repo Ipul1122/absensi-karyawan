@@ -30,9 +30,17 @@ interface AdminSidebarProps {
   user: User
   onLogout: () => void
   onClose?: () => void
+  counts?: {
+    pendingCutiCount: number
+    pendingReimburseCount: number
+    pendingLemburCount: number
+    unpaidPayrollCount: number
+    operasionalCount: number
+    pendingKaryawanCount: number
+  }
 }
 
-export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarProps) {
+export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminSidebarProps) {
   const location = useLocation()
   
   const [isDataKaryawanOpen, setIsDataKaryawanOpen] = useState(() => {
@@ -136,6 +144,7 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
         {/* Scrollable Container for Profile & Menu Items */}
         <div className="flex-1 overflow-y-auto pr-1 py-4 space-y-6 min-h-0 sidebar-scrollbar">
           {/* User profile brief */}
+          <div className="bg-gradient-to-tr from-red-50/5 to-orange-50/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
           <div className="bg-gradient-to-tr from-red-500/5 to-orange-500/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-red-500/10">
               AD
@@ -179,6 +188,22 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
                     >
                       <span className="flex items-center gap-3">
                         <IconComponent className={`w-4.5 h-4.5 transition-colors ${isChildActive ? 'text-red-600' : 'text-slate-400 group-hover:text-red-500'}`} />
+                        <span>{item.label}</span>
+                        {item.label === 'Data Karyawan' && (counts?.pendingKaryawanCount ?? 0) > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
+                            {counts.pendingKaryawanCount}
+                          </span>
+                        )}
+                        {item.label === 'Operasional' && (counts?.operasionalCount ?? 0) > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
+                            {counts.operasionalCount}
+                          </span>
+                        )}
+                        {item.label === 'Gaji' && (counts?.unpaidPayrollCount ?? 0) > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
+                            {counts.unpaidPayrollCount}
+                          </span>
+                        )}
                         {item.label}
                       </span>
                       <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-red-600' : 'text-slate-400 group-hover:text-red-500'}`} />
@@ -192,6 +217,20 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
                       <div className="pl-6 border-l border-orange-100 ml-6 mt-1 space-y-1">
                         {item.children.map((child) => {
                           const ChildIcon = child.icon
+                          
+                          let childBadge = 0
+                          if (child.to === '/admin/akunKaryawan') {
+                            childBadge = counts?.pendingKaryawanCount ?? 0
+                          } else if (child.to === '/admin/cuti') {
+                            childBadge = counts?.pendingCutiCount ?? 0
+                          } else if (child.to === '/admin/reimbursement') {
+                            childBadge = counts?.pendingReimburseCount ?? 0
+                          } else if (child.to === '/admin/lembur') {
+                            childBadge = counts?.pendingLemburCount ?? 0
+                          } else if (child.to === '/admin/payroll') {
+                            childBadge = counts?.unpaidPayrollCount ?? 0
+                          }
+                          
                           return (
                             <NavLink
                               key={child.to}
@@ -207,6 +246,14 @@ export default function AdminSidebar({ user, onLogout, onClose }: AdminSidebarPr
                                 <>
                                   <span className="flex items-center gap-2.5">
                                     <ChildIcon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`} />
+                                    <span>{child.label}</span>
+                                    {childBadge > 0 && (
+                                      <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none min-w-[16px] h-4 flex items-center justify-center ${
+                                        isActive ? 'bg-white text-red-600' : 'bg-red-500 text-white'
+                                      }`}>
+                                        {childBadge}
+                                      </span>
+                                    )}
                                     {child.label}
                                   </span>
                                   <ChevronRight className={`w-3.5 h-3.5 transition-all ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />

@@ -46,9 +46,16 @@ interface EmployeeSidebarProps {
   user: User
   onLogout: () => void
   onClose?: () => void
+  counts?: {
+    pendingCutiCount: number
+    pendingLemburCount: number
+    pendingReimburseCount: number
+    unpaidPayrollCount: number
+    operasionalCount: number
+  }
 }
 
-export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSidebarProps) {
+export default function EmployeeSidebar({ user, onLogout, onClose, counts }: EmployeeSidebarProps) {
   const location = useLocation()
   
   const [isAbsenDropdownOpen, setIsAbsenDropdownOpen] = useState(() => {
@@ -144,6 +151,12 @@ export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSid
                 const IconComponent = item.icon
                 const isSubActive = item.subItems?.some(sub => location.pathname === sub.to) || false
                 const isOpen = item.label === 'Absen Mandiri' ? isAbsenDropdownOpen : isOperasionalDropdownOpen
+                
+                let parentBadge = 0
+                if (item.label === 'Operasional') {
+                  parentBadge = counts?.operasionalCount || 0
+                }
+                
                 return (
                   <div key={item.label} className="space-y-1">
                     <button
@@ -162,6 +175,12 @@ export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSid
                     >
                       <span className="flex items-center gap-3">
                         <IconComponent className={`w-4 h-4 transition-colors ${isSubActive ? 'text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
+                        <span>{item.label}</span>
+                        {parentBadge > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
+                            {parentBadge}
+                          </span>
+                        )}
                         {item.label}
                       </span>
                       {isOpen ? (
@@ -174,6 +193,16 @@ export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSid
                       <div className="pl-6 space-y-1.5 pt-0.5 animate-fade-in">
                         {item.subItems?.map((subItem) => {
                           const SubIcon = subItem.icon
+                          
+                          let childBadge = 0
+                          if (subItem.to === '/employee/cuti') {
+                            childBadge = counts?.pendingCutiCount || 0
+                          } else if (subItem.to === '/employee/lembur') {
+                            childBadge = counts?.pendingLemburCount || 0
+                          } else if (subItem.to === '/employee/reimbursement') {
+                            childBadge = counts?.pendingReimburseCount || 0
+                          }
+                          
                           return (
                             <NavLink
                               key={subItem.to}
@@ -189,6 +218,12 @@ export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSid
                                 <>
                                   <span className="flex items-center gap-2.5">
                                     <SubIcon className={`w-3.5 h-3.5 transition-colors ${isActive ? 'text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
+                                    <span>{subItem.label}</span>
+                                    {childBadge > 0 && (
+                                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
+                                        {childBadge}
+                                      </span>
+                                    )}
                                     {subItem.label}
                                   </span>
                                   <ChevronRight className={`w-3 h-3 transition-all ${isActive ? 'opacity-100 text-red-500' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
@@ -204,6 +239,12 @@ export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSid
               }
 
               const IconComponent = item.icon
+              
+              let itemBadge = 0
+              if (item.to === '/employee/payroll') {
+                itemBadge = counts?.unpaidPayrollCount || 0
+              }
+              
               return (
                 <NavLink
                   key={item.to || ''}
@@ -219,6 +260,12 @@ export default function EmployeeSidebar({ user, onLogout, onClose }: EmployeeSid
                     <>
                       <span className="flex items-center gap-3">
                         <IconComponent className={`w-4 h-4 transition-colors ${isActive ? 'text-red-500' : 'text-slate-400 group-hover:text-red-500'}`} />
+                        <span>{item.label}</span>
+                        {itemBadge > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
+                            {itemBadge}
+                          </span>
+                        )}
                         {item.label}
                       </span>
                       <ChevronRight className={`w-3.5 h-3.5 transition-all ${isActive ? 'opacity-100 text-red-500' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />

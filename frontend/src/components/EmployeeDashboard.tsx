@@ -76,6 +76,13 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   const [history, setHistory] = useState<Attendance[]>([])
   const [loading, setLoading] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [sidebarCounts, setSidebarCounts] = useState({
+    pendingCutiCount: 0,
+    pendingLemburCount: 0,
+    pendingReimburseCount: 0,
+    unpaidPayrollCount: 0,
+    operasionalCount: 0,
+  })
 
   // Live clock
   useEffect(() => {
@@ -127,11 +134,30 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     }
   }
 
+  const fetchSidebarCounts = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/sidebar/notification-counts', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setSidebarCounts(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data counts sidebar:', err)
+    }
+  }
+
   useEffect(() => {
     fetchTodayAttendance()
     fetchOfficeSetting()
     fetchHistory()
+    fetchSidebarCounts()
   }, [])
+
+  useEffect(() => {
+    const interval = setInterval(fetchSidebarCounts, 15000)
+    return () => clearInterval(interval)
+  }, [token])
 
   // Determine current step
   const getAttendanceState = () => {
@@ -301,7 +327,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
 
       {/* Desktop Left Sidebar (Fixed) */}
       <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm">
-        <EmployeeSidebar user={user} onLogout={handleLogoutClick} />
+        <EmployeeSidebar user={user} onLogout={handleLogoutClick} counts={sidebarCounts} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
@@ -314,7 +340,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
             >
               <X className="w-4 h-4" />
             </button>
-            <EmployeeSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} />
+            <EmployeeSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} />
           </div>
           <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
         </div>

@@ -87,6 +87,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [employees, setEmployees] = useState<Employee[]>([])
   const [attendances, setAttendances] = useState<Attendance[]>([])
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [sidebarCounts, setSidebarCounts] = useState({
+    pendingKaryawanCount: 0,
+    pendingCutiCount: 0,
+    pendingLemburCount: 0,
+    pendingReimburseCount: 0,
+    unpaidPayrollCount: 0,
+    operasionalCount: 0,
+  })
   
   const [loading, setLoading] = useState(true)
   const [attendanceLoading, setAttendanceLoading] = useState(true)
@@ -162,6 +170,19 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     }
   }
 
+  const fetchSidebarCounts = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/sidebar/notification-counts', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setSidebarCounts(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data counts sidebar:', err)
+    }
+  }
+
   const fetchEmployees = async () => {
     setLoading(true)
     try {
@@ -229,7 +250,13 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     fetchOfficeSetting()
     fetchAdminAttendance()
     fetchLeaves()
+    fetchSidebarCounts()
   }, [])
+
+  useEffect(() => {
+    const interval = setInterval(fetchSidebarCounts, 15000)
+    return () => clearInterval(interval)
+  }, [token])
 
   const handleLogoutClick = async () => {
     try {
@@ -654,7 +681,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
 
       {/* Desktop Left Sidebar (Fixed) */}
       <aside className="hidden md:block w-64 bg-white border-r border-slate-100 p-6 flex-shrink-0 shadow-sm">
-        <AdminSidebar user={user} onLogout={handleLogoutClick} />
+        <AdminSidebar user={user} onLogout={handleLogoutClick} counts={sidebarCounts} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
@@ -667,7 +694,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
             >
               <X className="w-4 h-4" />
             </button>
-            <AdminSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} />
+            <AdminSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} />
           </div>
           <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
         </div>

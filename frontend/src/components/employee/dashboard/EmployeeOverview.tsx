@@ -401,7 +401,7 @@ export default function EmployeeOverview({
                 }`}
               >
                 <LogIn className="w-4 h-4" />
-                Lakukan Absen Masuk
+                Absen Masuk
               </button>
               
               <button 
@@ -414,7 +414,7 @@ export default function EmployeeOverview({
                 }`}
               >
                 <LogOut className="w-4 h-4" />
-                Lakukan Absen Keluar
+                Absen Keluar
               </button>
             </div>
           </div>
@@ -448,7 +448,7 @@ export default function EmployeeOverview({
               {/* Card 1: Cuti Karyawan */}
               <div className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Cuti Karyawan</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Cuti </span>
                   <div className="p-2.5 bg-indigo-50 text-indigo-500 border border-indigo-100 rounded-2xl group-hover:bg-indigo-500 group-hover:text-white transition-colors duration-300">
                     <CalendarCheck className="w-5 h-5" />
                   </div>
@@ -466,7 +466,7 @@ export default function EmployeeOverview({
               {/* Card 2: Klaim Reimbursement */}
               <div className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Reimbursement</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Reimburse</span>
                   <div className="p-2.5 bg-rose-50 text-rose-500 border border-rose-100 rounded-2xl group-hover:bg-rose-500 group-hover:text-white transition-colors duration-300">
                     <ReceiptText className="w-5 h-5" />
                   </div>
@@ -484,7 +484,7 @@ export default function EmployeeOverview({
               {/* Card 3: Lembur Kerja */}
               <div className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Lembur Kerja</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Lembur <br /> Kerja</span>
                   <div className="p-2.5 bg-amber-50 text-amber-500 border border-amber-100 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition-colors duration-300">
                     <Clock3 className="w-5 h-5" />
                   </div>

@@ -145,6 +145,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
         <div className="flex-1 overflow-y-auto pr-1 py-4 space-y-6 min-h-0 sidebar-scrollbar">
           {/* User profile brief */}
           <div className="bg-gradient-to-tr from-red-50/5 to-orange-50/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
+          <div className="bg-gradient-to-tr from-red-500/5 to-orange-500/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-red-500/10">
               AD
             </div>
@@ -203,6 +204,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                             {counts.unpaidPayrollCount}
                           </span>
                         )}
+                        {item.label}
                       </span>
                       <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-red-600' : 'text-slate-400 group-hover:text-red-500'}`} />
                     </button>
@@ -252,6 +254,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                                         {childBadge}
                                       </span>
                                     )}
+                                    {child.label}
                                   </span>
                                   <ChevronRight className={`w-3.5 h-3.5 transition-all ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
                                 </>

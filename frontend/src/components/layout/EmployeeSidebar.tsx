@@ -181,6 +181,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts }: Emp
                             {parentBadge}
                           </span>
                         )}
+                        {item.label}
                       </span>
                       {isOpen ? (
                         <ChevronUp className="w-3.5 h-3.5 text-slate-400 group-hover:text-red-500" />
@@ -223,6 +224,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts }: Emp
                                         {childBadge}
                                       </span>
                                     )}
+                                    {subItem.label}
                                   </span>
                                   <ChevronRight className={`w-3 h-3 transition-all ${isActive ? 'opacity-100 text-red-500' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
                                 </>
@@ -264,6 +266,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts }: Emp
                             {itemBadge}
                           </span>
                         )}
+                        {item.label}
                       </span>
                       <ChevronRight className={`w-3.5 h-3.5 transition-all ${isActive ? 'opacity-100 text-red-500' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
                     </>

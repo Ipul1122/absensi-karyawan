@@ -186,33 +186,65 @@ class PayrollController extends Controller
             DB::beginTransaction();
 
             foreach ($employees as $employee) {
-                // 1. Hitung total kehadiran (clock_in tidak null) di rentang cut-off yang disetujui
+                // Tentukan tanggal mulai perhitungan gaji berdasarkan join_date
+                $joinDate = $employee->join_date;
+                $startOfPeriod = $startOfMonth->copy();
+                if ($joinDate) {
+                    $joinCarbon = Carbon::parse($joinDate);
+                    // Jika tanggal gabung setelah akhir bulan berjalan, maka karyawan belum aktif
+                    if ($joinCarbon->greaterThan($endOfMonth)) {
+                        continue;
+                    }
+                    // Jika bergabung di tengah bulan berjalan, ubah awal periode perhitungan
+                    if ($joinCarbon->greaterThan($startOfMonth)) {
+                        $startOfPeriod = $joinCarbon;
+                    }
+                }
+
+                // Hitung hari kerja aktif (Senin–Sabtu) karyawan di masa aktifnya dalam bulan ini
+                $activeWorkingDays = 0;
+                $tempDate = $startOfPeriod->copy();
+                while ($tempDate->lte($endOfMonth)) {
+                    if ($tempDate->dayOfWeek !== Carbon::SUNDAY) {
+                        $activeWorkingDays++;
+                    }
+                    $tempDate->addDay();
+                }
+
+                // Hitung total hari libur nasional (Senin-Sabtu) yang jatuh di masa aktif karyawan
+                $holidaysInActivePeriod = $holidays->filter(function($h) use ($startOfPeriod, $endOfMonth) {
+                    $hDate = Carbon::parse($h->holiday_date);
+                    return $hDate->between($startOfPeriod, $endOfMonth);
+                })->count();
+
+                // 1. Hitung total kehadiran (clock_in tidak null) di dalam masa aktif karyawan
                 $daysPresent = $employee->attendances
-                    ->filter(function ($att) {
-                        return !is_null($att->clock_in);
+                    ->filter(function ($att) use ($startOfPeriod, $endOfMonth) {
+                        $attDate = Carbon::parse($att->date);
+                        return !is_null($att->clock_in) && $attDate->between($startOfPeriod, $endOfMonth);
                     })
                     ->count();
 
-                // 2. Hitung total keterlambatan (status_in = 'late') yang disetujui
+                // 2. Hitung total keterlambatan (status_in = 'late')
                 $daysLate = $employee->attendances
-                    ->where('status_in', 'late')
+                    ->filter(function ($att) use ($startOfPeriod, $endOfMonth) {
+                        $attDate = Carbon::parse($att->date);
+                        return $att->status_in === 'late' && $attDate->between($startOfPeriod, $endOfMonth);
+                    })
                     ->count();
 
-                // 3. Hitung total hari cuti yang disetujui
+                // 3. Hitung total hari cuti yang disetujui di dalam masa aktif karyawan
                 $leaves = $employee->leaveRequests;
-
                 $daysLeave = 0;
                 foreach ($leaves as $leave) {
                     $leaveStart = Carbon::parse($leave->start_date);
                     $leaveEnd = Carbon::parse($leave->end_date);
                     
-                    // Batasi start & end date pada rentang cut-off terpilih
-                    $overlapStart = $leaveStart->max($startOfMonth);
+                    // Batasi start & end date pada rentang aktif karyawan
+                    $overlapStart = $leaveStart->max($startOfPeriod);
                     $overlapEnd = $leaveEnd->min($endOfMonth);
                     
                     if ($overlapStart <= $overlapEnd) {
-                        // Hitung hanya hari kerja (Senin–Sabtu), skip hari Minggu
-                        // agar konsisten dengan kalkulasi workingDaysInMonth
                         $tempLeaveDate = $overlapStart->copy();
                         while ($tempLeaveDate->lte($overlapEnd)) {
                             if ($tempLeaveDate->dayOfWeek !== Carbon::SUNDAY) {
@@ -233,7 +265,40 @@ class PayrollController extends Controller
                 $deductDailyLate = $config ? $config->deduction_late_daily : 25000;
                 $deductFixed = $config ? $config->deduction_fixed : 0;
 
-                // Hitung total hari kerja efektif (Senin - Sabtu) di rentang cut-off tersebut
+                // Hitung pembagi/gaji harian standar (tetap 26 hari kerja standar)
+                $dailyRate = $baseBasicSalary / 26;
+
+                // Gaji Pokok untuk periode ini disesuaikan prorata jika bergabung tengah bulan
+                $isProrated = $startOfPeriod->greaterThan($startOfMonth);
+                if ($isProrated) {
+                    $baseBasicSalaryForPeriod = min($baseBasicSalary, $activeWorkingDays * $dailyRate);
+                } else {
+                    $baseBasicSalaryForPeriod = $baseBasicSalary;
+                }
+
+                // Potongan mangkir per hari dihitung berdasarkan dailyRate (Gaji Pokok / 26)
+                $deductAbsenceDaily = $dailyRate;
+
+                // 5. Hitung tunjangan & potongan (rumus per hari hadir / per hari mangkir)
+                $allowanceMeal = $daysPresent * $allowanceMealDaily;
+                $allowanceTransport = $daysPresent * $allowanceTransportDaily;
+                $allowancePosition = $config ? $config->allowance_position : 0;
+                $allowanceFixed = $config ? $config->allowance_fixed : 0;
+                $deductionLate = $daysLate * $deductDailyLate;
+
+                // Mangkir = hari kerja aktif − hadir − cuti disetujui − libur nasional aktif
+                $daysAbsent = max(0, $activeWorkingDays - $daysPresent - $daysLeave - $holidaysInActivePeriod);
+                $deductionAbsence = $daysAbsent * $deductAbsenceDaily;
+
+                // Gaji bersih = semua penerimaan − semua potongan
+                $totalAllowance = $baseBasicSalaryForPeriod + $allowanceMeal + $allowanceTransport + $allowancePosition + $allowanceFixed;
+                $totalDeduction = $deductionLate + $deductFixed + $deductionAbsence;
+                $netSalary = $totalAllowance - $totalDeduction;
+                if ($netSalary < 0) {
+                    $netSalary = 0; // Gaji tidak boleh negatif
+                }
+
+                // Hitung total hari kerja efektif (Senin - Sabtu) di rentang cut-off tersebut untuk catatan
                 $workingDaysInMonth = 0;
                 $tempDate = $startOfMonth->copy();
                 while ($tempDate->lte($endOfMonth)) {
@@ -243,26 +308,11 @@ class PayrollController extends Controller
                     $tempDate->addDay();
                 }
 
-                // Potongan absen per hari dihitung secara proporsional dari Gaji Pokok dibagi hari kerja efektif
-                $deductAbsenceDaily = ($workingDaysInMonth > 0) ? ($baseBasicSalary / $workingDaysInMonth) : 0;
-
-                // 5. Hitung tunjangan & potongan (rumus sederhana, tiap komponen terpisah)
-                $allowanceMeal = $daysPresent * $allowanceMealDaily;
-                $allowanceTransport = $daysPresent * $allowanceTransportDaily;
-                $allowancePosition = $config ? $config->allowance_position : 0;
-                $allowanceFixed = $config ? $config->allowance_fixed : 0;
-                $deductionLate = $daysLate * $deductDailyLate;
-
-                // Mangkir = hari kerja (Sen–Sab) − hadir − cuti disetujui − libur nasional (Sen–Sab)
-                $daysAbsent = max(0, $workingDaysInMonth - $daysPresent - $daysLeave - $holidaysCount);
-                $deductionAbsence = $daysAbsent * $deductAbsenceDaily;
-
-                // Gaji bersih = semua penerimaan − semua potongan
-                $totalAllowance = $baseBasicSalary + $allowanceMeal + $allowanceTransport + $allowancePosition + $allowanceFixed;
-                $totalDeduction = $deductionLate + $deductFixed + $deductionAbsence;
-                $netSalary = $totalAllowance - $totalDeduction;
-                if ($netSalary < 0) {
-                    $netSalary = 0; // Gaji tidak boleh negatif
+                // Susun catatan payroll yang mendetail dan transparan
+                if ($isProrated) {
+                    $notes = "Periode aktif (bergabung " . Carbon::parse($joinDate)->format('d-m-Y') . "): " . $startOfPeriod->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja aktif: $activeWorkingDays (Sen–Sab). Gaji Pokok Prorata: Rp" . number_format($baseBasicSalaryForPeriod, 0, ',', '.') . " ($activeWorkingDays/26 hari). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional aktif: $holidaysInActivePeriod.";
+                } else {
+                    $notes = "Periode: " . $startOfMonth->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja: $workingDaysInMonth (Sen–Sab). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount.";
                 }
 
                 // 6. Buat atau perbarui transaksi payroll
@@ -279,7 +329,7 @@ class PayrollController extends Controller
                     'days_present' => $daysPresent,
                     'days_late' => $daysLate,
                     'days_leave' => $daysLeave,
-                    'basic_salary' => $baseBasicSalary,
+                    'basic_salary' => $baseBasicSalaryForPeriod,
                     'allowance_meal' => $allowanceMeal,
                     'allowance_transport' => $allowanceTransport,
                     'allowance_fixed' => $allowanceFixed,
@@ -289,7 +339,7 @@ class PayrollController extends Controller
                     'deduction_absence' => $deductionAbsence,
                     'net_salary' => $netSalary,
                     'status' => 'draft',
-                    'notes' => "Periode: " . $startOfMonth->toDateString() . " s.d " . $endOfMonth->toDateString() . ". Hari kerja: $workingDaysInMonth (Sen–Sab). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount.",
+                    'notes' => $notes,
                 ];
 
                 Payroll::updateOrCreate(

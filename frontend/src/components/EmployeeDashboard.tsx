@@ -155,7 +155,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   }, [])
 
   useEffect(() => {
-    const interval = setInterval(fetchSidebarCounts, 15000)
+    const interval = setInterval(fetchSidebarCounts, 60000)
     return () => clearInterval(interval)
   }, [token])
 

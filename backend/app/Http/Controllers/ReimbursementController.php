@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Reimbursement;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use App\Helpers\ImageHelper;
 
 class ReimbursementController extends Controller
 {
@@ -56,10 +57,8 @@ class ReimbursementController extends Controller
         $receiptPath = null;
         if ($request->hasFile('receipt')) {
             try {
-                $file = $request->file('receipt');
-                $filename = 'reimb_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('reimbursements/receipts', $filename, 'public');
-                $receiptPath = '/storage/reimbursements/receipts/' . $filename;
+                $path = ImageHelper::compressAndSaveWebp($request->file('receipt'), 'reimbursements/receipts');
+                $receiptPath = '/storage/' . $path;
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => 'error',

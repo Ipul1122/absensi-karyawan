@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Helpers\ImageHelper;
 
 class EmployeeController extends Controller
 {
@@ -82,7 +83,7 @@ class EmployeeController extends Controller
         ];
 
         if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('photos', 'public');
+            $path = ImageHelper::compressAndSaveWebp($request->file('photo'), 'photos');
             $data['photo'] = $path;
         }
 
@@ -285,7 +286,7 @@ class EmployeeController extends Controller
             if ($employee->photo) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($employee->photo);
             }
-            $path = $request->file('photo')->store('photos', 'public');
+            $path = ImageHelper::compressAndSaveWebp($request->file('photo'), 'photos');
             $data['photo'] = $path;
         }
 

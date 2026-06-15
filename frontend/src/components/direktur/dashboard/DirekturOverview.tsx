@@ -69,14 +69,11 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
   })
 
   // Full Data State for Inbox and Widgets
-  const [employees, setEmployees] = useState<any[]>([])
-  const [salaryConfigs, setSalaryConfigs] = useState<any[]>([])
-  const [payrolls, setPayrolls] = useState<any[]>([])
-  const [leaves, setLeaves] = useState<any[]>([])
-  const [overtimes, setOvertimes] = useState<any[]>([])
-  const [reimbursements, setReimbursements] = useState<any[]>([])
-  const [bonuses, setBonuses] = useState<any[]>([])
-  const [inventories, setInventories] = useState<any[]>([])
+  const [unifiedPendingItems, setUnifiedPendingItems] = useState<UnifiedPendingItem[]>([])
+  const [totalEmployees, setTotalEmployees] = useState<number>(0)
+  const [totalProposedPayroll, setTotalProposedPayroll] = useState<number>(0)
+  const [activeLeavesToday, setActiveLeavesToday] = useState<any[]>([])
+  const [totalOverallTasksCount, setTotalOverallTasksCount] = useState<number>(0)
 
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
@@ -95,52 +92,25 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
     setLoading(true)
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      const currentMonthStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+      const res = await axios.get('http://localhost:8000/api/director/dashboard-summary', { headers })
       
-      const [
-        resEmployees, resSalary, resPayroll,
-        resLeaves, resOvertimes, resReimbursements, resBonuses, resInventories
-      ] = await Promise.all([
-        axios.get('http://localhost:8000/api/employees', { headers }).catch(() => ({ data: { data: [] } })),
-        axios.get('http://localhost:8000/api/admin/payroll/configurations', { headers }).catch(() => ({ data: { data: [] } })),
-        axios.get(`http://localhost:8000/api/admin/payroll?period_month=${currentMonthStr}`, { headers }).catch(() => ({ data: { data: [] } })),
-        axios.get('http://localhost:8000/api/admin/leaves', { headers }).catch(() => ({ data: { data: [] } })),
-        axios.get('http://localhost:8000/api/admin/overtimes', { headers }).catch(() => ({ data: { data: [] } })),
-        axios.get('http://localhost:8000/api/admin/reimbursements', { headers }).catch(() => ({ data: { data: [] } })),
-        axios.get('http://localhost:8000/api/admin/bonuses', { headers }).catch(() => ({ data: { data: [] } })),
-        axios.get('http://localhost:8000/api/admin/inventories', { headers }).catch(() => ({ data: { data: [] } })),
-      ])
+      if (res.data.status === 'success') {
+        const {
+          totalEmployees: resTotalEmployees,
+          totalProposedPayroll: resTotalProposedPayroll,
+          activeLeavesToday: resActiveLeavesToday,
+          totalOverallTasksCount: resTotalOverallTasksCount,
+          stats: responseStats,
+          unifiedPendingItems: responsePendingItems
+        } = res.data.data
 
-      const employeesData = resEmployees.data?.data || []
-      const salaryConfigsData = resSalary.data?.data || []
-      const payrollsData = resPayroll.data?.data || []
-      const leavesData = resLeaves.data?.data || []
-      const overtimesData = resOvertimes.data?.data || []
-      const reimbursementsData = resReimbursements.data?.data || []
-      const bonusesData = resBonuses.data?.data || []
-      const inventoriesData = resInventories.data?.data || []
-
-      setEmployees(employeesData)
-      setSalaryConfigs(salaryConfigsData)
-      setPayrolls(payrollsData)
-      setLeaves(leavesData)
-      setOvertimes(overtimesData)
-      setReimbursements(reimbursementsData)
-      setBonuses(bonusesData)
-      setInventories(inventoriesData)
-
-      const pendingRegister = employeesData.filter((e: any) => e.status === 'pending').length
-      const pendingDelete = employeesData.filter((e: any) => e.status === 'pending_delete').length
-      const pendingSalary = salaryConfigsData.filter((e: any) => e.salary_configuration?.salary_change_status === 'pending').length
-      const pendingPayroll = payrollsData.filter((e: any) => e.status === 'pending_approval').length
-      const pendingLeaves = leavesData.filter((e: any) => e.status === 'pending_director').length
-      const pendingOvertimes = overtimesData.filter((e: any) => e.status === 'pending_director').length
-      const pendingReimbursements = reimbursementsData.filter((e: any) => e.status === 'pending_director').length
-      const pendingBonuses = bonusesData.filter((e: any) => e.status === 'pending').length
-      const pendingInventories = inventoriesData.filter((e: any) => e.status === 'pending').length
-      const pendingOperational = pendingLeaves + pendingOvertimes + pendingReimbursements + pendingBonuses + pendingInventories
-
-      setStats({ pendingRegister, pendingDelete, pendingSalary, pendingPayroll, pendingOperational })
+        setTotalEmployees(resTotalEmployees)
+        setTotalProposedPayroll(resTotalProposedPayroll)
+        setActiveLeavesToday(resActiveLeavesToday)
+        setTotalOverallTasksCount(resTotalOverallTasksCount)
+        setStats(responseStats)
+        setUnifiedPendingItems(responsePendingItems)
+      }
     } catch (err) { 
       console.error(err) 
     } finally { 
@@ -168,177 +138,6 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
     const end = new Date(endDateStr)
     end.setHours(0, 0, 0, 0)
     return today >= start && today <= end
-  }
-
-  // Aggregate pending items
-  const getUnifiedPendingItems = (): UnifiedPendingItem[] => {
-    const items: UnifiedPendingItem[] = []
-
-    // 1. New Register Employee
-    employees.filter(e => e.status === 'pending').forEach(emp => {
-      items.push({
-        id: emp.id,
-        type: 'employee_new',
-        title: 'Pendaftaran Karyawan Baru',
-        subtitle: emp.email,
-        requesterName: emp.name,
-        requesterEmail: emp.email,
-        date: emp.join_date || emp.created_at || new Date().toISOString(),
-        badgeText: 'Pendaftaran',
-        details: `Tanggal Bergabung: ${emp.join_date ? new Date(emp.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}`,
-        originalData: emp
-      })
-    })
-
-    // 2. Pending Delete Employee
-    employees.filter(e => e.status === 'pending_delete').forEach(emp => {
-      items.push({
-        id: emp.id,
-        type: 'employee_delete',
-        title: 'Pengajuan Hapus Akun',
-        subtitle: emp.email,
-        requesterName: emp.name,
-        requesterEmail: emp.email,
-        date: new Date().toISOString(),
-        badgeText: 'Hapus Akun',
-        details: `Meminta persetujuan direktur untuk menghapus akun permanen dari sistem.`,
-        originalData: emp
-      })
-    })
-
-    // 3. Salary Config changes
-    salaryConfigs.filter(emp => emp.salary_configuration?.salary_change_status === 'pending').forEach(emp => {
-      const config = emp.salary_configuration
-      const changes: string[] = []
-      
-      if (config.pending_basic_salary !== null && config.pending_basic_salary !== config.basic_salary) {
-        changes.push(`Gaji Pokok: ${formatIDR(config.basic_salary)} → ${formatIDR(config.pending_basic_salary)}`)
-      }
-      if (config.pending_allowance_meal_daily !== null && config.pending_allowance_meal_daily !== config.allowance_meal_daily) {
-        changes.push(`Tunj. Makan Harian: ${formatIDR(config.allowance_meal_daily)} → ${formatIDR(config.pending_allowance_meal_daily)}`)
-      }
-      if (config.pending_allowance_transport_daily !== null && config.pending_allowance_transport_daily !== config.allowance_transport_daily) {
-        changes.push(`Tunj. Transport Harian: ${formatIDR(config.allowance_transport_daily)} → ${formatIDR(config.pending_allowance_transport_daily)}`)
-      }
-      if (config.pending_allowance_position !== null && config.pending_allowance_position !== config.allowance_position) {
-        changes.push(`Tunj. Jabatan: ${formatIDR(config.allowance_position)} → ${formatIDR(config.pending_allowance_position)}`)
-      }
-
-      items.push({
-        id: config.id,
-        type: 'salary_config',
-        title: 'Penyesuaian Gaji Karyawan',
-        subtitle: emp.email,
-        requesterName: emp.name,
-        requesterEmail: emp.email,
-        date: new Date().toISOString(),
-        badgeText: 'Gaji',
-        details: changes.length > 0 ? changes.join(' | ') : 'Mengajukan nilai gaji baru',
-        originalData: { ...config, employeeName: emp.name }
-      })
-    })
-
-    // 4. Pending Payroll
-    payrolls.filter(p => p.status === 'pending_approval').forEach(record => {
-      items.push({
-        id: record.id,
-        type: 'payroll',
-        title: `Proposal Slip Gaji Bulanan`,
-        subtitle: `Periode: ${record.period_month}`,
-        requesterName: record.user.name,
-        requesterEmail: record.user.email,
-        date: new Date().toISOString(),
-        amount: record.net_salary,
-        badgeText: 'Payroll',
-        details: `Total Transfer Bersih: ${formatIDR(record.net_salary)} (${record.days_present}H hadir, ${record.days_late}T telat)`,
-        originalData: record
-      })
-    })
-
-    // 5. Pending Leaves
-    leaves.filter(l => l.status === 'pending_director').forEach(r => {
-      const categoryLabel = r.category === 'LAINNYA' ? r.custom_category : r.category
-      items.push({
-        id: r.id,
-        type: 'leave',
-        title: `Pengajuan Cuti (${categoryLabel})`,
-        subtitle: `Alasan: ${r.reason}`,
-        requesterName: r.user?.name || 'Karyawan',
-        requesterEmail: r.user?.email,
-        date: r.start_date,
-        badgeText: 'Cuti',
-        details: `${new Date(r.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} s/d ${new Date(r.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`,
-        originalData: r
-      })
-    })
-
-    // 6. Pending Overtimes
-    overtimes.filter(o => o.status === 'pending_director').forEach(r => {
-      items.push({
-        id: r.id,
-        type: 'overtime',
-        title: `Pengajuan Lembur (${r.duration} Jam)`,
-        subtitle: `Alasan: ${r.reason}`,
-        requesterName: r.user?.name || 'Karyawan',
-        requesterEmail: r.user?.email,
-        date: r.date,
-        badgeText: 'Lembur',
-        details: `${new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} · ${r.start_time.substring(0,5)} - ${r.end_time.substring(0,5)}`,
-        originalData: r
-      })
-    })
-
-    // 7. Pending Reimbursements
-    reimbursements.filter(r => r.status === 'pending_director').forEach(r => {
-      items.push({
-        id: r.id,
-        type: 'reimbursement',
-        title: `Klaim Reimbursement: ${r.title}`,
-        subtitle: `Kategori: ${r.category} · Nominal: ${formatIDR(r.amount)}`,
-        requesterName: r.user?.name || 'Karyawan',
-        requesterEmail: r.user?.email,
-        date: r.expense_date,
-        amount: r.amount,
-        badgeText: 'Klaim Biaya',
-        details: `Keterangan: ${r.description || '-'}`,
-        originalData: r
-      })
-    })
-
-    // 8. Pending Bonuses
-    bonuses.filter(b => b.status === 'pending').forEach(r => {
-      items.push({
-        id: r.id,
-        type: 'bonus',
-        title: 'Pengajuan Bonus Tambahan',
-        subtitle: `Nominal: ${formatIDR(r.bonus_amount)}`,
-        requesterName: r.user?.name || 'Karyawan',
-        requesterEmail: r.user?.email,
-        date: r.bonus_date,
-        amount: r.bonus_amount,
-        badgeText: 'Bonus',
-        details: `Keterangan: ${r.description || '-'} · Tanggal: ${new Date(r.bonus_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}`,
-        originalData: r
-      })
-    })
-
-    // 9. Pending Inventories
-    inventories.filter(i => i.status === 'pending').forEach(r => {
-      items.push({
-        id: r.id,
-        type: 'inventory',
-        title: `Pengadaan Barang: ${r.nama_barang}`,
-        subtitle: `Kondisi: ${r.kondisi_barang.toUpperCase()} · Lokasi: ${r.lokasi}`,
-        requesterName: r.pemakai_barang || 'Kantor Utama',
-        date: r.tanggal_pembelian,
-        amount: r.harga,
-        badgeText: 'Inventaris',
-        details: `Estimasi Harga: ${formatIDR(r.harga)} · Tanggal: ${new Date(r.tanggal_pembelian).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}`,
-        originalData: r
-      })
-    })
-
-    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }
 
   // Quick action handlers
@@ -614,17 +413,13 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
 
   // Calculate metrics
   const totalPending = Object.values(stats).reduce((a, b) => a + b, 0)
-  const activeEmployees = employees.filter(e => e.status === 'active')
-  const totalProposedPayroll = payrolls.filter(p => p.status === 'pending_approval' || p.status === 'paid' || p.status === 'unpaid').reduce((sum, p) => sum + p.net_salary, 0)
-  const activeLeavesToday = leaves.filter(l => l.status === 'approved' && isTodayWithinRange(l.start_date, l.end_date))
   
   // Total overall task processed ratio mockup based on database size
-  const totalOverallTasksCount = employees.length + salaryConfigs.length + payrolls.length + leaves.length + overtimes.length + reimbursements.length + bonuses.length + inventories.length
   const totalCompletedTasksCount = totalOverallTasksCount - totalPending
   const completionPercent = totalOverallTasksCount > 0 ? Math.round((totalCompletedTasksCount / totalOverallTasksCount) * 100) : 100
 
   // Filter unified items
-  const rawInboxItems = getUnifiedPendingItems()
+  const rawInboxItems = unifiedPendingItems
   const filteredInboxItems = rawInboxItems.filter(item => {
     const matchesSearch = 
       item.requesterName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1288,7 +1083,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
           <div className="relative z-10 flex items-start justify-between">
             <div className="space-y-2">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Karyawan Aktif</span>
-              <h4 className="text-2xl font-black text-slate-800">{activeEmployees.length}</h4>
+              <h4 className="text-2xl font-black text-slate-800">{totalEmployees}</h4>
               <p className="text-xs text-slate-400 font-medium">Akun terverifikasi aktif</p>
             </div>
             <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">

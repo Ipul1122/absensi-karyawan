@@ -16,6 +16,7 @@ use App\Http\Controllers\BonusController;
 use App\Http\Controllers\SalesVisitController;
 use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\DirectorController;
 
 Route::get('/health-check', function () {
     try {
@@ -149,6 +150,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Director only approval routes
     Route::middleware('director')->group(function () {
+        Route::get('/director/dashboard-summary', [DirectorController::class, 'getDashboardSummary']);
         // Employee approvals
         Route::put('/director/employees/{id}/approve', [EmployeeController::class, 'approveEmployee']);
         Route::put('/director/employees/{id}/reject', [EmployeeController::class, 'rejectEmployee']);

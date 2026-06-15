@@ -1874,7 +1874,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             <div id="slip-print-area" className="border border-slate-200 rounded-2xl p-5 space-y-5 bg-white text-slate-700 font-quicksand">
               <div className="header font-montserrat">
                 <div className="logo">
-                  <img src="/logo-perusahaan.png" alt="PT. Cakrawala Parama Internasional" />
+                  <img 
+                    src={selectedSlip.user.company === 'PT Yasodana Parvez Internasional' ? `${window.location.origin}/logo/LOGO-YPI.png` : `${window.location.origin}/logo/LOGO-CPI.png`} 
+                    alt={selectedSlip.user.company || 'PT Cakrawala Parama Internasional'} 
+                  />
                 </div>
                 <div className="title">
                   <h2>SLIP GAJI RESMI</h2>

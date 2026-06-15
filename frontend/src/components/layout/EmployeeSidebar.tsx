@@ -53,9 +53,10 @@ interface EmployeeSidebarProps {
     unpaidPayrollCount: number
     operasionalCount: number
   }
+  company?: string
 }
 
-export default function EmployeeSidebar({ user, onLogout, onClose, counts }: EmployeeSidebarProps) {
+export default function EmployeeSidebar({ user, onLogout, onClose, counts, company }: EmployeeSidebarProps) {
   const location = useLocation()
   
   const [isAbsenDropdownOpen, setIsAbsenDropdownOpen] = useState(() => {
@@ -128,7 +129,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts }: Emp
       <div className="flex flex-col flex-1 min-h-0">
         {/* Brand Logo */}
         <div className="flex items-center gap-3 px-3 py-2 border-b border-orange-100 pb-5 shrink-0">
-          <Logo />
+          <Logo company={company} />
         </div>
 
         {/* Scrollable Container for Profile & Menu Items */}

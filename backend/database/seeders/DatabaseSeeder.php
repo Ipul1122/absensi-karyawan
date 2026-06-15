@@ -26,17 +26,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $karyawan = User::updateOrCreate(
-            ['email' => 'karyawan@absen.com'],
-            [
-                'name' => 'Syaiful Karyawan',
-                'password' => bcrypt('password'),
-                'password_plain' => 'password',
-                'role' => 'employee',
-                'status' => 'active',
-            ]
-        );
-
         User::updateOrCreate(
             ['email' => 'direktur@absen.com'],
             [

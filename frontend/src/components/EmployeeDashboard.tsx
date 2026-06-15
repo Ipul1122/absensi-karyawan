@@ -76,6 +76,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   const [history, setHistory] = useState<Attendance[]>([])
   const [loading, setLoading] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [company, setCompany] = useState<string>('')
   const [sidebarCounts, setSidebarCounts] = useState({
     pendingCutiCount: 0,
     pendingLemburCount: 0,
@@ -147,11 +148,25 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     }
   }
 
+  const fetchProfile = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/user/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setCompany(response.data.data.company || '')
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data profil karyawan:', err)
+    }
+  }
+
   useEffect(() => {
     fetchTodayAttendance()
     fetchOfficeSetting()
     fetchHistory()
     fetchSidebarCounts()
+    fetchProfile()
   }, [])
 
   useEffect(() => {
@@ -316,7 +331,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               </span>
             )}
           </button>
-          <Logo className="w-8 h-8" />
+          <Logo className="w-8 h-8" company={company} />
         </div>
       </header>
 
@@ -338,7 +353,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
 
       {/* Desktop Left Sidebar (Fixed) */}
       <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm">
-        <EmployeeSidebar user={user} onLogout={handleLogoutClick} counts={sidebarCounts} />
+        <EmployeeSidebar user={user} onLogout={handleLogoutClick} counts={sidebarCounts} company={company} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
@@ -351,7 +366,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
             >
               <X className="w-4 h-4" />
             </button>
-            <EmployeeSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} />
+            <EmployeeSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} company={company} />
           </div>
           <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
         </div>
@@ -472,6 +487,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
                 <EmployeePayroll
                   token={token}
                   user={user}
+                  company={company}
                 />
               } 
             />

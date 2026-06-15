@@ -38,6 +38,7 @@ interface PayrollRecord {
 interface EmployeePayrollProps {
   token: string
   user?: { name: string; email: string }
+  company?: string
 }
 
 const getPaymentStatusLabel = (status: PayrollRecord['status']) => {
@@ -51,12 +52,17 @@ const getPaymentStatusLabel = (status: PayrollRecord['status']) => {
   }
 }
 
-export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
+export default function EmployeePayroll({ token, user, company }: EmployeePayrollProps) {
   const [payrolls, setPayrolls] = useState<PayrollRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [showSlipModal, setShowSlipModal] = useState(false)
   const [selectedSlip, setSelectedSlip] = useState<PayrollRecord | null>(null)
   const [filterMonth, setFilterMonth] = useState('')
+
+  const isYPI = company === 'PT Yasodana Parvez Internasional'
+  const logoSrc = isYPI ? '/logo/LOGO-YPI.png' : '/logo/LOGO-CPI.png'
+  const logoAlt = isYPI ? 'PT Yasodana Parvez Internasional' : 'PT Cakrawala Parama Internasional'
+  const fullLogoUrl = `${window.location.origin}${logoSrc}`
 
   const fetchMyPayrolls = async () => {
     setLoading(true)
@@ -428,7 +434,7 @@ export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
             <div id="employee-slip-print-area" className="border border-slate-200 rounded-2xl p-5 space-y-5 bg-white text-slate-700">
               <div className="header">
                 <div className="logo">
-                  <img src="/logo-perusahaan.png" alt="PT. Cakrawala Parama Internasional" />
+                  <img src={fullLogoUrl} alt={logoAlt} />
                 </div>
                 <div className="title">
                   <h2>SLIP GAJI RESMI</h2>

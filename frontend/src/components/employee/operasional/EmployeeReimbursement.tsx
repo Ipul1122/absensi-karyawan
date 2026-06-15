@@ -390,7 +390,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                 </div>
 
                 {/* Amount and Expense Date */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-quicksand">
                       3. Jumlah Klaim (Rp)
@@ -552,9 +552,9 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                   {paginatedItems.map((item) => (
                     <tr key={item.id} className="hover:bg-orange-50/10 transition-colors">
                       {/* Title & Desc */}
-                      <td className="py-4 pl-4">
-                        <span className="block font-bold text-slate-800">{item.title}</span>
-                        <span className="text-[10px] text-slate-400 font-medium max-w-[200px] truncate block">
+                      <td className="py-4 pl-4 max-w-[240px]">
+                        <span className="block font-bold text-slate-800 break-words whitespace-normal leading-normal">{item.title}</span>
+                        <span className="text-[10px] text-slate-400 font-medium max-w-[220px] truncate block">
                           {item.description || '-'}
                         </span>
                       </td>
@@ -624,14 +624,14 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
             <div className="space-y-4 md:hidden">
               {paginatedItems.map((item) => (
                 <div key={item.id} className="bg-orange-50/5 border border-orange-100/80 rounded-2xl p-4 space-y-3 shadow-sm hover:border-orange-200 transition-colors">
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <span className="block font-bold text-slate-800 text-sm">{item.title}</span>
-                      <span className="text-[10px] text-slate-400 font-medium mt-0.5 block line-clamp-2">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="block font-bold text-slate-800 text-sm break-words leading-snug">{item.title}</span>
+                      <span className="text-[10px] text-slate-400 font-medium mt-1 block break-words">
                         {item.description || 'Tidak ada deskripsi'}
                       </span>
                     </div>
-                    <div className="shrink-0">
+                    <div className="shrink-0 self-start">
                       {getStatusBadge(item.status)}
                     </div>
                   </div>

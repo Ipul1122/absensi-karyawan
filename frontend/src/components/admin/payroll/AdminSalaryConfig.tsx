@@ -322,7 +322,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Makan (Harian)</label>
                   <div className="relative">
@@ -372,7 +372,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Telat (Harian)</label>
                   <div className="relative">

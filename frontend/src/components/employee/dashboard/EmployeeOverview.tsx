@@ -434,7 +434,7 @@ export default function EmployeeOverview({
           </div>
 
           {statsLoading ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map(idx => (
                 <div key={idx} className="bg-white border border-orange-100/50 rounded-3xl p-5 shadow-sm space-y-3 animate-pulse">
                   <div className="flex items-center justify-between">
@@ -447,7 +447,7 @@ export default function EmployeeOverview({
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               
               {/* Card 1: Cuti Karyawan */}
               <div className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
@@ -627,7 +627,7 @@ export default function EmployeeOverview({
           <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 font-mono">
             Kehadiran Bulan Ini
           </h4>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             
             <div className="bg-slate-50 border border-slate-150/60 rounded-2xl p-3.5 shadow-sm text-center">
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Hadir</p>

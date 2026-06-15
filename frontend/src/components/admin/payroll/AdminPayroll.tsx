@@ -1664,7 +1664,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunjangan Makan</label>
                   <div className="relative">
@@ -1696,7 +1696,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunjangan Jabatan</label>
                   <div className="relative">
@@ -1728,7 +1728,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">Potongan Telat</label>
                   <div className="relative">

@@ -483,13 +483,13 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
       {/* Render Detail Modal */}
       {showDetailModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-zoom-in flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-zoom-in">
             {/* Header gradient bar */}
-            <div className="h-1.5 bg-orange-600 from-indigo-500 via-purple-500 to-pink-500 shrink-0" />
-            <div className="p-6 flex flex-col overflow-hidden">
-              <div className="flex items-start justify-between mb-5 shrink-0">
+            <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-orange-600 from-indigo-500 to-purple-650 flex items-center justify-center shadow-md">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 flex items-center justify-center shadow-md">
                     <BookUser className="w-4 h-4 text-white" />
                   </div>
                   <div>
@@ -498,20 +498,20 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                   </div>
                 </div>
                 <button onClick={() => setShowDetailModal(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer">
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {loadingProfile ? (
-                <div className="flex items-center justify-center py-12 gap-2 text-slate-400">
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400 flex-1">
                   <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
                   <span className="text-xs font-quicksand text-slate-400">Memuat profil...</span>
                 </div>
               ) : selectedProfile ? (
-                <div className="space-y-4 text-slate-700 overflow-y-auto pr-1 flex-grow">
+                <div className="space-y-4 text-slate-700">
                   {/* Photo + Name */}
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     {selectedProfile.photo ? (
                       <img src={selectedProfile.photo.startsWith('http') ? selectedProfile.photo : `http://localhost:8000${selectedProfile.photo}`} alt="Foto"
                         className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-sm shrink-0" />
@@ -542,32 +542,31 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                   {/* Info Grid */}
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: 'Jenis Kelamin', value: selectedProfile.gender === 'male' ? 'Laki-laki' : selectedProfile.gender === 'female' ? 'Perempuan' : '-', icon: <User className="w-3 h-3" />, className: 'col-span-1' },
-                      { label: 'Tanggal Lahir', value: selectedProfile.date_of_birth ? new Date(selectedProfile.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Calendar className="w-3 h-3" />, className: 'col-span-1' },
-                      { label: 'Tanggal Bergabung', value: selectedProfile.join_date ? new Date(selectedProfile.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Briefcase className="w-3 h-3" />, className: 'col-span-1' },
-                      { label: 'No. Rekening', value: selectedProfile.no_rekening || '-', icon: <Hash className="w-3 h-3" />, className: 'col-span-1' },
-                      { label: 'Perusahaan', value: selectedProfile.company || '-', icon: <Building2 className="w-3 h-3" />, className: 'col-span-2' },
+                      { label: 'Jenis Kelamin', value: selectedProfile.gender === 'male' ? 'Laki-laki' : selectedProfile.gender === 'female' ? 'Perempuan' : '-', icon: <User className="w-3 h-3" /> },
+                      { label: 'Tanggal Lahir', value: selectedProfile.date_of_birth ? new Date(selectedProfile.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Calendar className="w-3 h-3" /> },
+                      { label: 'Tanggal Bergabung', value: selectedProfile.join_date ? new Date(selectedProfile.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Briefcase className="w-3 h-3" /> },
+                      { label: 'Status Keanggotaan', value: selectedProfile.division ? 'Staf Divisi' : 'Karyawan', icon: <Shield className="w-3 h-3" /> },
                     ].map(item => (
-                      <div key={item.label} className={`p-3 bg-slate-50 rounded-xl border border-slate-100 ${item.className}`}>
+                      <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <div className="flex items-center gap-1 text-slate-400 mb-1">
                           {item.icon}
                           <span className="text-[9px] uppercase tracking-wider font-extrabold font-quicksand">{item.label}</span>
                         </div>
-                        <p className="text-xs font-bold text-slate-700 font-quicksand leading-snug">{item.value}</p>
+                        <p className="text-xs font-bold text-slate-700 font-quicksand">{item.value}</p>
                       </div>
                     ))}
                   </div>
 
-                  {/* Alamat */}
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-1 text-slate-400 mb-1">
-                      <MapPin className="w-3 h-3" />
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold font-quicksand">Alamat Rumah</span>
+                    {/* Alamat */}
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="flex items-center gap-1 text-slate-400 mb-1">
+                        <MapPin className="w-3 h-3" />
+                        <span className="text-[9px] uppercase tracking-wider font-extrabold font-quicksand">Alamat Rumah</span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-700 font-quicksand leading-relaxed">
+                        {selectedProfile.address || <span className="italic text-slate-400">Belum diisi</span>}
+                      </p>
                     </div>
-                    <p className="text-xs font-semibold text-slate-700 font-quicksand leading-relaxed">
-                      {selectedProfile.address || <span className="italic text-slate-400">Belum diisi</span>}
-                    </p>
-                  </div>
 
                   {/* CV Document */}
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 font-quicksand">
@@ -585,7 +584,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                           href={selectedProfile.cv.startsWith('http') ? selectedProfile.cv : `http://localhost:8000${selectedProfile.cv}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 bg-orange-600 from-indigo-500 to-purple-650 hover:brightness-110 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                          className="px-2.5 py-1 bg-gradient-to-r from-indigo-500 to-purple-650 hover:brightness-110 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"
                         >
                           Lihat / Unduh
                         </a>
@@ -597,17 +596,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
 
                   {/* Completeness indicator */}
                   {(() => {
-                    const fields = [
-                      selectedProfile.photo,
-                      selectedProfile.date_of_birth,
-                      selectedProfile.address,
-                      selectedProfile.employee_number,
-                      selectedProfile.join_date,
-                      selectedProfile.gender,
-                      selectedProfile.cv,
-                      selectedProfile.no_rekening,
-                      selectedProfile.company
-                    ]
+                    const fields = [selectedProfile.photo, selectedProfile.date_of_birth, selectedProfile.address, selectedProfile.employee_number, selectedProfile.join_date, selectedProfile.gender, selectedProfile.cv]
                     const filled = fields.filter(Boolean).length
                     const pct = Math.round((filled / fields.length) * 100)
                     return (
@@ -619,7 +608,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                             <span className={`text-[10px] font-bold font-mono ${pct === 100 ? 'text-emerald-600' : 'text-amber-500'}`}>{pct}%</span>
                           </div>
                           <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-orange-600 from-amber-400 to-indigo-500'}`}
+                            <div className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-400 to-indigo-500'}`}
                               style={{ width: `${pct}%` }} />
                           </div>
                         </div>
@@ -629,7 +618,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
 
                   {/* Actions inside Modal */}
                   {activeTab !== 'active' ? (
-                    <div className="flex gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex gap-2 pt-4 border-t border-slate-100 mt-4 shrink-0">
                       <button
                         onClick={() => {
                           setShowDetailModal(false)
@@ -668,7 +657,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                       </button>
                     </div>
                   ) : (
-                    <div className="flex pt-2 border-t border-slate-100">
+                    <div className="flex pt-4 border-t border-slate-100 mt-4 shrink-0">
                       <button
                         onClick={() => setShowDetailModal(false)}
                         className="w-full py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm"
@@ -677,9 +666,9 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                       </button>
                     </div>
                   )}
-                </div>
+                </>
               ) : (
-                <div className="flex flex-col items-center justify-center py-6 text-slate-400">
+                <div className="flex flex-col items-center justify-center py-6 text-slate-400 flex-grow">
                   <AlertCircle className="w-8 h-8 text-rose-400 mb-2" />
                   <p className="text-xs font-quicksand">Gagal memuat detail profil.</p>
                 </div>

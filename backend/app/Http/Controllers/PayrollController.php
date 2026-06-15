@@ -291,7 +291,7 @@ class PayrollController extends Controller
         $period = $request->period_month;
 
         $payrolls = Payroll::where('period_month', $period)
-            ->with(['user:id,name,email', 'user.salaryConfiguration'])
+            ->with(['user:id,name,email,no_rekening,company', 'user.salaryConfiguration'])
             ->get();
 
         return response()->json([
@@ -326,13 +326,14 @@ class PayrollController extends Controller
         $startOfMonth = Carbon::createFromFormat('Y-m', $period)->startOfMonth()->startOfDay();
         $endOfMonth   = Carbon::createFromFormat('Y-m', $period)->endOfMonth()->endOfDay();
 
-        // Ambil semua hari libur nasional (Sen–Sab) yang jatuh di bulan ini
+        // Ambil semua hari libur nasional yang jatuh di bulan ini
         $holidays = Holiday::whereBetween('holiday_date', [
             $startOfMonth->toDateString(),
             $endOfMonth->toDateString()
-        ])->where(function ($q) {
-            $q->whereRaw('DAYOFWEEK(holiday_date) != 1'); // bukan Minggu
-        })->get();
+        ])->get()
+        ->filter(function ($h) {
+            return Carbon::parse($h->holiday_date)->dayOfWeek !== Carbon::SUNDAY; // bukan Minggu
+        });
 
         $holidaysCount = $holidays->count();
 

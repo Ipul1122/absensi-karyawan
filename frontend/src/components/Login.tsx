@@ -43,7 +43,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   const handleTabChange = (tab: 'standard' | 'director') => {
     setActiveTab(tab)
     if (tab === 'director') {
-      setEmail('direktur@absen.com')
+      setEmail('meladi.dian@cakrwala-internasional.co.id')
       setPassword('password')
     } else {
       setEmail('')

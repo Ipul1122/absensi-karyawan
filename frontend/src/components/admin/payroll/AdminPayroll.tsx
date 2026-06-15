@@ -41,6 +41,8 @@ interface PayrollRecord {
     id: number
     name: string
     email: string
+    no_rekening?: string | null
+    company?: string | null
   }
 }
 
@@ -710,9 +712,33 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
   }
 
   const handleMarkPaid = (record: PayrollRecord) => {
+    const noRek = record.user.no_rekening || 'Belum diatur'
+    const company = record.user.company || '-'
     Swal.fire({
       title: 'Tandai Gaji Lunas?',
-      html: `Konfirmasi pembayaran gaji <strong>${record.user.name}</strong> sebesar <strong>${formatRupiah(record.net_salary)}</strong> untuk periode ${getIndonesianMonthLabel(record.period_month)}?`,
+      html: `
+        <div class="text-left space-y-3 font-quicksand text-sm">
+          <p>Apakah Anda ingin menandai pembayaran gaji ini sebagai lunas?</p>
+          <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl space-y-2 mt-2">
+            <div class="flex justify-between">
+              <span class="text-slate-400 font-semibold font-bold">Nama Karyawan:</span>
+              <span class="font-extrabold text-slate-800">${record.user.name}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400 font-semibold font-bold">Gaji Bersih:</span>
+              <span class="font-extrabold text-emerald-600">${formatRupiah(record.net_salary)}</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-200 pt-2">
+              <span class="text-slate-400 font-semibold font-bold">No. Rekening:</span>
+              <span class="font-extrabold text-blue-600 select-all">${noRek}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400 font-semibold font-bold">Perusahaan (PT):</span>
+              <span class="font-bold text-slate-700">${company}</span>
+            </div>
+          </div>
+        </div>
+      `,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#059669',
@@ -1152,6 +1178,11 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                         <div>
                           <p className="font-extrabold text-slate-800 text-[13px]">{record.user.name}</p>
                           <p className="text-[10px] text-slate-400 mt-0.5">{record.user.email}</p>
+                          {record.user.no_rekening && (
+                            <p className="text-[10px] font-bold text-blue-600 mt-1 select-all bg-blue-50/50 px-2 py-0.5 rounded border border-blue-100/50 w-fit">
+                              Rek: {record.user.no_rekening} {record.user.company ? `(${record.user.company})` : ''}
+                            </p>
+                          )}
                         </div>
                       </td>
                       <td className="py-4 px-5 text-center">
@@ -1296,6 +1327,11 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                     <div>
                       <h4 className="font-extrabold text-slate-800 text-sm">{record.user.name}</h4>
                       <p className="text-[11px] text-slate-400 font-medium">{record.user.email}</p>
+                      {record.user.no_rekening && (
+                        <p className="text-[10px] font-bold text-blue-600 mt-1 select-all bg-blue-50/50 px-2 py-0.5 rounded border border-blue-100/50 w-fit">
+                          Rek: {record.user.no_rekening}
+                        </p>
+                      )}
                     </div>
                   </div>
                   

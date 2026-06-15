@@ -60,7 +60,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
 
   let pageTitle = 'Dashboard Utama'
   let pageSubtitle = 'Selamat datang, pantau semua persetujuan yang menunggu tindakan Anda'
-  if (path.includes('/karyawan')) { pageTitle = 'Persetujuan Karyawan'; pageSubtitle = 'Kelola pendaftaran karyawan baru dan pengajuan penghapusan akun' }
+  if (path.includes('/karyawan')) { pageTitle = 'Kelola Karyawan'; pageSubtitle = 'Pantau direktori lengkap serta kelola persetujuan registrasi/penghapusan akun' }
   else if (path.includes('/gaji')) { pageTitle = 'Persetujuan Gaji'; pageSubtitle = 'Setujui atau tolak penyesuaian nominal gaji dan tunjangan karyawan' }
   else if (path.includes('/payroll')) { pageTitle = 'Persetujuan Payroll Bulanan'; pageSubtitle = 'Validasi dan sahkan rekap slip gaji karyawan sebelum ditransfer' }
   else if (path.includes('/operasional')) { pageTitle = 'Persetujuan Operasional'; pageSubtitle = 'Proses pengajuan cuti, lembur, klaim biaya, bonus, dan inventaris barang' }

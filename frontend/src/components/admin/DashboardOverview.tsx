@@ -445,17 +445,23 @@ export default function DashboardOverview({
     <div className="space-y-6 animate-fade-in font-quicksand">
       
       {/* 1. GREETING BANNER */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-red-600 to-orange-600 rounded-[32px] p-8 text-white shadow-lg shadow-red-500/10">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+      <div className="relative overflow-hidden rounded-[32px] p-8 text-white shadow-lg shadow-orange-500/5 transition-all duration-500"
+        style={{ background: 'linear-gradient(135deg, #7c2d12 0%, #b45309 60%, #d97706 100%)' }}>
+        
+        {/* Abstract futuristic glowing elements */}
+        <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full opacity-20 blur-3xl bg-amber-500 pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-48 h-48 rounded-full opacity-15 blur-3xl bg-orange-500 pointer-events-none" />
+        <div className="absolute top-1/2 right-1/4 w-32 h-32 rounded-full opacity-15 blur-2xl bg-yellow-400 pointer-events-none animate-pulse" />
+
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 select-none">
+            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest bg-black/10 px-3.5 py-1.5 rounded-full border border-white/20 select-none">
               Akses Admin Utama HR
             </span>
             <h1 className="text-3xl font-black mt-3 font-quicksand capitalize">
               {getGreeting()}, {user.name}!
             </h1>
-            <p className="text-xs text-orange-50 font-medium mt-1">
+            <p className="text-xs text-white/90 font-medium mt-1">
               Kelola dan pantau seluruh aktivitas absensi serta perizinan staf Anda secara realtime.
             </p>
           </div>
@@ -497,7 +503,7 @@ export default function DashboardOverview({
             </div>
           </div>
           <div className="mt-3.5 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden select-none">
-            <div className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-1000" style={{ width: `${presencePercentage}%` }}></div>
+            <div className="h-full bg-gradient-to-r from-amber-600 to-orange-500 rounded-full transition-all duration-1000" style={{ width: `${presencePercentage}%` }}></div>
           </div>
         </div>
 

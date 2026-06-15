@@ -26,17 +26,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $karyawan = User::updateOrCreate(
-            ['email' => 'karyawan@absen.com'],
-            [
-                'name' => 'Syaiful Karyawan',
-                'password' => bcrypt('password'),
-                'password_plain' => 'password',
-                'role' => 'employee',
-                'status' => 'active',
-            ]
-        );
-
         User::updateOrCreate(
             ['email' => 'direktur@absen.com'],
             [
@@ -45,6 +34,15 @@ class DatabaseSeeder extends Seeder
                 'password_plain' => 'password',
                 'role' => 'director',
                 'status' => 'active',
+            ]
+        );
+
+        \App\Models\OfficeSetting::updateOrCreate(
+            ['id' => 1],
+            [
+                'latitude' => '-6.1942189',
+                'longitude' => '106.815998',
+                'radius' => 100,
             ]
         );
 

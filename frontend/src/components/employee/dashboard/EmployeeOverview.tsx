@@ -281,39 +281,43 @@ export default function EmployeeOverview({
       {/* ==============================
           GREETING BANNER (Vibrant & Premium)
       ============================== */}
-      <section className="col-span-1 md:col-span-12 bg-gradient-to-br from-red-500 via-orange-500 to-amber-500 text-white rounded-3xl p-6 md:p-8 shadow-xl shadow-red-500/10 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group">
+      <section className="col-span-1 md:col-span-12 text-white rounded-3xl p-6 md:p-8 shadow-xl shadow-orange-500/5 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group transition-all duration-500"
+        style={{ background: 'linear-gradient(135deg, #e31b00 0%, #ff5200 100%)' }}>
         
         {/* Glow circles decorations */}
-        <div className="absolute -right-24 -top-24 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700 pointer-events-none"></div>
-        <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-amber-400/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700 pointer-events-none"></div>
+        <div className="absolute -right-24 -top-24 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+        <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+        <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full opacity-10 blur-3xl bg-white pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-48 h-48 rounded-full opacity-10 blur-3xl bg-white pointer-events-none" />
+        <div className="absolute top-1/2 right-1/4 w-32 h-32 rounded-full opacity-10 blur-2xl bg-white pointer-events-none animate-pulse" />
         
         <div className="z-10 space-y-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-extrabold uppercase tracking-widest text-white border border-white/15">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
             Karyawan Aktif
           </span>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight font-sans">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight font-sans text-white">
             {greeting}, {user.name}
           </h2>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-orange-50 font-semibold">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-white/90 font-semibold">
             <span className="flex items-center gap-1.5">
-              <Briefcase className="w-3.5 h-3.5 text-orange-200" />
+              <Briefcase className="w-3.5 h-3.5 text-white" />
               Divisi: {divisionLabel}
             </span>
             <span className="hidden sm:inline text-white/40">|</span>
             <span className="flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-orange-200" />
+              <Building2 className="w-3.5 h-3.5 text-white" />
               ID Karyawan: {profile?.employee_number || 'Belum Diatur'}
             </span>
           </div>
         </div>
 
         <div className="bg-white/15 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/25 min-w-[170px] text-center z-10 shadow-inner group-hover:bg-white/20 transition-all duration-300">
-          <p className="text-[10px] text-orange-100 uppercase tracking-widest mb-1 font-extrabold">Waktu Server</p>
+          <p className="text-[10px] text-white/90 uppercase tracking-widest mb-1 font-extrabold">Waktu Server</p>
           <p className="text-3xl text-white font-mono font-black tracking-wider">
             {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
           </p>
-          <span className="text-[9px] text-orange-200 block mt-1 font-semibold uppercase">{formatDate(time).split(',')[1]}</span>
+          <span className="text-[9px] text-white/80 block mt-1 font-semibold uppercase">{formatDate(time).split(',')[1]}</span>
         </div>
       </section>
 
@@ -396,7 +400,7 @@ export default function EmployeeOverview({
                 disabled={attendanceState !== 'needs_checkin'}
                 className={`w-full py-3 px-4 rounded-2xl text-xs font-black flex items-center justify-center gap-2 border transition-all duration-300 shadow-md ${
                   attendanceState === 'needs_checkin'
-                    ? 'bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white border-transparent hover:-translate-y-0.5 shadow-red-500/10 cursor-pointer'
+                    ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white border-transparent hover:-translate-y-0.5 shadow-orange-500/10 cursor-pointer'
                     : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed shadow-none'
                 }`}
               >
@@ -580,7 +584,7 @@ export default function EmployeeOverview({
         {/* Digital ID Card (Highly Polished) */}
         <section className="bg-white border border-orange-100/80 rounded-3xl shadow-sm overflow-hidden group hover:shadow-md transition-shadow duration-300">
           <div className="h-24 bg-slate-800 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-600 via-orange-600 to-amber-500 opacity-90"></div>
+            <div className="absolute inset-0 opacity-90" style={{ background: 'linear-gradient(135deg, #e31b00 0%, #ff5200 100%)' }}></div>
             <div className="absolute inset-0 bg-grid-white/[0.05] [mask-image:linear-gradient(to_bottom,white,transparent)]"></div>
           </div>
           <div className="px-6 pb-6 pt-0 relative flex flex-col items-center">

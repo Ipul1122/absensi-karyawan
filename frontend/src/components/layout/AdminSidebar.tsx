@@ -144,8 +144,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
         {/* Scrollable Container for Profile & Menu Items */}
         <div className="flex-1 overflow-y-auto pr-1 py-4 space-y-6 min-h-0 sidebar-scrollbar">
           {/* User profile brief */}
-          <div className="bg-gradient-to-tr from-red-500/5 to-orange-500/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-red-500/10">
+          <div className="bg-gradient-to-tr from-amber-500/5 to-orange-500/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-orange-500/10">
               AD
             </div>
             <div className="overflow-hidden">
@@ -181,12 +181,12 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                       onClick={toggleOpen}
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group border border-transparent ${
                         isChildActive
-                          ? 'text-red-600 bg-orange-50/30'
-                          : 'text-slate-600 hover:text-red-600 hover:bg-orange-50/40'
+                          ? 'text-amber-700 bg-orange-50/30'
+                          : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40'
                       }`}
                     >
                       <span className="flex items-center gap-3">
-                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isChildActive ? 'text-red-600' : 'text-slate-400 group-hover:text-red-500'}`} />
+                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isChildActive ? 'text-amber-700' : 'text-slate-400 group-hover:text-amber-600'}`} />
                         <span>{item.label}</span>
                         {item.label === 'Data Karyawan' && (counts?.pendingKaryawanCount ?? 0) > 0 && (
                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
@@ -204,7 +204,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                           </span>
                         )}
                       </span>
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-red-600' : 'text-slate-400 group-hover:text-red-500'}`} />
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-amber-700' : 'text-slate-400 group-hover:text-amber-600'}`} />
                     </button>
                     
                     <div 
@@ -236,18 +236,18 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                               onClick={handleLinkClick}
                               className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
                                 isActive 
-                                  ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md shadow-red-500/15' 
-                                  : 'text-slate-600 hover:text-red-600 hover:bg-orange-50/40 border border-transparent'
+                                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15' 
+                                  : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 border border-transparent'
                               }`}
                             >
                               {({ isActive }) => (
                                 <>
                                   <span className="flex items-center gap-2.5">
-                                    <ChildIcon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`} />
+                                    <ChildIcon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-amber-600'}`} />
                                     <span>{child.label}</span>
                                     {childBadge > 0 && (
                                       <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none min-w-[16px] h-4 flex items-center justify-center ${
-                                        isActive ? 'bg-white text-red-600' : 'bg-red-500 text-white'
+                                        isActive ? 'bg-white text-amber-700' : 'bg-amber-600 text-white'
                                       }`}>
                                         {childBadge}
                                       </span>
@@ -273,14 +273,14 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                   onClick={handleLinkClick}
                   className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
                     isActive 
-                      ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md shadow-red-500/15' 
-                      : 'text-slate-600 hover:text-red-600 hover:bg-orange-50/40 border border-transparent'
+                      ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15' 
+                      : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 border border-transparent'
                   }`}
                 >
                   {({ isActive }) => (
                     <>
                       <span className="flex items-center gap-3">
-                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`} />
+                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-amber-600'}`} />
                         {item.label}
                       </span>
                       <ChevronRight className={`w-4 h-4 transition-all ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
@@ -296,7 +296,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       {/* Bottom Actions */}
       <div className="pt-4 border-t border-orange-100 space-y-3 shrink-0">
         <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold px-3 font-quicksand">
-          <ShieldCheck className="w-4.5 h-4.5 text-red-600 animate-pulse" />
+          <ShieldCheck className="w-4.5 h-4.5 text-amber-700 animate-pulse" />
           <span className="uppercase tracking-wider text-[9px]">Akses Admin Utama</span>
         </div>
         <button

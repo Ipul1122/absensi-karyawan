@@ -133,15 +133,43 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
   }
 
   // Actions
-  const approve = async (url: string) => {
-    try {
-      const res = await axios.put(url, {}, { headers: { Authorization: `Bearer ${token}` } })
-      if (res.data.status === 'success') { Swal.fire('Berhasil!', res.data.message, 'success'); fetchData() }
-    } catch (err: any) { Swal.fire('Gagal', err.response?.data?.message || 'Gagal.', 'error') }
+  const approve = async (url: string, name?: string, imageUrl?: string) => {
+    const swalOptions: any = {
+      title: 'Setujui Pengajuan?',
+      html: name ? `Apakah Anda yakin ingin menyetujui pengajuan untuk <strong>${name}</strong>?` : 'Apakah Anda yakin ingin menyetujui pengajuan ini?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Setujui',
+      cancelButtonText: 'Batal'
+    }
+    if (imageUrl) {
+      swalOptions.imageUrl = imageUrl
+      swalOptions.imageHeight = 200
+      swalOptions.imageAlt = 'Bukti Nota Pembelian'
+      delete swalOptions.icon
+    }
+
+    const result = await Swal.fire(swalOptions)
+    if (result.isConfirmed) {
+      try {
+        const res = await axios.put(url, {}, { headers: { Authorization: `Bearer ${token}` } })
+        if (res.data.status === 'success') { 
+          Swal.fire({
+            title: 'Berhasil!',
+            text: res.data.message,
+            icon: 'success',
+            confirmButtonColor: '#10b981'
+          })
+          fetchData() 
+        }
+      } catch (err: any) { Swal.fire('Gagal', err.response?.data?.message || 'Gagal.', 'error') }
+    }
   }
 
-  const rejectWithNotes = async (url: string, fieldName: string) => {
-    const { value: notes } = await Swal.fire({
+  const rejectWithNotes = async (url: string, fieldName: string, imageUrl?: string) => {
+    const swalOptions: any = {
       title: 'Alasan Penolakan',
       input: 'textarea',
       inputLabel: fieldName,
@@ -152,7 +180,14 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
       confirmButtonText: 'Tolak',
       cancelButtonText: 'Batal',
       inputValidator: v => { if (!v) return 'Alasan penolakan wajib diisi!' }
-    })
+    }
+    if (imageUrl) {
+      swalOptions.imageUrl = imageUrl
+      swalOptions.imageHeight = 200
+      swalOptions.imageAlt = 'Bukti Nota Pembelian'
+    }
+
+    const { value: notes } = await Swal.fire(swalOptions)
     if (notes) {
       try {
         const res = await axios.put(url, { admin_notes: notes }, { headers: { Authorization: `Bearer ${token}` } })
@@ -161,8 +196,8 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
     }
   }
 
-  const rejectSimple = async (url: string, name: string) => {
-    const result = await Swal.fire({
+  const rejectSimple = async (url: string, name: string, imageUrl?: string) => {
+    const swalOptions: any = {
       title: 'Tolak Pengajuan?',
       html: `Yakin menolak pengajuan untuk <strong>${name}</strong>?`,
       icon: 'warning',
@@ -171,7 +206,15 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
       cancelButtonColor: '#64748b',
       confirmButtonText: 'Ya, Tolak',
       cancelButtonText: 'Batal'
-    })
+    }
+    if (imageUrl) {
+      swalOptions.imageUrl = imageUrl
+      swalOptions.imageHeight = 200
+      swalOptions.imageAlt = 'Bukti Nota Pembelian'
+      delete swalOptions.icon
+    }
+
+    const result = await Swal.fire(swalOptions)
     if (result.isConfirmed) {
       try {
         const res = await axios.put(url, {}, { headers: { Authorization: `Bearer ${token}` } })
@@ -182,18 +225,18 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
 
   const currentTab = tabDefs.find(t => t.key === activeTab)!
 
-  const ActionButtons = ({ approveUrl, rejectUrl, rejectLabel, name, simpleReject = false }: {
-    approveUrl: string; rejectUrl: string; rejectLabel?: string; name: string; simpleReject?: boolean
+  const ActionButtons = ({ approveUrl, rejectUrl, rejectLabel, name, simpleReject = false, imageUrl }: {
+    approveUrl: string; rejectUrl: string; rejectLabel?: string; name: string; simpleReject?: boolean; imageUrl?: string
   }) => (
     <div className="flex items-center gap-2 flex-shrink-0">
       <button
-        onClick={() => simpleReject ? rejectSimple(rejectUrl, name) : rejectWithNotes(rejectUrl, rejectLabel || 'Alasan')}
+        onClick={() => simpleReject ? rejectSimple(rejectUrl, name, imageUrl) : rejectWithNotes(rejectUrl, rejectLabel || 'Alasan', imageUrl)}
         className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
       >
         <X className="w-3.5 h-3.5" /> Tolak
       </button>
       <button
-        onClick={() => approve(approveUrl)}
+        onClick={() => approve(approveUrl, name, imageUrl)}
         className="flex items-center gap-1 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90 cursor-pointer shadow-sm"
         style={{ background: currentTab.gradient }}
       >
@@ -406,6 +449,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                             rejectUrl={`http://localhost:8000/api/director/reimbursements/${r.id}/reject`}
                             rejectLabel="Alasan Penolakan Klaim"
                             name={r.user?.name}
+                            imageUrl={r.receipt_path ? `http://localhost:8000${r.receipt_path}` : undefined}
                           />
                         </td>
                       </tr>
@@ -521,6 +565,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                             rejectUrl={`http://localhost:8000/api/director/inventories/${r.id}/reject`}
                             rejectLabel="Alasan Penolakan Barang Inventaris"
                             name={r.nama_barang}
+                            imageUrl={r.foto ? `http://localhost:8000${r.foto}` : undefined}
                           />
                         </td>
                       </tr>

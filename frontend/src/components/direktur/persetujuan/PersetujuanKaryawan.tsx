@@ -20,7 +20,9 @@ import {
   FileText,
   CheckCircle2,
   AlertCircle,
-  Building2
+  Building2,
+  Search,
+  Users
 } from 'lucide-react'
 
 interface Employee {
@@ -58,7 +60,8 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'pending' | 'pending_delete'>('pending')
+  const [activeTab, setActiveTab] = useState<'active' | 'pending' | 'pending_delete'>('active')
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Detail Modal States
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -99,11 +102,16 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
       })
       setEmployees(res.data?.data || [])
       onApprovalChange?.()
-    } catch (err) { console.error(err) }
-    finally { setLoading(false) }
+    } catch (err) { 
+      console.error(err) 
+    } finally { 
+      setLoading(false) 
+    }
   }
 
-  useEffect(() => { fetch() }, [])
+  useEffect(() => { 
+    fetch() 
+  }, [])
 
   const handleApprove = (emp: Employee) => {
     Swal.fire({
@@ -122,9 +130,15 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
           const res = await axios.put(`http://localhost:8000/api/director/employees/${emp.id}/approve`, {}, {
             headers: { Authorization: `Bearer ${token}` }
           })
-          if (res.data.status === 'success') { Swal.fire('Berhasil!', res.data.message, 'success'); fetch() }
-        } catch (err: any) { Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') }
-        finally { setActionLoading(false) }
+          if (res.data.status === 'success') { 
+            Swal.fire('Berhasil!', res.data.message, 'success')
+            fetch() 
+          }
+        } catch (err: any) { 
+          Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') 
+        } finally { 
+          setActionLoading(false) 
+        }
       }
     })
   }
@@ -146,9 +160,15 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
           const res = await axios.put(`http://localhost:8000/api/director/employees/${emp.id}/reject`, {}, {
             headers: { Authorization: `Bearer ${token}` }
           })
-          if (res.data.status === 'success') { Swal.fire('Ditolak!', res.data.message, 'success'); fetch() }
-        } catch (err: any) { Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') }
-        finally { setActionLoading(false) }
+          if (res.data.status === 'success') { 
+            Swal.fire('Ditolak!', res.data.message, 'success')
+            fetch() 
+          }
+        } catch (err: any) { 
+          Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') 
+        } finally { 
+          setActionLoading(false) 
+        }
       }
     })
   }
@@ -170,9 +190,15 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
           const res = await axios.put(`http://localhost:8000/api/director/employees/${emp.id}/approve-delete`, {}, {
             headers: { Authorization: `Bearer ${token}` }
           })
-          if (res.data.status === 'success') { Swal.fire('Berhasil!', res.data.message, 'success'); fetch() }
-        } catch (err: any) { Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') }
-        finally { setActionLoading(false) }
+          if (res.data.status === 'success') { 
+            Swal.fire('Berhasil!', res.data.message, 'success')
+            fetch() 
+          }
+        } catch (err: any) { 
+          Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') 
+        } finally { 
+          setActionLoading(false) 
+        }
       }
     })
   }
@@ -194,18 +220,32 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
           const res = await axios.put(`http://localhost:8000/api/director/employees/${emp.id}/reject-delete`, {}, {
             headers: { Authorization: `Bearer ${token}` }
           })
-          if (res.data.status === 'success') { Swal.fire('Dibatalkan!', res.data.message, 'success'); fetch() }
-        } catch (err: any) { Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') }
-        finally { setActionLoading(false) }
+          if (res.data.status === 'success') { 
+            Swal.fire('Dibatalkan!', res.data.message, 'success')
+            fetch() 
+          }
+        } catch (err: any) { 
+          Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') 
+        } finally { 
+          setActionLoading(false) 
+        }
       }
     })
   }
 
   const pendingNew = employees.filter(e => e.status === 'pending')
   const pendingDel = employees.filter(e => e.status === 'pending_delete')
+  const activeList = employees.filter(e => e.status === 'active')
+  
   const list = activeTab === 'pending' ? pendingNew : pendingDel
 
+  const filteredActiveEmployees = activeList.filter(emp =>
+    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    emp.email.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   const tabs = [
+    { key: 'active' as const, label: 'Daftar Karyawan', count: activeList.length, icon: Users, color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.20)' },
     { key: 'pending' as const, label: 'Pendaftaran Baru', count: pendingNew.length, icon: UserPlus, color: '#4f46e5', bg: 'rgba(79,70,229,0.08)', border: 'rgba(79,70,229,0.20)' },
     { key: 'pending_delete' as const, label: 'Pengajuan Hapus', count: pendingDel.length, icon: UserMinus, color: '#dc2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.20)' },
   ]
@@ -217,26 +257,29 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
         <div className="px-6 py-5 border-b border-slate-100">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h2 className="text-base font-bold text-slate-800">Persetujuan Karyawan</h2>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">Kelola pendaftaran karyawan baru dan pengajuan penghapusan akun</p>
+              <h2 className="text-base font-bold text-slate-800">Manajemen Karyawan</h2>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Tinjau biodata seluruh staf aktif serta proses persetujuan akun masuk/keluar</p>
             </div>
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-semibold text-indigo-600">Aksi Permanen · Hati-hati</span>
+              <span className="text-xs font-semibold text-indigo-600">Otoritas Direktur Utama</span>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex flex-wrap gap-2 px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           {tabs.map(tab => {
             const Icon = tab.icon
             const isActive = activeTab === tab.key
             return (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border"
+                onClick={() => {
+                  setActiveTab(tab.key)
+                  setSearchQuery('')
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer border shadow-sm"
                 style={isActive ? {
                   background: tab.bg,
                   color: tab.color,
@@ -251,7 +294,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                 {tab.label}
                 {tab.count > 0 && (
                   <span
-                    className="px-1.5 py-0.5 rounded-md text-[10px] font-black"
+                    className="px-1.5 py-0.5 rounded-md text-[10px] font-black animate-pulse"
                     style={isActive
                       ? { background: tab.color, color: 'white' }
                       : { background: '#f1f5f9', color: '#64748b' }
@@ -265,14 +308,83 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
           })}
         </div>
 
-        {/* Table */}
+        {/* Search Input for Active Employees */}
+        {activeTab === 'active' && (
+          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/20 flex justify-end">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari nama atau email..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 outline-none focus:border-indigo-500 bg-white transition-all font-sans"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* List Content */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-indigo-500 mb-2" />
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-2" />
             <p className="text-xs text-slate-400 font-medium">Memuat data karyawan...</p>
           </div>
+        ) : activeTab === 'active' ? (
+          filteredActiveEmployees.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+              <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 mb-3">
+                <User className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-semibold text-slate-500">Tidak ada karyawan aktif</p>
+              <p className="text-xs text-slate-350 font-medium mt-1">
+                {searchQuery ? 'Hasil pencarian nihil. Coba kata kunci lain.' : 'Belum ada akun karyawan aktif terdaftar.'}
+              </p>
+            </div>
+          ) : (
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredActiveEmployees.map(emp => (
+                <div 
+                  key={emp.id} 
+                  className="bg-slate-50/40 border border-slate-200/60 rounded-2xl p-4 flex flex-col justify-between gap-4 hover:bg-slate-50 hover:shadow-md transition-all duration-300 relative group"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-650 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-md">
+                        {emp.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-slate-800 truncate leading-normal">{emp.name}</h4>
+                        <p className="text-[10px] text-slate-400 font-medium truncate flex items-center gap-1 mt-0.5">
+                          <Mail className="w-3 h-3 text-slate-300" />
+                          {emp.email}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-xl text-[9px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> Aktif
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-[10px]">
+                    <div className="text-slate-400 font-medium flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                      <span>Bergabung: {emp.join_date ? new Date(emp.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleViewBiodata(emp.id)}
+                      className="px-3 py-1 bg-white border border-slate-200 hover:border-indigo-300 text-indigo-650 rounded-lg font-bold text-[9px] cursor-pointer shadow-sm group-hover:bg-indigo-50/50 transition-all"
+                    >
+                      Biodata
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : list.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16">
+          <div className="flex flex-col items-center justify-center py-20">
             <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
               <UserCheck2 className="w-6 h-6 text-slate-300" />
             </div>
@@ -299,7 +411,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0"
+                          className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm"
                           style={{ background: activeTab === 'pending' ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : 'linear-gradient(135deg,#dc2626,#b91c1c)' }}
                         >
                           {emp.name.charAt(0).toUpperCase()}
@@ -315,12 +427,12 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                     </td>
                     <td className="py-4 px-6">
                       {activeTab === 'pending' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-100">
-                          <Clock className="w-3 h-3" /> Menunggu Aktivasi
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black bg-amber-50 text-amber-600 border border-amber-100 animate-pulse">
+                          <Clock className="w-3.5 h-3.5" /> Menunggu Aktivasi
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black bg-red-50 text-red-600 border border-red-100">
-                          <Trash2 className="w-3 h-3" /> Pengajuan Hapus
+                          <Trash2 className="w-3.5 h-3.5" /> Pengajuan Hapus
                         </span>
                       )}
                     </td>
@@ -338,7 +450,6 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                           <BookUser className="w-3.5 h-3.5 text-indigo-500" />
                           Biodata
                         </button>
-
                         <button
                           onClick={() => activeTab === 'pending' ? handleApprove(emp) : handleApproveDelete(emp)}
                           disabled={actionLoading}
@@ -371,16 +482,16 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-zoom-in">
             {/* Header gradient bar */}
-            <div className="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+            <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
             <div className="p-6">
               <div className="flex items-start justify-between mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 flex items-center justify-center shadow-md">
                     <BookUser className="w-4 h-4 text-white" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-800 font-quicksand">Detail Biodata Karyawan</h3>
-                    <p className="text-[10px] text-slate-400 font-quicksand">Tinjau biodata sebelum persetujuan</p>
+                    <p className="text-[10px] text-slate-400 font-quicksand">Tinjau parameter lengkap dari database</p>
                   </div>
                 </div>
                 <button onClick={() => setShowDetailModal(false)}
@@ -399,14 +510,14 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                   {/* Photo + Name */}
                   <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     {selectedProfile.photo ? (
-                      <img src={selectedProfile.photo} alt="Foto"
+                      <img src={selectedProfile.photo.startsWith('http') ? selectedProfile.photo : `http://localhost:8000${selectedProfile.photo}`} alt="Foto"
                         className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-sm shrink-0" />
                     ) : (
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-100 to-purple-105 flex items-center justify-center shrink-0 border-2 border-slate-200 text-indigo-300">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-150 to-purple-150 flex items-center justify-center shrink-0 border border-slate-200 text-indigo-300">
                         <User className="w-7 h-7" />
                       </div>
                     )}
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="font-bold text-slate-800 font-quicksand truncate">{selectedProfile.name}</p>
                       <p className="text-[11px] text-slate-500 font-mono truncate">{selectedProfile.email}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -431,7 +542,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                       { label: 'Jenis Kelamin', value: selectedProfile.gender === 'male' ? 'Laki-laki' : selectedProfile.gender === 'female' ? 'Perempuan' : '-', icon: <User className="w-3 h-3" /> },
                       { label: 'Tanggal Lahir', value: selectedProfile.date_of_birth ? new Date(selectedProfile.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Calendar className="w-3 h-3" /> },
                       { label: 'Tanggal Bergabung', value: selectedProfile.join_date ? new Date(selectedProfile.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Briefcase className="w-3 h-3" /> },
-                      { label: 'Role Pengajuan', value: selectedProfile.division || 'Karyawan', icon: <Shield className="w-3 h-3" /> },
+                      { label: 'Status Keanggotaan', value: selectedProfile.division ? 'Staf Divisi' : 'Karyawan', icon: <Shield className="w-3 h-3" /> },
                     ].map(item => (
                       <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <div className="flex items-center gap-1 text-slate-400 mb-1">
@@ -447,7 +558,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <div className="flex items-center gap-1 text-slate-400 mb-1">
                       <MapPin className="w-3 h-3" />
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold font-quicksand">Alamat</span>
+                      <span className="text-[9px] uppercase tracking-wider font-extrabold font-quicksand">Alamat Rumah</span>
                     </div>
                     <p className="text-xs font-semibold text-slate-700 font-quicksand leading-relaxed">
                       {selectedProfile.address || <span className="italic text-slate-400">Belum diisi</span>}
@@ -467,10 +578,10 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                           Dokumen CV Karyawan
                         </span>
                         <a
-                          href={selectedProfile.cv}
+                          href={selectedProfile.cv.startsWith('http') ? selectedProfile.cv : `http://localhost:8000${selectedProfile.cv}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer"
+                          className="px-2.5 py-1 bg-gradient-to-r from-indigo-500 to-purple-650 hover:brightness-110 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"
                         >
                           Lihat / Unduh
                         </a>
@@ -503,44 +614,55 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                   })()}
 
                   {/* Actions inside Modal */}
-                  <div className="flex gap-2 pt-2 border-t border-slate-100">
-                    <button
-                      onClick={() => {
-                        setShowDetailModal(false)
-                        const matchingEmp = employees.find(e => e.id === selectedProfile.id)
-                        if (matchingEmp) {
-                          if (activeTab === 'pending') {
-                            handleApprove(matchingEmp)
-                          } else {
-                            handleApproveDelete(matchingEmp)
+                  {activeTab !== 'active' ? (
+                    <div className="flex gap-2 pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => {
+                          setShowDetailModal(false)
+                          const matchingEmp = employees.find(e => e.id === selectedProfile.id)
+                          if (matchingEmp) {
+                            if (activeTab === 'pending') {
+                              handleApprove(matchingEmp)
+                            } else {
+                              handleApproveDelete(matchingEmp)
+                            }
                           }
-                        }
-                      }}
-                      disabled={actionLoading}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm disabled:opacity-50"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      {activeTab === 'pending' ? 'Setujui' : 'Hapus'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowDetailModal(false)
-                        const matchingEmp = employees.find(e => e.id === selectedProfile.id)
-                        if (matchingEmp) {
-                          if (activeTab === 'pending') {
-                            handleReject(matchingEmp)
-                          } else {
-                            handleRejectDelete(matchingEmp)
+                        }}
+                        disabled={actionLoading}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-650 hover:from-indigo-600 hover:to-purple-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        {activeTab === 'pending' ? 'Setujui' : 'Hapus'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDetailModal(false)
+                          const matchingEmp = employees.find(e => e.id === selectedProfile.id)
+                          if (matchingEmp) {
+                            if (activeTab === 'pending') {
+                              handleReject(matchingEmp)
+                            } else {
+                              handleRejectDelete(matchingEmp)
+                            }
                           }
-                        }
-                      }}
-                      disabled={actionLoading}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      Tolak
-                    </button>
-                  </div>
+                        }}
+                        disabled={actionLoading}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        Tolak
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => setShowDetailModal(false)}
+                        className="w-full py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm"
+                      >
+                        Tutup
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-6 text-slate-400">

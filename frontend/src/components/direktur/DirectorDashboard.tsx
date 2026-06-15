@@ -54,7 +54,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
 
   useEffect(() => {
     fetchPendingCounts()
-    const interval = setInterval(fetchPendingCounts, 15000)
+    const interval = setInterval(fetchPendingCounts, 60000)
     return () => clearInterval(interval)
   }, [token])
 

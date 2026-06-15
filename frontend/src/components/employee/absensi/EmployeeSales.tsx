@@ -90,8 +90,10 @@ export default function EmployeeSales({
   const [visitStream, setVisitStream] = useState<MediaStream | null>(null)
   const [visitCameraError, setVisitCameraError] = useState<string | null>(null)
   const [showVisitModal, setShowVisitModal] = useState(false)
+  const [isCameraActive, setIsCameraActive] = useState(false)
   const visitVideoRef = useRef<HTMLVideoElement | null>(null)
   const visitCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const visitStreamRef = useRef<MediaStream | null>(null)
 
   const fetchVisitLocation = () => {
     setVisitLocationLoading(true)
@@ -121,9 +123,13 @@ export default function EmployeeSales({
   const startVisitCamera = async () => {
     setVisitCameraError(null)
     try {
+      if (visitStreamRef.current) {
+        visitStreamRef.current.getTracks().forEach((track) => track.stop())
+      }
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480, facingMode: 'user' }
       })
+      visitStreamRef.current = mediaStream
       setVisitStream(mediaStream)
       if (visitVideoRef.current) {
         visitVideoRef.current.srcObject = mediaStream
@@ -135,10 +141,11 @@ export default function EmployeeSales({
   }
 
   const stopVisitCamera = () => {
-    if (visitStream) {
-      visitStream.getTracks().forEach((track) => track.stop())
-      setVisitStream(null)
+    if (visitStreamRef.current) {
+      visitStreamRef.current.getTracks().forEach((track) => track.stop())
+      visitStreamRef.current = null
     }
+    setVisitStream(null)
   }
 
   const captureVisitPhoto = () => {
@@ -184,7 +191,7 @@ export default function EmployeeSales({
 
   const retakeVisitPhoto = () => {
     setVisitCapturedPhoto(null)
-    startVisitCamera()
+    setIsCameraActive(true)
   }
 
   const fetchTodayVisits = async () => {
@@ -209,11 +216,21 @@ export default function EmployeeSales({
   }, [todayAttendance])
 
   useEffect(() => {
-    if (showVisitModal) {
-      fetchVisitLocation()
+    if (showVisitModal && isCameraActive && !visitCapturedPhoto) {
       startVisitCamera()
     } else {
       stopVisitCamera()
+    }
+    return () => {
+      stopVisitCamera()
+    }
+  }, [showVisitModal, isCameraActive, visitCapturedPhoto])
+
+  useEffect(() => {
+    if (showVisitModal) {
+      fetchVisitLocation()
+    } else {
+      setIsCameraActive(false)
       setVisitCapturedPhoto(null)
       setVisitClientName('')
       setVisitNotes('')
@@ -221,9 +238,6 @@ export default function EmployeeSales({
       setVisitLongitude(null)
       setVisitCameraError(null)
       setVisitLocationError(null)
-    }
-    return () => {
-      stopVisitCamera()
     }
   }, [showVisitModal])
 
@@ -475,7 +489,7 @@ export default function EmployeeSales({
                 <div className="relative aspect-video w-full rounded-2xl bg-slate-100 border border-orange-100/60 overflow-hidden flex items-center justify-center shadow-inner">
                   {visitCapturedPhoto ? (
                     <img src={visitCapturedPhoto} alt="Foto Bukti Kunjungan" className="w-full h-full object-cover" />
-                  ) : (
+                  ) : isCameraActive ? (
                     <>
                       <video 
                         ref={visitVideoRef}
@@ -505,6 +519,23 @@ export default function EmployeeSales({
                         </div>
                       )}
                     </>
+                  ) : (
+                    <div className="absolute inset-0 bg-slate-50/50 flex flex-col items-center justify-center p-6 text-center text-slate-500 gap-3 font-quicksand">
+                      <div className="p-3 bg-orange-50 rounded-full border border-orange-100 text-orange-600">
+                        <Camera className="w-6 h-6 animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-700">Kamera Belum Aktif</p>
+                        <p className="text-[10px] text-slate-400 mt-1 max-w-[220px] mx-auto">Klik tombol "Aktifkan Kamera" untuk mengambil foto bukti kunjungan.</p>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setIsCameraActive(true)} 
+                        className="px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer hover:brightness-110 shadow-sm"
+                      >
+                        Aktifkan Kamera
+                      </button>
+                    </div>
                   )}
                   <canvas ref={visitCanvasRef} className="hidden" />
                 </div>
@@ -514,23 +545,25 @@ export default function EmployeeSales({
                     <button onClick={retakeVisitPhoto} className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
                       <RefreshCw className="w-3.5 h-3.5" /> Ambil Ulang Foto
                     </button>
-                  ) : (
+                  ) : isCameraActive ? (
                     <>
                       <button onClick={captureVisitPhoto} disabled={!!visitCameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
                         <Camera className="w-4 h-4" /> Tangkap Foto Bukti
                       </button>
-                      {visitCameraError && (
-                        <label className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
-                          <Upload className="w-4 h-4 text-red-500" /> Pilih dari Galeri
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            className="hidden" 
-                            onChange={handleVisitImageUpload} 
-                          />
-                        </label>
-                      )}
+                      <button onClick={() => setIsCameraActive(false)} className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
+                        Matikan Kamera
+                      </button>
                     </>
+                  ) : (
+                    <label className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
+                      <Upload className="w-4 h-4 text-red-500" /> Pilih dari Galeri
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden" 
+                        onChange={handleVisitImageUpload} 
+                      />
+                    </label>
                   )}
                 </div>
               </div>

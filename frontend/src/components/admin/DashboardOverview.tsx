@@ -127,6 +127,7 @@ export default function DashboardOverview({
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   // ---------- Additional Local States for Monitoring & Sync ----------
   const navigate = useNavigate()
@@ -284,9 +285,13 @@ export default function DashboardOverview({
   const startCamera = async () => {
     setCameraError(null)
     try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+      }
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480, facingMode: 'user' }
       })
+      streamRef.current = mediaStream
       setStream(mediaStream)
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream
@@ -299,10 +304,11 @@ export default function DashboardOverview({
 
   // Stop Camera Stream
   const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop())
-      setStream(null)
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
     }
+    setStream(null)
   }
 
   // Bind video stream
@@ -311,6 +317,12 @@ export default function DashboardOverview({
       videoRef.current.srcObject = stream
     }
   }, [showCheckInModal, stream])
+
+  useEffect(() => {
+    return () => {
+      stopCamera()
+    }
+  }, [])
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {

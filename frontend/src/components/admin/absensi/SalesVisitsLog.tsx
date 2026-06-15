@@ -177,8 +177,101 @@ export default function SalesVisitsLog({
     })
   }
 
+  // Address Resolver Helper to ensure all addresses are resolved before exporting
+  const ensureAllAddressesResolved = async (visitsToExport: Visit[]) => {
+    // Check if we even need to geocode anything
+    const needsGeocoding = visitsToExport.some(v => !resolvedAddresses[v.id])
+    
+    if (!needsGeocoding) {
+      return resolvedAddresses
+    }
+
+    // Show a loading popup so the user knows geocoding is happening
+    Swal.fire({
+      title: 'Menyiapkan Data Lokasi',
+      html: 'Sedang menerjemahkan koordinat GPS ke nama lokasi...<br/><span style="font-size: 11px; color: #94a3b8;">Proses ini memerlukan waktu beberapa saat untuk mematuhi batas limit API.</span><br/><br/><div style="font-weight: bold; font-size: 16px;"><span id="geocode-progress">0</span> / ' + visitsToExport.length + '</div>',
+      allowOutsideClick: false,
+      background: '#1e293b',
+      color: '#f8fafc',
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    const currentAddresses = { ...resolvedAddresses }
+    let updated = false
+
+    try {
+      for (let i = 0; i < visitsToExport.length; i++) {
+        const visit = visitsToExport[i]
+        
+        // Update Swal progress text
+        const progressEl = document.getElementById('geocode-progress')
+        if (progressEl) {
+          progressEl.innerText = String(i + 1)
+        }
+
+        if (currentAddresses[visit.id]) {
+          continue
+        }
+
+        const lat = visit.latitude
+        const lng = visit.longitude
+        const latitude = parseFloat(lat)
+        const longitude = parseFloat(lng)
+
+        let address = 'Luar Kantor'
+
+        // Check presets first
+        if (Math.abs(latitude - (-6.1942189)) < 0.0001 && Math.abs(longitude - 106.815998) < 0.0001) {
+          address = 'Mall Thamrin City'
+        } else {
+          const officeLat = parseFloat(officeLatitude)
+          const officeLng = parseFloat(officeLongitude)
+          if (!isNaN(officeLat) && !isNaN(officeLng) && Math.abs(latitude - officeLat) < 0.0005 && Math.abs(longitude - officeLng) < 0.0005) {
+            address = 'Kantor Pusat'
+          } else {
+            // Fetch from Nominatim reverse geocoding API
+            try {
+              const response = await axios.get(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`,
+                { headers: { 'Accept-Language': 'id-ID' } }
+              )
+              if (response.data && response.data.display_name) {
+                const addressObj = response.data.address
+                const street = addressObj.road || addressObj.suburb || addressObj.village || ''
+                const city = addressObj.city || addressObj.town || addressObj.municipality || addressObj.county || ''
+                address = street && city ? `${street}, ${city}` : response.data.display_name.split(',').slice(0, 3).join(',')
+              }
+            } catch (err) {
+              console.error(`Failed reverse geocoding for visit ID ${visit.id}:`, err)
+            }
+            
+            // Rate limit delay: Nominatim API asks for 1s limit, but let's wait 300ms to be safe and fast.
+            // Only sleep if we actually made an API request.
+            await new Promise(resolve => setTimeout(resolve, 300))
+          }
+        }
+
+        currentAddresses[visit.id] = address
+        updated = true
+      }
+    } catch (error) {
+      console.error('Error during batch geocoding:', error)
+    }
+
+    if (updated) {
+      setResolvedAddresses(currentAddresses)
+    }
+
+    Swal.close()
+    return currentAddresses
+  }
+
   // Export to PDF (Rekapan Absensi Kunjungan)
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    const addresses = await ensureAllAddressesResolved(filteredVisits)
+
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
 
@@ -227,7 +320,7 @@ export default function SalesVisitsLog({
                   <td><strong>${visit.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${visit.user.email}</span></td>
                   <td>${formatDate(visit.date)} - ${visit.visit_time.substring(0, 5)} WIB</td>
                   <td><strong>${visit.client_name}</strong></td>
-                  <td>${resolvedAddresses[visit.id] || 'Luar Kantor'}</td>
+                  <td>${addresses[visit.id] || 'Luar Kantor'}</td>
                   <td>${visit.notes || '-'}</td>
                 </tr>
               `).join('')}
@@ -247,7 +340,9 @@ export default function SalesVisitsLog({
   }
 
   // Export to Excel (Rekapan Absensi Kunjungan)
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const addresses = await ensureAllAddressesResolved(filteredVisits)
+
     let excelContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -284,7 +379,7 @@ export default function SalesVisitsLog({
           <td>${formatDate(visit.date)}</td>
           <td>${visit.visit_time.substring(0, 5)}</td>
           <td>${visit.client_name}</td>
-          <td>${resolvedAddresses[visit.id] || 'Luar Kantor'}</td>
+          <td>${addresses[visit.id] || 'Luar Kantor'}</td>
           <td>${visit.notes || '-'}</td>
         </tr>
       `

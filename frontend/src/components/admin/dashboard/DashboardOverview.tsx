@@ -1137,7 +1137,7 @@ export default function DashboardOverview({
                     3. Kategori Tipe Presensi
                   </label>
                   
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
                       { id: 'kantor', label: 'Kantor Utama', icon: Building, desc: 'Radius GPS dihitung' },
                       { id: 'kunjungan', label: 'Dinas Luar', icon: Compass, desc: 'Bebas radius kantor' },

@@ -171,7 +171,7 @@ export default function PersetujuanKehadiran({ token }: PersetujuanKehadiranProp
                 </div>
 
                 {/* Time Details */}
-                <div className="px-5 py-4 grid grid-cols-2 gap-3">
+                <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="rounded-xl p-3 border" style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Clock className="w-3 h-3 text-emerald-500" />

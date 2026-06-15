@@ -426,8 +426,8 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                     {pendingReimbursements.map(r => (
                       <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-4 px-6"><EmployeeCell name={r.user?.name} email={r.user?.email} gradient={currentTab.gradient} /></td>
-                        <td className="py-4 px-6">
-                          <p className="text-xs font-semibold text-slate-800">{r.title}</p>
+                        <td className="py-4 px-6 max-w-[240px]">
+                          <p className="text-xs font-semibold text-slate-800 break-words whitespace-normal leading-normal">{r.title}</p>
                           <div className="flex items-center gap-1.5 mt-1">
                             <span className="inline-block px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider" style={{ background: currentTab.bg, color: currentTab.color, border: `1px solid ${currentTab.border}` }}>{r.category}</span>
                             <span className="text-[10px] text-slate-400 font-medium">{new Date(r.expense_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>

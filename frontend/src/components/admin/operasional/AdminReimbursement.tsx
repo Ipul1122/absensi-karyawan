@@ -645,9 +645,9 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                         </td>
 
                         {/* Title & Desc */}
-                        <td className="py-4 px-5">
-                          <span className="block font-bold text-slate-800">{item.title}</span>
-                          <span className="text-[10px] text-slate-400 font-medium max-w-[200px] truncate block">
+                        <td className="py-4 px-5 max-w-[240px]">
+                          <span className="block font-bold text-slate-800 break-words whitespace-normal leading-normal">{item.title}</span>
+                          <span className="text-[10px] text-slate-400 font-medium max-w-[220px] truncate block">
                             {item.description || '-'}
                           </span>
                         </td>
@@ -744,8 +744,8 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                   </div>
 
                   <div className="border-t border-orange-100/55 pt-2">
-                    <span className="block font-bold text-slate-800 text-sm">{item.title}</span>
-                    <span className="text-[10px] text-slate-400 font-medium mt-0.5 block line-clamp-2">
+                    <span className="block font-bold text-slate-800 text-sm break-words leading-snug">{item.title}</span>
+                    <span className="text-[10px] text-slate-400 font-medium mt-1 block break-words">
                       {item.description || 'Tidak ada deskripsi'}
                     </span>
                   </div>

@@ -747,7 +747,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
         const pct = Math.round((filled / fields.length) * 100)
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {[
                 { label: 'Jenis Kelamin', value: selectedProfile.gender === 'male' ? 'Laki-laki' : selectedProfile.gender === 'female' ? 'Perempuan' : '-', icon: <User className="w-3 h-3" /> },
                 { label: 'Tanggal Lahir', value: selectedProfile.date_of_birth ? new Date(selectedProfile.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Calendar className="w-3 h-3" /> },
@@ -956,7 +956,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rincian Pengajuan Cuti</h4>
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Kategori Cuti</p>
                   <span className="inline-block mt-1 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-100">
@@ -1012,7 +1012,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rincian Pengajuan Lembur</h4>
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Tanggal Lembur</p>
                   <p className="font-bold text-slate-800 mt-1 flex items-center gap-1.5">
@@ -1052,7 +1052,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rincian Klaim Biaya</h4>
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Kategori Klaim</p>
                   <span className="inline-block mt-1 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase bg-teal-50 text-teal-700 border border-teal-100">
@@ -1111,7 +1111,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rincian Pengajuan Bonus</h4>
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Tanggal Pembagian</p>
                   <p className="font-bold text-slate-800 mt-1 flex items-center gap-1.5">
@@ -1149,7 +1149,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Nama Barang</p>
                   <p className="font-bold text-slate-800 text-sm mt-1">{iRequest.nama_barang}</p>
@@ -1162,7 +1162,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Harga Barang</p>
                   <p className="font-black text-rose-600 text-sm mt-1">{formatIDR(iRequest.harga)}</p>
@@ -1176,7 +1176,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Lokasi Barang</p>
                   <p className="font-semibold text-slate-700 mt-1">{iRequest.lokasi || '-'}</p>
@@ -1495,14 +1495,14 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                         {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                     </div>
-                    <h5 className="text-sm font-bold text-slate-800 leading-snug">
+                    <h5 className="text-sm font-bold text-slate-800 leading-snug break-words">
                       {item.title}
                     </h5>
-                    <p className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                    <p className="text-xs text-slate-500 font-semibold flex items-center gap-1 flex-wrap">
                       <span className="text-slate-700 font-black">{item.requesterName}</span>
-                      {item.requesterEmail && <span className="text-slate-400 font-normal">({item.requesterEmail})</span>}
+                      {item.requesterEmail && <span className="text-slate-400 font-normal break-all">({item.requesterEmail})</span>}
                     </p>
-                    <p className="text-xs text-slate-400 font-medium leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <p className="text-xs text-slate-400 font-medium leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100 break-words">
                       {item.details}
                     </p>
                   </div>

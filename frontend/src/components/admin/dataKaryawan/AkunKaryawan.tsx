@@ -448,7 +448,7 @@ export default function AkunKaryawan({
               </div>
 
               {/* Form Fields */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Nama */}
                 <div className="col-span-2 sm:col-span-1">
                   <label className={labelClass}>Nama Lengkap *</label>
@@ -494,7 +494,7 @@ export default function AkunKaryawan({
                   </div>
                 </div>
                 {/* Divisi */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Divisi / Departemen</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Building2 className="w-3.5 h-3.5" /></div>
@@ -543,7 +543,7 @@ export default function AkunKaryawan({
                   </div>
                 </div>
                 {/* Alamat */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Alamat</label>
                   <div className="relative">
                     <div className="absolute top-2.5 left-0 pl-2.5 pointer-events-none text-slate-400"><MapPin className="w-3.5 h-3.5" /></div>
@@ -580,7 +580,7 @@ export default function AkunKaryawan({
                 </div>
 
                 {/* CV Upload */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Dokumen CV (Curriculum Vitae)</label>
                   <div className="p-3 bg-orange-50/20 border border-dashed border-orange-200 rounded-xl flex items-center justify-between gap-3 font-quicksand">
                     <div className="flex items-center gap-2 min-w-0">

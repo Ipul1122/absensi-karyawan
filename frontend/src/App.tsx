@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import axios from 'axios'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Login from './components/Login'
-import AdminDashboard from './components/AdminDashboard'
-import EmployeeDashboard from './components/EmployeeDashboard'
-import DirectorDashboard from './components/direktur/DirectorDashboard'
+
+// Lazy load dashboards to enable Code Splitting (optimizes production bundle size)
+const Login = lazy(() => import('./components/Login'))
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
+const EmployeeDashboard = lazy(() => import('./components/EmployeeDashboard'))
+const DirectorDashboard = lazy(() => import('./components/direktur/DirectorDashboard'))
 
 interface HealthResponse {
   status: string
@@ -67,56 +69,63 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {token && user ? (
-          user.role === 'admin' ? (
-            <>
-              <Route 
-                path="/admin/*" 
-                element={
-                  <div className="min-h-screen bg-[#fcf9f5] text-slate-800 flex flex-col">
-                    <AdminDashboard user={user as any} token={token} onLogout={handleLogout} />
-                  </div>
-                } 
+      <Suspense fallback={
+        <div className="min-h-screen bg-[#fcf9f5] flex flex-col items-center justify-center text-slate-500 font-sans text-xs">
+          <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+          Memuat modul aplikasi...
+        </div>
+      }>
+        <Routes>
+          {token && user ? (
+            user.role === 'admin' ? (
+              <>
+                <Route 
+                  path="/admin/*" 
+                  element={
+                    <div className="min-h-screen bg-[#fcf9f5] text-slate-800 flex flex-col">
+                      <AdminDashboard user={user as any} token={token} onLogout={handleLogout} />
+                    </div>
+                  } 
+                  />
+                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+              </>
+            ) : user.role === 'director' ? (
+              <>
+                <Route 
+                  path="/director/*" 
+                  element={
+                    <DirectorDashboard user={user as any} token={token} onLogout={handleLogout} />
+                  } 
+                  />
+                <Route path="*" element={<Navigate to="/director/dashboard" replace />} />
+              </>
+            ) : (
+              <>
+                <Route 
+                  path="/employee/*" 
+                  element={
+                    <EmployeeDashboard user={user as any} token={token} onLogout={handleLogout} />
+                  } 
                 />
-              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-            </>
-          ) : user.role === 'director' ? (
-            <>
-              <Route 
-                path="/director/*" 
-                element={
-                  <DirectorDashboard user={user as any} token={token} onLogout={handleLogout} />
-                } 
-                />
-              <Route path="*" element={<Navigate to="/director/dashboard" replace />} />
-            </>
+                <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
+              </>
+            )
           ) : (
-            <>
-              <Route 
-                path="/employee/*" 
+          <>
+              <Route
+                path="/"
                 element={
-                  <EmployeeDashboard user={user as any} token={token} onLogout={handleLogout} />
-                } 
+                  <Login
+                    onLoginSuccess={handleLoginSuccess}
+                    isOnline={backendStatus === 'connected'}
+                  />
+                }
               />
-              <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </>
-          )
-        ) : (
-        <>
-            <Route
-              path="/"
-              element={
-                <Login
-                  onLoginSuccess={handleLoginSuccess}
-                  isOnline={backendStatus === 'connected'}
-                />
-              }
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </>
-        )}
-      </Routes>
+          )}
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

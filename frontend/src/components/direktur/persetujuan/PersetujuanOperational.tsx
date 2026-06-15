@@ -179,7 +179,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
       cancelButtonColor: '#64748b',
       confirmButtonText: 'Tolak',
       cancelButtonText: 'Batal',
-      inputValidator: v => { if (!v) return 'Alasan penolakan wajib diisi!' }
+      inputValidator: (v: string) => { if (!v) return 'Alasan penolakan wajib diisi!' }
     }
     if (imageUrl) {
       swalOptions.imageUrl = imageUrl

@@ -37,6 +37,15 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        \App\Models\OfficeSetting::updateOrCreate(
+            ['id' => 1],
+            [
+                'latitude' => '-6.1942189',
+                'longitude' => '106.815998',
+                'radius' => 100,
+            ]
+        );
+
         // Seed Hari Libur & Cuti Bersama 2026
         $holidays = [
             ['holiday_date' => '2026-01-01', 'name' => 'Tahun Baru 2026 Masehi'],

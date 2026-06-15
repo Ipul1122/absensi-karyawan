@@ -33,6 +33,8 @@ interface EmployeeProfile {
   gender: string | null
   division: string | null
   cv: string | null
+  no_rekening: string | null
+  company: string | null
   created_at: string
 }
 
@@ -66,6 +68,8 @@ export default function ViewEmployeeModal({
       gender: null,
       division: null,
       cv: null,
+      no_rekening: null,
+      company: null,
       created_at: ''
     }
   )
@@ -83,6 +87,8 @@ export default function ViewEmployeeModal({
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [cvFile, setCvFile] = useState<File | null>(null)
+  const [noRekening, setNoRekening] = useState('')
+  const [company, setCompany] = useState('')
 
   const photoInputRef = useRef<HTMLInputElement>(null)
   const cvInputRef = useRef<HTMLInputElement>(null)
@@ -116,6 +122,8 @@ export default function ViewEmployeeModal({
     setPhotoFile(null)
     setPhotoPreview(localProfile.photo)
     setCvFile(null)
+    setNoRekening(localProfile.no_rekening || '')
+    setCompany(localProfile.company || '')
     setIsEditing(true)
   }
 
@@ -195,6 +203,8 @@ export default function ViewEmployeeModal({
       if (address) formData.append('address', address)
       const finalDivision = division === '__custom__' ? divisionCustom.trim() : division
       if (finalDivision) formData.append('division', finalDivision)
+      formData.append('no_rekening', noRekening)
+      formData.append('company', company)
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
 
@@ -500,6 +510,38 @@ export default function ViewEmployeeModal({
                   )}
                 </div>
 
+                {/* No. Rekening */}
+                <div>
+                  <label className={labelClass}>No. Rekening</label>
+                  <div className="relative">
+                    <Hash className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Nomor rekening bank..."
+                      value={noRekening}
+                      onChange={(e) => setNoRekening(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
+                {/* Perusahaan */}
+                <div>
+                  <label className={labelClass}>Perusahaan</label>
+                  <div className="relative">
+                    <Building2 className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
+                    <select
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      className={`${inputClass} appearance-none cursor-pointer`}
+                    >
+                      <option value="">-- Pilih Perusahaan --</option>
+                      <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
+                      <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
+                    </select>
+                  </div>
+                </div>
+
                 {/* Address */}
                 <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Alamat</label>
@@ -638,6 +680,16 @@ export default function ViewEmployeeModal({
                     label: 'Terdaftar Sistem',
                     value: formatDate(localProfile.created_at),
                     icon: <Hash className="w-3 h-3" />
+                  },
+                  {
+                    label: 'No. Rekening',
+                    value: localProfile.no_rekening || '-',
+                    icon: <Hash className="w-3 h-3" />
+                  },
+                  {
+                    label: 'Perusahaan',
+                    value: localProfile.company || '-',
+                    icon: <Building2 className="w-3 h-3" />
                   }
                 ].map((item) => (
                   <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -702,7 +754,9 @@ export default function ViewEmployeeModal({
                   localProfile.employee_number,
                   localProfile.join_date,
                   localProfile.gender,
-                  localProfile.cv
+                  localProfile.cv,
+                  localProfile.no_rekening,
+                  localProfile.company
                 ]
                 const filled = fields.filter(Boolean).length
                 const pct = Math.round((filled / fields.length) * 100)

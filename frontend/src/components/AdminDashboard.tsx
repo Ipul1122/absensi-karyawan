@@ -41,6 +41,8 @@ interface Employee {
   password_plain?: string
   photo?: string | null
   division?: string | null
+  no_rekening?: string | null
+  company?: string | null
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
@@ -135,6 +137,8 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editPassword, setEditPassword] = useState('')
+  const [editNoRekening, setEditNoRekening] = useState('')
+  const [editCompany, setEditCompany] = useState('')
   const [submittingEdit, setSubmittingEdit] = useState(false)
 
   useEffect(() => {
@@ -399,6 +403,8 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     setEditName(employee.name)
     setEditEmail(employee.email)
     setEditPassword('')
+    setEditNoRekening(employee.no_rekening || '')
+    setEditCompany(employee.company || '')
     setShowEditEmployeeModal(true)
   }
 
@@ -436,7 +442,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         `http://localhost:8000/api/employees/${editingEmployee.id}`,
         {
           name: editName,
-          password: editPassword || null
+          password: editPassword || null,
+          no_rekening: editNoRekening,
+          company: editCompany
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -871,6 +879,10 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         email={editEmail}
         password={editPassword}
         setPassword={setEditPassword}
+        noRekening={editNoRekening}
+        setNoRekening={setEditNoRekening}
+        company={editCompany}
+        setCompany={setEditCompany}
         submitting={submittingEdit}
         onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
       />

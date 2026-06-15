@@ -30,6 +30,8 @@ interface Employee {
   password_plain?: string
   photo?: string | null
   division?: string | null
+  no_rekening?: string | null
+  company?: string | null
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
@@ -197,8 +199,8 @@ export default function AkunKaryawan({
       if (editProfile.gender) formData.append('gender', editProfile.gender)
       const finalDivision = divisionSelect === '__custom__' ? divisionCustom.trim() : divisionSelect
       if (finalDivision) formData.append('division', finalDivision)
-      if (editProfile.no_rekening) formData.append('no_rekening', editProfile.no_rekening)
-      if (editProfile.company) formData.append('company', editProfile.company)
+      formData.append('no_rekening', editProfile.no_rekening || '')
+      formData.append('company', editProfile.company || '')
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
 
@@ -314,12 +316,26 @@ export default function AkunKaryawan({
                           )}
                           <div className="min-w-0">
                             <span className="font-quicksand text-sm font-semibold text-slate-800 block truncate">{emp.name}</span>
-                            {emp.division && (
-                              <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-600 border border-violet-100">
-                                <Building2 className="w-2.5 h-2.5" />
-                                {emp.division}
-                              </span>
-                            )}
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {emp.division && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-600 border border-violet-100">
+                                  <Building2 className="w-2.5 h-2.5" />
+                                  {emp.division}
+                                </span>
+                              )}
+                              {emp.company && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                                  <Building2 className="w-2.5 h-2.5" />
+                                  {emp.company}
+                                </span>
+                              )}
+                              {emp.no_rekening && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                  <Hash className="w-2.5 h-2.5" />
+                                  {emp.no_rekening}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>

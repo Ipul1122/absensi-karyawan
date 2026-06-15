@@ -352,7 +352,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-650 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-md">
+                      <div className="w-9 h-9 rounded-xl bg-orange-600 from-indigo-500 to-purple-650 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-md">
                         {emp.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
@@ -488,7 +488,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
             <div className="p-6">
               <div className="flex items-start justify-between mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 flex items-center justify-center shadow-md">
+                  <div className="w-9 h-9 rounded-xl bg-orange-600 from-indigo-500 to-purple-650 flex items-center justify-center shadow-md">
                     <BookUser className="w-4 h-4 text-white" />
                   </div>
                   <div>
@@ -515,7 +515,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                       <img src={selectedProfile.photo.startsWith('http') ? selectedProfile.photo : `http://localhost:8000${selectedProfile.photo}`} alt="Foto"
                         className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-sm shrink-0" />
                     ) : (
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-150 to-purple-150 flex items-center justify-center shrink-0 border border-slate-200 text-indigo-300">
+                      <div className="w-16 h-16 rounded-2xl bg-orange-600 from-indigo-150 to-purple-150 flex items-center justify-center shrink-0 border border-slate-200 text-indigo-300">
                         <User className="w-7 h-7" />
                       </div>
                     )}
@@ -544,7 +544,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                       { label: 'Jenis Kelamin', value: selectedProfile.gender === 'male' ? 'Laki-laki' : selectedProfile.gender === 'female' ? 'Perempuan' : '-', icon: <User className="w-3 h-3" /> },
                       { label: 'Tanggal Lahir', value: selectedProfile.date_of_birth ? new Date(selectedProfile.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Calendar className="w-3 h-3" /> },
                       { label: 'Tanggal Bergabung', value: selectedProfile.join_date ? new Date(selectedProfile.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Briefcase className="w-3 h-3" /> },
-                      { label: 'Status Keanggotaan', value: selectedProfile.division ? 'Staf Divisi' : 'Karyawan', icon: <Shield className="w-3 h-3" /> },
+                      { label: 'Status Keanggotaan', value: selectedProfile.company || 'Karyawan', icon: <Shield className="w-3 h-3" /> },
                     ].map(item => (
                       <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <div className="flex items-center gap-1 text-slate-400 mb-1">
@@ -583,7 +583,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                           href={selectedProfile.cv.startsWith('http') ? selectedProfile.cv : `http://localhost:8000${selectedProfile.cv}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 bg-gradient-to-r from-indigo-500 to-purple-650 hover:brightness-110 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                          className="px-2.5 py-1 bg-orange-600 from-indigo-500 to-purple-650 hover:brightness-110 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"
                         >
                           Lihat / Unduh
                         </a>

@@ -29,6 +29,8 @@ class EmployeeController extends Controller
                 'division'        => $emp->division,
                 'gender'          => $emp->gender,
                 'join_date'       => $emp->join_date,
+                'no_rekening'     => $emp->no_rekening,
+                'company'         => $emp->company,
                 'created_at'      => $emp->created_at,
                 'updated_at'      => $emp->updated_at,
             ];
@@ -181,6 +183,8 @@ class EmployeeController extends Controller
 
         $rules = [
             'name' => 'required|string|max:255',
+            'no_rekening' => 'nullable|string|max:50',
+            'company' => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
         ];
 
         if ($request->filled('password')) {
@@ -188,11 +192,14 @@ class EmployeeController extends Controller
         }
 
         $request->validate($rules, [
-            'password.min' => 'Kata sandi baru minimal harus terdiri dari 6 karakter.'
+            'password.min' => 'Kata sandi baru minimal harus terdiri dari 6 karakter.',
+            'company.in' => 'Perusahaan tidak valid.',
         ]);
 
         $updateData = [
             'name' => $request->name,
+            'no_rekening' => $request->no_rekening,
+            'company' => $request->company,
         ];
 
         if ($request->filled('password')) {

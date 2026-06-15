@@ -237,10 +237,8 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
   }
 
   useEffect(() => {
-    if (activeTab === 'holidays') {
-      fetchHolidays()
-    }
-  }, [activeTab])
+    fetchHolidays()
+  }, [])
 
   // Fetch payroll transactions for selected month
   const fetchPayrolls = async () => {
@@ -403,6 +401,14 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
     const [year, month] = selectedMonth.split('-')
     const displayMonthName = monthNames[parseInt(month, 10) - 1] + ' ' + year
 
+    const holidaysThisMonth = holidays.filter(h => h.holiday_date && isHolidayInSelectedMonth(h.holiday_date, selectedMonth))
+    const holidayInfoStr = holidaysThisMonth.length > 0 
+      ? holidaysThisMonth.map(h => {
+          const d = new Date(h.holiday_date)
+          return `${d.getDate()} (${h.name})`
+        }).join(', ')
+      : 'Tidak ada'
+
     let excelContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -427,12 +433,14 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           .text-center { text-align: center; }
           .text-right { text-align: right; }
           .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-          .subtitle { font-size: 12px; color: #ea580c; margin-bottom: 20px; }
+          .subtitle { font-size: 12px; color: #ea580c; margin-bottom: 5px; }
+          .holidays-label { font-size: 12px; color: #dc2626; font-weight: bold; margin-bottom: 20px; }
         </style>
       </head>
       <body>
         <div class="title">Laporan Bulanan Payroll Karyawan</div>
         <div class="subtitle">Periode: ${displayMonthName} | Tanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}</div>
+        <div class="holidays-label">Hari Libur Nasional: ${holidayInfoStr}</div>
         <table>
           <thead>
             <tr>
@@ -442,14 +450,14 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               <th>Hari Hadir (H)</th>
               <th>Hari Terlambat (T)</th>
               <th>Hari Cuti (C)</th>
-              <th>Gaji Pokok</th>
-              <th>Tunjangan Makan</th>
-              <th>Tunjangan Transport</th>
-              <th>Tunjangan Jabatan</th>
-              <th>Tunjangan Tetap</th>
-              <th>Potongan Terlambat</th>
-              <th>Potongan Tidak Masuk</th>
-              <th>Potongan Lainnya</th>
+              <th>Gaji Pokok (Base)</th>
+              <th>Tunj. Makan (Harian)</th>
+              <th>Tunj. Transport (Harian)</th>
+              <th>Tunj. Jabatan (Bulanan)</th>
+              <th>Tunj. Tetap</th>
+              <th>Potongan Telat (Harian)</th>
+              <th>Potongan Tidak Masuk (Harian)</th>
+              <th>Potongan Tetap (BPJS dll)</th>
               <th>Gaji Bersih</th>
               <th>Status</th>
             </tr>
@@ -466,15 +474,15 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           <td class="text-center">${record.days_present}</td>
           <td class="text-center">${record.days_late}</td>
           <td class="text-center">${record.days_leave}</td>
-          <td class="text-right">${record.basic_salary}</td>
-          <td class="text-right">${record.allowance_meal}</td>
-          <td class="text-right">${record.allowance_transport}</td>
-          <td class="text-right">${record.allowance_position}</td>
-          <td class="text-right">${record.allowance_fixed}</td>
-          <td class="text-right">${record.deduction_late}</td>
-          <td class="text-right">${record.deduction_absence}</td>
-          <td class="text-right">${record.deduction_fixed}</td>
-          <td class="text-right" style="font-weight: bold;">${record.net_salary}</td>
+          <td class="text-right">${formatRupiah(record.basic_salary)}</td>
+          <td class="text-right">${formatRupiah(record.allowance_meal ?? 0)}</td>
+          <td class="text-right">${formatRupiah(record.allowance_transport ?? 0)}</td>
+          <td class="text-right">${formatRupiah(record.allowance_position ?? 0)}</td>
+          <td class="text-right">${formatRupiah(record.allowance_fixed ?? 0)}</td>
+          <td class="text-right">${formatRupiah(record.deduction_late)}</td>
+          <td class="text-right">${formatRupiah(record.deduction_absence ?? 0)}</td>
+          <td class="text-right">${formatRupiah(record.deduction_fixed)}</td>
+          <td class="text-right" style="font-weight: bold;">${formatRupiah(record.net_salary)}</td>
           <td class="text-center">${record.status === 'paid' ? 'Paid' : record.status === 'unpaid' ? 'Unpaid' : record.status === 'pending_approval' ? 'Pending Approval' : 'Draft'}</td>
         </tr>
       `
@@ -823,6 +831,14 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
     return `${monthNames[parseInt(month, 10) - 1]} ${year}`
   }
 
+  const isHolidayInSelectedMonth = (holidayDate: string, selMonth: string): boolean => {
+    if (!holidayDate || !selMonth) return false
+    const dateObj = new Date(holidayDate)
+    const localYear = dateObj.getFullYear()
+    const localMonth = String(dateObj.getMonth() + 1).padStart(2, '0')
+    return `${localYear}-${localMonth}` === selMonth
+  }
+
   // Print slip handler
   const handlePrintSlip = (record: PayrollRecord) => {
     setSelectedSlip(record)
@@ -986,12 +1002,43 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           </div>
         </div>
 
-        {/* Alert Info */}
-        <div className="flex items-start gap-3 bg-amber-50/60 border border-amber-100 p-4 rounded-2xl text-xs text-amber-800 leading-relaxed font-semibold">
-          <Info className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
-          <div>
-            <strong>Petunjuk Perhitungan:</strong> Periode mengikuti <strong>bulan kalender penuh</strong> (tanggal 1 s.d akhir bulan). Kehadiran dihitung dari absen yang disetujui (mandiri/kantor, kunjungan, klien). Tunjangan harian mengikuti total check-in sukses. Potongan keterlambatan jika check-in kantor setelah 09:00:00. Hasil generate berstatus <strong>Draft</strong> dapat disesuaikan sebelum diajukan ke Direktur.
+        {/* Alert Info & Holidays */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-start gap-3 bg-amber-50/60 border border-amber-100 p-4 rounded-2xl text-xs text-amber-800 leading-relaxed font-semibold">
+            <Info className="w-4.5 h-4.5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <strong>Petunjuk Perhitungan:</strong> Periode mengikuti <strong>bulan kalender penuh</strong> (tanggal 1 s.d akhir bulan). Kehadiran dihitung dari absen yang disetujui (mandiri/kantor, kunjungan, klien). Tunjangan harian mengikuti total check-in sukses. Potongan keterlambatan jika check-in kantor setelah 09:00:00. Hasil generate berstatus <strong>Draft</strong> dapat disesuaikan sebelum diajukan ke Direktur.
+            </div>
           </div>
+
+          {holidays.filter(h => h.holiday_date && isHolidayInSelectedMonth(h.holiday_date, selectedMonth)).length > 0 ? (
+            <div className="flex items-start gap-3 bg-rose-50/60 border border-rose-100 p-4 rounded-2xl text-xs text-rose-800 leading-relaxed font-semibold">
+              <CalendarRange className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+              <div>
+                <strong>Hari Libur Nasional Bulan ini:</strong>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {holidays
+                    .filter(h => h.holiday_date && isHolidayInSelectedMonth(h.holiday_date, selectedMonth))
+                    .map((h, i) => {
+                      const dateObj = new Date(h.holiday_date)
+                      const day = dateObj.getDate()
+                      return (
+                        <span key={i} className="inline-flex items-center bg-white border border-rose-200 text-rose-700 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                          {day}: {h.name}
+                        </span>
+                      )
+                    })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 p-4 rounded-2xl text-xs text-slate-600 leading-relaxed font-semibold">
+              <Calendar className="w-4.5 h-4.5 text-slate-400 shrink-0 mt-0.5" />
+              <div>
+                <strong>Hari Libur Nasional:</strong> Tidak ada hari libur nasional terdaftar pada periode ini.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Summary Cards */}
@@ -1115,18 +1162,18 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                         </div>
                       </td>
                       <td className="py-4 px-5 space-y-0.5 text-[10px] font-semibold text-slate-500">
-                        <div>Gaji Pokok: <span className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</span></div>
+                        <div>Gaji Pokok (Base): <span className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</span></div>
                         {(record.allowance_meal ?? 0) > 0 && (
-                          <div>Makan: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_meal)}</span></div>
+                          <div>Tunj. Makan (Harian): <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_meal)}</span></div>
                         )}
                         {(record.allowance_transport ?? 0) > 0 && (
-                          <div>Transport: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_transport)}</span></div>
+                          <div>Tunj. Transport (Harian): <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_transport)}</span></div>
                         )}
                         {(record.allowance_position ?? 0) > 0 && (
-                          <div>Jabatan: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_position)}</span></div>
+                          <div>Tunj. Jabatan (Bulanan): <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_position)}</span></div>
                         )}
                         {(record.allowance_fixed ?? 0) > 0 && (
-                          <div>Tetap: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_fixed)}</span></div>
+                          <div>Tunj. Tetap: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_fixed)}</span></div>
                         )}
                       </td>
                       <td className="py-4 px-5 space-y-0.5 text-[10px] font-semibold text-slate-500">
@@ -1141,9 +1188,9 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                           <div>Absen: <span className="text-slate-400">-</span></div>
                         )}
                         {record.deduction_fixed > 0 ? (
-                          <div>Lainnya: <span className="font-bold text-rose-600">-{formatRupiah(record.deduction_fixed)}</span></div>
+                          <div>BPJS: <span className="font-bold text-rose-600">-{formatRupiah(record.deduction_fixed)}</span></div>
                         ) : (
-                          <div>Lainnya: <span className="text-slate-400">-</span></div>
+                          <div>BPJS: <span className="text-slate-400">-</span></div>
                         )}
                       </td>
                       <td className="py-4 px-5">
@@ -1286,18 +1333,18 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   <div className="space-y-1">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Penerimaan</span>
                     <div className="space-y-0.5 text-[10px] font-semibold text-slate-500">
-                      <div>Pokok: <span className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</span></div>
+                      <div>Gaji Pokok (Base): <span className="font-bold text-slate-700">{formatRupiah(record.basic_salary)}</span></div>
                       {(record.allowance_meal ?? 0) > 0 && (
-                        <div>Makan: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_meal)}</span></div>
+                        <div>Tunj. Makan (Harian): <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_meal)}</span></div>
                       )}
                       {(record.allowance_transport ?? 0) > 0 && (
-                        <div>Transport: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_transport)}</span></div>
+                        <div>Tunj. Transport (Harian): <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_transport)}</span></div>
                       )}
                       {(record.allowance_position ?? 0) > 0 && (
-                        <div>Jabatan: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_position)}</span></div>
+                        <div>Tunj. Jabatan (Bulanan): <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_position)}</span></div>
                       )}
                       {(record.allowance_fixed ?? 0) > 0 && (
-                        <div>Tetap: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_fixed)}</span></div>
+                        <div>Tunj. Tetap: <span className="font-bold text-emerald-600">+{formatRupiah(record.allowance_fixed)}</span></div>
                       )}
                     </div>
                   </div>

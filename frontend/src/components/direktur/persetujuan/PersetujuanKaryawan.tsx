@@ -22,8 +22,7 @@ import {
   AlertCircle,
   Building2,
   Search,
-  Users,
-  Hash
+  Users
 } from 'lucide-react'
 
 interface Employee {
@@ -666,7 +665,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                       </button>
                     </div>
                   )}
-                </>
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-6 text-slate-400 flex-grow">
                   <AlertCircle className="w-8 h-8 text-rose-400 mb-2" />

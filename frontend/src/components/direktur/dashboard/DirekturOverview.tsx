@@ -130,16 +130,6 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
     }).format(val)
   }
 
-  const isTodayWithinRange = (startDateStr: string, endDateStr: string) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const start = new Date(startDateStr)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(endDateStr)
-    end.setHours(0, 0, 0, 0)
-    return today >= start && today <= end
-  }
-
   // Quick action handlers
   const handleQuickApprove = async (item: UnifiedPendingItem) => {
     let url = ''

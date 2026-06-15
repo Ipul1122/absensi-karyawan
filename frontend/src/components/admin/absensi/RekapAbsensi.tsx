@@ -334,12 +334,13 @@ export default function RekapAbsensi({
                 <th>Status Masuk</th>
                 <th>Clock-Out (Keluar)</th>
                 <th>Status Keluar</th>
+                <th>Lokasi</th>
               </tr>
             </thead>
             <tbody>
               ${currentMonthAttendances.length === 0 ? `
                 <tr>
-                  <td colSpan="8" style="text-align: center; padding: 20px; color: #64748b;">
+                  <td colSpan="9" style="text-align: center; padding: 20px; color: #64748b;">
                     Tidak ada data absensi untuk bulan ini (${indonesianMonthName} ${currentYear}).
                   </td>
                 </tr>
@@ -353,6 +354,7 @@ export default function RekapAbsensi({
                   <td>${att.status_in ? `<span class="badge badge-${att.status_in}">${getStatusInLabel(att.status_in)}</span>` : '-'}</td>
                   <td style="font-family: monospace; font-weight: bold;">${att.clock_out || '-'}</td>
                   <td>${att.status_out ? `<span class="badge badge-${att.status_out}">${getStatusOutLabel(att.status_out)}</span>` : '-'}</td>
+                  <td>${getLokasiLabel(att)}</td>
                 </tr>
               `).join('')}
             </tbody>

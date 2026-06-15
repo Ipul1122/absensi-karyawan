@@ -372,9 +372,9 @@ export default function ViewEmployeeModal({
               </div>
 
               {/* Form Grid */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Nama */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Nama Lengkap *</label>
                   <div className="relative">
                     <User className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
@@ -390,7 +390,7 @@ export default function ViewEmployeeModal({
                 </div>
 
                 {/* Email */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Email *</label>
                   <div className="relative">
                     <Mail className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
@@ -466,7 +466,7 @@ export default function ViewEmployeeModal({
                 </div>
 
                 {/* Division */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Divisi / Departemen</label>
                   <div className="relative">
                     <Building2 className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
@@ -501,7 +501,7 @@ export default function ViewEmployeeModal({
                 </div>
 
                 {/* Address */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Alamat</label>
                   <div className="relative">
                     <MapPin className="absolute top-2.5 left-0 pl-3 w-4 h-4 text-slate-400" />
@@ -615,7 +615,7 @@ export default function ViewEmployeeModal({
               </div>
 
               {/* Info Grid */}
-              <div className="grid grid-cols-2 gap-3 shrink-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
                 {[
                   {
                     label: 'Jenis Kelamin',

@@ -402,7 +402,7 @@ export default function ManualAttendanceModal({
           </div>
 
           {/* Clock In & Clock Out Times */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                 Jam Masuk *

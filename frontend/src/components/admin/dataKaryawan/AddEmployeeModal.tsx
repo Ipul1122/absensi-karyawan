@@ -199,7 +199,7 @@ export default function AddEmployeeModal({
             </h4>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className={labelClass}>Nama Lengkap *</label>
               <div className="relative">
@@ -276,7 +276,7 @@ export default function AddEmployeeModal({
             <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>No. Karyawan (NIP)</label>
               <div className="relative">
@@ -334,7 +334,7 @@ export default function AddEmployeeModal({
             </div>
 
             {/* Division */}
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <label className={labelClass}>Divisi / Departemen</label>
               <div className="relative">
                 <Building2 className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
@@ -368,7 +368,7 @@ export default function AddEmployeeModal({
               )}
             </div>
 
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <label className={labelClass}>Alamat Rumah</label>
               <div className="relative">
                 <MapPin className="absolute top-2.5 left-0 pl-3 w-4 h-4 text-orange-400/80" />
@@ -384,7 +384,7 @@ export default function AddEmployeeModal({
           </div>
 
           {/* No. Rekening & Perusahaan */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>No. Rekening</label>
               <div className="relative">

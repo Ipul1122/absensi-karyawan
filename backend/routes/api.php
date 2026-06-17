@@ -111,7 +111,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/employees/{id}', [EmployeeController::class, 'update']);
         Route::post('/employees/{id}/profile', [EmployeeController::class, 'updateEmployeeProfile']);
         Route::post('/admin/attendances', [AttendanceController::class, 'storeManualAttendance']);
-        Route::post('/admin/attendances/purge', [AttendanceController::class, 'purgeOldAttendances']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);
         Route::put('/admin/office-setting', [AttendanceController::class, 'updateOfficeSetting']);
         

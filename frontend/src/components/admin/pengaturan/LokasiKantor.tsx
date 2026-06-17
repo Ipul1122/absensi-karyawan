@@ -58,7 +58,7 @@ interface ProfileData {
   no_rekening: string
 }
 
-type ActiveTab = 'lokasi' | 'akun' | 'biodata' | 'pembersihan'
+type ActiveTab = 'lokasi' | 'akun' | 'biodata'
 
 export default function LokasiKantor({
   officeLatitude,
@@ -102,58 +102,6 @@ export default function LokasiKantor({
   const [confirmPassword, setConfirmPassword] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
 
-  // ---------- Cleanup States ----------
-  const [purgeMonths, setPurgeMonths] = useState(12)
-  const [purging, setPurging] = useState(false)
-
-  const handlePurgeOldData = async () => {
-    Swal.fire({
-      title: 'Hapus Data Absensi Lama?',
-      text: `Apakah Anda yakin ingin menghapus permanen data absensi dan foto bukti yang lebih tua dari ${purgeMonths} bulan? Tindakan ini tidak dapat dibatalkan!`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#475569',
-      confirmButtonText: 'Ya, Hapus Permanen!',
-      cancelButtonText: 'Batal',
-      background: '#1e293b',
-      color: '#f8fafc'
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        setPurging(true)
-        try {
-          const res = await axios.post('http://localhost:8000/api/admin/attendances/purge', {
-            months: purgeMonths
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          if (res.data.status === 'success') {
-            const { deleted_attendances, deleted_visits, deleted_files } = res.data.data
-            Swal.fire({
-              title: 'Pembersihan Selesai!',
-              text: `Berhasil menghapus ${deleted_attendances} data absensi, ${deleted_visits} data kunjungan, dan ${deleted_files} file foto bukti.`,
-              icon: 'success',
-              background: '#1e293b',
-              color: '#f8fafc',
-              confirmButtonColor: '#10b981'
-            })
-          }
-        } catch (err: any) {
-          console.error(err)
-          Swal.fire({
-            title: 'Gagal Membersihkan Data',
-            text: err.response?.data?.message || 'Terjadi kesalahan saat menghubungi server.',
-            icon: 'error',
-            background: '#1e293b',
-            color: '#f8fafc',
-            confirmButtonColor: '#ef4444'
-          })
-        } finally {
-          setPurging(false)
-        }
-      }
-    })
-  }
 
   // Leaflet Map Refs
   const configMapRef = useRef<HTMLDivElement | null>(null)
@@ -431,7 +379,6 @@ export default function LokasiKantor({
     { key: 'lokasi' as const, label: 'Lokasi Kantor', icon: MapPin, desc: 'Koordinat & Radius Absen' },
     { key: 'akun' as const, label: 'Akun & Keamanan', icon: KeyRound, desc: 'Email & Kata Sandi' },
     { key: 'biodata' as const, label: 'Biodata Pribadi', icon: UserCircle2, desc: 'Profil & CV Admin' },
-    { key: 'pembersihan' as const, label: 'Pembersihan Data', icon: ShieldAlert, desc: 'Hapus Log & Foto Lama' },
   ]
 
   // Completeness indicator calculation
@@ -442,7 +389,7 @@ export default function LokasiKantor({
   return (
     <div className="space-y-6">
       {/* ===== TAB SWITCHER ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 font-quicksand">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-quicksand">
         {tabs.map(tab => {
           const Icon = tab.icon
           const isActive = activeTab === tab.key
@@ -577,73 +524,6 @@ export default function LokasiKantor({
                   id="office-map-config"
                   className="w-full h-full z-10"
                 />
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ===== TAB: PEMBERSIHAN DATA ===== */}
-      {activeTab === 'pembersihan' && (
-        <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
-          <div className="border-b border-orange-100 pb-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-md shadow-red-200">
-              <ShieldAlert className="w-4.5 h-4.5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-800">Pembersihan Data Absensi Lama</h2>
-              <p className="text-[11px] text-slate-500">
-                Bersihkan database dan file foto absensi yang sudah usang untuk mengoptimalkan performa server.
-              </p>
-            </div>
-          </div>
-
-          <div className="max-w-xl space-y-6">
-            <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-4 flex gap-3.5 items-start">
-              <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="text-[11px] text-slate-650 leading-relaxed font-semibold">
-                <strong className="text-amber-700 block mb-0.5">Informasi Penting Sebelum Menghapus:</strong>
-                Langkah ini akan menghapus secara permanen data absensi karyawan (absen masuk/keluar), data dokumentasi kunjungan sales/klien, serta seluruh berkas gambar (foto webcam) yang tersimpan di server. Pastikan Anda telah mengunduh rekap absensi bulanan/tahunan jika masih diperlukan.
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className={labelClass}>Batas Waktu Penyimpanan Data</label>
-                <div className="relative">
-                  <select
-                    value={purgeMonths}
-                    onChange={(e) => setPurgeMonths(parseInt(e.target.value))}
-                    className={`${inputClass} appearance-none cursor-pointer`}
-                  >
-                    <option value="1">Lebih dari 1 Bulan (Hapus data &gt; 30 hari lalu)</option>
-                    <option value="3">Lebih dari 3 Bulan (Hapus data &gt; 90 hari lalu)</option>
-                    <option value="6">Lebih dari 6 Bulan (Hapus data &gt; 180 hari lalu)</option>
-                    <option value="12">Lebih dari 12 Bulan / 1 Tahun (Direkomendasikan)</option>
-                    <option value="24">Lebih dari 24 Bulan / 2 Tahun</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={handlePurgeOldData}
-                  disabled={purging}
-                  className="px-5 py-3 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {purging ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Sedang Membersihkan...
-                    </>
-                  ) : (
-                    <>
-                      <ShieldAlert className="w-4 h-4" />
-                      Bersihkan Data Sekarang
-                    </>
-                  )}
-                </button>
               </div>
             </div>
           </div>

@@ -27,6 +27,7 @@ interface Employee {
   id: number
   name: string
   email: string
+  role?: string
   password_plain?: string
   photo?: string | null
   division?: string | null
@@ -315,7 +316,14 @@ export default function AkunKaryawan({
                             </div>
                           )}
                           <div className="min-w-0">
-                            <span className="font-quicksand text-sm font-semibold text-slate-800 block truncate">{emp.name}</span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-quicksand text-sm font-semibold text-slate-800 block truncate">{emp.name}</span>
+                              {emp.role === 'admin' && (
+                                <span className="inline-block text-[8px] font-extrabold px-1.5 py-0.5 bg-orange-100 text-orange-600 border border-orange-200 rounded shrink-0">
+                                  Admin HR
+                                </span>
+                              )}
+                            </div>
                             <div className="flex flex-wrap gap-1 mt-0.5">
                               {emp.division && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-600 border border-violet-100">

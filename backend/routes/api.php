@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
     Route::get('/attendance/history', [AttendanceController::class, 'getHistory']);
     Route::get('/office-setting', [AttendanceController::class, 'getOfficeSetting']);
+    Route::get('/holidays/upcoming', [PayrollController::class, 'getUpcomingHolidays']);
 
     // Leave routes for employee
     Route::get('/leaves', [LeaveController::class, 'index']);
@@ -110,6 +111,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/employees/{id}', [EmployeeController::class, 'update']);
         Route::post('/employees/{id}/profile', [EmployeeController::class, 'updateEmployeeProfile']);
         Route::post('/admin/attendances', [AttendanceController::class, 'storeManualAttendance']);
+        Route::post('/admin/attendances/purge', [AttendanceController::class, 'purgeOldAttendances']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);
         Route::put('/admin/office-setting', [AttendanceController::class, 'updateOfficeSetting']);
         
@@ -120,7 +122,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Admin Payroll routes
         Route::post('/admin/payroll/configurations', [PayrollController::class, 'updateConfiguration']);
         Route::post('/admin/payroll/generate', [PayrollController::class, 'generatePayroll']);
-        Route::put('/admin/payroll/{id}/pay', [PayrollController::class, 'updatePayrollStatus']);
         Route::put('/admin/payroll/{id}/update', [PayrollController::class, 'updatePayrollManual']);
         Route::delete('/admin/payroll/{id}', [PayrollController::class, 'destroyPayroll']);
         Route::post('/admin/payroll/{id}/submit-approval', [PayrollController::class, 'submitPayrollApproval']);
@@ -167,6 +168,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/director/payroll/{id}/reject', [PayrollController::class, 'rejectPayroll']);
         Route::post('/director/payroll/approve-all', [PayrollController::class, 'approveAllPayroll']);
         Route::post('/director/payroll/reject-all', [PayrollController::class, 'rejectAllPayroll']);
+        Route::put('/director/payroll/{id}/pay', [PayrollController::class, 'updatePayrollStatus']);
 
         // Leave approvals
         Route::put('/director/leaves/{id}/approve', [LeaveController::class, 'directorApprove']);

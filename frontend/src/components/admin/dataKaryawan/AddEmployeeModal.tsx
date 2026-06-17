@@ -207,7 +207,7 @@ export default function AddEmployeeModal({
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Syaiful"
+                  placeholder=""
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className={inputClass}
@@ -222,7 +222,7 @@ export default function AddEmployeeModal({
                 <input
                   type="email"
                   required
-                  placeholder="syaiful@perusahaan.com"
+                  placeholder=""
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className={inputClass}

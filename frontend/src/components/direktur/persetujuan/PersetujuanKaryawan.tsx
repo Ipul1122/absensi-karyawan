@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   UserMinus, 
   Loader2, 
@@ -355,8 +356,15 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                       <div className="w-9 h-9 rounded-xl bg-orange-600 from-indigo-500 to-purple-650 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-md">
                         {emp.name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-slate-800 truncate leading-normal">{emp.name}</h4>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="text-xs font-bold text-slate-800 truncate leading-normal">{emp.name}</h4>
+                          {emp.role === 'admin' && (
+                            <span className="inline-block text-[8px] font-extrabold px-1.5 py-0.5 bg-orange-100 text-orange-600 border border-orange-200 rounded shrink-0">
+                              Admin HR
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-slate-400 font-medium truncate flex items-center gap-1 mt-0.5">
                           <Mail className="w-3 h-3 text-slate-300" />
                           {emp.email}
@@ -419,6 +427,11 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                           {emp.name.charAt(0).toUpperCase()}
                         </div>
                         <span className="text-sm font-semibold text-slate-800">{emp.name}</span>
+                        {emp.role === 'admin' && (
+                          <span className="inline-block text-[8px] font-extrabold px-1.5 py-0.5 bg-orange-100 text-orange-600 border border-orange-200 rounded ml-2 shrink-0">
+                            Admin HR
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="py-4 px-6">
@@ -512,7 +525,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                   {/* Photo + Name */}
                   <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     {selectedProfile.photo ? (
-                      <img src={selectedProfile.photo.startsWith('http') ? selectedProfile.photo : `http://localhost:8000${selectedProfile.photo}`} alt="Foto"
+                      <img src={getAssetUrl(selectedProfile.photo)} alt="Foto"
                         className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-sm shrink-0" />
                     ) : (
                       <div className="w-16 h-16 rounded-2xl bg-orange-600 from-indigo-150 to-purple-150 flex items-center justify-center shrink-0 border border-slate-200 text-indigo-300">
@@ -580,7 +593,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                           Dokumen CV Karyawan
                         </span>
                         <a
-                          href={selectedProfile.cv.startsWith('http') ? selectedProfile.cv : `http://localhost:8000${selectedProfile.cv}`}
+                          href={getAssetUrl(selectedProfile.cv)}
                           target="_blank"
                           rel="noreferrer"
                           className="px-2.5 py-1 bg-orange-600 from-indigo-500 to-purple-650 hover:brightness-110 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"

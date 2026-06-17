@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef,  } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 // import { NavLink } from 'react-router-dom'
 import { 
   Camera, 
@@ -10,7 +11,8 @@ import {
   Compass,
   Upload,
   Plus,
-  X
+  X,
+  FlipHorizontal2
 } from 'lucide-react'
 
 interface Attendance {
@@ -91,6 +93,7 @@ export default function EmployeeSales({
   const [visitCameraError, setVisitCameraError] = useState<string | null>(null)
   const [showVisitModal, setShowVisitModal] = useState(false)
   const [isCameraActive, setIsCameraActive] = useState(false)
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
   const visitVideoRef = useRef<HTMLVideoElement | null>(null)
   const visitCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const visitStreamRef = useRef<MediaStream | null>(null)
@@ -120,14 +123,15 @@ export default function EmployeeSales({
     )
   }
 
-  const startVisitCamera = async () => {
+  const startVisitCamera = async (mode?: 'user' | 'environment') => {
+    const currentMode = mode ?? facingMode
     setVisitCameraError(null)
     try {
       if (visitStreamRef.current) {
         visitStreamRef.current.getTracks().forEach((track) => track.stop())
       }
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' }
+        video: { width: 640, height: 480, facingMode: { ideal: currentMode } }
       })
       visitStreamRef.current = mediaStream
       setVisitStream(mediaStream)
@@ -138,6 +142,12 @@ export default function EmployeeSales({
       console.error('Visit camera access error:', err)
       setVisitCameraError('Gagal mengakses kamera. Mohon berikan izin kamera.')
     }
+  }
+
+  const flipVisitCamera = async () => {
+    const newMode = facingMode === 'user' ? 'environment' : 'user'
+    setFacingMode(newMode)
+    await startVisitCamera(newMode)
   }
 
   const stopVisitCamera = () => {
@@ -402,14 +412,14 @@ export default function EmployeeSales({
                     {visit.photo_path && (
                       <div className="w-24 h-16 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100 cursor-pointer hover:opacity-90 transition-all shadow-sm" onClick={() => {
                         Swal.fire({
-                          imageUrl: `http://localhost:8000${visit.photo_path}`,
+                          imageUrl: getAssetUrl(visit.photo_path),
                           imageAlt: `Foto Kunjungan ${visit.client_name}`,
                           background: '#1e293b',
                           color: '#f8fafc',
                           showConfirmButton: false,
                         })
                       }}>
-                        <img src={`http://localhost:8000${visit.photo_path}`} alt="Bukti Kunjungan" className="w-full h-full object-cover" />
+                        <img src={getAssetUrl(visit.photo_path)} alt="Bukti Kunjungan" className="w-full h-full object-cover" />
                       </div>
                     )}
                   </div>
@@ -496,14 +506,25 @@ export default function EmployeeSales({
                         autoPlay 
                         playsInline 
                         muted 
-                        className="w-full h-full object-cover transform -scale-x-100" 
+                        className={`w-full h-full object-cover ${facingMode === 'user' ? 'transform -scale-x-100' : ''}`}
                       />
+                      {/* Flip Camera Button */}
+                      {!visitCameraError && (
+                        <button
+                          type="button"
+                          onClick={flipVisitCamera}
+                          title={facingMode === 'user' ? 'Ganti ke Kamera Belakang' : 'Ganti ke Kamera Depan'}
+                          className="absolute top-2 right-2 z-10 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl transition-all cursor-pointer backdrop-blur-sm"
+                        >
+                          <FlipHorizontal2 className="w-4 h-4" />
+                        </button>
+                      )}
                       {visitCameraError && (
                         <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2 font-quicksand">
                           <AlertCircle className="w-8 h-8 text-rose-500" />
                           <p className="text-xs font-semibold leading-relaxed">{visitCameraError}</p>
                           <div className="flex flex-wrap gap-2 justify-center mt-2">
-                            <button onClick={startVisitCamera} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                            <button onClick={() => startVisitCamera()} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
                               Coba Lagi
                             </button>
                             <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">

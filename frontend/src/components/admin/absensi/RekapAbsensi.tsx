@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../../utils/api'
 import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
 import ManualAttendanceModal from './ManualAttendanceModal'
 import SalesVisitsLog from './SalesVisitsLog'
@@ -398,7 +399,7 @@ export default function RekapAbsensi({
 
     const getPhotoHtml = (photo: string | null) => {
       if (!photo) return '-'
-      return `<img src="http://localhost:8000${photo}" width="55" height="55" />`
+      return `<img src="${API_BASE_URL}${photo}" width="55" height="55" />`
     }
 
     let excelContent = `

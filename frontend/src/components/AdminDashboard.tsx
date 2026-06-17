@@ -82,9 +82,10 @@ interface AdminDashboardProps {
   }
   token: string
   onLogout: () => void
+  onProfileUpdate?: (updatedFields: { name: string; email: string; photo?: string | null }) => void
 }
 
-export default function AdminDashboard({ user, token, onLogout }: AdminDashboardProps) {
+export default function AdminDashboard({ user, token, onLogout, onProfileUpdate }: AdminDashboardProps) {
   const location = useLocation()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [attendances, setAttendances] = useState<Attendance[]>([])
@@ -107,6 +108,16 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   // Admin's own attendance & leaves states
   const [adminAttendance, setAdminAttendance] = useState<Attendance | null>(null)
   const [leaves, setLeaves] = useState<any[]>([])
+
+  const fetchProfile = async () => {
+    try {
+      await axios.get('http://localhost:8000/api/user/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    } catch (err) {
+      console.error('Gagal mengambil data profil admin:', err)
+    }
+  }
 
   // Details Modal States
   const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null)
@@ -175,6 +186,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   }
 
   const fetchSidebarCounts = async () => {
+    if (document.hidden) return
     try {
       const response = await axios.get('http://localhost:8000/api/sidebar/notification-counts', {
         headers: { Authorization: `Bearer ${token}` }
@@ -254,10 +266,11 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     fetchOfficeSetting()
     fetchAdminAttendance()
     fetchLeaves()
-    fetchSidebarCounts()
+    fetchProfile()
   }, [])
 
   useEffect(() => {
+    fetchSidebarCounts()
     const interval = setInterval(fetchSidebarCounts, 60000)
     return () => clearInterval(interval)
   }, [token])
@@ -796,6 +809,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                   handleOfficeSettingSubmit={handleOfficeSettingSubmit}
                   user={user}
                   token={token}
+                  onProfileUpdate={onProfileUpdate}
                 />
               } 
             />

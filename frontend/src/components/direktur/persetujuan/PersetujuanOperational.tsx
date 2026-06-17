@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   FileCheck, 
   Loader2, 
@@ -339,7 +340,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                         </td>
                         <td className="py-4 px-6 text-center">
                           {r.image ? (
-                            <a href={`http://localhost:8000${r.image}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold hover:underline" style={{ color: currentTab.color }}>
+                            <a href={getAssetUrl(r.image)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold hover:underline" style={{ color: currentTab.color }}>
                               <ExternalLink className="w-3 h-3" /> Lihat
                             </a>
                           ) : <span className="text-slate-300 text-xs">-</span>}
@@ -438,7 +439,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                         </td>
                         <td className="py-4 px-6 text-center">
                           {r.receipt_path ? (
-                            <a href={`http://localhost:8000${r.receipt_path}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold hover:underline" style={{ color: currentTab.color }}>
+                            <a href={getAssetUrl(r.receipt_path)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold hover:underline" style={{ color: currentTab.color }}>
                               <ExternalLink className="w-3 h-3" /> Nota
                             </a>
                           ) : <span className="text-slate-300 text-xs">-</span>}
@@ -449,7 +450,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                             rejectUrl={`http://localhost:8000/api/director/reimbursements/${r.id}/reject`}
                             rejectLabel="Alasan Penolakan Klaim"
                             name={r.user?.name}
-                            imageUrl={r.receipt_path ? `http://localhost:8000${r.receipt_path}` : undefined}
+                            imageUrl={r.receipt_path ? getAssetUrl(r.receipt_path) : undefined}
                           />
                         </td>
                       </tr>
@@ -525,7 +526,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 shrink-0 overflow-hidden bg-slate-50 shadow-sm" style={{ background: currentTab.bg, borderColor: currentTab.border }}>
                               {r.foto ? (
-                                <img src={`http://localhost:8000${r.foto}`} alt={r.nama_barang} className="w-full h-full object-cover" />
+                                <img src={getAssetUrl(r.foto)} alt={r.nama_barang} className="w-full h-full object-cover" />
                               ) : (
                                 <span className="font-extrabold text-xs" style={{ color: currentTab.color }}>{r.nama_barang?.charAt(0)?.toUpperCase()}</span>
                               )}
@@ -553,7 +554,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                         <td className="py-4 px-6 text-center">
                           <div className="flex flex-col gap-1 items-center justify-center">
                             {r.struk_pembelian ? (
-                              <a href={`http://localhost:8000${r.struk_pembelian}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold hover:underline" style={{ color: currentTab.color }}>
+                              <a href={getAssetUrl(r.struk_pembelian)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold hover:underline" style={{ color: currentTab.color }}>
                                 <ExternalLink className="w-3 h-3" /> Struk
                               </a>
                             ) : <span className="text-slate-300 text-[10px] font-medium">-</span>}
@@ -565,7 +566,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                             rejectUrl={`http://localhost:8000/api/director/inventories/${r.id}/reject`}
                             rejectLabel="Alasan Penolakan Barang Inventaris"
                             name={r.nama_barang}
-                            imageUrl={r.foto ? `http://localhost:8000${r.foto}` : undefined}
+                            imageUrl={r.foto ? getAssetUrl(r.foto) : undefined}
                           />
                         </td>
                       </tr>

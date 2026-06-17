@@ -19,6 +19,7 @@ interface User {
   name: string
   email: string
   role: 'admin' | 'employee' | 'director'
+  photo?: string | null
 }
 
 function App() {
@@ -53,6 +54,33 @@ function App() {
     checkConnection()
   }, [])
 
+  useEffect(() => {
+    if (token) {
+      axios.get('http://localhost:8000/api/user/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => {
+        if (res.data.status === 'success') {
+          const d = res.data.data
+          setUser(prevUser => {
+            if (!prevUser) return null
+            const updatedUser = {
+              ...prevUser,
+              name: d.name,
+              email: d.email,
+              photo: d.photo
+            }
+            sessionStorage.setItem('auth_user', JSON.stringify(updatedUser))
+            return updatedUser
+          })
+        }
+      })
+      .catch(err => {
+        console.error('Gagal menyinkronkan profil pengguna:', err)
+      })
+    }
+  }, [token])
+
   const handleLoginSuccess = (newToken: string, newUser: User) => {
     sessionStorage.setItem('auth_token', newToken)
     sessionStorage.setItem('auth_user', JSON.stringify(newUser))
@@ -65,6 +93,15 @@ function App() {
     sessionStorage.removeItem('auth_user')
     setToken(null)
     setUser(null)
+  }
+
+  const handleProfileUpdate = (updatedFields: { name: string; email: string; photo?: string | null }) => {
+    setUser(prevUser => {
+      if (!prevUser) return null
+      const updatedUser = { ...prevUser, ...updatedFields }
+      sessionStorage.setItem('auth_user', JSON.stringify(updatedUser))
+      return updatedUser
+    })
   }
 
   return (
@@ -83,7 +120,7 @@ function App() {
                   path="/admin/*" 
                   element={
                     <div className="min-h-screen bg-[#fcf9f5] text-slate-800 flex flex-col">
-                      <AdminDashboard user={user as any} token={token} onLogout={handleLogout} />
+                      <AdminDashboard user={user as any} token={token} onLogout={handleLogout} onProfileUpdate={handleProfileUpdate} />
                     </div>
                   } 
                   />

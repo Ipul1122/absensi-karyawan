@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class AttendanceController extends Controller
@@ -45,7 +46,9 @@ class AttendanceController extends Controller
         $attendanceType = $request->input('attendance_type', 'kantor');
 
         // Check office setting radius limit
-        $office = \App\Models\OfficeSetting::first();
+        $office = Cache::rememberForever('office_setting', function () {
+            return \App\Models\OfficeSetting::first();
+        });
         if ($office && $attendanceType === 'kantor') {
             $distance = $this->getDistance(
                 floatval($request->latitude),
@@ -185,7 +188,9 @@ class AttendanceController extends Controller
         }
 
         // Check office setting radius limit (only if attendance was kantor type)
-        $office = \App\Models\OfficeSetting::first();
+        $office = Cache::rememberForever('office_setting', function () {
+            return \App\Models\OfficeSetting::first();
+        });
         if ($office && $attendance->attendance_type === 'kantor') {
             $distance = $this->getDistance(
                 floatval($request->latitude),
@@ -250,11 +255,39 @@ class AttendanceController extends Controller
     public function getHistory(Request $request)
     {
         $userId = $request->user()->id;
+        $query = Attendance::where('user_id', $userId);
 
-        $history = Attendance::where('user_id', $userId)
-            ->orderBy('date', 'desc')
-            ->limit(30)
-            ->get();
+        // Filter by specific date if provided
+        if ($request->filled('date')) {
+            $query->where('date', $request->date);
+        }
+        // Filter by specific month and year if provided
+        elseif ($request->filled('month') && $request->filled('year')) {
+            $query->whereMonth('date', $request->month)
+                  ->whereYear('date', $request->year);
+        }
+
+        $query->orderBy('date', 'desc');
+
+        // If page parameter is present, return server-side paginated results
+        if ($request->has('page')) {
+            $limit = $request->input('limit', 10);
+            $paginated = $query->paginate($limit);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $paginated->items(),
+                'pagination' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                    'per_page' => $paginated->perPage(),
+                    'total' => $paginated->total(),
+                ]
+            ]);
+        }
+
+        // Default: return recent 30 records for dashboard stats compatibility
+        $history = $query->limit(30)->get();
 
         return response()->json([
             'status' => 'success',
@@ -452,7 +485,9 @@ class AttendanceController extends Controller
      */
     public function getOfficeSetting(Request $request)
     {
-        $office = \App\Models\OfficeSetting::first();
+        $office = Cache::rememberForever('office_setting', function () {
+            return \App\Models\OfficeSetting::first();
+        });
         return response()->json([
             'status' => 'success',
             'data' => $office
@@ -479,6 +514,8 @@ class AttendanceController extends Controller
         $office->longitude = $request->longitude;
         $office->radius = $request->radius;
         $office->save();
+
+        Cache::forget('office_setting');
 
         return response()->json([
             'status' => 'success',
@@ -531,6 +568,71 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Purge old attendance and visit data (older than N months) along with their photos.
+     */
+    public function purgeOldAttendances(Request $request)
+    {
+        $request->validate([
+            'months' => 'required|integer|min:1|max:120',
+        ]);
+
+        $months = intval($request->months);
+        $thresholdDate = Carbon::now()->subMonths($months)->toDateString();
+
+        $deletedAttendanceCount = 0;
+        $deletedSalesVisitCount = 0;
+        $deletedFileCount = 0;
+
+        // 1. Purge Attendance Photos and Records
+        $attendances = Attendance::where('date', '<', $thresholdDate)->get();
+        foreach ($attendances as $attendance) {
+            // Delete photo_in if exists
+            if ($attendance->photo_in) {
+                $relativePath = str_replace('/storage/', '', $attendance->photo_in);
+                if (Storage::disk('public')->exists($relativePath)) {
+                    Storage::disk('public')->delete($relativePath);
+                    $deletedFileCount++;
+                }
+            }
+            // Delete photo_out if exists
+            if ($attendance->photo_out) {
+                $relativePath = str_replace('/storage/', '', $attendance->photo_out);
+                if (Storage::disk('public')->exists($relativePath)) {
+                    Storage::disk('public')->delete($relativePath);
+                    $deletedFileCount++;
+                }
+            }
+            $attendance->delete();
+            $deletedAttendanceCount++;
+        }
+
+        // 2. Purge Sales Visits Photos and Records
+        $salesVisits = \App\Models\SalesVisit::where('date', '<', $thresholdDate)->get();
+        foreach ($salesVisits as $visit) {
+            if ($visit->photo_path) {
+                $relativePath = str_replace('/storage/', '', $visit->photo_path);
+                if (Storage::disk('public')->exists($relativePath)) {
+                    Storage::disk('public')->delete($relativePath);
+                    $deletedFileCount++;
+                }
+            }
+            $visit->delete();
+            $deletedSalesVisitCount++;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Data absensi lama berhasil dibersihkan!',
+            'data' => [
+                'deleted_attendances' => $deletedAttendanceCount,
+                'deleted_visits' => $deletedSalesVisitCount,
+                'deleted_files' => $deletedFileCount,
+                'threshold_date' => $thresholdDate
+            ]
+        ]);
+    }
+
+    /**
      * Helper to decode and save base64 image.
      */
     private function saveBase64Image($base64String, $prefix)
@@ -543,22 +645,75 @@ class AttendanceController extends Controller
                 throw new \Exception('Tipe gambar tidak valid.');
             }
 
-            $image = base64_decode($imageData);
+            $imageBytes = base64_decode($imageData);
 
-            if ($image === false) {
+            if ($imageBytes === false) {
                 throw new \Exception('Gagal mendecode base64.');
             }
         } else {
             throw new \Exception('Format data URI gambar tidak sesuai.');
         }
 
-        $fileName = $prefix . '_' . time() . '_' . uniqid() . '.' . $type;
+        // Tentukan ekstensi dan nama file default (webp jika menggunakan kompresi)
+        $useWebp = extension_loaded('gd');
+        $extension = $useWebp ? 'webp' : $type;
+        $fileName = $prefix . '_' . time() . '_' . uniqid() . '.' . $extension;
         $filePath = 'attendances/' . $fileName;
 
         // Ensure directories exist
         Storage::disk('public')->makeDirectory('attendances');
 
-        Storage::disk('public')->put($filePath, $image);
+        if ($useWebp) {
+            try {
+                // Buat GD image object dari raw bytes
+                $srcImage = imagecreatefromstring($imageBytes);
+                if ($srcImage !== false) {
+                    $origWidth = imagesx($srcImage);
+                    $origHeight = imagesy($srcImage);
+
+                    // Tentukan ukuran baru (maksimal lebar 800px)
+                    $maxWidth = 800;
+                    $webpData = false;
+
+                    if ($origWidth > $maxWidth) {
+                        $newWidth = $maxWidth;
+                        $newHeight = (int) (($origHeight / $origWidth) * $maxWidth);
+
+                        // Buat canvas baru
+                        $dstImage = imagecreatetruecolor($newWidth, $newHeight);
+
+                        // Tangani transparansi untuk PNG/GIF
+                        imagealphablending($dstImage, false);
+                        imagesavealpha($dstImage, true);
+                        
+                        // Lakukan resize
+                        imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+                        
+                        // Siapkan output buffer untuk menangkap raw webp bytes
+                        ob_start();
+                        imagewebp($dstImage, null, 75); // kualitas 75%
+                        $webpData = ob_get_clean();
+
+                        imagedestroy($dstImage);
+                    } else {
+                        // Tidak perlu resize, langsung kompres ke WebP
+                        ob_start();
+                        imagewebp($srcImage, null, 75);
+                        $webpData = ob_get_clean();
+                    }
+
+                    imagedestroy($srcImage);
+
+                    if ($webpData !== false) {
+                        $imageBytes = $webpData;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fallback ke data asli jika ada error pemrosesan GD
+            }
+        }
+
+        Storage::disk('public')->put($filePath, $imageBytes);
 
         return '/storage/' . $filePath;
     }

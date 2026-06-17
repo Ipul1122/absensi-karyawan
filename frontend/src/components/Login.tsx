@@ -14,6 +14,7 @@ import {
   CheckSquare,
   Square
 } from 'lucide-react'
+import Logo from './layout/Logo'
 
 interface User {
   id: number
@@ -37,18 +38,15 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'standard' | 'director'>('standard')
+  const [emailFocused, setEmailFocused] = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false)
 
   const currentAccentColor = BRAND_ORANGE
 
   const handleTabChange = (tab: 'standard' | 'director') => {
     setActiveTab(tab)
-    if (tab === 'director') {
-      setEmail('direktur@absen.com')
-      setPassword('password')
-    } else {
-      setEmail('')
-      setPassword('')
-    }
+    setEmail('')
+    setPassword('')
   }
 
   const handleLogin = async (e?: React.FormEvent | React.MouseEvent) => {
@@ -76,9 +74,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white font-quicksand">
-
-
+    <div className="min-h-screen flex flex-col bg-slate-50/30 font-quicksand relative z-0">
 
       {/* ══════════════════════════════════════
           MAIN CONTENT — Two Columns
@@ -190,58 +186,60 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
         </div>
 
         {/* ─── RIGHT PANEL (Login Form) ─── */}
-        <div className="flex-1 flex flex-col bg-white">
-          {/* Mobile hero — only shown on small screens */}
-          <div className="lg:hidden w-full py-8 px-6 flex flex-col items-center text-center transition-all duration-500"
-            style={{
-              background: `linear-gradient(160deg, ${BRAND_ORANGE}, #c2410c)`
-            }}>
-            <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center mb-3">
-              <ShieldCheck className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-xl font-black text-white">
-              {activeTab === 'director' ? 'Portal Direktur Utama' : 'Portal Absensi Karyawan'}
-            </h2>
-            <p className="text-white/70 text-xs mt-1">
-              {activeTab === 'director' ? 'Panel pengawasan eksekutif' : 'Platform presensi digital terintegrasi'}
-            </p>
-          </div>
+        <div className="flex-1 flex flex-col bg-transparent relative z-0 overflow-hidden">
+          
+          {/* Decorative Glow Bubbles on Mobile */}
+          <div className="absolute top-[-10%] right-[-10%] w-72 h-72 rounded-full bg-gradient-to-br from-amber-300/20 to-orange-400/20 blur-[80px] -z-10 pointer-events-none lg:hidden animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 rounded-full bg-gradient-to-br from-orange-200/15 to-rose-300/15 blur-[100px] -z-10 pointer-events-none lg:hidden" />
 
           {/* Form area — scrollable on small screens */}
-          <div className="flex-1 flex items-center justify-center px-6 sm:px-10 lg:px-12 xl:px-16 py-8 overflow-y-auto">
-            <div className="w-full max-w-md animate-fade-in">
+          <div className="flex-1 flex items-center justify-center px-4 sm:px-10 lg:px-12 xl:px-16 py-8 overflow-y-auto z-10">
+            <div className="w-full max-w-md bg-white/80 backdrop-blur-md border border-white/60 shadow-[0_20px_50px_rgba(234,88,12,0.06)] rounded-3xl p-6 sm:p-8 animate-fade-in relative z-20">
+
+              {/* Mobile Logo & Welcome Title — only shown on small screens */}
+              <div className="lg:hidden flex flex-col items-center mb-8">
+                <Logo className="w-12 h-12" />
+                <h2 className="text-xl font-black text-slate-900 mt-4 font-sans tracking-tight">
+                  {activeTab === 'director' ? 'Portal Direksi' : 'KaryaAbsen'}
+                </h2>
+                <p className="text-xs text-slate-500 mt-1 font-medium text-center max-w-xs leading-relaxed">
+                  {activeTab === 'director'
+                    ? 'Silakan masuk dengan kredensial Direktur Utama Anda.'
+                    : 'Portal presensi digital terintegrasi untuk karyawan.'}
+                </p>
+              </div>
 
               {/* TABS SIDE SWITCHER FOR DIRECTOR */}
-              <div className="flex bg-slate-100 p-1 rounded-2xl mb-8 font-quicksand font-bold text-xs select-none">
+              <div className="flex bg-slate-100/80 backdrop-blur-sm p-1 rounded-2xl mb-8 font-quicksand font-bold text-xs select-none border border-slate-200/50">
                 <button
                   type="button"
                   onClick={() => handleTabChange('standard')}
-                  className={`flex-1 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`flex-grow py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer font-bold ${
                     activeTab === 'standard'
-                      ? 'bg-white text-orange-600 shadow-sm'
+                      ? 'bg-white text-orange-600 shadow-[0_4px_12px_rgba(234,88,12,0.08)]'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <ShieldCheck className="w-4 h-4" />
+                  <ShieldCheck className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'standard' ? 'scale-110 text-orange-500' : ''}`} />
                   Karyawan & Admin
                 </button>
                 <button
                   type="button"
                   onClick={() => handleTabChange('director')}
-                  className={`flex-grow flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all cursor-pointer ${
+                  className={`flex-grow py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer font-bold ${
                     activeTab === 'director'
-                      ? 'bg-white text-orange-600 shadow-sm'
+                      ? 'bg-white text-orange-600 shadow-[0_4px_12px_rgba(234,88,12,0.08)]'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'director' ? 'scale-110 text-orange-500' : ''}`} />
                   Direktur Utama
                 </button>
               </div>
 
-              {/* Heading */}
-              <div className="mb-8">
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight transition-all duration-300">
+              {/* Desktop Heading — only shown on large screens */}
+              <div className="mb-8 hidden lg:block">
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight transition-all duration-300">
                   {activeTab === 'director' ? 'Portal Direksi' : 'Selamat Datang'}
                 </h2>
                 <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed transition-all duration-300">
@@ -255,13 +253,17 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
               <form onSubmit={handleLogin} className="space-y-5">
 
                 {/* Email */}
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-2">
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest transition-colors duration-300" style={emailFocused ? { color: BRAND_ORANGE } : {}}>
                     Alamat Email
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                      <Mail className="w-4 h-4" />
+                  <div className={`relative flex items-center border rounded-2xl transition-all duration-300 ${
+                    emailFocused 
+                      ? 'border-orange-500 bg-white ring-4 ring-orange-100 shadow-[0_4px_12px_rgba(234,88,12,0.05)]' 
+                      : 'border-slate-200 bg-slate-50/50 hover:border-slate-300'
+                  }`}>
+                    <div className={`absolute left-4 transition-colors duration-300 ${emailFocused ? 'text-orange-500' : 'text-slate-400'}`}>
+                      <Mail className="w-4.5 h-4.5" />
                     </div>
                     <input
                       id="login-email"
@@ -269,25 +271,31 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       required
                       value={email}
                       onChange={e => setEmail(e.target.value)}
+                      onFocus={() => setEmailFocused(true)}
+                      onBlur={() => setEmailFocused(false)}
                       placeholder="nama@perusahaan.com"
-                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-4 outline-none transition-all text-sm font-medium focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                      className="w-full bg-transparent text-slate-800 placeholder-slate-400 rounded-2xl py-3.5 pl-12 pr-4 outline-none transition-all text-sm font-medium"
                     />
                   </div>
                 </div>
 
                 {/* Password */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest transition-colors duration-300" style={passwordFocused ? { color: BRAND_ORANGE } : {}}>
                       Kata Sandi
                     </label>
-                    <button type="button" className="text-xs font-bold hover:underline cursor-pointer" style={{ color: currentAccentColor }}>
+                    <button type="button" className="text-xs font-bold hover:underline cursor-pointer transition-colors duration-300 hover:text-orange-700 font-sans" style={{ color: currentAccentColor }}>
                       Lupa Sandi?
                     </button>
                   </div>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                      <Lock className="w-4 h-4" />
+                  <div className={`relative flex items-center border rounded-2xl transition-all duration-300 ${
+                    passwordFocused 
+                      ? 'border-orange-500 bg-white ring-4 ring-orange-100 shadow-[0_4px_12px_rgba(234,88,12,0.05)]' 
+                      : 'border-slate-200 bg-slate-50/50 hover:border-slate-300'
+                  }`}>
+                    <div className={`absolute left-4 transition-colors duration-300 ${passwordFocused ? 'text-orange-500' : 'text-slate-400'}`}>
+                      <Lock className="w-4.5 h-4.5" />
                     </div>
                     <input
                       id="login-password"
@@ -295,15 +303,17 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       required
                       value={password}
                       onChange={e => setPassword(e.target.value)}
+                      onFocus={() => setPasswordFocused(true)}
+                      onBlur={() => setPasswordFocused(false)}
                       placeholder="••••••••"
-                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 placeholder-slate-400 rounded-xl py-3 pl-11 pr-12 outline-none transition-all text-sm font-medium focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                      className="w-full bg-transparent text-slate-800 placeholder-slate-400 rounded-2xl py-3.5 pl-12 pr-12 outline-none transition-all text-sm font-medium"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(v => !v)}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                     </button>
                   </div>
                 </div>
@@ -312,14 +322,14 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                 <button
                   type="button"
                   onClick={() => setRememberMe(v => !v)}
-                  className="flex items-center gap-2.5 cursor-pointer group"
+                  className="flex items-center gap-3 cursor-pointer group w-fit"
                 >
-                  <div className="text-slate-400 group-hover:text-slate-600 transition-colors shrink-0" style={rememberMe ? { color: currentAccentColor } : {}}>
+                  <div className="transition-all duration-300 transform group-hover:scale-110 shrink-0" style={rememberMe ? { color: currentAccentColor } : { color: '#94a3b8' }}>
                     {rememberMe
-                      ? <CheckSquare className="w-4 h-4" />
-                      : <Square className="w-4 h-4" />}
+                      ? <CheckSquare className="w-5 h-5 transition-transform duration-200" />
+                      : <Square className="w-5 h-5 text-slate-300 hover:text-slate-400" />}
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-800 transition-colors select-none">
+                  <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors select-none">
                     Tetap masuk selama 30 hari
                   </span>
                 </button>
@@ -329,31 +339,39 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                   id="login-submit"
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 px-4 flex items-center justify-center gap-2.5 text-white font-bold rounded-xl transition-all text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
+                  className="w-full py-4 px-4 flex items-center justify-center gap-2.5 text-white font-bold rounded-2xl transition-all duration-300 text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transform active:scale-[0.98] hover:translate-y-[-1px] group relative overflow-hidden"
                   style={{
                     background: loading 
                       ? '#c2410c'
                       : `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_ORANGE_DARK} 100%)`,
-                    boxShadow: `0 4px 18px rgba(234,88,12,0.35)`
+                    boxShadow: loading 
+                      ? 'none'
+                      : '0 10px 25px -5px rgba(234,88,12,0.4), 0 8px 10px -6px rgba(234,88,12,0.4)'
                   }}
                 >
                   {loading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" />Memproses...</>
+                    <><Loader2 className="w-5 h-5 animate-spin" />Memproses...</>
                   ) : (
-                    <><span>Masuk</span><LogIn className="w-4 h-4" /></>
+                    <>
+                      <span className="font-bold tracking-wide">Masuk Ke Portal</span>
+                      <LogIn className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </>
                   )}
                 </button>
               </form>
 
-
-
               {/* Offline warning */}
               {!isOnline && (
-                <div className="mt-4 flex items-center gap-2.5 p-3 bg-rose-50 border border-rose-200 rounded-xl">
-                  <div className="w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-pulse" />
-                  <p className="text-[11px] text-rose-600 font-semibold">
-                    Server offline — pastikan backend Laravel berjalan dengan <code className="font-mono bg-rose-100 px-1 rounded">php artisan serve</code>
-                  </p>
+                <div className="mt-6 flex items-start gap-3 p-4 bg-rose-50/80 backdrop-blur-sm border border-rose-100 rounded-2xl animate-pulse">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 mt-1 animate-ping" />
+                  <div>
+                    <p className="text-xs text-rose-800 font-bold">
+                      Koneksi Terputus
+                    </p>
+                    <p className="text-[11px] text-rose-600/90 font-medium mt-0.5 leading-relaxed">
+                      Server offline — pastikan backend Laravel berjalan dengan perintah <code className="font-mono bg-rose-100/80 px-1.5 py-0.5 rounded text-[10px]">php artisan serve</code>
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -364,7 +382,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
       {/* ══════════════════════════════════════
           FOOTER
       ══════════════════════════════════════ */}
-      <footer className="w-full border-t border-slate-100 bg-white px-5 sm:px-8 lg:px-12 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
+      <footer className="w-full border-t border-slate-200/40 bg-white/50 backdrop-blur-sm px-5 sm:px-8 lg:px-12 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 z-10">
         <p className="text-[11px] text-slate-400 font-semibold">
           © 2024 Portal Absensi Karyawan. All rights reserved.
         </p>

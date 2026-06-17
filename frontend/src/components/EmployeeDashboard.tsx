@@ -29,6 +29,7 @@ import EmployeePayroll from './employee/payroll/EmployeePayroll'
 import EmployeeReimbursement from './employee/operasional/EmployeeReimbursement'
 import EmployeeBonus from './employee/payroll/EmployeeBonus'
 import EmployeeOvertime from './employee/operasional/EmployeeOvertime'
+import { getAssetUrl } from '../utils/api'
 
 interface User {
   id: number
@@ -77,6 +78,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   const [loading, setLoading] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [company, setCompany] = useState<string>('')
+  const [profile, setProfile] = useState<any | null>(null)
   const [sidebarCounts, setSidebarCounts] = useState({
     pendingCutiCount: 0,
     pendingLemburCount: 0,
@@ -84,6 +86,12 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     unpaidPayrollCount: 0,
     operasionalCount: 0,
   })
+
+  // Remove dark mode class and theme from local storage
+  useEffect(() => {
+    document.documentElement.classList.remove('dark')
+    localStorage.removeItem('theme')
+  }, [])
 
   // Live clock
   useEffect(() => {
@@ -136,6 +144,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   }
 
   const fetchSidebarCounts = async () => {
+    if (document.hidden) return
     try {
       const response = await axios.get('http://localhost:8000/api/sidebar/notification-counts', {
         headers: { Authorization: `Bearer ${token}` }
@@ -155,6 +164,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       })
       if (response.data.status === 'success') {
         setCompany(response.data.data.company || '')
+        setProfile(response.data.data)
       }
     } catch (err) {
       console.error('Gagal mengambil data profil karyawan:', err)
@@ -165,11 +175,11 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     fetchTodayAttendance()
     fetchOfficeSetting()
     fetchHistory()
-    fetchSidebarCounts()
     fetchProfile()
   }, [])
 
   useEffect(() => {
+    fetchSidebarCounts()
     const interval = setInterval(fetchSidebarCounts, 60000)
     return () => clearInterval(interval)
   }, [token])
@@ -315,14 +325,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   const totalPending = sidebarCounts.operasionalCount + sidebarCounts.unpaidPayrollCount
 
   return (
-    <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#fdfaf7]">
+    <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#f8fafc] text-slate-700 transition-colors duration-300">
       
       {/* Mobile Top Navbar Header */}
-      <header className="md:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-orange-100 shadow-sm">
+      <header className="md:hidden flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shadow-sm transition-colors duration-300">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileSidebarOpen(true)}
-            className="relative p-2 bg-slate-50 border border-slate-200 hover:bg-orange-50/50 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
+            className="relative p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 hover:text-red-500 transition-all cursor-pointer"
           >
             <Menu className="w-5 h-5" />
             {totalPending > 0 && (
@@ -333,6 +343,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
           </button>
           <Logo className="w-8 h-8" company={company} />
         </div>
+
       </header>
 
       {/* Floating Toggle Button on Left Middle Edge */}
@@ -352,17 +363,17 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       )}
 
       {/* Desktop Left Sidebar (Fixed) */}
-      <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm">
+      <aside className="hidden md:block w-64 bg-white border-r border-slate-200 p-6 flex-shrink-0 shadow-sm transition-colors duration-300">
         <EmployeeSidebar user={user} onLogout={handleLogoutClick} counts={sidebarCounts} company={company} />
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden bg-slate-900/40 backdrop-blur-sm animate-fade-in flex">
-          <div className="w-64 bg-white border-r border-orange-100 p-6 h-full flex-shrink-0 relative animate-slide-right">
+          <div className="w-64 bg-white border-r border-slate-200 p-6 h-full flex-shrink-0 relative animate-slide-right transition-colors duration-300">
             <button
               onClick={() => setMobileSidebarOpen(false)}
-              className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 rounded-lg transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -373,23 +384,51 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       )}
 
       {/* Main Content Area */}
-      <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto min-w-0">
+      <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto min-w-0 bg-[#f8fafc] transition-colors duration-300">
         
-        {/* Dynamic header with page title */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-orange-100 pb-6 mb-8">
+        {/* Dynamic header with page title & notifications/profile */}
+        <div className="flex flex-row items-center justify-between border-b border-slate-200 pb-6 mb-8 gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest font-mono">
-                Panel Karyawan
-              </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span className="text-[10px] text-slate-500 font-bold font-mono">
-                {routeInfo.subtitle}
-              </span>
-            </div>
-            <h1 className="text-2xl font-black text-slate-800 mt-1 font-quicksand capitalize">
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight font-sans capitalize">
               {routeInfo.title}
             </h1>
+            <p className="text-xs text-slate-400 font-bold mt-1">
+              {formatDate(time)}
+            </p>
+          </div>
+          
+          {/* Header Actions - User Profile */}
+          <div className="flex items-center gap-4">
+
+
+            {/* Profile Info */}
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-black text-slate-800 tracking-tight leading-tight capitalize font-sans">
+                  {profile?.name || user.name}
+                </p>
+                <p className="text-[10px] font-bold text-slate-400 mt-0.5 font-mono">
+                  {profile?.division || 'Karyawan'}
+                </p>
+              </div>
+              
+              {/* User Avatar Circle */}
+              <div className="w-10 h-10 rounded-full border border-slate-200 shadow-sm overflow-hidden bg-slate-100 flex items-center justify-center relative hover:scale-105 active:scale-95 transition-all cursor-pointer">
+                {profile?.photo ? (
+                  <img 
+                    src={getAssetUrl(profile.photo)} 
+                    alt={user.name} 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-orange-500 text-white font-black text-sm">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {/* Live active indicator dot */}
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border border-white rounded-full"></span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -459,7 +498,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="riwayat" 
               element={
                 <EmployeeHistory
-                  history={history}
+                  token={token}
                   getStatusBadge={getStatusBadge}
                 />
               } 

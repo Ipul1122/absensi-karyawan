@@ -24,7 +24,7 @@ class DirectorController extends Controller
         $currentMonthStr = now()->format('Y-m');
 
         // 1. Fetch data for metrics
-        $activeEmployees = User::where('role', 'employee')
+        $activeEmployees = User::whereIn('role', ['employee', 'admin'])
             ->where('status', 'active')
             ->select('id', 'name', 'email')
             ->get();
@@ -51,11 +51,11 @@ class DirectorController extends Controller
             });
 
         // 2. Fetch pending items for counting and unified listing
-        $pendingEmployees = User::where('role', 'employee')
+        $pendingEmployees = User::whereIn('role', ['employee', 'admin'])
             ->whereIn('status', ['pending', 'pending_delete'])
             ->get();
 
-        $pendingSalaryConfigs = User::where('role', 'employee')
+        $pendingSalaryConfigs = User::whereIn('role', ['employee', 'admin'])
             ->whereHas('salaryConfiguration', function ($query) {
                 $query->where('salary_change_status', 'pending');
             })
@@ -113,7 +113,7 @@ class DirectorController extends Controller
                 'subtitle' => $emp->email,
                 'requesterName' => $emp->name,
                 'requesterEmail' => $emp->email,
-                'date' => $emp->join_date ?: $emp->created_at->toISOString(),
+                'date' => $emp->join_date ?: ($emp->created_at ? $emp->created_at->toISOString() : now()->toISOString()),
                 'badgeText' => 'Pendaftaran',
                 'details' => 'Tanggal Bergabung: ' . ($emp->join_date ? date('j M Y', strtotime($emp->join_date)) : '-'),
                 'originalData' => [
@@ -136,7 +136,7 @@ class DirectorController extends Controller
                 'subtitle' => $emp->email,
                 'requesterName' => $emp->name,
                 'requesterEmail' => $emp->email,
-                'date' => $emp->updated_at->toISOString(),
+                'date' => $emp->updated_at ? $emp->updated_at->toISOString() : now()->toISOString(),
                 'badgeText' => 'Hapus Akun',
                 'details' => 'Meminta persetujuan direktur untuk menghapus akun secara permanen dari sistem.',
                 'originalData' => [
@@ -153,6 +153,8 @@ class DirectorController extends Controller
         // 4.3 Salary Configuration adjustments
         foreach ($pendingSalaryConfigs as $emp) {
             $config = $emp->salaryConfiguration;
+            if (!$config) continue;
+
             $changes = [];
 
             if ($config->pending_basic_salary !== null && $config->pending_basic_salary != $config->basic_salary) {
@@ -175,7 +177,7 @@ class DirectorController extends Controller
                 'subtitle' => $emp->email,
                 'requesterName' => $emp->name,
                 'requesterEmail' => $emp->email,
-                'date' => $config->updated_at->toISOString(),
+                'date' => $config->updated_at ? $config->updated_at->toISOString() : now()->toISOString(),
                 'badgeText' => 'Gaji',
                 'details' => count($changes) > 0 ? implode(' | ', $changes) : 'Mengajukan nilai gaji baru',
                 'originalData' => [
@@ -200,9 +202,9 @@ class DirectorController extends Controller
                 'type' => 'payroll',
                 'title' => 'Proposal Slip Gaji Bulanan',
                 'subtitle' => 'Periode: ' . $record->period_month,
-                'requesterName' => $record->user->name,
-                'requesterEmail' => $record->user->email,
-                'date' => $record->created_at->toISOString(),
+                'requesterName' => $record->user ? $record->user->name : 'Karyawan',
+                'requesterEmail' => $record->user ? $record->user->email : null,
+                'date' => $record->created_at ? $record->created_at->toISOString() : now()->toISOString(),
                 'amount' => $record->net_salary,
                 'badgeText' => 'Payroll',
                 'details' => 'Total Transfer Bersih: Rp ' . number_format($record->net_salary, 0, ',', '.') . ' (' . $record->days_present . 'H hadir, ' . $record->days_late . 'T telat)',
@@ -220,9 +222,9 @@ class DirectorController extends Controller
                 'subtitle' => 'Alasan: ' . $r->reason,
                 'requesterName' => $r->user ? $r->user->name : 'Karyawan',
                 'requesterEmail' => $r->user ? $r->user->email : null,
-                'date' => $r->start_date,
+                'date' => $r->start_date ?: now()->toDateString(),
                 'badgeText' => 'Cuti',
-                'details' => date('j M', strtotime($r->start_date)) . ' s/d ' . date('j M Y', strtotime($r->end_date)),
+                'details' => ($r->start_date && $r->end_date) ? (date('j M', strtotime($r->start_date)) . ' s/d ' . date('j M Y', strtotime($r->end_date))) : '-',
                 'originalData' => $r
             ];
         }
@@ -236,9 +238,9 @@ class DirectorController extends Controller
                 'subtitle' => 'Alasan: ' . $r->reason,
                 'requesterName' => $r->user ? $r->user->name : 'Karyawan',
                 'requesterEmail' => $r->user ? $r->user->email : null,
-                'date' => $r->date,
+                'date' => $r->date ?: now()->toDateString(),
                 'badgeText' => 'Lembur',
-                'details' => date('j M Y', strtotime($r->date)) . ' · ' . substr($r->start_time, 0, 5) . ' - ' . substr($r->end_time, 0, 5),
+                'details' => $r->date ? (date('j M Y', strtotime($r->date)) . ' · ' . substr($r->start_time, 0, 5) . ' - ' . substr($r->end_time, 0, 5)) : '-',
                 'originalData' => $r
             ];
         }
@@ -252,7 +254,7 @@ class DirectorController extends Controller
                 'subtitle' => 'Kategori: ' . $r->category . ' · Nominal: Rp ' . number_format($r->amount, 0, ',', '.'),
                 'requesterName' => $r->user ? $r->user->name : 'Karyawan',
                 'requesterEmail' => $r->user ? $r->user->email : null,
-                'date' => $r->expense_date,
+                'date' => $r->expense_date ?: now()->toDateString(),
                 'amount' => $r->amount,
                 'badgeText' => 'Klaim Biaya',
                 'details' => 'Keterangan: ' . ($r->description ?: '-'),
@@ -269,10 +271,10 @@ class DirectorController extends Controller
                 'subtitle' => 'Nominal: Rp ' . number_format($r->bonus_amount, 0, ',', '.'),
                 'requesterName' => $r->user ? $r->user->name : 'Karyawan',
                 'requesterEmail' => $r->user ? $r->user->email : null,
-                'date' => $r->bonus_date,
+                'date' => $r->bonus_date ?: now()->toDateString(),
                 'amount' => $r->bonus_amount,
                 'badgeText' => 'Bonus',
-                'details' => 'Keterangan: ' . ($r->description ?: '-') . ' · Tanggal: ' . date('j M', strtotime($r->bonus_date)),
+                'details' => 'Keterangan: ' . ($r->description ?: '-') . ($r->bonus_date ? (' · Tanggal: ' . date('j M', strtotime($r->bonus_date))) : ''),
                 'originalData' => $r
             ];
         }
@@ -285,10 +287,10 @@ class DirectorController extends Controller
                 'title' => 'Pengadaan Barang: ' . $r->nama_barang,
                 'subtitle' => 'Kondisi: ' . strtoupper($r->kondisi_barang) . ' · Lokasi: ' . $r->lokasi,
                 'requesterName' => $r->pemakai_barang ?: 'Kantor Utama',
-                'date' => $r->tanggal_pembelian,
+                'date' => $r->tanggal_pembelian ?: now()->toDateString(),
                 'amount' => $r->harga,
                 'badgeText' => 'Inventaris',
-                'details' => 'Estimasi Harga: Rp ' . number_format($r->harga, 0, ',', '.') . ' · Tanggal: ' . date('j M', strtotime($r->tanggal_pembelian)),
+                'details' => 'Estimasi Harga: Rp ' . number_format($r->harga, 0, ',', '.') . ($r->tanggal_pembelian ? (' · Tanggal: ' . date('j M', strtotime($r->tanggal_pembelian))) : ''),
                 'originalData' => $r
             ];
         }
@@ -299,7 +301,7 @@ class DirectorController extends Controller
         });
 
         // Calculate total overall tasks for mockup progress bar
-        $totalOverallTasksCount = User::where('role', 'employee')->count() +
+        $totalOverallTasksCount = User::whereIn('role', ['employee', 'admin'])->count() +
             SalaryConfiguration::count() +
             Payroll::count() +
             LeaveRequest::count() +

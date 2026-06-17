@@ -46,9 +46,7 @@ class AttendanceController extends Controller
         $attendanceType = $request->input('attendance_type', 'kantor');
 
         // Check office setting radius limit
-        $office = Cache::rememberForever('office_setting', function () {
-            return \App\Models\OfficeSetting::first();
-        });
+        $office = \App\Models\OfficeSetting::first();
         if ($office && $attendanceType === 'kantor') {
             $distance = $this->getDistance(
                 floatval($request->latitude),
@@ -188,9 +186,7 @@ class AttendanceController extends Controller
         }
 
         // Check office setting radius limit (only if attendance was kantor type)
-        $office = Cache::rememberForever('office_setting', function () {
-            return \App\Models\OfficeSetting::first();
-        });
+        $office = \App\Models\OfficeSetting::first();
         if ($office && $attendance->attendance_type === 'kantor') {
             $distance = $this->getDistance(
                 floatval($request->latitude),
@@ -485,9 +481,7 @@ class AttendanceController extends Controller
      */
     public function getOfficeSetting(Request $request)
     {
-        $office = Cache::rememberForever('office_setting', function () {
-            return \App\Models\OfficeSetting::first();
-        });
+        $office = \App\Models\OfficeSetting::first();
         return response()->json([
             'status' => 'success',
             'data' => $office

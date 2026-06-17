@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { API_BASE_URL } from '../../utils/api'
 import { 
   Users, 
   CheckCircle2, 
@@ -23,10 +24,10 @@ import {
   DollarSign,
   ArrowRight,
   ExternalLink,
-  Map,
   ShieldAlert,
   Search,
-  CheckCircle
+  CheckCircle,
+  FlipHorizontal2
 } from 'lucide-react'
 
 interface Attendance {
@@ -124,6 +125,7 @@ export default function DashboardOverview({
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -168,9 +170,9 @@ export default function DashboardOverview({
   const getFullPhotoUrl = (path: string | null | undefined) => {
     if (!path) return null
     if (path.startsWith('http')) return path
-    if (path.startsWith('/storage/')) return `http://localhost:8000${path}`
-    if (path.startsWith('storage/')) return `http://localhost:8000/${path}`
-    return `http://localhost:8000/storage/${path}`
+    if (path.startsWith('/storage/')) return `${API_BASE_URL}${path}`
+    if (path.startsWith('storage/')) return `${API_BASE_URL}/${path}`
+    return `${API_BASE_URL}/storage/${path}`
   }
 
   // Dynamic statistics calculations (fully synced!)
@@ -282,14 +284,15 @@ export default function DashboardOverview({
   }
 
   // Start Camera Stream
-  const startCamera = async () => {
+  const startCamera = async (mode?: 'user' | 'environment') => {
+    const currentMode = mode ?? facingMode
     setCameraError(null)
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
       }
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' }
+        video: { width: 640, height: 480, facingMode: { ideal: currentMode } }
       })
       streamRef.current = mediaStream
       setStream(mediaStream)
@@ -300,6 +303,12 @@ export default function DashboardOverview({
       console.error(err)
       setCameraError('Gagal mengakses kamera. Mohon berikan izin kamera.')
     }
+  }
+
+  const flipCamera = async () => {
+    const newMode = facingMode === 'user' ? 'environment' : 'user'
+    setFacingMode(newMode)
+    await startCamera(newMode)
   }
 
   // Stop Camera Stream
@@ -661,8 +670,8 @@ export default function DashboardOverview({
       {/* 4. MAIN MONITORING & SELF CHECK-IN GRID (2 Columns) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Left Column: Workforce Presence Monitor (7 Columns) */}
-        <section className="lg:col-span-7 bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 min-h-[520px] flex flex-col justify-between">
+        {/* Left Column: Workforce Presence Monitor (7 Columns) - Appears second on mobile */}
+        <section className="lg:col-span-7 order-2 lg:order-1 bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 min-h-[520px] flex flex-col justify-between">
           <div className="space-y-5">
             {/* Header + Search bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4">
@@ -879,8 +888,8 @@ export default function DashboardOverview({
           </div>
         </section>
 
-        {/* Right Column: Admin Self Presence & Radius Widget (5 Columns) */}
-        <section className="lg:col-span-5 space-y-6">
+        {/* Right Column: Admin Self Presence & Radius Widget (5 Columns) - Appears first on mobile */}
+        <section className="lg:col-span-5 order-1 lg:order-2 space-y-6">
           
           {/* Admin Self Check-In Circular Dial */}
           <div className="relative bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
@@ -967,40 +976,6 @@ export default function DashboardOverview({
             </div>
           </div>
 
-          {/* Active Radius Peta Mini / GPS Information */}
-          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="flex items-center gap-2 border-b border-slate-50 pb-3 mb-3">
-              <Map className="w-4.5 h-4.5 text-orange-600" />
-              <h4 className="text-xs font-bold text-slate-800">Status GPS & Radius Kantor</h4>
-            </div>
-
-            <div className="space-y-3 font-semibold text-xs text-slate-700">
-              <div className="p-3 bg-orange-50/20 border border-orange-100/50 rounded-2xl space-y-2">
-                {officeSetting ? (
-                  <>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-400">Koordinat Kantor:</span>
-                      <span className="font-mono text-slate-700 font-bold">{parseFloat(officeSetting.latitude).toFixed(4)}, {parseFloat(officeSetting.longitude).toFixed(4)}</span>
-                    </div>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-400">Radius Batas Absen:</span>
-                      <span className="font-mono text-slate-700 font-bold">{officeSetting.radius} meter</span>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-[10px] text-slate-400 text-center italic">Lokasi kantor belum dikonfigurasi.</p>
-                )}
-              </div>
-              <button
-                onClick={() => navigate('/admin/lokasiKantor')}
-                className="w-full py-2 bg-slate-50 hover:bg-orange-50/50 border border-slate-200 hover:border-orange-200 text-slate-600 hover:text-red-700 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs select-none"
-              >
-                Atur Koordinat & Radius Kantor
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-
         </section>
 
       </div>
@@ -1008,10 +983,10 @@ export default function DashboardOverview({
       {/* 5. WEBCAM CAMERA MODAL */}
       {showCheckInModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-fade-in p-4">
-          <div className="bg-white border border-slate-100 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-scale-up">
+          <div className="bg-white border border-slate-100 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-scale-up max-h-[90vh] flex flex-col">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
               <div>
                 <h3 className="text-base font-black text-slate-800 capitalize">
                   Formulir Presensi Mandiri Admin: {modalType === 'check-in' ? 'Masuk' : 'Keluar'}
@@ -1027,7 +1002,7 @@ export default function DashboardOverview({
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 overflow-y-auto flex-grow">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Camera Section */}
@@ -1046,8 +1021,19 @@ export default function DashboardOverview({
                           autoPlay
                           playsInline
                           muted
-                          className="w-full h-full object-cover transform -scale-x-100"
+                          className={`w-full h-full object-cover ${facingMode === 'user' ? 'transform -scale-x-100' : ''}`}
                         />
+                        {/* Flip Camera Button */}
+                        {!cameraError && (
+                          <button
+                            type="button"
+                            onClick={flipCamera}
+                            title={facingMode === 'user' ? 'Ganti ke Kamera Belakang' : 'Ganti ke Kamera Depan'}
+                            className="absolute top-2 right-2 z-10 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl transition-all cursor-pointer backdrop-blur-sm"
+                          >
+                            <FlipHorizontal2 className="w-4 h-4" />
+                          </button>
+                        )}
                         {cameraError && (
                           <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-4 text-center text-rose-600 gap-2">
                             <AlertCircle className="w-7 h-7 text-rose-500" />
@@ -1155,7 +1141,7 @@ export default function DashboardOverview({
                     3. Kategori Tipe Presensi
                   </label>
                   
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
                       { id: 'kantor', label: 'Kantor Utama', icon: Building, desc: 'Radius GPS dihitung' },
                       { id: 'kunjungan', label: 'Dinas Luar', icon: Compass, desc: 'Bebas radius kantor' },
@@ -1207,7 +1193,7 @@ export default function DashboardOverview({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 flex-shrink-0">
               <button
                 type="button"
                 onClick={handleCloseCheckInModal}

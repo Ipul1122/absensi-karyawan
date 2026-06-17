@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { Search, Calendar, RefreshCw, MapPin, Image, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
+import { getAssetUrl } from '../../../utils/api'
 
 interface User {
   id: number
@@ -167,7 +168,7 @@ export default function SalesVisitsLog({
     Swal.fire({
       title: visit.client_name,
       text: `Dilaporkan oleh: ${visit.user.name} pada ${formatDate(visit.date)} pukul ${visit.visit_time.substring(0, 5)}`,
-      imageUrl: `http://localhost:8000${visit.photo_path}`,
+      imageUrl: getAssetUrl(visit.photo_path),
       imageAlt: 'Bukti Kunjungan',
       background: '#1e293b',
       color: '#f8fafc',

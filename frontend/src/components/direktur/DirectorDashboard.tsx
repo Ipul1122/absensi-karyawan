@@ -37,6 +37,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
   const [pendingOperasionalCount, setPendingOperasionalCount] = useState(0)
 
   const fetchPendingCounts = async () => {
+    if (document.hidden) return
     try {
       const res = await axios.get('http://localhost:8000/api/sidebar/notification-counts', {
         headers: { Authorization: `Bearer ${token}` }

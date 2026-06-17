@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import L from 'leaflet'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import {
   Loader2,
   MapPin,
@@ -18,7 +19,8 @@ import {
   FileUp,
   Lock,
   ShieldAlert,
-  CheckCircle2
+  CheckCircle2,
+  CreditCard
 } from 'lucide-react'
 
 interface UserProp {
@@ -39,6 +41,7 @@ interface LokasiKantorProps {
   handleOfficeSettingSubmit: (e: React.FormEvent) => void
   user: UserProp
   token: string
+  onProfileUpdate?: (updatedFields: { name: string; email: string; photo?: string | null }) => void
 }
 
 interface ProfileData {
@@ -52,6 +55,7 @@ interface ProfileData {
   gender: string
   cv: string | null
   division: string
+  no_rekening: string
 }
 
 type ActiveTab = 'lokasi' | 'akun' | 'biodata'
@@ -66,7 +70,8 @@ export default function LokasiKantor({
   savingOffice,
   handleOfficeSettingSubmit,
   user,
-  token
+  token,
+  onProfileUpdate
 }: LokasiKantorProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('lokasi')
 
@@ -81,7 +86,8 @@ export default function LokasiKantor({
     join_date: '',
     gender: '',
     cv: null,
-    division: ''
+    division: '',
+    no_rekening: ''
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -95,6 +101,7 @@ export default function LokasiKantor({
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
+
 
   // Leaflet Map Refs
   const configMapRef = useRef<HTMLDivElement | null>(null)
@@ -124,7 +131,8 @@ export default function LokasiKantor({
           join_date: d.join_date ?? '',
           gender: d.gender ?? '',
           cv: d.cv ?? null,
-          division: d.division ?? ''
+          division: d.division ?? '',
+          no_rekening: d.no_rekening ?? ''
         })
         if (d.photo) setPhotoPreview(d.photo)
       }
@@ -302,6 +310,7 @@ export default function LokasiKantor({
       if (profile.gender) formData.append('gender', profile.gender)
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
+      formData.append('no_rekening', profile.no_rekening)
 
       const res = await axios.post('http://localhost:8000/api/user/profile', formData, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
@@ -313,6 +322,14 @@ export default function LokasiKantor({
         if (res.data.data.photo) setPhotoPreview(res.data.data.photo)
         if (res.data.data.cv) {
           setProfile(p => ({ ...p, cv: res.data.data.cv }))
+        }
+        setProfile(p => ({ ...p, no_rekening: res.data.data.no_rekening ?? '' }))
+        if (onProfileUpdate) {
+          onProfileUpdate({
+            name: res.data.data.name,
+            email: res.data.data.email,
+            photo: res.data.data.photo
+          })
         }
       }
     } catch (err: any) {
@@ -365,7 +382,7 @@ export default function LokasiKantor({
   ]
 
   // Completeness indicator calculation
-  const biodataFields = [profile.photo, profile.date_of_birth, profile.address, profile.employee_number, profile.join_date, profile.gender, profile.cv]
+  const biodataFields = [profile.photo, profile.date_of_birth, profile.address, profile.employee_number, profile.join_date, profile.gender, profile.cv, profile.no_rekening]
   const filled = biodataFields.filter(Boolean).length
   const percent = Math.round((filled / biodataFields.length) * 100)
 
@@ -530,7 +547,7 @@ export default function LokasiKantor({
           <div className="flex items-center gap-4 p-3.5 bg-orange-50/40 border border-orange-100 rounded-2xl">
             {photoPreview ? (
               <img
-                src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : `http://localhost:8000${photoPreview}`}
+                src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : getAssetUrl(photoPreview)}
                 alt="Foto"
                 className="w-10 h-10 rounded-xl object-cover border-2 border-orange-200 shrink-0"
               />
@@ -665,7 +682,7 @@ export default function LokasiKantor({
                 <div className="relative shrink-0">
                   {photoPreview ? (
                     <img
-                      src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : `http://localhost:8000${photoPreview}`}
+                      src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : getAssetUrl(photoPreview)}
                       alt="Foto Profil"
                       className="w-20 h-20 rounded-2xl object-cover border-2 border-orange-200 shadow-md shadow-orange-100"
                     />
@@ -800,10 +817,27 @@ export default function LokasiKantor({
                     <input
                       type="date"
                       value={profile.join_date}
+                      onChange={e => setProfile(p => ({ ...p, join_date: e.target.value }))}
                       className={inputClass}
-                      disabled={true}
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* ---- Nomor Rekening ---- */}
+              <div>
+                <label className={labelClass}>Nomor Rekening</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.no_rekening}
+                    onChange={e => setProfile(p => ({ ...p, no_rekening: e.target.value }))}
+                    placeholder="Masukkan nomor rekening bank..."
+                    className={inputClass}
+                  />
                 </div>
               </div>
 

@@ -1,6 +1,8 @@
 import React from 'react'
 import Swal from 'sweetalert2'
-import { Eye, ShieldAlert, Filter } from 'lucide-react'
+import axios from 'axios'
+import { Eye, ShieldAlert, Filter, Loader2 } from 'lucide-react'
+import { getAssetUrl } from '../../../utils/api'
 
 interface Attendance {
   id: number
@@ -21,11 +23,14 @@ interface Attendance {
 }
 
 interface EmployeeHistoryProps {
-  history: Attendance[]
+  token: string
   getStatusBadge: (status: string | null) => React.ReactNode
 }
 
-export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHistoryProps) {
+export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHistoryProps) {
+  const [history, setHistory] = React.useState<Attendance[]>([])
+  const [loading, setLoading] = React.useState<boolean>(true)
+
   // State for filtering
   const [filterType, setFilterType] = React.useState<'all' | 'month-year' | 'date'>('all')
   const [selectedMonth, setSelectedMonth] = React.useState<number>(new Date().getMonth() + 1)
@@ -35,29 +40,46 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
   // Pagination State
   const [currentPage, setCurrentPage] = React.useState<number>(1)
   const [itemsPerPage, setItemsPerPage] = React.useState<number>(10)
+  const [totalItems, setTotalItems] = React.useState<number>(0)
+  const [totalPages, setTotalPages] = React.useState<number>(1)
 
-  // Filter history logic
-  const filteredHistory = history.filter(record => {
-    if (!record.date) return false
-    const parts = record.date.split('-') // ["YYYY", "MM", "DD"]
-    if (parts.length < 3) return false
-    const year = parseInt(parts[0], 10)
-    const month = parseInt(parts[1], 10)
-    
-    if (filterType === 'month-year') {
-      return month === selectedMonth && year === selectedYear
-    } else if (filterType === 'date') {
-      return record.date === selectedDate
+  const fetchHistoryData = async () => {
+    setLoading(true)
+    try {
+      let url = `http://localhost:8000/api/attendance/history?page=${currentPage}&limit=${itemsPerPage}`
+      if (filterType === 'month-year') {
+        url += `&month=${selectedMonth}&year=${selectedYear}`
+      } else if (filterType === 'date' && selectedDate) {
+        url += `&date=${selectedDate}`
+      }
+      
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setHistory(response.data.data)
+        if (response.data.pagination) {
+          setTotalItems(response.data.pagination.total)
+          setTotalPages(response.data.pagination.last_page)
+        } else {
+          setTotalItems(response.data.data.length)
+          setTotalPages(1)
+        }
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data riwayat absensi paginated:', err)
+    } finally {
+      setLoading(false)
     }
-    return true
-  })
+  }
 
-  const totalItems = filteredHistory.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1
+  React.useEffect(() => {
+    fetchHistoryData()
+  }, [currentPage, itemsPerPage, filterType, selectedMonth, selectedYear, selectedDate])
+
   const safeCurrentPage = Math.min(currentPage, totalPages)
   const startIndex = (safeCurrentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedHistory = filteredHistory.slice(startIndex, endIndex)
+  const endIndex = startIndex + history.length
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -194,8 +216,17 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
                   <th className="py-4 px-6 text-center">Foto Presensi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
-                {filteredHistory.length === 0 ? (
+              <tbody className="divide-y divide-orange-100 text-sm text-slate-600 font-quicksand">
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-slate-400">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin text-red-500" />
+                        Memuat data riwayat presensi...
+                      </div>
+                    </td>
+                  </tr>
+                ) : history.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-8 text-center text-slate-400 font-semibold italic">
                       {filterType === 'all'
@@ -204,7 +235,7 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
                     </td>
                   </tr>
                 ) : (
-                  paginatedHistory.map((record) => (
+                  history.map((record) => (
                     <tr key={record.id} className="hover:bg-orange-50/10 transition-colors">
                       <td className="py-4 px-6 font-extrabold text-slate-800 font-quicksand">
                         {new Date(record.date).toLocaleDateString('id-ID', {
@@ -251,7 +282,7 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
                               onClick={() => {
                                 Swal.fire({
                                   title: 'Foto Masuk',
-                                  imageUrl: `http://localhost:8000${record.photo_in}`,
+                                  imageUrl: getAssetUrl(record.photo_in),
                                   imageAlt: 'Foto Masuk',
                                   background: '#fffdfb',
                                   color: '#3c1105',
@@ -269,7 +300,7 @@ export default function EmployeeHistory({ history, getStatusBadge }: EmployeeHis
                               onClick={() => {
                                 Swal.fire({
                                   title: 'Foto Keluar',
-                                  imageUrl: `http://localhost:8000${record.photo_out}`,
+                                  imageUrl: getAssetUrl(record.photo_out),
                                   imageAlt: 'Foto Keluar',
                                   background: '#fffdfb',
                                   color: '#3c1105',

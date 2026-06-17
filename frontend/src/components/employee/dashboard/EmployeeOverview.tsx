@@ -1,21 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { getAssetUrl } from '../../../utils/api'
+import RobotMascot from './RobotMascot'
 import {
-  LogOut,
-  LogIn,
   CalendarDays,
-  ReceiptText,
-  Clock3,
   Banknote,
   CalendarCheck,
   Mail,
-  Building2,
   Briefcase,
   Clock,
   TrendingUp,
-  Gift,
-  ChevronRight
+  ChevronRight,
+  CheckCircle2,
+  AlertCircle,
+  Wallet,
+  Calendar,
+  Fingerprint
 } from 'lucide-react'
 
 interface User {
@@ -54,41 +55,7 @@ interface ProfileData {
   gender: string | null
   division: string | null
   cv: string | null
-}
-
-interface LeaveRequest {
-  id: number
-  category: string
-  custom_category: string | null
-  start_date: string
-  end_date: string
-  reason: string
-  status: 'pending' | 'pending_director' | 'approved' | 'rejected'
-  created_at: string
-}
-
-interface Reimbursement {
-  id: number
-  title: string
-  category: string
-  amount: number
-  expense_date: string
-  status: 'pending' | 'pending_director' | 'approved' | 'rejected'
-  created_at: string
-}
-
-interface Overtime {
-  id: number
-  date: string
-  duration: number
-  status: 'pending' | 'pending_director' | 'approved' | 'rejected'
-}
-
-interface Bonus {
-  id: number
-  bonus_amount: number
-  bonus_date: string
-  status: string
+  company?: string | null
 }
 
 interface PayrollRecord {
@@ -119,64 +86,153 @@ interface EmployeeOverviewProps {
   history: Attendance[]
 }
 
+const announcements = [
+  {
+    id: 1,
+    tag: 'Kebijakan HR',
+    title: 'Mulai 1 Juli 2026, semua klaim reimbursement wajib melampirkan foto struk digital asli.',
+    icon: <AlertCircle className="w-5 h-5 text-orange-500 dark:text-orange-400" />,
+    bgColor: 'bg-orange-50/50 dark:bg-orange-950/20',
+    borderColor: 'border-orange-100 dark:border-orange-900/30'
+  },
+  {
+    id: 2,
+    tag: 'Hari Libur',
+    title: 'Hari Libur Nasional: Libur Tahun Baru Hijriah jatuh pada hari Sabtu, 27 Juni 2026.',
+    icon: <Calendar className="w-5 h-5 text-blue-500 dark:text-blue-400" />,
+    bgColor: 'bg-blue-50/50 dark:bg-blue-950/20',
+    borderColor: 'border-blue-100 dark:border-blue-900/30'
+  },
+  {
+    id: 3,
+    tag: 'Tips Produktivitas',
+    title: 'Lakukan peregangan fisik selama 5 menit setiap 2 jam bekerja untuk menjaga fokus Anda.',
+    icon: <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />,
+    bgColor: 'bg-emerald-50/50 dark:bg-emerald-950/20',
+    borderColor: 'border-emerald-100 dark:border-emerald-900/30'
+  }
+]
+
 export default function EmployeeOverview({
   user,
   token,
   time,
   todayAttendance,
   attendanceState,
-  getLiveCheckInStatus,
-  getLiveCheckOutStatus,
   formatDate,
   history
 }: EmployeeOverviewProps) {
   const navigate = useNavigate()
   const [profile, setProfile] = useState<ProfileData | null>(null)
-  
-  // States for synced data
-  const [leaves, setLeaves] = useState<LeaveRequest[]>([])
-  const [reimbursements, setReimbursements] = useState<Reimbursement[]>([])
-  const [overtimes, setOvertimes] = useState<Overtime[]>([])
-  const [bonuses, setBonuses] = useState<Bonus[]>([])
   const [payrolls, setPayrolls] = useState<PayrollRecord[]>([])
   const [statsLoading, setStatsLoading] = useState(true)
+  const [activeMobileTab, setActiveMobileTab] = useState<'pintasan' | 'presensi' | 'profil'>('pintasan')
+  const [currentSlide, setCurrentSlide] = useState(0)
 
-  // Fetch all employee statistics in parallel
+  // State for announcements including dynamic upcoming holidays
+  const [activeAnnouncements, setActiveAnnouncements] = useState<any[]>(() => {
+    try {
+      const cached = localStorage.getItem('employee_announcements')
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        return parsed.map((item: any) => {
+          if (item.tag === 'Hari Libur') {
+            return {
+              ...item,
+              icon: <Calendar className="w-5 h-5 text-blue-500" />
+            }
+          }
+          if (item.tag === 'Kebijakan HR') {
+            return {
+              ...item,
+              icon: <AlertCircle className="w-5 h-5 text-orange-500" />
+            }
+          }
+          return {
+            ...item,
+            icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+          }
+        })
+      }
+    } catch (e) {
+      console.error('Gagal memuat cache pengumuman:', e)
+    }
+    return announcements
+  })
+
+  // Fetch upcoming holidays from backend to update announcement carousel dynamically
+  useEffect(() => {
+    const fetchUpcomingHolidays = async () => {
+      const headers = { Authorization: `Bearer ${token}` }
+      try {
+        const res = await axios.get('http://localhost:8000/api/holidays/upcoming', { headers })
+        if (res.data.status === 'success' && res.data.data.length > 0) {
+          const nextHoliday = res.data.data[0]
+          const holidayDate = new Date(nextHoliday.holiday_date)
+          const formattedHolidayDate = holidayDate.toLocaleDateString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          })
+
+          const dynamicHoliday = {
+            id: 'holiday-' + nextHoliday.id,
+            tag: 'Hari Libur',
+            title: `Hari Libur Nasional: ${nextHoliday.name} jatuh pada hari ${formattedHolidayDate}.`,
+            bgColor: 'bg-blue-50/50',
+            borderColor: 'border-blue-100'
+          }
+
+          const updatedList = [
+            announcements[0],
+            dynamicHoliday,
+            announcements[2]
+          ]
+
+          // Map icons back
+          const listWithIcons = updatedList.map(item => ({
+            ...item,
+            icon: item.tag === 'Hari Libur'
+              ? <Calendar className="w-5 h-5 text-blue-500" />
+              : item.tag === 'Kebijakan HR'
+              ? <AlertCircle className="w-5 h-5 text-orange-500" />
+              : <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+          }))
+
+          setActiveAnnouncements(listWithIcons)
+
+          // Save to cache (without React node icon)
+          const serialized = updatedList.map(item => ({
+            id: item.id,
+            tag: item.tag,
+            title: item.title,
+            bgColor: item.bgColor,
+            borderColor: item.borderColor
+          }))
+          localStorage.setItem('employee_announcements', JSON.stringify(serialized))
+        }
+      } catch (err) {
+        console.error('Gagal mengambil data hari libur nasional terintegrasi:', err)
+      }
+    }
+
+    fetchUpcomingHolidays()
+  }, [token])
+
+  // Fetch employee stats and profile
   useEffect(() => {
     const fetchAllData = async () => {
       setStatsLoading(true)
       const headers = { Authorization: `Bearer ${token}` }
       try {
-        const [
-          profileRes,
-          leavesRes,
-          reimbursementsRes,
-          overtimesRes,
-          bonusesRes,
-          payrollsRes
-        ] = await Promise.allSettled([
+        const [profileRes, payrollsRes] = await Promise.allSettled([
           axios.get('http://localhost:8000/api/user/profile', { headers }),
-          axios.get('http://localhost:8000/api/leaves', { headers }),
-          axios.get('http://localhost:8000/api/reimbursements', { headers }),
-          axios.get('http://localhost:8000/api/overtimes', { headers }),
-          axios.get('http://localhost:8000/api/bonuses', { headers }),
           axios.get('http://localhost:8000/api/payroll/my-slips', { headers })
         ])
 
         if (profileRes.status === 'fulfilled' && profileRes.value.data.status === 'success') {
           setProfile(profileRes.value.data.data)
-        }
-        if (leavesRes.status === 'fulfilled' && leavesRes.value.data.status === 'success') {
-          setLeaves(leavesRes.value.data.data)
-        }
-        if (reimbursementsRes.status === 'fulfilled' && reimbursementsRes.value.data.status === 'success') {
-          setReimbursements(reimbursementsRes.value.data.data)
-        }
-        if (overtimesRes.status === 'fulfilled' && overtimesRes.value.data.status === 'success') {
-          setOvertimes(overtimesRes.value.data.data)
-        }
-        if (bonusesRes.status === 'fulfilled' && bonusesRes.value.data.status === 'success') {
-          setBonuses(bonusesRes.value.data.data)
         }
         if (payrollsRes.status === 'fulfilled' && payrollsRes.value.data.status === 'success') {
           setPayrolls(payrollsRes.value.data.data)
@@ -191,6 +247,14 @@ export default function EmployeeOverview({
     fetchAllData()
   }, [token])
 
+  // Announcement auto-rotating timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % activeAnnouncements.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [activeAnnouncements.length])
+
   const getGreeting = () => {
     const hrs = time.getHours()
     if (hrs < 12) return 'Selamat Pagi'
@@ -201,17 +265,7 @@ export default function EmployeeOverview({
 
   const greeting = getGreeting()
 
-  // Helper date duration calculator
-  const calculateDays = (start: string, end: string) => {
-    const s = new Date(start)
-    const e = new Date(end)
-    const diffTime = Math.abs(e.getTime() - s.getTime())
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
-  }
-
   // --- Calculations for Synced Data ---
-
-  // 1. Attendance stats
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
@@ -222,40 +276,10 @@ export default function EmployeeOverview({
   })
 
   const workDays = monthlyHistory.filter(a => a.clock_in).length
-  const onTimeDays = monthlyHistory.filter(
-    a => a.status_in === 'normal' || a.status_in === 'early'
-  ).length
   const lateDays = monthlyHistory.filter(a => a.status_in === 'late').length
-  const attendanceRate = workDays > 0 ? Math.round((onTimeDays / workDays) * 100) : 0
 
-  // 2. Cuti (Leaves) stats
-  const approvedLeavesCount = leaves
-    .filter(l => l.status === 'approved')
-    .reduce((acc, curr) => acc + calculateDays(curr.start_date, curr.end_date), 0)
-  const pendingLeavesCount = leaves.filter(l => l.status === 'pending' || l.status === 'pending_director').length
-
-  // 3. Reimbursements stats
-  const approvedReimburseAmount = reimbursements
-    .filter(r => r.status === 'approved')
-    .reduce((acc, curr) => acc + curr.amount, 0)
-  const pendingReimburseCount = reimbursements.filter(r => r.status === 'pending' || r.status === 'pending_director').length
-
-  // 4. Overtime stats
-  const approvedOvertimesDuration = overtimes
-    .filter(o => o.status === 'approved')
-    .reduce((acc, curr) => acc + curr.duration, 0)
-  const pendingOvertimesCount = overtimes.filter(o => o.status === 'pending' || o.status === 'pending_director').length
-
-  // 5. Bonuses stats
-  const totalBonusAmount = bonuses.reduce((acc, curr) => acc + curr.bonus_amount, 0)
-  const totalBonusCount = bonuses.length
-
-  // 6. Latest Slip Gaji (Payroll) stats
   const sortedPayrolls = [...payrolls].sort((a, b) => b.period_month.localeCompare(a.period_month))
   const latestPayroll = sortedPayrolls[0] || null
-
-  const photoSrc = profile?.photo || null
-  const divisionLabel = profile?.division || 'Belum diatur'
 
   const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -265,437 +289,599 @@ export default function EmployeeOverview({
     }).format(number)
   }
 
-  const getIndonesianMonthLabel = (periodMonth: string) => {
-    if (!periodMonth) return ''
-    const [year, month] = periodMonth.split('-')
-    const monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ]
-    return `${monthNames[parseInt(month, 10) - 1]} ${year}`
+  // --- SVG Sparkline Calculations ---
+  const parseClockIn = (timeStr: string | null | undefined): number => {
+    if (!timeStr) return 510 // default 08:30 (510 mins)
+    const parts = timeStr.split(':')
+    if (parts.length < 2) return 510
+    const hours = parseInt(parts[0], 10)
+    const minutes = parseInt(parts[1], 10)
+    return hours * 60 + minutes
   }
 
+  const validHistory = [...history]
+    .filter(h => h.clock_in)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7)
+
+  let minutesList = validHistory.map(h => parseClockIn(h.clock_in))
+  if (minutesList.length < 7) {
+    const simulatedDefault = [495, 505, 488, 512, 490, 500, 492] // simulated 7 days
+    minutesList = [...simulatedDefault.slice(0, 7 - minutesList.length), ...minutesList]
+  }
+
+  const minM = Math.min(...minutesList, 480) // baseline at least 08:00
+  const maxM = Math.max(...minutesList, 540) // baseline at least 09:00
+  const range = maxM - minM === 0 ? 1 : maxM - minM
+
+  const sparkWidth = 70
+  const sparkHeight = 24
+  const sparkPoints = minutesList.map((m, idx) => {
+    const x = (idx / 6) * (sparkWidth - 6) + 3
+    const y = 3 + ((m - minM) / range) * (sparkHeight - 6)
+    return { x, y }
+  })
+
+  const linePath = sparkPoints.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+  const areaPath = `${linePath} L ${sparkPoints[sparkPoints.length - 1].x.toFixed(1)} ${sparkHeight} L ${sparkPoints[0].x.toFixed(1)} ${sparkHeight} Z`
+
   return (
-    <div className="w-full max-w-screen-xl mx-auto font-quicksand grid grid-cols-1 md:grid-cols-12 gap-8">
+    <div className="w-full max-w-screen-xl mx-auto font-quicksand space-y-6 md:space-y-8">
       
       {/* ==============================
-          GREETING BANNER (Vibrant & Premium)
+          WELCOME BANNER & CLOCK WIDGET
       ============================== */}
-      <section className="col-span-1 md:col-span-12 text-white rounded-3xl p-6 md:p-8 shadow-xl shadow-orange-500/5 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group transition-all duration-500"
-        style={{ background: 'linear-gradient(135deg, #e31b00 0%, #ff5200 100%)' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Glow circles decorations */}
-        <div className="absolute -right-24 -top-24 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
-        <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
-        <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full opacity-10 blur-3xl bg-white pointer-events-none" />
-        <div className="absolute bottom-0 left-1/4 w-48 h-48 rounded-full opacity-10 blur-3xl bg-white pointer-events-none" />
-        <div className="absolute top-1/2 right-1/4 w-32 h-32 rounded-full opacity-10 blur-2xl bg-white pointer-events-none animate-pulse" />
-        
-        <div className="z-10 space-y-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-extrabold uppercase tracking-widest text-white border border-white/15">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
-            Karyawan Aktif
-          </span>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight font-sans text-white">
-            {greeting}, {user.name}
-          </h2>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-white/90 font-semibold">
-            <span className="flex items-center gap-1.5">
-              <Briefcase className="w-3.5 h-3.5 text-white" />
-              Divisi: {divisionLabel}
-            </span>
-            <span className="hidden sm:inline text-white/40">|</span>
-            <span className="flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-white" />
-              ID Karyawan: {profile?.employee_number || 'Belum Diatur'}
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-white/15 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/25 min-w-[170px] text-center z-10 shadow-inner group-hover:bg-white/20 transition-all duration-300">
-          <p className="text-[10px] text-white/90 uppercase tracking-widest mb-1 font-extrabold">Waktu Server</p>
-          <p className="text-3xl text-white font-mono font-black tracking-wider">
-            {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <span className="text-[9px] text-white/80 block mt-1 font-semibold uppercase">{formatDate(time).split(',')[1]}</span>
-        </div>
-      </section>
-
-      {/* ==============================
-          MAIN COLUMN (LEFT/TOP) - col-span-8
-      ============================== */}
-      <div className="col-span-1 md:col-span-8 flex flex-col gap-8">
-        
-        {/* Attendance Control Center */}
-        <section className="bg-white border border-orange-100/80 rounded-3xl p-6 shadow-sm relative overflow-hidden group">
-          <div className="absolute -right-20 -top-20 w-44 h-44 bg-orange-50 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-500 pointer-events-none"></div>
+        {/* Left Column: Welcome Banner & Announcement Carousel */}
+        <div className="lg:col-span-8 flex flex-col gap-6">
           
-          <div className="flex items-center justify-between border-b border-orange-100/60 pb-3 mb-6">
-            <h3 className="text-base font-black text-slate-800 font-sans tracking-tight flex items-center gap-2">
-              <Clock className="w-5 h-5 text-red-500" /> Presensi Hari Ini
-            </h3>
-            <span className="text-[10px] font-bold text-slate-400 font-mono">
-              {formatDate(time).split(',')[0]}
-            </span>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-8 items-center">
+          {/* Welcome Banner Card */}
+          <section 
+            className="text-white rounded-[2rem] p-6 md:p-8 shadow-xl shadow-orange-950/5 relative overflow-hidden flex flex-col justify-between min-h-[240px] group transition-all duration-500 border border-white/10"
+            style={{ background: 'linear-gradient(135deg, #e31b00 0%, #ff5200 100%)' }}
+          >
+            {/* Glassmorphic fluid blobs */}
+            <div className="absolute -right-20 -top-20 w-72 h-72 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+            <div className="absolute -left-20 -bottom-20 w-72 h-72 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
             
-            {/* Timeline Progress */}
-            <div className="flex-1 flex flex-col gap-6 relative w-full border-l-2 border-slate-100 ml-3 pl-6 py-1">
-              
-              {/* Step 1: Clock In */}
-              <div className="relative">
-                <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white shadow-sm transition-all duration-300 ${
-                  todayAttendance?.clock_in ? 'bg-red-500 scale-110' : 'bg-slate-200'
-                }`}></div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Absen Masuk</p>
-                <p className="text-base font-black text-slate-700 font-mono mt-0.5">
-                  {todayAttendance?.clock_in ? todayAttendance.clock_in.substring(0, 5) : '--:--'}
-                </p>
-                {todayAttendance?.clock_in ? (
-                  <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold mt-1.5 px-2 py-0.5 rounded-full ${
-                    todayAttendance.status_in === 'normal' || todayAttendance.status_in === 'early' 
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
-                      : 'bg-rose-50 text-rose-700 border border-rose-100'
-                  }`}>
-                    {todayAttendance.status_in === 'normal' || todayAttendance.status_in === 'early' ? 'Tepat Waktu' : 'Terlambat'}
-                  </span>
-                ) : (
-                  attendanceState === 'needs_checkin' && (
-                    <span className="inline-flex text-[10px] font-extrabold mt-1.5 text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
-                      {getLiveCheckInStatus().text}
-                    </span>
-                  )
-                )}
-              </div>
-              
-              {/* Step 2: Clock Out */}
-              <div className="relative">
-                <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white shadow-sm transition-all duration-300 ${
-                  todayAttendance?.clock_out ? 'bg-orange-500 scale-110' : 'bg-slate-200'
-                }`}></div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Absen Keluar</p>
-                <p className="text-base font-black text-slate-750 font-mono mt-0.5">
-                  {todayAttendance?.clock_out ? todayAttendance.clock_out.substring(0, 5) : '--:--'}
-                </p>
-                {todayAttendance?.clock_out ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold mt-1.5 px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200">
-                    Selesai Kerja
-                  </span>
-                ) : (
-                  attendanceState === 'needs_checkout' && (
-                    <span className="inline-flex text-[10px] font-extrabold mt-1.5 text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
-                      {getLiveCheckOutStatus().text}
-                    </span>
-                  )
-                )}
-              </div>
+            <div className="z-10 space-y-3">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/10 backdrop-blur-md text-[10px] font-bold uppercase tracking-widest text-white border border-white/20">
+                {greeting} 👋
+              </span>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight font-sans text-white leading-tight mt-2">
+                Halo, {profile?.name || user.name}!
+              </h2>
+              <p className="text-xs md:text-sm text-white/90 font-medium max-w-md">
+                {attendanceState === 'needs_checkin' 
+                  ? 'Semangat bekerja hari ini. Jangan lupa absen masuk ya!' 
+                  : attendanceState === 'needs_checkout'
+                  ? 'Kerja bagus hari ini! Jangan lupa absen pulang nanti ya.'
+                  : 'Luar biasa! Anda telah menyelesaikan presensi hari ini. Selamat beristirahat!'}
+              </p>
             </div>
-            
-            {/* Clock CTA Buttons */}
-            <div className="flex flex-col gap-3 w-full sm:w-auto min-w-[200px] shrink-0">
-              <button 
+
+            <div className="z-10 flex flex-wrap items-center gap-3 mt-6">
+              <button
                 onClick={() => navigate('/employee/absen')}
-                disabled={attendanceState !== 'needs_checkin'}
-                className={`w-full py-3 px-4 rounded-2xl text-xs font-black flex items-center justify-center gap-2 border transition-all duration-300 shadow-md ${
-                  attendanceState === 'needs_checkin'
-                    ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white border-transparent hover:-translate-y-0.5 shadow-orange-500/10 cursor-pointer'
-                    : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed shadow-none'
-                }`}
+                className="bg-white text-orange-600 hover:bg-orange-50 font-black text-xs px-6 py-3.5 rounded-2xl flex items-center gap-2 hover:-translate-y-0.5 active:scale-95 transition-all shadow-md shadow-red-950/10 cursor-pointer"
               >
-                <LogIn className="w-4 h-4" />
-                Absen Masuk
+                <Fingerprint className="w-4 h-4" />
+                {attendanceState === 'needs_checkout' ? 'Absen Pulang' : 'Absen Sekarang'}
               </button>
-              
-              <button 
-                onClick={() => navigate('/employee/absen')}
-                disabled={attendanceState !== 'needs_checkout'}
-                className={`w-full py-3 px-4 rounded-2xl text-xs font-black flex items-center justify-center gap-2 border transition-all duration-300 shadow-md ${
-                  attendanceState === 'needs_checkout'
-                    ? 'bg-gradient-to-r from-slate-800 to-slate-950 hover:from-slate-800 hover:to-black text-white border-transparent hover:-translate-y-0.5 shadow-slate-900/10 cursor-pointer'
-                    : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed shadow-none'
-                }`}
+              <button
+                onClick={() => navigate('/employee/riwayat')}
+                className="bg-white/15 backdrop-blur-md text-white hover:bg-white/25 border border-white/20 font-bold text-xs px-6 py-3.5 rounded-2xl flex items-center gap-2 hover:-translate-y-0.5 active:scale-95 transition-all cursor-pointer"
               >
-                <LogOut className="w-4 h-4" />
-                Absen Keluar
+                <Calendar className="w-4 h-4" />
+                Lihat Jadwal
               </button>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Ringkasan Data & Statistik Terintegrasi */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between pl-2">
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 font-mono">
-              <TrendingUp className="w-4 h-4" /> Ringkasan Data Utama Anda
+          {/* Announcement Carousel Card */}
+          <section className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md transition-all duration-300 relative overflow-hidden">
+            <h3 className="text-xs font-black text-slate-800 font-sans tracking-tight mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+              Papan Pengumuman
             </h3>
-            {statsLoading && <span className="text-[10px] text-red-500 font-bold animate-pulse">Menyinkronkan data...</span>}
-          </div>
-
-          {statsLoading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map(idx => (
-                <div key={idx} className="bg-white border border-orange-100/50 rounded-3xl p-5 shadow-sm space-y-3 animate-pulse">
-                  <div className="flex items-center justify-between">
-                    <div className="w-24 h-3 bg-slate-200 rounded"></div>
-                    <div className="w-8 h-8 bg-slate-200 rounded-xl"></div>
+            
+            <div className="relative min-h-[72px] flex items-center">
+              {activeAnnouncements.map((slide, idx) => (
+                <div
+                  key={slide.id}
+                  className={`transition-all duration-500 absolute inset-0 flex items-center gap-4 ${
+                    idx === currentSlide 
+                      ? 'opacity-100 translate-x-0 pointer-events-auto' 
+                      : 'opacity-0 translate-x-8 pointer-events-none'
+                  }`}
+                >
+                  <div className={`p-3 rounded-2xl border ${slide.bgColor} ${slide.borderColor} shrink-0`}>
+                    {slide.icon}
                   </div>
-                  <div className="w-32 h-6 bg-slate-200 rounded"></div>
-                  <div className="w-16 h-2 bg-slate-200 rounded"></div>
+                  <div className="flex-1 min-w-0 pr-8">
+                    <span className="inline-block text-[9px] font-black uppercase tracking-wider text-slate-400">
+                      {slide.tag}
+                    </span>
+                    <p className="text-xs font-black text-slate-700 leading-relaxed mt-0.5">
+                      {slide.title}
+                    </p>
+                  </div>
                 </div>
               ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               
-              {/* Card 1: Cuti Karyawan */}
-              <div className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Cuti </span>
-                  <div className="p-2.5 bg-indigo-50 text-indigo-500 border border-indigo-100 rounded-2xl group-hover:bg-indigo-500 group-hover:text-white transition-colors duration-300">
-                    <CalendarCheck className="w-5 h-5" />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">
-                    {approvedLeavesCount} <span className="text-xs text-slate-400 font-bold">Hari disetujui</span>
-                  </span>
-                  <p className="text-[10px] text-slate-400 font-bold mt-1">
-                    {pendingLeavesCount > 0 ? `${pendingLeavesCount} pengajuan sedang diproses` : 'Tidak ada pengajuan aktif'}
-                  </p>
-                </div>
+              {/* Dots Navigation */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-1.5 z-10">
+                {activeAnnouncements.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                      idx === currentSlide ? 'bg-orange-500 h-3.5' : 'bg-slate-200'
+                    }`}
+                    title={`Buka pengumuman ke-${idx + 1}`}
+                  />
+                ))}
               </div>
-
-              {/* Card 2: Klaim Reimbursement */}
-              <div className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Reimburse</span>
-                  <div className="p-2.5 bg-rose-50 text-rose-500 border border-rose-100 rounded-2xl group-hover:bg-rose-500 group-hover:text-white transition-colors duration-300">
-                    <ReceiptText className="w-5 h-5" />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-lg md:text-xl font-black text-slate-800 tracking-tight font-mono block truncate" title={formatRupiah(approvedReimburseAmount)}>
-                    {formatRupiah(approvedReimburseAmount)}
-                  </span>
-                  <p className="text-[10px] text-slate-400 font-bold mt-1">
-                    {pendingReimburseCount > 0 ? `${pendingReimburseCount} klaim menunggu persetujuan` : 'Semua klaim selesai diproses'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Card 3: Lembur Kerja */}
-              <div className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Lembur <br /> Kerja</span>
-                  <div className="p-2.5 bg-amber-50 text-amber-500 border border-amber-100 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition-colors duration-300">
-                    <Clock3 className="w-5 h-5" />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">
-                    {approvedOvertimesDuration} <span className="text-xs text-slate-400 font-bold">Jam disetujui</span>
-                  </span>
-                  <p className="text-[10px] text-slate-400 font-bold mt-1">
-                    {pendingOvertimesCount > 0 ? `${pendingOvertimesCount} laporan dalam verifikasi` : 'Tidak ada laporan pending'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Card 4: Total Bonus */}
-              <div className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Bonus & Insentif</span>
-                  <div className="p-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300">
-                    <Gift className="w-5 h-5" />
-                  </div>
-                </div>
-                <div>
-                  <span className="text-lg md:text-xl font-black text-emerald-600 tracking-tight font-mono block truncate" title={formatRupiah(totalBonusAmount)}>
-                    {formatRupiah(totalBonusAmount)}
-                  </span>
-                  <p className="text-[10px] text-slate-400 font-bold mt-1">
-                    {totalBonusCount > 0 ? `Akumulasi dari ${totalBonusCount} kali penerimaan` : 'Belum ada bonus tercatat'}
-                  </p>
-                </div>
-              </div>
-
             </div>
-          )}
-        </section>
+          </section>
 
-        {/* Quick Actions / Pintasan Cepat */}
-        <section className="space-y-4">
-          <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-2 font-mono">
-            Menu Pintasan Cepat
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        </div>
+
+        {/* Clock Widget Card */}
+        <section className="lg:col-span-4 bg-white border border-slate-200 rounded-[2rem] p-6 flex flex-col justify-between shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[320px] lg:min-h-full">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-rose-500/5 opacity-50 pointer-events-none"></div>
+          
+          <div className="flex justify-between items-start z-10 w-full">
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono">Waktu Sekarang</p>
+              <h2 className="text-3xl md:text-4xl font-black text-slate-800 font-mono tracking-wider mt-1 relative z-10">
+                {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </h2>
+            </div>
+            <div className="p-3 bg-slate-50 text-orange-600 rounded-2xl border border-slate-200">
+              <Clock className="w-5 h-5 animate-pulse" />
+            </div>
+          </div>
+
+          {/* Robot Waving Mascot */}
+          <div className="flex justify-center items-center py-2 z-10 my-auto">
+            <RobotMascot state={attendanceState} />
+          </div>
+
+          <div className="z-10 w-full mt-2 lg:mt-0">
+            <p className="text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-fit">
+              {formatDate(time)}
+            </p>
             
-            <button 
-              onClick={() => navigate('/employee/cuti')}
-              className="bg-white border border-orange-100/60 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-3 aspect-square group cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-indigo-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
-                <CalendarDays className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-slate-700 text-center">Ajukan Cuti</span>
-            </button>
+            {/* Divider */}
+            <div className="w-full h-px bg-slate-200 my-4"></div>
             
-            <button 
-              onClick={() => navigate('/employee/reimbursement')}
-              className="bg-white border border-orange-100/60 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-3 aspect-square group cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-rose-50/70 border border-rose-100 text-rose-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-rose-500 group-hover:text-white transition-all duration-300">
-                <ReceiptText className="w-5 h-5" />
+            {/* Shift & Status Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Shift</p>
+                <p className="text-sm font-black text-slate-700 font-mono mt-0.5">08:30 — 17:30</p>
               </div>
-              <span className="text-xs font-bold text-slate-700 text-center">Reimburse</span>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/employee/lembur')}
-              className="bg-white border border-orange-100/60 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-3 aspect-square group cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-amber-50/70 border border-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
-                <Clock3 className="w-5 h-5" />
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</p>
+                <span className="inline-flex items-center gap-1.5 text-xs font-black text-emerald-600 mt-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Aktif
+                </span>
               </div>
-              <span className="text-xs font-bold text-slate-700 text-center">Lapor Lembur</span>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/employee/payroll')}
-              className="bg-white border border-orange-100/60 rounded-3xl p-5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-center gap-3 aspect-square group cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-slate-50/70 border border-slate-200 text-slate-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-slate-800 group-hover:text-white transition-all duration-300">
-                <Banknote className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-slate-700 text-center">Slip Gaji</span>
-            </button>
+            </div>
           </div>
         </section>
 
       </div>
 
       {/* ==============================
-          SIDEBAR COLUMN (RIGHT/BOTTOM) - col-span-4
+          4 STAT CARDS ROW
       ============================== */}
-      <div className="col-span-1 md:col-span-4 flex flex-col gap-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         
-        {/* Digital ID Card (Highly Polished) */}
-        <section className="bg-white border border-orange-100/80 rounded-3xl shadow-sm overflow-hidden group hover:shadow-md transition-shadow duration-300">
-          <div className="h-24 bg-slate-800 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-90" style={{ background: 'linear-gradient(135deg, #e31b00 0%, #ff5200 100%)' }}></div>
-            <div className="absolute inset-0 bg-grid-white/[0.05] [mask-image:linear-gradient(to_bottom,white,transparent)]"></div>
-          </div>
-          <div className="px-6 pb-6 pt-0 relative flex flex-col items-center">
-            
-            {/* Photo frame */}
-            <div className="w-24 h-24 rounded-full border-4 border-white shadow-md -mt-12 mb-4 overflow-hidden bg-slate-50 flex items-center justify-center relative group-hover:scale-105 transition-transform duration-300">
-              {photoSrc ? (
-                 <img src={photoSrc.startsWith('http') ? photoSrc : `http://localhost:8000${photoSrc}`} alt={user.name} className="w-full h-full object-cover" />
-              ) : (
-                 <span className="text-3xl font-black text-slate-300">{user.name.charAt(0).toUpperCase()}</span>
-              )}
+        {/* Card 1: Total Kehadiran */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[130px] group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50/50 rounded-full blur-xl pointer-events-none"></div>
+          <div className="flex items-center justify-between mb-4 z-10">
+            <div className="p-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
-            
-            <h4 className="text-lg font-black text-slate-800 text-center capitalize">{profile?.name || user.name}</h4>
-            <p className="text-[10px] font-extrabold text-orange-600 bg-orange-50 border border-orange-100 rounded-full px-3 py-0.5 mt-1 text-center font-mono">
-              ID: {profile?.employee_number || 'N/A'}
+            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-slate-200 rounded-full px-2 py-0.5 font-mono">
+              +2
+            </span>
+          </div>
+          <div className="z-10">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Kehadiran</p>
+            <p className="text-xl md:text-2xl font-black text-slate-800 font-sans mt-0.5">
+              {workDays} <span className="text-xs text-slate-400 font-bold">Hari</span>
             </p>
-            
-            <div className="w-full space-y-3 border-t border-slate-100 mt-6 pt-5">
-              <div className="flex items-center gap-3 text-slate-600">
-                <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-xs font-semibold truncate" title={profile?.email || user.email}>{profile?.email || user.email}</span>
-              </div>
-              <div className="flex items-center gap-3 text-slate-600">
-                <Briefcase className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-xs font-semibold">Divisi: {profile?.division || 'Belum Diatur'}</span>
-              </div>
-              {profile?.join_date && (
-                <div className="flex items-center gap-3 text-slate-600">
-                  <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
-                  <span className="text-xs font-semibold">Gabung: {new Date(profile.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                </div>
-              )}
+          </div>
+        </div>
+
+        {/* Card 2: Total Ketidakhadiran */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[130px] group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-orange-50/50 rounded-full blur-xl pointer-events-none"></div>
+          <div className="flex items-center justify-between mb-4 z-10">
+            <div className="p-2.5 bg-orange-50 text-orange-600 border border-orange-100 rounded-2xl group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
+              <AlertCircle className="w-5 h-5" />
             </div>
           </div>
-        </section>
-
-        {/* Kehadiran Statistik (Bulan Ini) */}
-        <section className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm space-y-4">
-          <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 font-mono">
-            Kehadiran Bulan Ini
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            
-            <div className="bg-slate-50 border border-slate-150/60 rounded-2xl p-3.5 shadow-sm text-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Hadir</p>
-              <p className="text-2xl font-black text-slate-800 font-mono">{workDays}</p>
-            </div>
-            
-            <div className="bg-emerald-50/40 border border-emerald-100 rounded-2xl p-3.5 shadow-sm text-center">
-              <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Tepat Waktu</p>
-              <p className="text-2xl font-black text-emerald-600 font-mono">{onTimeDays}</p>
-            </div>
-            
-            <div className="bg-rose-50/40 border border-rose-100 rounded-2xl p-3.5 shadow-sm text-center">
-              <p className="text-[9px] font-bold text-rose-700 uppercase tracking-wider mb-1">Terlambat</p>
-              <p className="text-2xl font-black text-rose-600 font-mono">{lateDays}</p>
-            </div>
-            
-            <div className="bg-indigo-50/40 border border-indigo-100 rounded-2xl p-3.5 shadow-sm text-center">
-              <p className="text-[9px] font-bold text-indigo-700 uppercase tracking-wider mb-1">Akurasi</p>
-              <p className="text-2xl font-black text-indigo-600 font-mono">{attendanceRate}%</p>
-            </div>
-
+          <div className="z-10">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Ketidakhadiran</p>
+            <p className="text-xl md:text-2xl font-black text-slate-800 font-sans mt-0.5">
+              {lateDays} <span className="text-xs text-slate-400 font-bold">Hari</span>
+            </p>
           </div>
-        </section>
+        </div>
 
-        {/* Status Slip Gaji Terbaru (Payroll widget) */}
-        <section className="bg-white border border-orange-100/80 rounded-3xl p-5 shadow-sm space-y-4 group">
-          <div className="flex items-center justify-between pl-1">
-            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest font-mono">
-              Slip Gaji Terbaru
-            </h4>
-            <button 
-              onClick={() => navigate('/employee/payroll')}
-              className="text-[10px] font-black text-red-500 hover:text-red-750 flex items-center gap-0.5"
+        {/* Card 3: Saldo Absen */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[130px] group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50/50 rounded-full blur-xl pointer-events-none"></div>
+          <div className="flex items-center justify-between mb-4 z-10">
+            <div className="p-2.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-2xl group-hover:bg-blue-500 group-hover:text-white transition-all duration-300">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            {/* SVG Sparkline Graph */}
+            <div className="flex items-center" title="Tren Waktu Datang (7 Hari Kerja Terakhir)">
+              <svg className="w-18 h-6 overflow-visible" viewBox={`0 0 ${sparkWidth} ${sparkHeight}`}>
+                <defs>
+                  <linearGradient id="sparkline-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                  </linearGradient>
+                  <linearGradient id="sparkline-stroke" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#60a5fa" />
+                  </linearGradient>
+                </defs>
+                <path d={areaPath} fill="url(#sparkline-grad)" />
+                <path d={linePath} fill="none" stroke="url(#sparkline-stroke)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx={sparkPoints[sparkPoints.length - 1].x} cy={sparkPoints[sparkPoints.length - 1].y} r="2" fill="#3b82f6" stroke="#ffffff" strokeWidth="0.75" />
+              </svg>
+            </div>
+          </div>
+          <div className="z-10">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Saldo Absen</p>
+            <p className="text-xl md:text-2xl font-black text-slate-800 font-sans mt-0.5">
+              Rp 0
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Gaji Terakhir */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[130px] group relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-purple-50/50 rounded-full blur-xl pointer-events-none"></div>
+          <div className="flex items-center justify-between mb-4 z-10">
+            <div className="p-2.5 bg-purple-50 text-purple-600 border border-purple-100 rounded-2xl group-hover:bg-purple-500 group-hover:text-white transition-all duration-300">
+              <Wallet className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="z-10">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Gaji Terakhir</p>
+            {statsLoading ? (
+              <div className="h-6 w-24 bg-slate-100 animate-pulse rounded mt-1.5"></div>
+            ) : (
+              <p className="text-lg md:text-xl font-black text-slate-800 font-sans mt-0.5 tracking-tight truncate" title={latestPayroll ? formatRupiah(latestPayroll.net_salary) : 'Rp 0'}>
+                {latestPayroll ? formatRupiah(latestPayroll.net_salary) : 'Rp 0'}
+              </p>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Mobile Tab Switcher */}
+      <div className="lg:hidden flex p-1 bg-slate-100 border border-slate-200 rounded-2xl gap-1">
+        <button
+          onClick={() => setActiveMobileTab('pintasan')}
+          className={`flex-1 py-2.5 text-center rounded-xl text-xs font-black transition-all cursor-pointer ${
+            activeMobileTab === 'pintasan'
+              ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-sm'
+              : 'text-slate-500 hover:bg-slate-200/50'
+          }`}
+        >
+          Pintasan
+        </button>
+        <button
+          onClick={() => setActiveMobileTab('presensi')}
+          className={`flex-1 py-2.5 text-center rounded-xl text-xs font-black transition-all cursor-pointer ${
+            activeMobileTab === 'presensi'
+              ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-sm'
+              : 'text-slate-500 hover:bg-slate-200/50'
+          }`}
+        >
+          Presensi
+        </button>
+        <button
+          onClick={() => setActiveMobileTab('profil')}
+          className={`flex-1 py-2.5 text-center rounded-xl text-xs font-black transition-all cursor-pointer ${
+            activeMobileTab === 'profil'
+              ? 'bg-gradient-to-r from-orange-500 to-rose-500 text-white shadow-sm'
+              : 'text-slate-500 hover:bg-slate-200/50'
+          }`}
+        >
+          Profil
+        </button>
+      </div>
+
+      {/* ==============================
+          BOTTOM 3-COLUMN PANELS
+      ============================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Panel 1: Menu Cepat */}
+        <section className={`lg:col-span-4 bg-white border border-slate-200 rounded-[2rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md transition-all duration-300 ${activeMobileTab === 'pintasan' ? 'block' : 'hidden lg:block'}`}>
+          <h3 className="text-base font-black text-slate-800 font-sans tracking-tight mb-6">
+            Menu Cepat
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            
+            {/* Quick Button 1: Absen Masuk */}
+            <button
+              onClick={() => navigate('/employee/absen')}
+              className="flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-200 bg-slate-50/30 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all duration-300 aspect-square group cursor-pointer"
             >
-              Lihat Semua <ChevronRight className="w-3.5 h-3.5" />
+              <div className="p-3 bg-white text-orange-600 rounded-xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform duration-300">
+                <Clock className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-black text-orange-700 mt-3 font-sans">Absen Masuk</span>
             </button>
+
+            {/* Quick Button 2: Pengajuan Izin */}
+            <button
+              onClick={() => navigate('/employee/cuti')}
+              className="flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-200 bg-slate-50/30 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all duration-300 aspect-square group cursor-pointer"
+            >
+              <div className="p-3 bg-white text-blue-600 rounded-xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform duration-300">
+                <CalendarCheck className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-black text-blue-750 mt-3 font-sans">Pengajuan Izin</span>
+            </button>
+
+            {/* Quick Button 3: Slip Gaji */}
+            <button
+              onClick={() => navigate('/employee/payroll')}
+              className="flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-200 bg-slate-50/30 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all duration-300 aspect-square group cursor-pointer"
+            >
+              <div className="p-3 bg-white text-emerald-600 rounded-xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform duration-300">
+                <Banknote className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-black text-emerald-700 mt-3 font-sans">Slip Gaji</span>
+            </button>
+
+            {/* Quick Button 4: Lihat Jadwal */}
+            <button
+              onClick={() => navigate('/employee/riwayat')}
+              className="flex flex-col items-center justify-center p-5 rounded-2xl border border-slate-200 bg-slate-50/30 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 active:scale-95 transition-all duration-300 aspect-square group cursor-pointer"
+            >
+              <div className="p-3 bg-white text-purple-600 rounded-xl shadow-sm border border-slate-200 group-hover:scale-110 transition-transform duration-300">
+                <CalendarDays className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-black text-purple-700 mt-3 font-sans">Lihat Jadwal</span>
+            </button>
+
+          </div>
+        </section>
+
+        {/* Panel 2: Presensi Hari Ini */}
+        <section className={`lg:col-span-4 bg-white border border-slate-200 rounded-[2rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md transition-all duration-300 ${activeMobileTab === 'presensi' ? 'flex flex-col justify-between' : 'hidden lg:flex lg:flex-col lg:justify-between'}`}>
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-base font-black text-slate-800 font-sans tracking-tight">
+                Presensi Hari Ini
+              </h3>
+              <button
+                onClick={() => navigate('/employee/riwayat')}
+                className="text-xs font-black text-orange-600 hover:text-orange-700 transition-colors flex items-center cursor-pointer"
+              >
+                Detail <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Vertical Timeline List */}
+            <div className="relative pl-6 space-y-5">
+              {/* Timeline Line */}
+              <div className="absolute left-[7px] top-1.5 bottom-1.5 w-0.5 bg-slate-200"></div>
+
+              {/* Step 1: Absen Masuk */}
+              <div className="relative flex items-center justify-between">
+                <div className={`absolute -left-[23px] w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                  todayAttendance?.clock_in ? 'bg-emerald-500' : 'bg-slate-300'
+                }`}></div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 font-mono">
+                    {todayAttendance?.clock_in ? todayAttendance.clock_in.substring(0, 5) : '08:30'}
+                  </span>
+                  <span className="text-xs font-black text-slate-700 font-sans">Absen Masuk</span>
+                </div>
+                <div>
+                  {todayAttendance?.clock_in ? (
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black border ${
+                      todayAttendance.status_in === 'normal' || todayAttendance.status_in === 'early' 
+                        ? 'text-emerald-700 bg-emerald-50/70 border-emerald-200' 
+                        : 'text-rose-700 bg-rose-50/70 border-rose-200'
+                    }`}>
+                      {todayAttendance.status_in === 'normal' || todayAttendance.status_in === 'early' ? 'Tepat Waktu' : 'Terlambat'}
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-orange-700 bg-orange-50/70 border-orange-200">
+                      Menunggu
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 2: Istirahat */}
+              <div className="relative flex items-center justify-between">
+                <div className={`absolute -left-[23px] w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                  todayAttendance?.clock_in && time.getHours() >= 12 ? 'bg-blue-500' : 'bg-slate-300'
+                }`}></div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 font-mono">12:01</span>
+                  <span className="text-xs font-black text-slate-700 font-sans">Istirahat</span>
+                </div>
+                <div>
+                  {todayAttendance?.clock_in && time.getHours() >= 12 ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-blue-700 bg-blue-50/70 border-blue-200">
+                      Selesai
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-slate-500 bg-slate-50 border-slate-200">
+                      Menunggu
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 3: Kembali Kerja */}
+              <div className="relative flex items-center justify-between">
+                <div className={`absolute -left-[23px] w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                  todayAttendance?.clock_in && time.getHours() >= 13 ? 'bg-emerald-500' : 'bg-slate-300'
+                }`}></div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 font-mono">13:05</span>
+                  <span className="text-xs font-black text-slate-700 font-sans">Kembali Kerja</span>
+                </div>
+                <div>
+                  {todayAttendance?.clock_in && time.getHours() >= 13 ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-emerald-700 bg-emerald-50/70 border-emerald-200">
+                      Tepat Waktu
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-slate-500 bg-slate-50 border-slate-200">
+                      Menunggu
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Step 4: Absen Pulang */}
+              <div className="relative flex items-center justify-between">
+                <div className={`absolute -left-[23px] w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                  todayAttendance?.clock_out ? 'bg-emerald-500' : todayAttendance?.clock_in ? 'bg-orange-400 animate-pulse' : 'bg-slate-300'
+                }`}></div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 font-mono">
+                    {todayAttendance?.clock_out ? todayAttendance.clock_out.substring(0, 5) : '17:30'}
+                  </span>
+                  <span className="text-xs font-black text-slate-700 font-sans">Absen Pulang</span>
+                </div>
+                <div>
+                  {todayAttendance?.clock_out ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-slate-700 bg-slate-50 border-slate-200">
+                      Selesai
+                    </span>
+                  ) : todayAttendance?.clock_in ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-orange-700 bg-orange-50/70 border-orange-200 animate-pulse">
+                      Menunggu
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-slate-400 bg-slate-50 border-slate-150">
+                      Belum Mulai
+                    </span>
+                  )}
+                </div>
+              </div>
+
+            </div>
           </div>
 
-          {statsLoading ? (
-            <div className="space-y-2.5 animate-pulse py-2">
-              <div className="w-1/2 h-3 bg-slate-200 rounded"></div>
-              <div className="w-3/4 h-5 bg-slate-200 rounded"></div>
-              <div className="w-1/3 h-4 bg-slate-200 rounded"></div>
-            </div>
-          ) : latestPayroll ? (
-            <div className="space-y-3.5">
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase">{getIndonesianMonthLabel(latestPayroll.period_month)}</p>
-                <p className="text-xl font-black text-slate-800 mt-1 font-mono">{formatRupiah(latestPayroll.net_salary)}</p>
-              </div>
-              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
-                <span className="text-[10px] text-slate-400 font-bold">Status Pembayaran</span>
-                {latestPayroll.status === 'paid' ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 font-mono">
-                    Lunas (Paid)
-                  </span>
+          {/* Conditional Notice Message Box */}
+          <div className={`mt-6 p-4 rounded-2xl flex items-center gap-3 border ${
+            attendanceState === 'needs_checkin'
+              ? 'bg-amber-50/50 border border-amber-200 text-amber-800'
+              : attendanceState === 'needs_checkout'
+              ? 'bg-orange-50/50 border border-orange-200 text-orange-800'
+              : 'bg-emerald-50/50 border border-emerald-200 text-emerald-800'
+          }`}>
+            <Clock className="w-5 h-5 shrink-0 animate-pulse" />
+            <p className="text-xs font-bold font-sans">
+              {attendanceState === 'needs_checkin'
+                ? 'Jangan lupa melakukan absen masuk hari ini!'
+                : attendanceState === 'needs_checkout'
+                ? 'Jangan lupa absen pulang pukul 17:30'
+                : 'Presensi hari ini telah lengkap. Terima kasih!'}
+            </p>
+          </div>
+        </section>
+
+        {/* Panel 3: Profil Saya */}
+        <section className={`lg:col-span-4 bg-white border border-slate-200 rounded-[2rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md transition-all duration-300 ${activeMobileTab === 'profil' ? 'flex flex-col justify-between min-h-[360px]' : 'hidden lg:flex lg:flex-col lg:justify-between lg:min-h-[360px]'}`}>
+          <div>
+            <h3 className="text-base font-black text-slate-800 font-sans tracking-tight mb-6">
+              Profil Saya
+            </h3>
+            
+            <div className="flex flex-col items-center">
+              {/* Profile Image Square */}
+              <div className="w-20 h-20 rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center relative hover:scale-105 active:scale-95 transition-transform duration-300">
+                {profile?.photo ? (
+                  <img 
+                    src={getAssetUrl(profile.photo)} 
+                    alt={user.name} 
+                    className="w-full h-full object-cover" 
+                  />
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-100 font-mono">
-                    Belum Dibayar
+                  <span className="text-3xl font-black text-white">
+                    {user.name.charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
+
+              <h4 className="text-lg font-black text-slate-800 tracking-tight mt-4 capitalize">
+                {profile?.name || user.name}
+              </h4>
+              <span className="inline-flex text-[10px] font-extrabold text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-3 py-1 mt-1 font-mono">
+                {profile?.company || 'Karyawan Aktif'}
+              </span>
             </div>
-          ) : (
-            <div className="text-center py-6 text-slate-400 text-xs italic font-medium">
-              Belum ada slip gaji yang disahkan untuk Anda.
+
+            {/* List details */}
+            <div className="w-full space-y-3 border-t border-slate-200 mt-6 pt-5">
+              <div className="flex items-center gap-3 text-slate-600">
+                <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-xs font-bold truncate" title={profile?.email || user.email}>
+                  {profile?.email || user.email}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-600">
+                <Briefcase className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-xs font-bold">
+                  {profile?.division || 'Staf Produksi'}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-600">
+                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-xs font-bold">
+                  {profile?.date_of_birth 
+                    ? new Date(profile.date_of_birth).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                    : 'Senin, 19 Juni 1944'}
+                </span>
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* Kehadiran Progress Bar */}
+          <div className="mt-6 pt-4 border-t border-slate-200">
+            <div className="flex justify-between items-end mb-1.5">
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider font-mono">Total Absen Bulan Ini</span>
+              <span className="text-[11px] font-black text-slate-800 font-mono">{workDays}/22 Hari</span>
+            </div>
+            
+            {/* Progress track */}
+            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full transition-all duration-500" 
+                style={{ width: `${workDays > 0 ? Math.min(100, (workDays / 22) * 100) : 0}%` }}
+              ></div>
+            </div>
+
+            <p className="text-[10px] text-slate-400 font-bold mt-1.5 text-right font-mono">
+              {workDays > 0 ? Math.round((workDays / 22) * 100) : 0}% kehadiran
+            </p>
+          </div>
         </section>
 
       </div>

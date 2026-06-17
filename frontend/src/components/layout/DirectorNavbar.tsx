@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Menu, Bell, ChevronDown, LogOut, Shield } from 'lucide-react'
 import Logo from './Logo'
 
+import { getAssetUrl } from '../../utils/api'
+
 interface User {
   id: number
   name: string
@@ -73,7 +75,7 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
           >
             {user.photo ? (
               <img
-                src={user.photo.startsWith('http') ? user.photo : `http://localhost:8000/storage/${user.photo}`}
+                src={getAssetUrl(user.photo.startsWith('http') ? user.photo : `storage/${user.photo}`)}
                 alt="Avatar"
                 className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
               />

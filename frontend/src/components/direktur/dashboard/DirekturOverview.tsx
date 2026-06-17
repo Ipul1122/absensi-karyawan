@@ -130,6 +130,13 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
     }).format(val)
   }
 
+  const formatDateSafe = (dateStr: string | null | undefined, options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }) => {
+    if (!dateStr) return '-'
+    const parsed = Date.parse(dateStr)
+    if (isNaN(parsed)) return '-'
+    return new Date(dateStr).toLocaleDateString('id-ID', options)
+  }
+
   // Quick action handlers
   const handleQuickApprove = async (item: UnifiedPendingItem) => {
     let url = ''
@@ -535,8 +542,8 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {[
                 { label: 'Jenis Kelamin', value: selectedProfile.gender === 'male' ? 'Laki-laki' : selectedProfile.gender === 'female' ? 'Perempuan' : '-', icon: <User className="w-3 h-3" /> },
-                { label: 'Tanggal Lahir', value: selectedProfile.date_of_birth ? new Date(selectedProfile.date_of_birth).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Calendar className="w-3 h-3" /> },
-                { label: 'Bergabung', value: selectedProfile.join_date ? new Date(selectedProfile.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-', icon: <Briefcase className="w-3 h-3" /> },
+                { label: 'Tanggal Lahir', value: formatDateSafe(selectedProfile.date_of_birth, { day: 'numeric', month: 'long', year: 'numeric' }), icon: <Calendar className="w-3 h-3" /> },
+                { label: 'Bergabung', value: formatDateSafe(selectedProfile.join_date, { day: 'numeric', month: 'long', year: 'numeric' }), icon: <Briefcase className="w-3 h-3" /> },
                 { label: 'Divisi Utama', value: selectedProfile.division || 'Umum', icon: <Shield className="w-3 h-3" /> },
               ].map(item => (
                 <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -736,7 +743,11 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
 
       case 'leave':
         const lRequest = selectedItem.originalData
-        const lDaysCount = Math.round((new Date(lRequest.end_date).getTime() - new Date(lRequest.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1
+        const start = lRequest.start_date ? Date.parse(lRequest.start_date) : NaN
+        const end = lRequest.end_date ? Date.parse(lRequest.end_date) : NaN
+        const lDaysCount = (!isNaN(start) && !isNaN(end))
+          ? Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1
+          : 0
         return (
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rincian Pengajuan Cuti</h4>
@@ -758,9 +769,9 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                 <p className="text-[10px] text-slate-400 font-bold uppercase">Periode Pelaksanaan</p>
                 <p className="font-semibold text-slate-800 mt-1 flex items-center gap-1.5">
                   <CalendarDays className="w-4 h-4 text-slate-400" />
-                  {new Date(lRequest.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  {formatDateSafe(lRequest.start_date, { day: 'numeric', month: 'long', year: 'numeric' })}
                   <span className="text-slate-400 font-normal">s/d</span>
-                  {new Date(lRequest.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  {formatDateSafe(lRequest.end_date, { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               </div>
 
@@ -802,7 +813,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Tanggal Lembur</p>
                   <p className="font-bold text-slate-800 mt-1 flex items-center gap-1.5">
                     <CalendarDays className="w-4 h-4 text-slate-400" />
-                    {new Date(oRequest.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {formatDateSafe(oRequest.date, { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
                 <div>
@@ -817,7 +828,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                 <p className="text-[10px] text-slate-400 font-bold uppercase">Jam Pelaksanaan</p>
                 <p className="font-bold text-slate-700 mt-1.5 flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-slate-400" />
-                  {oRequest.start_time.substring(0, 5)} WIB <span className="text-slate-400 font-normal">s/d</span> {oRequest.end_time.substring(0, 5)} WIB
+                  {(oRequest.start_time || '').substring(0, 5)} WIB <span className="text-slate-400 font-normal">s/d</span> {(oRequest.end_time || '').substring(0, 5)} WIB
                 </p>
               </div>
 
@@ -848,7 +859,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Tanggal Nota</p>
                   <p className="font-bold text-slate-800 mt-1 flex items-center gap-1.5">
                     <CalendarDays className="w-4 h-4 text-slate-400" />
-                    {new Date(rRequest.expense_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {formatDateSafe(rRequest.expense_date, { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
               </div>
@@ -901,7 +912,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Tanggal Pembagian</p>
                   <p className="font-bold text-slate-800 mt-1 flex items-center gap-1.5">
                     <CalendarDays className="w-4 h-4 text-slate-400" />
-                    {new Date(bRequest.bonus_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {formatDateSafe(bRequest.bonus_date, { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
                 <div>
@@ -956,7 +967,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Tanggal Pembelian</p>
                   <p className="font-bold text-slate-800 mt-1 flex items-center gap-1.5">
                     <CalendarDays className="w-4 h-4 text-slate-400" />
-                    {new Date(iRequest.tanggal_pembelian).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {formatDateSafe(iRequest.tanggal_pembelian, { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
               </div>
@@ -1277,7 +1288,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                         {item.badgeText}
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium">
-                        {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {formatDateSafe(item.date, { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                     </div>
                     <h5 className="text-sm font-bold text-slate-800 leading-snug break-words">

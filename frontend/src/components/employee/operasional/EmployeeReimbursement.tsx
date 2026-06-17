@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   Upload, 
   Trash2, 
@@ -246,7 +247,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
   const handleShowReceipt = (path: string) => {
     Swal.fire({
       title: 'Bukti Pembayaran / Nota',
-      imageUrl: `http://localhost:8000${path}`,
+      imageUrl: getAssetUrl(path),
       imageAlt: 'Bukti Nota',
       background: '#fffdfb',
       color: '#3c1105',

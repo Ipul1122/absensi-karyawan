@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import L from 'leaflet'
+import { getAssetUrl } from '../../../utils/api'
 import { NavLink } from 'react-router-dom'
 import { 
   Clock, 
@@ -14,7 +15,8 @@ import {
   FileText, 
   Check,
   Building,
-  Upload
+  Upload,
+  FlipHorizontal2
 } from 'lucide-react'
 
 
@@ -74,6 +76,7 @@ export default function EmployeeAbsen({
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [isCameraActive, setIsCameraActive] = useState(false)
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
 
   // Refs for DOM nodes
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -86,6 +89,24 @@ export default function EmployeeAbsen({
   const employeeMarkerRef = useRef<L.Marker | null>(null)
   const officeMarkerRef = useRef<L.Marker | null>(null)
   const boundaryCircleRef = useRef<L.Circle | null>(null)
+
+  // Memoized callback ref for the map container to ensure cleanup on unmount
+  const setMapRef = useCallback((el: HTMLDivElement | null) => {
+    mapRef.current = el
+    if (!el) {
+      if (mapInstance.current) {
+        try {
+          mapInstance.current.remove()
+        } catch (err) {
+          console.error('Error removing map instance:', err)
+        }
+        mapInstance.current = null
+        employeeMarkerRef.current = null
+        officeMarkerRef.current = null
+        boundaryCircleRef.current = null
+      }
+    }
+  }, [])
 
   // Auto set active tab based on today's attendance status on mount
   useEffect(() => {
@@ -146,19 +167,25 @@ export default function EmployeeAbsen({
       return
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitude(position.coords.latitude)
-        setLongitude(position.coords.longitude)
-        setLocationLoading(false)
-      },
-      (err) => {
-        console.error('Geolocation error:', err)
-        setLocationError('Gagal mendeteksi lokasi. Pastikan izin lokasi aktif di browser.')
-        setLocationLoading(false)
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    )
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude)
+          setLongitude(position.coords.longitude)
+          setLocationLoading(false)
+        },
+        (err) => {
+          console.error('Geolocation error:', err)
+          setLocationError('Gagal mendeteksi lokasi. Pastikan izin lokasi aktif di browser.')
+          setLocationLoading(false)
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      )
+    } catch (err: any) {
+      console.error('Geolocation synchronous access error:', err)
+      setLocationError('Gagal mendeteksi lokasi (Kesalahan Keamanan/Origin).')
+      setLocationLoading(false)
+    }
   }
 
   // Fetch location when form is active
@@ -169,14 +196,15 @@ export default function EmployeeAbsen({
   }, [needsForm])
 
   // Camera Handler
-  const startCamera = async () => {
+  const startCamera = async (mode?: 'user' | 'environment') => {
+    const currentMode = mode ?? facingMode
     setCameraError(null)
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
       }
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' }
+        video: { width: 640, height: 480, facingMode: { ideal: currentMode } }
       })
       streamRef.current = mediaStream
       setStream(mediaStream)
@@ -187,6 +215,12 @@ export default function EmployeeAbsen({
       console.error('Camera access error:', err)
       setCameraError('Gagal mengakses kamera. Mohon berikan izin kamera di browser Anda.')
     }
+  }
+
+  const flipCamera = async () => {
+    const newMode = facingMode === 'user' ? 'environment' : 'user'
+    setFacingMode(newMode)
+    await startCamera(newMode)
   }
 
   const stopCamera = () => {
@@ -299,95 +333,107 @@ export default function EmployeeAbsen({
   useEffect(() => {
     if (!latitude || !longitude || !mapRef.current) return
 
-    // Fix default marker icon path issue in Leaflet
-    delete (L.Icon.Default.prototype as any)._getIconUrl
-    L.Icon.Default.mergeOptions({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    })
+    try {
+      // Fix default marker icon path issue in Leaflet
+      delete (L.Icon.Default.prototype as any)._getIconUrl
+      L.Icon.Default.mergeOptions({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      })
 
-    // Custom Icon for Office
-    const officeIcon = L.icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    })
+      // Custom Icon for Office
+      const officeIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      })
 
-    // Setup map instance if not exists or if container changed
-    if (mapInstance.current) {
-      const currentContainer = mapInstance.current.getContainer()
-      if (currentContainer !== mapRef.current) {
-        mapInstance.current.remove()
-        mapInstance.current = null
-        employeeMarkerRef.current = null
-        officeMarkerRef.current = null
-        boundaryCircleRef.current = null
-      }
-    }
-
-    if (!mapInstance.current) {
-      const map = L.map(mapRef.current).setView([latitude, longitude], 15)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-      }).addTo(map)
-      mapInstance.current = map
-    }
-
-    const map = mapInstance.current
-
-    // Update Employee Marker
-    if (employeeMarkerRef.current) {
-      employeeMarkerRef.current.setLatLng([latitude, longitude])
-    } else {
-      employeeMarkerRef.current = L.marker([latitude, longitude])
-        .addTo(map)
-        .bindPopup('Lokasi GPS Anda')
-        .openPopup()
-    }
-
-    // Handle Office Location boundary circle and marker
-    if (officeSetting) {
-      const officeLat = parseFloat(officeSetting.latitude)
-      const officeLng = parseFloat(officeSetting.longitude)
-
-      // Update/Create Office Marker
-      if (officeMarkerRef.current) {
-        officeMarkerRef.current.setLatLng([officeLat, officeLng])
-      } else {
-        officeMarkerRef.current = L.marker([officeLat, officeLng], { icon: officeIcon })
-          .addTo(map)
-          .bindPopup('Lokasi Kantor')
+      // Setup map instance if not exists or if container changed
+      if (mapInstance.current) {
+        const currentContainer = mapInstance.current.getContainer()
+        if (currentContainer !== mapRef.current) {
+          try {
+            mapInstance.current.remove()
+          } catch (err) {
+            console.error('Error removing old map instance:', err)
+          }
+          mapInstance.current = null
+          employeeMarkerRef.current = null
+          officeMarkerRef.current = null
+          boundaryCircleRef.current = null
+        }
       }
 
-      // Update/Create Boundary Circle
-      if (boundaryCircleRef.current) {
-        boundaryCircleRef.current.setLatLng([officeLat, officeLng])
-        boundaryCircleRef.current.setRadius(officeSetting.radius)
-      } else {
-        boundaryCircleRef.current = L.circle([officeLat, officeLng], {
-          color: '#6366f1',
-          fillColor: '#818cf8',
-          fillOpacity: 0.15,
-          radius: officeSetting.radius
+      if (!mapInstance.current) {
+        const map = L.map(mapRef.current).setView([latitude, longitude], 15)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap'
         }).addTo(map)
+        mapInstance.current = map
       }
 
-      // Auto zoom to show both points
-      try {
-        const bounds = L.latLngBounds([
-          [latitude, longitude],
-          [officeLat, officeLng]
-        ])
-        map.fitBounds(bounds.pad(0.2))
-      } catch (e) {
+      const map = mapInstance.current
+
+      // Update Employee Marker
+      if (employeeMarkerRef.current) {
+        employeeMarkerRef.current.setLatLng([latitude, longitude])
+      } else {
+        employeeMarkerRef.current = L.marker([latitude, longitude])
+          .addTo(map)
+          .bindPopup('Lokasi GPS Anda')
+          .openPopup()
+      }
+
+      // Handle Office Location boundary circle and marker
+      if (officeSetting) {
+        const officeLat = parseFloat(officeSetting.latitude)
+        const officeLng = parseFloat(officeSetting.longitude)
+
+        if (!isNaN(officeLat) && !isNaN(officeLng)) {
+          // Update/Create Office Marker
+          if (officeMarkerRef.current) {
+            officeMarkerRef.current.setLatLng([officeLat, officeLng])
+          } else {
+            officeMarkerRef.current = L.marker([officeLat, officeLng], { icon: officeIcon })
+              .addTo(map)
+              .bindPopup('Lokasi Kantor')
+          }
+
+          // Update/Create Boundary Circle
+          if (boundaryCircleRef.current) {
+            boundaryCircleRef.current.setLatLng([officeLat, officeLng])
+            boundaryCircleRef.current.setRadius(officeSetting.radius)
+          } else {
+            boundaryCircleRef.current = L.circle([officeLat, officeLng], {
+              color: '#6366f1',
+              fillColor: '#818cf8',
+              fillOpacity: 0.15,
+              radius: officeSetting.radius
+            }).addTo(map)
+          }
+
+          // Auto zoom to show both points
+          try {
+            const bounds = L.latLngBounds([
+              [latitude, longitude],
+              [officeLat, officeLng]
+            ])
+            map.fitBounds(bounds.pad(0.2))
+          } catch (e) {
+            map.setView([latitude, longitude], 15)
+          }
+        } else {
+          map.setView([latitude, longitude], 15)
+        }
+      } else {
         map.setView([latitude, longitude], 15)
       }
-    } else {
-      map.setView([latitude, longitude], 15)
+    } catch (err) {
+      console.error('Error initializing or updating Leaflet map:', err)
     }
 
     return () => {
@@ -571,14 +617,25 @@ export default function EmployeeAbsen({
                         autoPlay 
                         playsInline 
                         muted 
-                        className="w-full h-full object-cover transform -scale-x-100" 
+                        className={`w-full h-full object-cover ${facingMode === 'user' ? 'transform -scale-x-100' : ''}`}
                       />
+                      {/* Flip Camera Button */}
+                      {!cameraError && (
+                        <button
+                          type="button"
+                          onClick={flipCamera}
+                          title={facingMode === 'user' ? 'Ganti ke Kamera Belakang' : 'Ganti ke Kamera Depan'}
+                          className="absolute top-2 right-2 z-10 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl transition-all cursor-pointer backdrop-blur-sm"
+                        >
+                          <FlipHorizontal2 className="w-4 h-4" />
+                        </button>
+                      )}
                       {cameraError && (
                         <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2 font-quicksand">
                           <AlertCircle className="w-8 h-8 text-rose-500" />
                           <p className="text-xs font-semibold leading-relaxed">{cameraError}</p>
                           <div className="flex flex-wrap gap-2 justify-center mt-2">
-                            <button onClick={startCamera} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                            <button onClick={() => startCamera()} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
                               Coba Lagi
                             </button>
                             <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">
@@ -655,7 +712,7 @@ export default function EmployeeAbsen({
                 </div>
 
                 <div className="relative w-full h-[220px] rounded-2xl bg-slate-50 border border-orange-100/60 overflow-hidden flex items-center justify-center">
-                  <div ref={mapRef} id="employee-map" className="w-full h-full z-10" />
+                  <div ref={setMapRef} id="employee-map-in" className="w-full h-full z-10" />
                   {locationLoading && (
                     <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-600 text-center gap-2">
                       <RefreshCw className="w-7 h-7 animate-spin text-red-500" />
@@ -770,7 +827,7 @@ export default function EmployeeAbsen({
               <div className="md:col-span-5">
                 {todayAttendance.photo_in && (
                   <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-inner">
-                    <img src={`http://localhost:8000${todayAttendance.photo_in}`} alt="Foto Check In" className="w-full h-full object-cover" />
+                    <img src={getAssetUrl(todayAttendance.photo_in)} alt="Foto Check In" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>
@@ -839,7 +896,7 @@ export default function EmployeeAbsen({
                           <AlertCircle className="w-8 h-8 text-rose-500" />
                           <p className="text-xs font-semibold leading-relaxed">{cameraError}</p>
                           <div className="flex flex-wrap gap-2 justify-center mt-2">
-                            <button onClick={startCamera} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                            <button onClick={() => startCamera()} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
                               Coba Lagi
                             </button>
                             <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">
@@ -916,7 +973,7 @@ export default function EmployeeAbsen({
                 </div>
 
                 <div className="relative w-full h-[220px] rounded-2xl bg-slate-50 border border-orange-100/60 overflow-hidden flex items-center justify-center">
-                  <div ref={mapRef} id="employee-map" className="w-full h-full z-10" />
+                  <div ref={setMapRef} id="employee-map-out" className="w-full h-full z-10" />
                   {locationLoading && (
                     <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-600 text-center gap-2">
                       <RefreshCw className="w-7 h-7 animate-spin text-red-500" />
@@ -1031,7 +1088,7 @@ export default function EmployeeAbsen({
               <div className="md:col-span-5">
                 {todayAttendance.photo_out && (
                   <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-inner">
-                    <img src={`http://localhost:8000${todayAttendance.photo_out}`} alt="Foto Check Out" className="w-full h-full object-cover" />
+                    <img src={getAssetUrl(todayAttendance.photo_out)} alt="Foto Check Out" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>

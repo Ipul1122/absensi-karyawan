@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   Upload, 
   Trash2, 
@@ -594,7 +595,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                         <td className="py-4">
                           {leave.image ? (
                             <a 
-                              href={`http://localhost:8000${leave.image}`} 
+                              href={getAssetUrl(leave.image)} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 hover:text-red-700 hover:underline"

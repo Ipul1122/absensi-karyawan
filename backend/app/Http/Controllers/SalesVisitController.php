@@ -121,22 +121,75 @@ class SalesVisitController extends Controller
                 throw new \Exception('Tipe gambar tidak valid.');
             }
 
-            $image = base64_decode($imageData);
+            $imageBytes = base64_decode($imageData);
 
-            if ($image === false) {
+            if ($imageBytes === false) {
                 throw new \Exception('Gagal mendecode base64.');
             }
         } else {
             throw new \Exception('Format data URI gambar tidak sesuai.');
         }
 
-        $fileName = $prefix . '_' . time() . '_' . uniqid() . '.' . $type;
+        // Tentukan ekstensi dan nama file default (webp jika menggunakan kompresi)
+        $useWebp = extension_loaded('gd');
+        $extension = $useWebp ? 'webp' : $type;
+        $fileName = $prefix . '_' . time() . '_' . uniqid() . '.' . $extension;
         $filePath = 'visits/' . $fileName;
 
         // Ensure directories exist
         Storage::disk('public')->makeDirectory('visits');
 
-        Storage::disk('public')->put($filePath, $image);
+        if ($useWebp) {
+            try {
+                // Buat GD image object dari raw bytes
+                $srcImage = imagecreatefromstring($imageBytes);
+                if ($srcImage !== false) {
+                    $origWidth = imagesx($srcImage);
+                    $origHeight = imagesy($srcImage);
+
+                    // Tentukan ukuran baru (maksimal lebar 800px)
+                    $maxWidth = 800;
+                    $webpData = false;
+
+                    if ($origWidth > $maxWidth) {
+                        $newWidth = $maxWidth;
+                        $newHeight = (int) (($origHeight / $origWidth) * $maxWidth);
+
+                        // Buat canvas baru
+                        $dstImage = imagecreatetruecolor($newWidth, $newHeight);
+
+                        // Tangani transparansi untuk PNG/GIF
+                        imagealphablending($dstImage, false);
+                        imagesavealpha($dstImage, true);
+                        
+                        // Lakukan resize
+                        imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+                        
+                        // Siapkan output buffer untuk menangkap raw webp bytes
+                        ob_start();
+                        imagewebp($dstImage, null, 75); // kualitas 75%
+                        $webpData = ob_get_clean();
+
+                        imagedestroy($dstImage);
+                    } else {
+                        // Tidak perlu resize, langsung kompres ke WebP
+                        ob_start();
+                        imagewebp($srcImage, null, 75);
+                        $webpData = ob_get_clean();
+                    }
+
+                    imagedestroy($srcImage);
+
+                    if ($webpData !== false) {
+                        $imageBytes = $webpData;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fallback ke data asli jika ada error pemrosesan GD
+            }
+        }
+
+        Storage::disk('public')->put($filePath, $imageBytes);
 
         return '/storage/' . $filePath;
     }

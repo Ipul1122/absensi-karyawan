@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   Check, 
   X, 
@@ -206,7 +207,7 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
   const viewProofImage = (imageUrl: string, name: string) => {
     Swal.fire({
       title: `Bukti Nota - ${name}`,
-      imageUrl: `http://localhost:8000${imageUrl}`,
+      imageUrl: getAssetUrl(imageUrl),
       imageAlt: 'Bukti Nota Belanja',
       confirmButtonColor: '#ea580c',
       confirmButtonText: 'Tutup',

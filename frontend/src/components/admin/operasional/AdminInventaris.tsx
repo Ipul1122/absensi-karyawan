@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import {
   Package,
   Search,
@@ -150,7 +151,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
     setPemakaiBarang(item.pemakai_barang || '')
     setKondisiBarang(item.kondisi_barang)
     setFotoFile(null)
-    setFotoPreview(item.foto ? `http://localhost:8000${item.foto}` : null)
+    setFotoPreview(item.foto ? getAssetUrl(item.foto) : null)
     setStrukFile(null)
     setStrukFileName(item.struk_pembelian ? 'Struk Pembelian Terunggah' : null)
     setShowModal(true)
@@ -315,7 +316,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
   const viewImageModal = (imageUrl: string, title: string) => {
     Swal.fire({
       title: title,
-      imageUrl: `http://localhost:8000${imageUrl}`,
+      imageUrl: getAssetUrl(imageUrl),
       imageAlt: title,
       confirmButtonColor: '#ea580c',
       confirmButtonText: 'Tutup',
@@ -731,7 +732,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
                       <td className="py-4 px-5">
                         {item.foto ? (
                           <img
-                            src={`http://localhost:8000${item.foto}`}
+                            src={getAssetUrl(item.foto)}
                             alt={item.nama_barang}
                             onClick={() => viewImageModal(item.foto!, `Foto Barang: ${item.nama_barang}`)}
                             className="w-10 h-10 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-105 transition-transform"
@@ -801,7 +802,7 @@ export default function AdminInventaris({ token }: AdminInventarisProps) {
                               if (isImage) {
                                 viewImageModal(item.struk_pembelian!, `Struk Pembelian: ${item.nama_barang}`)
                               } else {
-                                window.open(`http://localhost:8000${item.struk_pembelian}`, '_blank')
+                                window.open(getAssetUrl(item.struk_pembelian), '_blank')
                               }
                             }}
                             className="inline-flex items-center gap-1.5 px-2 py-1 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-150 rounded-lg transition-all cursor-pointer text-[10px] font-bold"

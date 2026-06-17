@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   Check, 
   X, 
@@ -186,7 +187,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
   const viewProofImage = (imageUrl: string, name: string) => {
     Swal.fire({
       title: `Bukti Pengajuan Cuti - ${name}`,
-      imageUrl: `http://localhost:8000${imageUrl}`,
+      imageUrl: getAssetUrl(imageUrl),
       imageAlt: 'Bukti Cuti',
       confirmButtonColor: '#ea580c',
       confirmButtonText: 'Tutup',

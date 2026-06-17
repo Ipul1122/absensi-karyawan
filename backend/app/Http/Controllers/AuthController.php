@@ -125,6 +125,7 @@ class AuthController extends Controller
             'division'        => 'nullable|string|max:100',
             'photo'           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            'no_rekening'     => 'nullable|string|max:50',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -136,7 +137,7 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
-        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division']);
+        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'no_rekening']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -176,6 +177,7 @@ class AuthController extends Controller
                 'gender'          => $user->gender,
                 'division'        => $user->division,
                 'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
+                'no_rekening'     => $user->no_rekening,
             ]
         ]);
     }

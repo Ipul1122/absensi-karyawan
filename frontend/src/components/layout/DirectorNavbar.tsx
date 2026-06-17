@@ -10,6 +10,7 @@ interface User {
   email: string
   role: 'admin' | 'employee' | 'director'
   photo?: string | null
+  company?: string
 }
 
 interface DirectorNavbarProps {
@@ -126,9 +127,10 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
 interface DirectorMobileNavbarProps {
   onMenuClick: () => void
   pendingCount?: number
+  company?: string
 }
 
-export function DirectorMobileNavbar({ onMenuClick, pendingCount = 0 }: DirectorMobileNavbarProps) {
+export function DirectorMobileNavbar({ onMenuClick, pendingCount = 0, company }: DirectorMobileNavbarProps) {
   return (
     <header
       className="md:hidden flex items-center justify-between px-5 py-3.5 border-b"
@@ -151,7 +153,7 @@ export function DirectorMobileNavbar({ onMenuClick, pendingCount = 0 }: Director
             </span>
           )}
         </button>
-        <Logo />
+        <Logo company={company} />
       </div>
     </header>
   )

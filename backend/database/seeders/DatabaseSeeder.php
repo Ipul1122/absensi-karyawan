@@ -27,13 +27,26 @@ class DatabaseSeeder extends Seeder
         );
 
         User::updateOrCreate(
-            ['email' => 'direktur@absen.com'],
+            ['email' => 'meladi.dian@cakrwala-internasional.co.id'],
             [
-                'name' => 'Direktur Utama',
+                'name' => 'Meladi Dian',
                 'password' => bcrypt('password'),
                 'password_plain' => 'password',
                 'role' => 'director',
                 'status' => 'active',
+                'company' => 'PT Cakrawala Parama Internasional',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'andrisyahputra@yasodana-parvez.co.id'],
+            [
+                'name' => 'Andri Syahputra',
+                'password' => bcrypt('password'),
+                'password_plain' => 'password',
+                'role' => 'director',
+                'status' => 'active',
+                'company' => 'PT Yasodana Parvez Internasional',
             ]
         );
 

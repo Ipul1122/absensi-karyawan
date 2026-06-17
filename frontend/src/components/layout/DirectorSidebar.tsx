@@ -18,6 +18,7 @@ interface User {
   name: string
   email: string
   role: 'admin' | 'employee' | 'director'
+  company?: string
 }
 
 interface DirectorSidebarProps {
@@ -55,7 +56,7 @@ export default function DirectorSidebar({
       <div className="flex flex-col flex-1 min-h-0">
         {/* Header Brand */}
         <div className="flex items-center gap-3 px-3 py-2 border-b border-orange-100 pb-5 shrink-0">
-          <Logo />
+          <Logo company={user.company} />
         </div>
 
         {/* Scrollable Container for Profile & Menu Items */}

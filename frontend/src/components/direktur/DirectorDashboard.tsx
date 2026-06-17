@@ -17,6 +17,7 @@ interface User {
   email: string
   role: 'admin' | 'employee' | 'director'
   photo?: string | null
+  company?: string
 }
 
 interface DirectorDashboardProps {
@@ -85,7 +86,11 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         <DirectorNavbar user={user} title={pageTitle} subtitle={pageSubtitle} />
-        <DirectorMobileNavbar onMenuClick={() => setShowMobileSidebar(true)} pendingCount={pendingKaryawanCount + pendingGajiCount + pendingPayrollCount + pendingOperasionalCount} />
+        <DirectorMobileNavbar 
+          onMenuClick={() => setShowMobileSidebar(true)} 
+          pendingCount={pendingKaryawanCount + pendingGajiCount + pendingPayrollCount + pendingOperasionalCount} 
+          company={user.company}
+        />
         
         {/* Mobile Sidebar Drawer */}
         {showMobileSidebar && (

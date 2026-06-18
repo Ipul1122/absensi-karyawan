@@ -137,6 +137,21 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
     return new Date(dateStr).toLocaleDateString('id-ID', options)
   }
 
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
+  }
+
   // Quick action handlers
   const handleQuickApprove = async (item: UnifiedPendingItem) => {
     let url = ''
@@ -798,6 +813,16 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   </div>
                 </div>
               )}
+
+              {lRequest.created_at && (
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Waktu Pengajuan (Dibuat)</p>
+                  <p className="font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    {formatDateTime(lRequest.created_at)}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )
@@ -838,6 +863,16 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   {oRequest.reason || <span className="italic text-slate-300">Tidak ada keterangan lembur</span>}
                 </p>
               </div>
+
+              {oRequest.created_at && (
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Waktu Pengajuan (Dibuat)</p>
+                  <p className="font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    {formatDateTime(oRequest.created_at)}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )
@@ -897,6 +932,16 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   </div>
                 </div>
               )}
+
+              {rRequest.created_at && (
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Waktu Pengajuan (Dibuat)</p>
+                  <p className="font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    {formatDateTime(rRequest.created_at)}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )
@@ -929,6 +974,16 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                   {bRequest.description || <span className="italic text-slate-300">Tidak ada keterangan penjelasan</span>}
                 </p>
               </div>
+
+              {bRequest.created_at && (
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Waktu Pengajuan (Dibuat)</p>
+                  <p className="font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    {formatDateTime(bRequest.created_at)}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )
@@ -997,6 +1052,16 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                       <ExternalLink className="w-4 h-4" /> Buka Nota Pembayaran
                     </a>
                   </div>
+                </div>
+              )}
+
+              {iRequest.created_at && (
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">Waktu Pengajuan (Dibuat)</p>
+                  <p className="font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    {formatDateTime(iRequest.created_at)}
+                  </p>
                 </div>
               )}
             </div>
@@ -1298,9 +1363,15 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                       <span className="text-slate-700 font-black">{item.requesterName}</span>
                       {item.requesterEmail && <span className="text-slate-400 font-normal break-all">({item.requesterEmail})</span>}
                     </p>
-                    <p className="text-xs text-slate-400 font-medium leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100 break-words">
+                    <p className="text-xs text-slate-450 font-medium leading-relaxed bg-slate-50 p-2 rounded-lg border border-slate-100 break-words font-sans">
                       {item.details}
                     </p>
+                    {item.originalData?.created_at && (
+                      <p className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-350 shrink-0" />
+                        <span>Dibuat: {formatDateTime(item.originalData.created_at)}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 

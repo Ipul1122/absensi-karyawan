@@ -29,6 +29,7 @@ interface Bonus {
   bonus_date: string
   description: string | null
   created_at: string
+  updated_at: string
   user: UserDetails
   status: 'pending' | 'approved' | 'rejected'
 }
@@ -330,6 +331,21 @@ export default function AdminBonus({ token }: AdminBonusProps) {
     })
   }
 
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
+  }
+
   return (
     <div className="space-y-6 font-quicksand">
       
@@ -558,6 +574,8 @@ export default function AdminBonus({ token }: AdminBonusProps) {
                         <th className="py-3.5 px-4">Karyawan</th>
                         <th className="py-3.5 px-4">Jumlah Bonus</th>
                         <th className="py-3.5 px-4">Tanggal</th>
+                        <th className="py-3.5 px-4">Dibuat</th>
+                        <th className="py-3.5 px-4">Diterima</th>
                         <th className="py-3.5 px-4">Keterangan</th>
                         <th className="py-3.5 px-4">Status</th>
                         <th className="py-3.5 px-4 text-right">Aksi</th>
@@ -586,7 +604,19 @@ export default function AdminBonus({ token }: AdminBonusProps) {
 
                           {/* Date */}
                           <td className="py-3 px-4 text-slate-500 font-medium">
-                            {formatDate(item.bonus_date)}
+                            <span className="block text-slate-800 font-bold">{formatDate(item.bonus_date)}</span>
+                          </td>
+
+                          {/* Dibuat */}
+                          <td className="py-3 px-4 text-slate-700">
+                            {formatDateTime(item.created_at)}
+                          </td>
+
+                          {/* Diterima */}
+                          <td className="py-3 px-4 text-slate-700">
+                            {item.status === 'approved' || item.status === 'rejected'
+                              ? formatDateTime(item.updated_at)
+                              : '-'}
                           </td>
 
                           {/* Description */}

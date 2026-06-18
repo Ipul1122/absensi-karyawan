@@ -44,6 +44,14 @@ class Payroll extends Model
         'net_salary' => 'double',
     ];
 
+    protected $appends = ['verification_hash'];
+
+    public function getVerificationHashAttribute(): string
+    {
+        // Generate a secure hash using the payroll ID, user ID, period month, and the application key as secret salt
+        return substr(hash_hmac('sha256', $this->id . '-' . $this->user_id . '-' . $this->period_month, config('app.key')), 0, 32);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

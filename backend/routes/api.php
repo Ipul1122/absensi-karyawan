@@ -37,6 +37,7 @@ Route::get('/health-check', function () {
 });
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/payroll/verify/{id}/{hash}', [PayrollController::class, 'verifySlip']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

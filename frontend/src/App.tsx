@@ -7,6 +7,7 @@ const Login = lazy(() => import('./components/Login'))
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
 const EmployeeDashboard = lazy(() => import('./components/EmployeeDashboard'))
 const DirectorDashboard = lazy(() => import('./components/direktur/DirectorDashboard'))
+const VerifySlip = lazy(() => import('./components/payroll/VerifySlip'))
 
 interface HealthResponse {
   status: string
@@ -113,6 +114,7 @@ function App() {
         </div>
       }>
         <Routes>
+          <Route path="/verify-slip/:id/:hash" element={<VerifySlip />} />
           {token && user ? (
             user.role === 'admin' ? (
               <>

@@ -969,4 +969,41 @@ class PayrollController extends Controller
             'data' => $upcoming
         ]);
     }
+
+    /**
+     * Verifikasi slip gaji secara publik tanpa autentikasi.
+     */
+    public function verifySlip(Request $request, $id, $hash)
+    {
+        $payroll = Payroll::with(['user:id,name,email,company,division,employee_number'])->find($id);
+
+        if (!$payroll) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Slip gaji tidak ditemukan.'
+            ], 404);
+        }
+
+        if ($payroll->verification_hash !== $hash) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tanda tangan digital tidak valid atau slip gaji telah dimodifikasi.'
+            ], 400);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'id' => $payroll->id,
+                'employee_name' => $payroll->user->name,
+                'employee_number' => $payroll->user->employee_number,
+                'company' => $payroll->user->company ?: 'PT Cakrawala Parama Internasional',
+                'division' => $payroll->user->division,
+                'period_month' => $payroll->period_month,
+                'net_salary' => (float) $payroll->net_salary,
+                'status' => $payroll->status,
+                'verified_at' => now()->toIso8601String()
+            ]
+        ]);
+    }
 }

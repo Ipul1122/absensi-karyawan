@@ -310,7 +310,7 @@ class PayrollController extends Controller
         $period = $request->period_month;
 
         $payrolls = Payroll::where('period_month', $period)
-            ->with(['user:id,name,email,no_rekening,company', 'user.salaryConfiguration'])
+            ->with(['user:id,name,email,no_rekening,company,division,employee_number', 'user.salaryConfiguration'])
             ->get();
 
         $hrManager = User::where('role', 'admin')->first();
@@ -689,7 +689,7 @@ class PayrollController extends Controller
         $userId = $request->user()->id;
         $query = Payroll::where('user_id', $userId)
             ->whereIn('status', ['unpaid', 'paid'])
-            ->with(['user:id,name,email,no_rekening,company']);
+            ->with(['user:id,name,email,no_rekening,company,division,employee_number']);
 
         if ($request->filled('period_month')) {
             $query->where('period_month', $request->period_month);

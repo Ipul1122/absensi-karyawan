@@ -663,6 +663,12 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     if (path.includes('lokasiKantor')) {
       return { title: 'Konfigurasi Lokasi & Radius', subtitle: 'Location Configuration' }
     }
+    if (path.includes('keamanan')) {
+      return { title: 'Akun & Keamanan Admin', subtitle: 'Account Security' }
+    }
+    if (path.includes('biodata')) {
+      return { title: 'Biodata Pribadi Admin', subtitle: 'Admin Profile' }
+    }
     if (path.includes('payroll-config')) {
       return { title: 'Setelan Gaji Karyawan', subtitle: 'Salary Configuration' }
     }
@@ -810,6 +816,45 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
                   user={user}
                   token={token}
                   onProfileUpdate={onProfileUpdate}
+                  initialTab="lokasi"
+                />
+              } 
+            />
+            <Route 
+              path="keamanan" 
+              element={
+                <LokasiKantor
+                  officeLatitude={officeLatitude}
+                  setOfficeLatitude={setOfficeLatitude}
+                  officeLongitude={officeLongitude}
+                  setOfficeLongitude={setOfficeLongitude}
+                  officeRadius={officeRadius}
+                  setOfficeRadius={setOfficeRadius}
+                  savingOffice={savingOffice}
+                  handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                  user={user}
+                  token={token}
+                  onProfileUpdate={onProfileUpdate}
+                  initialTab="akun"
+                />
+              } 
+            />
+            <Route 
+              path="biodata" 
+              element={
+                <LokasiKantor
+                  officeLatitude={officeLatitude}
+                  setOfficeLatitude={setOfficeLatitude}
+                  officeLongitude={officeLongitude}
+                  setOfficeLongitude={setOfficeLongitude}
+                  officeRadius={officeRadius}
+                  setOfficeRadius={setOfficeRadius}
+                  savingOffice={savingOffice}
+                  handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                  user={user}
+                  token={token}
+                  onProfileUpdate={onProfileUpdate}
+                  initialTab="biodata"
                 />
               } 
             />

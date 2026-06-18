@@ -623,16 +623,12 @@ class AttendanceController extends Controller
                         ob_start();
                         imagewebp($dstImage, null, 75); // kualitas 75%
                         $webpData = ob_get_clean();
-
-                        imagedestroy($dstImage);
                     } else {
                         // Tidak perlu resize, langsung kompres ke WebP
                         ob_start();
                         imagewebp($srcImage, null, 75);
                         $webpData = ob_get_clean();
                     }
-
-                    imagedestroy($srcImage);
 
                     if ($webpData !== false) {
                         $imageBytes = $webpData;

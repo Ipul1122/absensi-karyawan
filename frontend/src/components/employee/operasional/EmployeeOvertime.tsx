@@ -24,6 +24,7 @@ interface Overtime {
   status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
+  updated_at: string
 }
 
 interface Summary {
@@ -236,6 +237,21 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
   const formatTime = (timeString: string) => {
@@ -718,6 +734,8 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
                 <thead>
                   <tr className="border-b border-orange-50 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                     <th className="pb-3 px-3">Tanggal</th>
+                    <th className="pb-3 px-3">Dibuat</th>
+                    <th className="pb-3 px-3">Diterima</th>
                     <th className="pb-3 px-3">Waktu</th>
                     <th className="pb-3 px-3">Durasi</th>
                     <th className="pb-3 px-3">Rincian Pekerjaan</th>
@@ -730,8 +748,20 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
                   {overtimes.map((item) => (
                     <tr key={item.id} className="hover:bg-orange-50/10 transition-colors">
                       {/* Date */}
-                      <td className="py-4 px-3 text-slate-800 font-bold">
-                        {formatDate(item.date)}
+                      <td className="py-4 px-3">
+                        <span className="block text-slate-800 font-bold">{formatDate(item.date)}</span>
+                      </td>
+
+                      {/* Dibuat */}
+                      <td className="py-4 px-3 text-slate-750">
+                        {formatDateTime(item.created_at)}
+                      </td>
+
+                      {/* Diterima */}
+                      <td className="py-4 px-3 text-slate-750">
+                        {item.status === 'approved' || item.status === 'rejected'
+                          ? formatDateTime(item.updated_at)
+                          : '-'}
                       </td>
 
                       {/* Time */}

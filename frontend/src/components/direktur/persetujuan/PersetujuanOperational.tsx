@@ -23,22 +23,26 @@ interface LeaveRequest {
   id: number; user_id: number; category: string; custom_category: string | null
   start_date: string; end_date: string; reason: string; image: string | null
   status: string; admin_notes: string | null; user: UserBrief
+  created_at: string; updated_at: string
 }
 
 interface OvertimeRequest {
   id: number; user_id: number; date: string; start_time: string; end_time: string
   duration: number; reason: string; status: string; admin_notes: string | null; user: UserBrief
+  created_at: string; updated_at: string
 }
 
 interface ReimbursementRequest {
   id: number; user_id: number; title: string; category: string; amount: number
   expense_date: string; description: string | null; receipt_path: string; status: string
   admin_notes: string | null; user: UserBrief
+  created_at: string; updated_at: string
 }
 
 interface BonusRequest {
   id: number; user_id: number; bonus_amount: number; bonus_date: string
   description: string | null; status: string; user: UserBrief
+  created_at: string; updated_at: string
 }
 
 interface InventoryRequest {
@@ -63,7 +67,7 @@ const S = { fontFamily: "'Inter', 'system-ui', sans-serif" }
 const tabDefs = [
   { key: 'cuti' as const, label: 'Cuti', icon: CalendarDays, color: '#4f46e5', bg: 'rgba(79,70,229,0.08)', border: 'rgba(79,70,229,0.20)', gradient: 'linear-gradient(135deg,#4f46e5,#7c3aed)' },
   { key: 'lembur' as const, label: 'Lembur', icon: Clock, color: '#d97706', bg: 'rgba(217,119,6,0.08)', border: 'rgba(217,119,6,0.20)', gradient: 'linear-gradient(135deg,#d97706,#b45309)' },
-  { key: 'reimbursement' as const, label: 'Klaim Biaya', icon: Receipt, color: '#0891b2', bg: 'rgba(8,145,178,0.08)', border: 'rgba(8,145,178,0.20)', gradient: 'linear-gradient(135deg,#0891b2,#0e7490)' },
+  { key: 'reimbursement' as const, label: 'Reimburse', icon: Receipt, color: '#0891b2', bg: 'rgba(8,145,178,0.08)', border: 'rgba(8,145,178,0.20)', gradient: 'linear-gradient(135deg,#0891b2,#0e7490)' },
   { key: 'bonus' as const, label: 'Bonus', icon: Gift, color: '#059669', bg: 'rgba(5,150,105,0.08)', border: 'rgba(5,150,105,0.20)', gradient: 'linear-gradient(135deg,#059669,#047857)' },
   { key: 'inventaris' as const, label: 'Inventaris', icon: Package, color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.20)', gradient: 'linear-gradient(135deg,#f97316,#ea580c)' },
 ]
@@ -117,6 +121,21 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
     }
     
     return `${cleanTime} ${period}`
+  }
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
   const pendingLeaves = leaves.filter(l => l.status === 'pending_director')
@@ -317,6 +336,8 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                     <tr className="bg-slate-50/80 border-b border-slate-100">
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Karyawan</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Kategori & Tanggal</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Dibuat</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Diterima</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Alasan</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Bukti</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Tindakan</th>
@@ -334,6 +355,12 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                             <Calendar className="w-3 h-3 text-slate-300 shrink-0" />
                             {new Date(r.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} — {new Date(r.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
+                        </td>
+                        <td className="py-4 px-6 text-slate-700 font-semibold">
+                          {formatDateTime(r.created_at)}
+                        </td>
+                        <td className="py-4 px-6 text-slate-500 font-semibold">
+                          -
                         </td>
                         <td className="py-4 px-6 max-w-[200px]">
                           <p className="text-xs text-slate-500 font-medium truncate" title={r.reason}>{r.reason}</p>
@@ -371,6 +398,8 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                     <tr className="bg-slate-50/80 border-b border-slate-100">
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Karyawan</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal & Durasi</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Dibuat</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Diterima</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Jam</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Alasan</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Tindakan</th>
@@ -383,6 +412,12 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                         <td className="py-4 px-6">
                           <p className="text-xs font-semibold text-slate-700">{new Date(r.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                           <span className="inline-block mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black" style={{ background: currentTab.bg, color: currentTab.color, border: `1px solid ${currentTab.border}` }}>{r.duration} jam</span>
+                        </td>
+                        <td className="py-4 px-6 text-slate-700 font-semibold">
+                          {formatDateTime(r.created_at)}
+                        </td>
+                        <td className="py-4 px-6 text-slate-500 font-semibold">
+                          -
                         </td>
                         <td className="py-4 px-6">
                           <p className="text-xs font-medium text-slate-500 flex items-center gap-1">
@@ -418,6 +453,8 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                     <tr className="bg-slate-50/80 border-b border-slate-100">
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Karyawan</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Judul & Kategori</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Dibuat</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Diterima</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">Nominal</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Nota</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Tindakan</th>
@@ -433,6 +470,12 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                             <span className="inline-block px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider" style={{ background: currentTab.bg, color: currentTab.color, border: `1px solid ${currentTab.border}` }}>{r.category}</span>
                             <span className="text-[10px] text-slate-400 font-medium">{new Date(r.expense_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                           </div>
+                        </td>
+                        <td className="py-4 px-6 text-slate-700 font-semibold">
+                          {formatDateTime(r.created_at)}
+                        </td>
+                        <td className="py-4 px-6 text-slate-500 font-semibold">
+                          -
                         </td>
                         <td className="py-4 px-6 text-right">
                           <span className="text-sm font-black text-slate-800">{fmt(r.amount)}</span>
@@ -471,6 +514,8 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                     <tr className="bg-slate-50/80 border-b border-slate-100">
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Karyawan</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Tanggal Pembagian</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Dibuat</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Diterima</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">Nominal Bonus</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Keterangan</th>
                       <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Tindakan</th>
@@ -481,7 +526,13 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                       <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-4 px-6"><EmployeeCell name={r.user?.name} email={r.user?.email} gradient={currentTab.gradient} /></td>
                         <td className="py-4 px-6 text-xs font-medium text-slate-500">
-                          {new Date(r.bonus_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          <span className="block">{new Date(r.bonus_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                        </td>
+                        <td className="py-4 px-6 text-slate-700 font-semibold">
+                          {formatDateTime(r.created_at)}
+                        </td>
+                        <td className="py-4 px-6 text-slate-500 font-semibold">
+                          -
                         </td>
                         <td className="py-4 px-6 text-right">
                           <span className="text-sm font-black text-slate-800">{fmt(r.bonus_amount)}</span>

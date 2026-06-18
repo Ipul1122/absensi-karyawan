@@ -16,6 +16,7 @@ import {
   Plus,
   CalendarRange
 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface PayrollRecord {
   id: number
@@ -39,6 +40,7 @@ interface PayrollRecord {
   paid_at: string | null
   notes: string | null
   updated_at: string
+  verification_hash?: string
   user: {
     id: number
     name: string
@@ -1978,25 +1980,14 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 </div>
 
                 {/* QR Code Digital Seal */}
-                <div className="verification-seal" style={{ display: 'flex', gap: '8px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', backgroundColor: '#f8fafc', maxWidth: '180px', margin: '0 auto 10px auto' }}>
-                  <svg width="40" height="40" viewBox="0 0 100 100" style={{ opacity: 0.95, flexShrink: 0 }}>
-                    <rect x="2" y="2" width="96" height="96" rx="12" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1.5" />
-                    <rect x="12" y="12" width="20" height="20" rx="3" fill="none" stroke="#0f172a" strokeWidth="4" />
-                    <rect x="17" y="17" width="10" height="10" rx="1.5" fill="#0f172a" />
-                    <rect x="68" y="12" width="20" height="20" rx="3" fill="none" stroke="#0f172a" strokeWidth="4" />
-                    <rect x="73" y="17" width="10" height="10" rx="1.5" fill="#0f172a" />
-                    <rect x="12" y="68" width="20" height="20" rx="3" fill="none" stroke="#0f172a" strokeWidth="4" />
-                    <rect x="17" y="73" width="10" height="10" rx="1.5" fill="#0f172a" />
-                    <path d="M 40 15 L 40 25 M 45 12 L 55 12 M 50 20 L 60 20 M 45 28 L 50 28 M 55 28 L 65 28" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
-                    <path d="M 15 40 L 25 40 M 12 45 L 12 55 M 20 50 L 20 60 M 28 45 L 28 50 M 28 55 L 28 65" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
-                    <path d="M 40 40 H 60 V 60 H 40 Z" fill="none" stroke="#0f172a" strokeWidth="3" />
-                    <rect x="46" y="46" width="8" height="8" fill="#0f172a" />
-                    <path d="M 68 40 L 88 40 M 75 45 L 85 45 M 80 50 L 80 60" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
-                    <path d="M 40 68 L 40 88 M 45 75 L 55 75 M 50 80 L 60 80" stroke="#0f172a" strokeWidth="3" strokeLinecap="round" />
-                    <path d="M 68 68 L 88 88 M 88 68 L 68 88" stroke="#ea580c" strokeWidth="3" strokeLinecap="round" />
-                    <circle cx="82" cy="82" r="14" fill="#16a34a" />
-                    <path d="M 76 82 L 80 86 L 88 78" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                <div className="verification-seal" style={{ display: 'flex', gap: '8px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', backgroundColor: '#f8fafc', maxWidth: '200px', margin: '0 auto 10px auto', alignItems: 'center' }}>
+                  <div style={{ flexShrink: 0, padding: '2px', backgroundColor: '#ffffff', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                    <QRCodeSVG 
+                      value={`${window.location.origin}/verify-slip/${selectedSlip.id}/${selectedSlip.verification_hash || ''}`} 
+                      size={44}
+                      level="M"
+                    />
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left' }}>
                     <span style={{ fontSize: '8px', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.3px', lineHeight: 1.1 }}>Verified</span>
                     <span style={{ fontSize: '6px', fontWeight: 700, color: '#0f172a', marginTop: '2px', wordBreak: 'break-all', lineHeight: 1.1 }}>Ref: {selectedSlip.id}-{selectedSlip.period_month}</span>

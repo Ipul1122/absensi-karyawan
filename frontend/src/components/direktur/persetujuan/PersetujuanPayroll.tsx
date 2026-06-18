@@ -376,6 +376,7 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
                   <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">Tunjangan</th>
                   <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">Potongan</th>
                   <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">Gaji Bersih</th>
+                  <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-left">No. Rekening</th>
                   <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Tindakan</th>
                 </tr>
               </thead>
@@ -390,11 +391,6 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
                         <div>
                           <p className="text-sm font-semibold text-slate-800">{record.user.name}</p>
                           <p className="text-[10px] text-slate-400 font-medium">{record.user.email}</p>
-                          {record.user.no_rekening && (
-                            <p className="text-[10px] font-bold text-blue-600 mt-1 select-all bg-blue-50/50 px-2 py-0.5 rounded border border-blue-100/50 w-fit">
-                              Rek: {record.user.no_rekening} {record.user.company ? `(${record.user.company})` : ''}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </td>
@@ -423,6 +419,23 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
                     </td>
                     <td className="py-4 px-6 text-right">
                       <span className="text-sm font-black text-slate-800">{fmt(record.net_salary)}</span>
+                    </td>
+                    <td className="py-4 px-6 text-left">
+                      {record.user.no_rekening ? (
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold text-blue-600 select-all bg-blue-50/50 border border-blue-100/50">
+                            <CreditCard className="w-3.5 h-3.5 text-blue-500" />
+                            {record.user.no_rekening}
+                          </span>
+                          {record.user.company && (
+                            <span className="text-[10px] text-slate-400 font-medium ml-1">
+                              {record.user.company}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Belum diatur</span>
+                      )}
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center gap-2">

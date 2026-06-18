@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
         );
 
         User::updateOrCreate(
-            ['email' => 'meladi.dian@cakrwala-internasional.co.id'],
+            ['email' => 'melani.dian@cakrwala-internasional.co.id'],
             [
                 'name' => 'Meladi Dian',
                 'password' => bcrypt('password'),

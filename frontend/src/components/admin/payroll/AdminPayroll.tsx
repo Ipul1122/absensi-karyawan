@@ -45,6 +45,8 @@ interface PayrollRecord {
     email: string
     no_rekening?: string | null
     company?: string | null
+    division?: string | null
+    employee_number?: string | null
   }
 }
 
@@ -1850,10 +1852,23 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
               <div className="meta">
                 <div>
-                  <strong>Nama Karyawan:</strong> {selectedSlip.user.name}
+                  <strong>Nama:</strong> {selectedSlip.user.name}
                 </div>
                 <div>
-                  <strong>Email Karyawan:</strong> {selectedSlip.user.email}
+                  <strong>Jabatan:</strong> {selectedSlip.user.division || '-'}
+                </div>
+                <div>
+                  <strong>NIP:</strong> {selectedSlip.user.employee_number || '-'}
+                </div>
+                <div>
+                  <strong>Email:</strong> {selectedSlip.user.email}
+                </div>
+
+                <div>
+                  <strong>Tanggal Proses:</strong>{' '}
+                  {selectedSlip.status === 'paid' && selectedSlip.paid_at
+                    ? new Date(selectedSlip.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                    : new Date(selectedSlip.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
                 <div>
                   <strong>Status Pembayaran:</strong>{' '}
@@ -1866,12 +1881,6 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                           ? 'Menunggu Direktur'
                           : 'Draft'}
                   </span>
-                </div>
-                <div>
-                  <strong>Tanggal Proses:</strong>{' '}
-                  {selectedSlip.status === 'paid' && selectedSlip.paid_at
-                    ? new Date(selectedSlip.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-                    : new Date(selectedSlip.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
               </div>
 

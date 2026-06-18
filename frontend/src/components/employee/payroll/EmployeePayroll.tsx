@@ -41,6 +41,8 @@ interface PayrollRecord {
     email: string
     no_rekening?: string | null
     company?: string | null
+    division?: string | null
+    employee_number?: string | null
   }
 }
 
@@ -493,26 +495,27 @@ export default function EmployeePayroll({ token, user, company }: EmployeePayrol
 
               <div className="meta">
                 <div>
-                  <strong>Nama Karyawan:</strong> {selectedSlip.user?.name || getEmployeeDisplayName()}
+                  <strong>Nama:</strong> {selectedSlip.user?.name || getEmployeeDisplayName()}
                 </div>
                 <div>
-                  <strong>Email Karyawan:</strong> {selectedSlip.user?.email || getEmployeeDisplayEmail()}
+                  <strong>Jabatan:</strong> {selectedSlip.user?.division || '-'}
                 </div>
                 <div>
-                  <strong>Status Pembayaran:</strong>{' '}
-                  <span className="badge">{getPaymentStatusLabel(selectedSlip.status)}</span>
+                  <strong>NIP:</strong> {selectedSlip.user?.employee_number || '-'}
                 </div>
                 <div>
-                  <strong>No. Rekening:</strong>{' '}
-                  <span className="select-all font-mono font-bold text-slate-800 bg-slate-100/80 px-1.5 py-0.5 rounded border border-slate-200/50">
-                    {selectedSlip.user?.no_rekening || 'Belum diatur'}
-                  </span>
+                  <strong>Email:</strong> {selectedSlip.user?.email || getEmployeeDisplayEmail()}
                 </div>
+
                 <div>
                   <strong>Tanggal Proses:</strong>{' '}
                   {selectedSlip.status === 'paid' && selectedSlip.paid_at
                     ? new Date(selectedSlip.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
                     : new Date(selectedSlip.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+                <div>
+                  <strong>Status Pembayaran:</strong>{' '}
+                  <span className="badge">{getPaymentStatusLabel(selectedSlip.status)}</span>
                 </div>
               </div>
 

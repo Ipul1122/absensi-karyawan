@@ -175,7 +175,7 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
           <p>Apakah Anda ingin menandai pembayaran gaji ini sebagai lunas?</p>
           <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl space-y-2 mt-2">
             <div class="flex justify-between">
-              <span class="text-slate-400 font-semibold font-bold">Nama Karyawan:</span>
+              <span class="text-slate-400 font-semibold font-bold">Nama:</span>
               <span class="font-extrabold text-slate-800">${record.user.name}</span>
             </div>
             <div class="flex justify-between">

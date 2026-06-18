@@ -28,6 +28,7 @@ interface Reimbursement {
   status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
+  updated_at: string
 }
 
 interface EmployeeReimbursementProps {
@@ -263,6 +264,21 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
   const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
@@ -540,6 +556,8 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                 <thead>
                   <tr className="border-b border-orange-50 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                     <th className="pb-3 pt-3 pl-4">Klaim / Deskripsi</th>
+                    <th className="pb-3 pt-3">Dibuat</th>
+                    <th className="pb-3 pt-3">Diterima</th>
                     <th className="pb-3 pt-3">Kategori</th>
                     <th className="pb-3 pt-3">Jumlah Uang</th>
                     <th className="pb-3 pt-3">Tanggal Nota</th>
@@ -558,6 +576,18 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                         <span className="text-[10px] text-slate-400 font-medium max-w-[220px] truncate block">
                           {item.description || '-'}
                         </span>
+                      </td>
+
+                      {/* Dibuat */}
+                      <td className="py-4 text-slate-750">
+                        {formatDateTime(item.created_at)}
+                      </td>
+
+                      {/* Diterima */}
+                      <td className="py-4 text-slate-750">
+                        {item.status === 'approved' || item.status === 'rejected'
+                          ? formatDateTime(item.updated_at)
+                          : '-'}
                       </td>
 
                       {/* Category */}
@@ -677,6 +707,14 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                       <strong>Catatan Admin:</strong> "{item.admin_notes}"
                     </div>
                   )}
+
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-[10px] text-slate-500 font-medium space-y-1 mt-2">
+                    <div><strong>Dibuat:</strong> {formatDateTime(item.created_at)}</div>
+                    <div>
+                      <strong>Diterima:</strong> {item.status === 'approved' ? formatDateTime(item.updated_at) :
+                       item.status === 'rejected' ? `Ditolak pada ${formatDateTime(item.updated_at)}` : '-'}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

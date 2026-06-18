@@ -35,6 +35,7 @@ interface LeaveRequest {
   status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
+  updated_at: string
   user: UserDetails
 }
 
@@ -211,6 +212,21 @@ export default function AdminCuti({ token }: AdminCutiProps) {
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
   // Filtered Leave list
@@ -658,6 +674,8 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                   <tr className="bg-orange-50/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
                     <th className="py-4 px-5">Karyawan</th>
                     <th className="py-4 px-5">Kategori</th>
+                    <th className="py-4 px-5">Dibuat</th>
+                    <th className="py-4 px-5">Diterima</th>
                     <th className="py-4 px-5">Masa Cuti</th>
                     <th className="py-4 px-5">Keterangan / Alasan</th>
                     <th className="py-4 px-5">Bukti</th>
@@ -689,9 +707,18 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                           <span className="block font-bold text-slate-800">
                             {leave.category === 'LAINNYA' ? leave.custom_category : leave.category}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-medium">
-                            Diajukan: {formatDate(leave.created_at)}
-                          </span>
+                        </td>
+
+                        {/* Dibuat */}
+                        <td className="py-4 px-5 text-slate-700">
+                          {formatDateTime(leave.created_at)}
+                        </td>
+
+                        {/* Diterima */}
+                        <td className="py-4 px-5 text-slate-700">
+                          {leave.status === 'approved' || leave.status === 'rejected'
+                            ? formatDateTime(leave.updated_at)
+                            : '-'}
                         </td>
 
                         {/* Period */}

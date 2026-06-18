@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { 
-  CheckCircle2, 
   XCircle, 
   Loader2, 
   ShieldCheck, 

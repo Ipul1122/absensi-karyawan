@@ -15,7 +15,10 @@ import {
   Gift,
   Coins,
   Wallet,
-  ClipboardList
+  ClipboardList,
+  MapPin,
+  KeyRound,
+  UserCircle2
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -67,6 +70,14 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
     ].includes(location.pathname)
   })
 
+  const [isPengaturanOpen, setIsPengaturanOpen] = useState(() => {
+    return [
+      '/admin/lokasiKantor',
+      '/admin/keamanan',
+      '/admin/biodata'
+    ].includes(location.pathname)
+  })
+
   useEffect(() => {
     if (
       location.pathname === '/admin/akunKaryawan' ||
@@ -92,6 +103,15 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       ].includes(location.pathname)
     ) {
       setIsGajiOpen(true)
+    }
+    if (
+      [
+        '/admin/lokasiKantor',
+        '/admin/keamanan',
+        '/admin/biodata'
+      ].includes(location.pathname)
+    ) {
+      setIsPengaturanOpen(true)
     }
   }, [location.pathname])
 
@@ -124,7 +144,15 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
         { to: '/admin/payroll', label: 'Bayar Gaji', icon: Coins },
       ]
     },
-    { to: '/admin/lokasiKantor', label: 'Pengaturan', icon: Settings },
+    {
+      label: 'Pengaturan',
+      icon: Settings,
+      children: [
+        { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin },
+        { to: '/admin/keamanan', label: 'Akun & Keamanan', icon: KeyRound },
+        { to: '/admin/biodata', label: 'Biodata Pribadi', icon: UserCircle2 },
+      ]
+    },
   ]
 
   const handleLinkClick = () => {
@@ -173,6 +201,9 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                 } else if (item.label === 'Gaji') {
                   isOpen = isGajiOpen
                   toggleOpen = () => setIsGajiOpen(!isGajiOpen)
+                } else if (item.label === 'Pengaturan') {
+                  isOpen = isPengaturanOpen
+                  toggleOpen = () => setIsPengaturanOpen(!isPengaturanOpen)
                 }
                 
                 return (

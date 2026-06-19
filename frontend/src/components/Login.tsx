@@ -21,6 +21,7 @@ interface User {
   name: string
   email: string
   role: 'admin' | 'employee' | 'director'
+  company?: string | null
 }
 
 interface LoginProps {
@@ -200,7 +201,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
               <div className="lg:hidden flex flex-col items-center mb-8">
                 <Logo className="w-12 h-12" />
                 <h2 className="text-xl font-black text-slate-900 mt-4 font-sans tracking-tight">
-                  {activeTab === 'director' ? 'Portal Direksi' : 'KaryaAbsen'}
+                  {activeTab === 'director' ? 'Portal Direksi' : 'goodpeople-hcms'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1 font-medium text-center max-w-xs leading-relaxed">
                   {activeTab === 'director'

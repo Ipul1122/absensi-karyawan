@@ -166,7 +166,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       <div className="flex flex-col flex-1 min-h-0">
         {/* Brand Logo */}
         <div className="flex items-center gap-3 px-3 py-2 border-b border-orange-100 pb-5 shrink-0">
-          <Logo />
+          <Logo company="PT Cakrawala Parama Internasional" />
         </div>
 
         {/* Scrollable Container for Profile & Menu Items */}

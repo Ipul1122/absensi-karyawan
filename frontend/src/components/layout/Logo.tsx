@@ -35,10 +35,10 @@ export default function Logo({ className = "w-10 h-10", company }: LogoProps) {
       </div>
       <div>
         <h2 className="text-base font-black tracking-tight text-slate-900 leading-none font-sans uppercase">
-          Karya<span className="text-amber-600">Absen</span>
+          goodpeople<span className="text-amber-600">-hcms</span>
         </h2>
         <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest font-quicksand">
-          Presensi Digital
+          HCMS Portal
         </span>
       </div>
     </div>

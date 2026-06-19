@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Menu, Bell, ChevronDown, LogOut, Shield } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Menu, Bell, ChevronDown, LogOut, Shield, Settings } from 'lucide-react'
 import Logo from './Logo'
 
 import { getAssetUrl } from '../../utils/api'
@@ -17,9 +18,10 @@ interface DirectorNavbarProps {
   user: User
   title: string
   subtitle?: string
+  onLogout?: () => void
 }
 
-export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbarProps) {
+export default function DirectorNavbar({ user, title, subtitle, onLogout }: DirectorNavbarProps) {
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -107,12 +109,20 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
                   <span className="text-[9px] font-black text-orange-600 uppercase tracking-wider">Direktur Utama</span>
                 </div>
               </div>
-              <div className="p-2">
-                <button
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 transition-all cursor-pointer"
-                  onClick={() => { window.location.href = '/' }}
+              <div className="p-2 space-y-1">
+                <Link
+                  to="/director/pengaturan"
+                  onClick={() => setShowDropdown(false)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-orange-50/50 hover:text-orange-700 transition-all flex"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <Settings className="w-3.5 h-3.5 text-slate-400 group-hover:text-orange-600 mr-1 shrink-0" />
+                  Pengaturan Profil
+                </Link>
+                <button
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 transition-all cursor-pointer flex"
+                  onClick={onLogout || (() => { window.location.href = '/' })}
+                >
+                  <LogOut className="w-3.5 h-3.5 mr-1 shrink-0" />
                   Keluar dari Aplikasi
                 </button>
               </div>

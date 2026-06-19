@@ -133,7 +133,7 @@ function App() {
                 <Route 
                   path="/director/*" 
                   element={
-                    <DirectorDashboard user={user as any} token={token} onLogout={handleLogout} />
+                    <DirectorDashboard user={user as any} token={token} onLogout={handleLogout} onProfileUpdate={handleProfileUpdate} />
                   } 
                   />
                 <Route path="*" element={<Navigate to="/director/dashboard" replace />} />

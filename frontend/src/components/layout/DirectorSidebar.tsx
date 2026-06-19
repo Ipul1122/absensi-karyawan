@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Crown,
   Clock,
-  Users
+  Users,
+  Settings
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -38,6 +39,7 @@ const menuItems = [
   { to: '/director/payroll', label: 'Bayar Gaji', icon: Coins, description: 'Rollout gaji bulanan' },
   { to: '/director/operasional', label: 'Biaya Operasional', icon: FileCheck, description: 'Cuti, lembur & klaim' },
   { to: '/director/log-kehadiran', label: 'Log Kehadiran', icon: Clock, description: 'Aktivitas absensi staf' },
+  { to: '/director/pengaturan', label: 'Pengaturan', icon: Settings, description: 'Profil & kata sandi' },
 ]
 
 export default function DirectorSidebar({ 

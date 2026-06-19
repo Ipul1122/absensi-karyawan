@@ -11,7 +11,9 @@ import {
   Camera,
   Loader2,
   UserCircle2,
-  Info
+  Info,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 
 interface UserProp {
@@ -51,6 +53,9 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -149,9 +154,15 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
         })
       }
     } catch (err: any) {
+      let msg = 'Gagal menyimpan data profil.'
+      if (err.response?.data?.errors) {
+        msg = Object.values(err.response.data.errors).flat().join('\n')
+      } else if (err.response?.data?.message) {
+        msg = err.response.data.message
+      }
       Swal.fire({ 
         title: 'Gagal Menyimpan', 
-        text: err.response?.data?.message || 'Gagal menyimpan data profil.', 
+        text: msg, 
         icon: 'error', 
         background: '#fffdfb', 
         color: '#3c1105' 
@@ -215,9 +226,15 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
         setConfirmPassword('')
       }
     } catch (err: any) {
+      let msg = 'Gagal mengubah kata sandi.'
+      if (err.response?.data?.errors) {
+        msg = Object.values(err.response.data.errors).flat().join('\n')
+      } else if (err.response?.data?.message) {
+        msg = err.response.data.message
+      }
       Swal.fire({ 
         title: 'Gagal Mengubah Sandi', 
-        text: err.response?.data?.message || 'Gagal mengubah kata sandi.', 
+        text: msg, 
         icon: 'error', 
         background: '#fffdfb', 
         color: '#3c1105' 
@@ -228,6 +245,7 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
   }
 
   const inputClass = "w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-orange-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs font-semibold font-quicksand focus:ring-2 focus:ring-orange-100"
+  const passwordInputClass = "w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-orange-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-10 outline-none transition-all text-xs font-semibold font-quicksand focus:ring-2 focus:ring-orange-100"
   const labelClass = "block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand"
 
   return (
@@ -388,13 +406,20 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
                     <Lock className="w-4 h-4" />
                   </div>
                   <input 
-                    type="password" 
+                    type={showCurrentPassword ? "text" : "password"} 
                     required 
                     value={currentPassword} 
                     onChange={e => setCurrentPassword(e.target.value)}
                     placeholder="Masukkan kata sandi login aktif" 
-                    className={inputClass} 
+                    className={passwordInputClass} 
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-orange-500 transition-colors"
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                  </button>
                 </div>
               </div>
 
@@ -406,13 +431,20 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
                       <Lock className="w-4 h-4" />
                     </div>
                     <input 
-                      type="password" 
+                      type={showNewPassword ? "text" : "password"} 
                       required 
                       value={newPassword} 
                       onChange={e => setNewPassword(e.target.value)}
                       placeholder="Min. 6 karakter" 
-                      className={inputClass} 
+                      className={passwordInputClass} 
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-orange-500 transition-colors"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                    </button>
                   </div>
                 </div>
                 <div>
@@ -422,13 +454,20 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
                       <Lock className="w-4 h-4" />
                     </div>
                     <input 
-                      type="password" 
+                      type={showConfirmPassword ? "text" : "password"} 
                       required 
                       value={confirmPassword} 
                       onChange={e => setConfirmPassword(e.target.value)}
                       placeholder="Ketik ulang sandi baru" 
-                      className={inputClass} 
+                      className={passwordInputClass} 
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-orange-500 transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                    </button>
                   </div>
                 </div>
               </div>

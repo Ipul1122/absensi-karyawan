@@ -10,6 +10,7 @@ import PersetujuanGaji from './persetujuan/PersetujuanGaji'
 import PersetujuanPayroll from './persetujuan/PersetujuanPayroll'
 import PersetujuanOperational from './persetujuan/PersetujuanOperational'
 import LogKehadiran from './kehadiran/LogKehadiran'
+import DirectorSettings from './pengaturan/DirectorSettings'
 
 interface User {
   id: number
@@ -24,9 +25,10 @@ interface DirectorDashboardProps {
   user: User
   token: string
   onLogout: () => void
+  onProfileUpdate: (updatedFields: { name: string; email: string; photo?: string | null }) => void
 }
 
-export default function DirectorDashboard({ user, token, onLogout }: DirectorDashboardProps) {
+export default function DirectorDashboard({ user, token, onLogout, onProfileUpdate }: DirectorDashboardProps) {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const location = useLocation()
   const path = location.pathname
@@ -67,6 +69,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
   else if (path.includes('/payroll')) { pageTitle = 'Persetujuan Payroll Bulanan'; pageSubtitle = 'Validasi dan sahkan rekap slip gaji karyawan sebelum ditransfer' }
   else if (path.includes('/operasional')) { pageTitle = 'Persetujuan Operasional'; pageSubtitle = 'Proses pengajuan cuti, lembur, klaim biaya, bonus, dan inventaris barang' }
   else if (path.includes('/log-kehadiran')) { pageTitle = 'Log Kehadiran'; pageSubtitle = 'Pantau riwayat aktivitas absensi harian karyawan dan admin' }
+  else if (path.includes('/pengaturan')) { pageTitle = 'Pengaturan Akun'; pageSubtitle = 'Ubah biodata nama dan kata sandi login Anda' }
 
   return (
     <div className="flex min-h-screen text-slate-800" style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}>
@@ -85,7 +88,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        <DirectorNavbar user={user} title={pageTitle} subtitle={pageSubtitle} />
+        <DirectorNavbar user={user} title={pageTitle} subtitle={pageSubtitle} onLogout={onLogout} />
         <DirectorMobileNavbar 
           onMenuClick={() => setShowMobileSidebar(true)} 
           pendingCount={pendingKaryawanCount + pendingGajiCount + pendingPayrollCount + pendingOperasionalCount} 
@@ -130,6 +133,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
             <Route path="payroll" element={<PersetujuanPayroll token={token} />} />
             <Route path="operasional" element={<PersetujuanOperational token={token} />} />
             <Route path="log-kehadiran" element={<LogKehadiran token={token} />} />
+            <Route path="pengaturan" element={<DirectorSettings user={user} token={token} onProfileUpdate={onProfileUpdate} />} />
             <Route path="*" element={<Navigate to="dashboard" replace />} />
           </Routes>
         </main>

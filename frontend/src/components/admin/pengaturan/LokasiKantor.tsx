@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import axios from 'axios'
 import Swal from 'sweetalert2'
@@ -30,19 +30,7 @@ interface UserProp {
   role: 'admin' | 'employee'
 }
 
-interface LokasiKantorProps {
-  officeLatitude: string
-  setOfficeLatitude: (v: string) => void
-  officeLongitude: string
-  setOfficeLongitude: (v: string) => void
-  officeRadius: number
-  setOfficeRadius: (v: number) => void
-  savingOffice: boolean
-  handleOfficeSettingSubmit: (e: React.FormEvent) => void
-  user: UserProp
-  token: string
-  onProfileUpdate?: (updatedFields: { name: string; email: string; photo?: string | null }) => void
-}
+
 
 interface ProfileData {
   name: string
@@ -60,6 +48,21 @@ interface ProfileData {
 
 type ActiveTab = 'lokasi' | 'akun' | 'biodata'
 
+interface LokasiKantorProps {
+  officeLatitude: string
+  setOfficeLatitude: (v: string) => void
+  officeLongitude: string
+  setOfficeLongitude: (v: string) => void
+  officeRadius: number
+  setOfficeRadius: (v: number) => void
+  savingOffice: boolean
+  handleOfficeSettingSubmit: (e: React.FormEvent) => void
+  user: UserProp
+  token: string
+  onProfileUpdate?: (updatedFields: { name: string; email: string; photo?: string | null }) => void
+  initialTab?: ActiveTab
+}
+
 export default function LokasiKantor({
   officeLatitude,
   setOfficeLatitude,
@@ -71,9 +74,10 @@ export default function LokasiKantor({
   handleOfficeSettingSubmit,
   user,
   token,
-  onProfileUpdate
+  onProfileUpdate,
+  initialTab = 'lokasi'
 }: LokasiKantorProps) {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('lokasi')
+  const activeTab: ActiveTab = initialTab
 
   // ---------- Profile / Biodata States ----------
   const [profile, setProfile] = useState<ProfileData>({
@@ -145,7 +149,7 @@ export default function LokasiKantor({
 
   // Initialize and update Office Settings Config Map
   useEffect(() => {
-    if (activeTab !== 'lokasi') {
+    if (initialTab !== 'lokasi') {
       if (configMapInstance.current) {
         configMapInstance.current.remove()
         configMapInstance.current = null
@@ -226,7 +230,7 @@ export default function LokasiKantor({
     return () => {
       clearTimeout(timer)
     }
-  }, [officeLatitude, officeLongitude, officeRadius, activeTab])
+  }, [officeLatitude, officeLongitude, officeRadius, initialTab])
 
   // Cleanup config map on unmount
   useEffect(() => {
@@ -375,12 +379,6 @@ export default function LokasiKantor({
   const inputClass = "w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs font-semibold focus:ring-2 focus:ring-red-100 font-quicksand"
   const labelClass = "block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand"
 
-  const tabs = [
-    { key: 'lokasi' as const, label: 'Lokasi Kantor', icon: MapPin, desc: 'Koordinat & Radius Absen' },
-    { key: 'akun' as const, label: 'Akun & Keamanan', icon: KeyRound, desc: 'Email & Kata Sandi' },
-    { key: 'biodata' as const, label: 'Biodata Pribadi', icon: UserCircle2, desc: 'Profil & CV Admin' },
-  ]
-
   // Completeness indicator calculation
   const biodataFields = [profile.photo, profile.date_of_birth, profile.address, profile.employee_number, profile.join_date, profile.gender, profile.cv, profile.no_rekening]
   const filled = biodataFields.filter(Boolean).length
@@ -388,42 +386,6 @@ export default function LokasiKantor({
 
   return (
     <div className="space-y-6">
-      {/* ===== TAB SWITCHER ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-quicksand">
-        {tabs.map(tab => {
-          const Icon = tab.icon
-          const isActive = activeTab === tab.key
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`relative flex items-center gap-3 p-4 rounded-3xl border-2 text-left transition-all cursor-pointer group ${
-                isActive
-                  ? 'bg-gradient-to-br from-red-50 to-orange-50 border-red-300 shadow-md shadow-red-500/10'
-                  : 'bg-white border-orange-100 hover:border-orange-200 hover:bg-orange-50/30'
-              }`}
-            >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-                isActive
-                  ? 'bg-gradient-to-br from-red-500 to-orange-600 text-white shadow-md shadow-red-350'
-                  : 'bg-orange-50 text-orange-400 group-hover:bg-orange-100'
-              }`}>
-                <Icon className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-grow min-w-0">
-                <p className={`text-xs font-extrabold truncate ${isActive ? 'text-red-700 font-black' : 'text-slate-700'}`}>
-                  {tab.label}
-                </p>
-                <p className="text-[10px] text-slate-400 truncate mt-0.5">{tab.desc}</p>
-              </div>
-              {isActive && (
-                <div className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              )}
-            </button>
-          )
-        })}
-      </div>
 
       {/* ===== TAB: LOKASI KANTOR ===== */}
       {activeTab === 'lokasi' && (
@@ -761,9 +723,10 @@ export default function LokasiKantor({
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Hash className="w-4 h-4" /></div>
                     <input
                       type="text"
-                      value={profile.employee_number || 'Belum Diatur'}
+                      value={profile.employee_number}
+                      onChange={e => setProfile(p => ({ ...p, employee_number: e.target.value }))}
+                      placeholder="Belum Diatur"
                       className={inputClass}
-                      disabled={true}
                     />
                   </div>
                 </div>

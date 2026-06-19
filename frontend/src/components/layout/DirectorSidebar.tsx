@@ -34,9 +34,9 @@ interface DirectorSidebarProps {
 const menuItems = [
   { to: '/director/dashboard', label: 'Overview', icon: LayoutDashboard, description: 'Ringkasan persetujuan' },
   { to: '/director/karyawan', label: 'Kelola Karyawan', icon: Users, description: 'Daftar & persetujuan staf' },
-  { to: '/director/gaji', label: 'Persetujuan Gaji', icon: Wallet, description: 'Penyesuaian kompensasi' },
-  { to: '/director/payroll', label: 'Persetujuan Payroll', icon: Coins, description: 'Rollout gaji bulanan' },
-  { to: '/director/operasional', label: 'Persetujuan Operasional', icon: FileCheck, description: 'Cuti, lembur & klaim' },
+  { to: '/director/gaji', label: 'Informasi Gaji', icon: Wallet, description: 'Penyesuaian kompensasi' },
+  { to: '/director/payroll', label: 'Bayar Gaji', icon: Coins, description: 'Rollout gaji bulanan' },
+  { to: '/director/operasional', label: 'Biaya Operasional', icon: FileCheck, description: 'Cuti, lembur & klaim' },
   { to: '/director/log-kehadiran', label: 'Log Kehadiran', icon: Clock, description: 'Aktivitas absensi staf' },
 ]
 

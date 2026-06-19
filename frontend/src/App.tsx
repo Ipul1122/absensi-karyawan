@@ -21,6 +21,7 @@ interface User {
   email: string
   role: 'admin' | 'employee' | 'director'
   photo?: string | null
+  company?: string | null
 }
 
 function App() {
@@ -69,7 +70,8 @@ function App() {
               ...prevUser,
               name: d.name,
               email: d.email,
-              photo: d.photo
+              photo: d.photo,
+              company: d.company
             }
             sessionStorage.setItem('auth_user', JSON.stringify(updatedUser))
             return updatedUser
@@ -81,6 +83,36 @@ function App() {
       })
     }
   }, [token])
+
+  // Dynamic tab title and favicon based on logged in user's company or default
+  useEffect(() => {
+    const titleEl = document.querySelector('title')
+    const faviconEl = document.getElementById('favicon') as HTMLLinkElement | null
+
+    let titleText = 'goodpeople-hcms'
+    let faviconHref = '/favicon.svg'
+
+    if (user) {
+      if (user.role === 'admin') {
+        titleText = 'goodpeople-hcms - Portal Admin'
+        faviconHref = '/logo/LOGO-CPI.png'
+      } else if (user.company) {
+        if (user.company === 'PT Yasodana Parvez Internasional') {
+          titleText = 'goodpeople-hcms - PT Yasodana Parvez Internasional'
+          faviconHref = '/logo/LOGO-YPI.png'
+        } else if (user.company === 'PT Cakrawala Parama Internasional') {
+          titleText = 'goodpeople-hcms - PT Cakrawala Parama Internasional'
+          faviconHref = '/logo/LOGO-CPI.png'
+        }
+      }
+    }
+
+    if (titleEl) titleEl.innerText = titleText
+    if (faviconEl) {
+      faviconEl.type = faviconHref.endsWith('.png') ? 'image/png' : 'image/svg+xml'
+      faviconEl.href = faviconHref
+    }
+  }, [user])
 
   const handleLoginSuccess = (newToken: string, newUser: User) => {
     sessionStorage.setItem('auth_token', newToken)

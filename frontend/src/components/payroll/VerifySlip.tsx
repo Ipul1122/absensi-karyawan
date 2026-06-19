@@ -59,6 +59,30 @@ export default function VerifySlip() {
     }
   }, [id, hash])
 
+  useEffect(() => {
+    if (data) {
+      const titleEl = document.querySelector('title')
+      const faviconEl = document.getElementById('favicon') as HTMLLinkElement | null
+
+      let titleText = 'goodpeople-hcms - Verifikasi Slip Gaji'
+      let faviconHref = '/favicon.svg'
+
+      if (data.company === 'PT Yasodana Parvez Internasional') {
+        titleText = 'goodpeople-hcms - Verifikasi Slip - PT Yasodana Parvez Internasional'
+        faviconHref = '/logo/LOGO-YPI.png'
+      } else if (data.company === 'PT Cakrawala Parama Internasional') {
+        titleText = 'goodpeople-hcms - Verifikasi Slip - PT Cakrawala Parama Internasional'
+        faviconHref = '/logo/LOGO-CPI.png'
+      }
+
+      if (titleEl) titleEl.innerText = titleText
+      if (faviconEl) {
+        faviconEl.type = faviconHref.endsWith('.png') ? 'image/png' : 'image/svg+xml'
+        faviconEl.href = faviconHref
+      }
+    }
+  }, [data])
+
   const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',

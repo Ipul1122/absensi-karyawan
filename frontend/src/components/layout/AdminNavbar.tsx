@@ -71,7 +71,7 @@ export function AdminMobileNavbar({ onMenuClick, pendingCount = 0 }: AdminMobile
             </span>
           )}
         </button>
-        <Logo className="w-8 h-8" />
+        <Logo className="w-8 h-8" company="PT Cakrawala Parama Internasional" />
       </div>
     </header>
   )

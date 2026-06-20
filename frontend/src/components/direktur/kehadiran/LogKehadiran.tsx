@@ -177,15 +177,17 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
     }
   }
 
-  // Monthly stats calculations (based on all logs in the selected month)
+  // Monthly data helper
   const monthlyData = attendances.filter(record => record.date.startsWith(selectedMonth))
-  const totalAbsen = monthlyData.length
-  const totalTepatWaktu = monthlyData.filter(r => r.clock_in && r.status_in !== 'late').length
-  const totalTerlambat = monthlyData.filter(r => r.status_in === 'late').length
-  const totalLembur = monthlyData.filter(r => r.status_out === 'overtime').length
+
+  // Daily stats calculations (based on selectedDate)
+  const dailyLogs = monthlyData.filter(record => record.date === selectedDate)
+  const totalAbsen = dailyLogs.length
+  const totalTepatWaktu = dailyLogs.filter(r => r.clock_in && r.status_in !== 'late').length
+  const totalTerlambat = dailyLogs.filter(r => r.status_in === 'late').length
+  const totalLembur = dailyLogs.filter(r => r.status_out === 'overtime').length
 
   // Filter daily logs based on selectedDate and filters
-  const dailyLogs = monthlyData.filter(record => record.date === selectedDate)
   const filteredDailyLogs = dailyLogs.filter(record => {
     const userObj = record.user
     if (!userObj) return false
@@ -389,49 +391,56 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
         </div>
       </div>
 
-      {/* Monthly Statistics Overview cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Absen */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50/80 flex items-center justify-center text-blue-500 shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Absensi</p>
-            <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalAbsen} Absen</h4>
-          </div>
+      {/* Daily Statistics Overview cards */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">
+            Statistik Kehadiran Harian ({selectedDate ? formatDate(selectedDate) : ''})
+          </h3>
         </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Total Absen */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50/80 flex items-center justify-center text-blue-500 shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Absen Hari Ini</p>
+              <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalAbsen} Karyawan</h4>
+            </div>
+          </div>
 
-        {/* Card 2: Tepat Waktu */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-50/80 flex items-center justify-center text-teal-600 shrink-0">
-            <Clock className="w-5 h-5" />
+          {/* Card 2: Tepat Waktu */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-50/80 flex items-center justify-center text-teal-600 shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tepat Waktu</p>
+              <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalTepatWaktu} Orang</h4>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tepat Waktu</p>
-            <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalTepatWaktu} Hari</h4>
-          </div>
-        </div>
 
-        {/* Card 3: Terlambat */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-50/80 flex items-center justify-center text-rose-600 shrink-0">
-            <AlertTriangle className="w-5 h-5" />
+          {/* Card 3: Terlambat */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-50/80 flex items-center justify-center text-rose-600 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Terlambat</p>
+              <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalTerlambat} Orang</h4>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Terlambat</p>
-            <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalTerlambat} Kali</h4>
-          </div>
-        </div>
 
-        {/* Card 4: Lembur */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50/80 flex items-center justify-center text-purple-700 shrink-0">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lembur</p>
-            <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalLembur} Hari</h4>
+          {/* Card 4: Lembur */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-50/80 flex items-center justify-center text-purple-700 shrink-0">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lembur</p>
+              <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalLembur} Orang</h4>
+            </div>
           </div>
         </div>
       </div>

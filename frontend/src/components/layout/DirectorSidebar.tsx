@@ -7,7 +7,6 @@ import {
   Wallet,
   Coins,
   ChevronRight,
-  Crown,
   Clock,
   Users,
   Settings
@@ -70,7 +69,6 @@ export default function DirectorSidebar({
             </div>
             <div className="overflow-hidden flex-1">
               <div className="flex items-center gap-1">
-                <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest truncate">Direktur Utama</p>
               </div>
               <h4 className="text-xs font-bold text-slate-800 truncate mt-0.5">{user.name}</h4>

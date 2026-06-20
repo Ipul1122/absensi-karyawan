@@ -123,7 +123,7 @@ class LeaveController extends Controller
      */
     public function getAllRequests(Request $request)
     {
-        $leaves = LeaveRequest::with('user:id,name,email')
+        $leaves = LeaveRequest::with('user:id,name,email,company')
             ->orderBy('created_at', 'desc')
             ->get();
 

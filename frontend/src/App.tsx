@@ -56,6 +56,16 @@ function App() {
     checkConnection()
   }, [])
 
+  // Capture requested path for redirect after login
+  useEffect(() => {
+    const path = window.location.pathname
+    if (path && path !== '/' && !path.startsWith('/verify-slip')) {
+      if (!sessionStorage.getItem('auth_token')) {
+        sessionStorage.setItem('redirect_to', path)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (token) {
       axios.get('http://localhost:8000/api/user/profile', {
@@ -119,6 +129,12 @@ function App() {
     sessionStorage.setItem('auth_user', JSON.stringify(newUser))
     setToken(newToken)
     setUser(newUser)
+
+    const redirectTo = sessionStorage.getItem('redirect_to')
+    if (redirectTo) {
+      sessionStorage.removeItem('redirect_to')
+      window.location.pathname = redirectTo
+    }
   }
 
   const handleLogout = () => {

@@ -165,12 +165,30 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
       if (response.data.status === 'success') {
         Swal.fire({
           title: 'Berhasil!',
-          text: response.data.message || 'Pengajuan reimbursement berhasil dikirim.',
+          text: `${response.data.message || 'Pengajuan reimbursement berhasil dikirim.'} Ingin mengirim notifikasi WhatsApp ke Admin?`,
           icon: 'success',
-          timer: 2000,
-          showConfirmButton: false,
+          showCancelButton: true,
+          confirmButtonText: 'Ya, Kirim WhatsApp',
+          cancelButtonText: 'Tidak, Tutup',
+          confirmButtonColor: '#ea580c',
+          cancelButtonColor: '#94a3b8',
           background: '#fffdfb',
           color: '#3c1105'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            const savedUser = sessionStorage.getItem('auth_user')
+            const userObj = savedUser ? JSON.parse(savedUser) : null
+            const employeeName = userObj ? userObj.name : 'Karyawan'
+            const formattedExpenseDate = formatDate(expenseDate)
+            const formattedAmount = new Intl.NumberFormat('id-ID', {
+              style: 'currency',
+              currency: 'IDR',
+              minimumFractionDigits: 0
+            }).format(Number(amount))
+            const message = `Halo admin / HR, Saya ${employeeName} mengajukan reimbursement ${title} pada tanggal ${formattedExpenseDate} sebesar ${formattedAmount}.\n\nLink: ${window.location.origin}/admin/reimbursement`
+            const waUrl = `https://api.whatsapp.com/send?phone=6281218569847&text=${encodeURIComponent(message)}`
+            window.open(waUrl, '_blank')
+          }
         })
 
         // Reset form

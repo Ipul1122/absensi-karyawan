@@ -25,6 +25,7 @@ interface Attendance {
     name: string
     email: string
     photo?: string | null
+    join_date?: string | null
   }
 }
 
@@ -756,6 +757,13 @@ export default function RekapAbsensi({
                       <div>
                         <p className="font-extrabold text-slate-800 font-quicksand">{att.user.name}</p>
                         <p className="text-[11px] text-slate-400 font-medium mt-0.5">{att.user.email}</p>
+                        {att.user.join_date && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit">
+                              Masuk: {formatDate(att.user.join_date)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="py-4 px-6 font-extrabold text-slate-700 text-xs">
@@ -838,6 +846,13 @@ export default function RekapAbsensi({
                   <div>
                     <h4 className="font-extrabold text-slate-800 text-sm">{att.user.name}</h4>
                     <p className="text-[11px] text-slate-400 font-medium">{att.user.email}</p>
+                    {att.user.join_date && (
+                      <div className="mt-1">
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit font-quicksand">
+                          Masuk: {formatDate(att.user.join_date)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end gap-1.5">

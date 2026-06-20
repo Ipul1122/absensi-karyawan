@@ -49,6 +49,7 @@ interface PayrollRecord {
     company?: string | null
     division?: string | null
     employee_number?: string | null
+    join_date?: string | null
   }
 }
 
@@ -362,7 +363,11 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               ` : payrollRecords.map((record, idx) => `
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
-                  <td><strong>${record.user.name}</strong><br/><span style="color: #64748b; font-size: 8px;">${record.user.email}</span></td>
+                  <td>
+                    <strong>${record.user.name}</strong><br/>
+                    <span style="color: #64748b; font-size: 8px;">${record.user.email}</span>
+                    ${record.user.join_date ? `<br/><span style="color: #ea580c; font-size: 8px; font-weight: bold;">Masuk: ${new Date(record.user.join_date).toLocaleDateString('id-ID')}</span>` : ''}
+                  </td>
                   <td class="text-center">${record.days_present}H / ${record.days_late}T / ${record.days_leave}C</td>
                   <td class="text-right">${formatRupiah(record.basic_salary)}</td>
                   <td>
@@ -459,6 +464,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               <th>No</th>
               <th>Nama Karyawan</th>
               <th>Email</th>
+              <th>Tanggal Bergabung</th>
               <th>Hari Hadir (H)</th>
               <th>Hari Terlambat (T)</th>
               <th>Hari Cuti (C)</th>
@@ -478,11 +484,15 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
     `
 
     payrollRecords.forEach((record, idx) => {
+      const joinDateStr = record.user.join_date 
+        ? new Date(record.user.join_date).toLocaleDateString('id-ID')
+        : '-'
       excelContent += `
         <tr>
           <td class="text-center">${idx + 1}</td>
           <td><b>${record.user.name}</b></td>
           <td>${record.user.email}</td>
+          <td>${joinDateStr}</td>
           <td class="text-center">${record.days_present}</td>
           <td class="text-center">${record.days_late}</td>
           <td class="text-center">${record.days_leave}</td>
@@ -1883,6 +1893,12 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                           ? 'Menunggu Direktur'
                           : 'Draft'}
                   </span>
+                </div>
+                <div>
+                  <strong>Tanggal Bergabung:</strong>{' '}
+                  {selectedSlip.user.join_date 
+                    ? new Date(selectedSlip.user.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                    : '-'}
                 </div>
               </div>
 

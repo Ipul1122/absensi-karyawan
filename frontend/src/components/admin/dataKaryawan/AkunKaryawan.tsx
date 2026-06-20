@@ -33,6 +33,7 @@ interface Employee {
   division?: string | null
   no_rekening?: string | null
   company?: string | null
+  join_date?: string | null
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
@@ -341,6 +342,12 @@ export default function AkunKaryawan({
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
                                   <Hash className="w-2.5 h-2.5" />
                                   {emp.no_rekening}
+                                </span>
+                              )}
+                              {emp.join_date && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                                  <Calendar className="w-2.5 h-2.5" />
+                                  Masuk: {formatDate(emp.join_date)}
                                 </span>
                               )}
                             </div>

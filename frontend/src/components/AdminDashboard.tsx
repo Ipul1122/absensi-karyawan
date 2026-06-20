@@ -313,15 +313,50 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
       )
 
       if (response.data.status === 'success') {
+        const emp = response.data.data
+        let salutation = 'Halo Pak/Bu,'
+        let phoneNum = ''
+
+        if (emp.company === 'PT Yasodana Parvez Internasional') {
+          salutation = 'Halo Pak Andre,'
+          phoneNum = '6289656931184'
+        } else if (emp.company === 'PT Cakrawala Parama Internasional') {
+          salutation = 'Halo Bu Dian,'
+          phoneNum = '628170038421'
+        }
+
+        const messageText = `${salutation} mohon persetujuan untuk pengajuan pendaftaran karyawan baru:
+
+Nama: ${emp.name}
+Email: ${emp.email}
+Divisi: ${emp.division || '-'}
+Perusahaan: ${emp.company || '-'}
+
+Persetujuan dapat dilakukan langsung melalui tautan berikut:
+${window.location.origin}/director/karyawan`
+
+        const encodedText = encodeURIComponent(messageText)
+        const waUrl = phoneNum
+          ? `https://api.whatsapp.com/send?phone=${phoneNum}&text=${encodedText}`
+          : `https://api.whatsapp.com/send?text=${encodedText}`
+
         Swal.fire({
-          title: 'Berhasil!',
-          text: response.data.message || 'Akun karyawan baru berhasil dibuat dan menunggu persetujuan Direktur.',
+          title: 'Berhasil Dibuat!',
+          text: 'Akun karyawan baru berhasil dibuat. Klik tombol di bawah untuk mengirim data persetujuan ke WhatsApp Direktur.',
           icon: 'success',
+          showCancelButton: true,
+          confirmButtonText: 'Kirim ke WhatsApp',
+          cancelButtonText: 'Tutup',
+          confirmButtonColor: '#ea580c',
+          cancelButtonColor: '#64748b',
           background: '#fffdfb',
-          color: '#3c1105',
-          timer: 2500,
-          showConfirmButton: false
+          color: '#3c1105'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.open(waUrl, '_blank')
+          }
         })
+
         setShowModal(false)
         fetchEmployees()
       }

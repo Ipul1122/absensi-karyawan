@@ -183,12 +183,27 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
       if (response.data.status === 'success') {
         Swal.fire({
           title: 'Berhasil!',
-          text: response.data.message || 'Pengajuan cuti berhasil dikirim.',
+          text: `${response.data.message || 'Pengajuan cuti berhasil dikirim.'} Ingin mengirim notifikasi WhatsApp ke Admin?`,
           icon: 'success',
-          timer: 2000,
-          showConfirmButton: false,
+          // showCancelButton: true,
+          confirmButtonText: 'Ya, Kirim WhatsApp',
+          // cancelButtonText: 'Tidak, Tutup',
+          confirmButtonColor: '#ea580c',
+          // cancelButtonColor: '#94a3b8',
           background: '#fffdfb',
           color: '#3c1105'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            const savedUser = sessionStorage.getItem('auth_user')
+            const userObj = savedUser ? JSON.parse(savedUser) : null
+            const employeeName = userObj ? userObj.name : 'Karyawan'
+            const categoryName = category === 'LAINNYA' ? customCategory : category
+            const formattedStartDate = formatDate(startDate)
+            const formattedEndDate = formatDate(endDate)
+            const message = `Halo admin / HR, Saya ${employeeName} mengajukan cuti ${categoryName} pada tanggal ${formattedStartDate} s/d ${formattedEndDate}.\n\nLink: ${window.location.origin}/admin/cuti`
+            const waUrl = `https://api.whatsapp.com/send?phone=6281218569847&text=${encodeURIComponent(message)}`
+            window.open(waUrl, '_blank')
+          }
         })
 
         // Reset form
@@ -223,7 +238,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
       title: 'Batalkan Pengajuan?',
       text: 'Apakah Anda yakin ingin membatalkan pengajuan cuti ini?',
       icon: 'warning',
-      showCancelButton: true,
+      // showCancelButton: true,
       confirmButtonColor: '#ea580c',
       cancelButtonColor: '#94a3b8',
       confirmButtonText: 'Ya, Batalkan!',

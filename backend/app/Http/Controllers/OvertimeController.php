@@ -166,7 +166,7 @@ class OvertimeController extends Controller
      */
     public function indexAdmin(Request $request)
     {
-        $query = Overtime::with('user:id,name,email');
+        $query = Overtime::with('user:id,name,email,company');
 
         // Search by employee name or email
         if ($request->has('search') && !empty($request->search)) {

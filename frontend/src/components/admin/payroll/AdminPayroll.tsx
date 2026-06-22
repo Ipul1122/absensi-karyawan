@@ -861,12 +861,40 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             .signature .line { border-bottom: 1px solid #94a3b8; height: 50px; margin-bottom: 6px; }
             .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; text-transform: uppercase; background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
             @page {
-              size: auto;
+              size: A5 landscape;
               margin: 0;
             }
             @media print {
-              body { margin: 1.6cm; padding: 0; }
-              .slip-card { border: none; padding: 0; max-width: 100%; }
+              body { margin: 0.3cm; padding: 0; background-color: #ffffff; font-size: 9px; }
+              .slip-card { border: none; padding: 0; max-width: 100%; box-shadow: none; break-inside: avoid; page-break-inside: avoid; }
+              
+              .header { margin-bottom: 6px !important; padding-bottom: 6px !important; border-bottom: 1.5px solid #000000 !important; }
+              .header .logo img { height: 38px !important; }
+              .header h1 { font-size: 11px !important; }
+              .header p { font-size: 7.5px !important; max-width: 250px !important; line-height: 1.2 !important; }
+              .header .title h2 { font-size: 13px !important; }
+              .header .title p { font-size: 8px !important; }
+              
+              .meta { margin-bottom: 8px !important; padding: 6px 10px !important; gap: 4px 12px !important; font-size: 9px !important; border-radius: 8px !important; }
+              .meta div { margin-bottom: 1px !important; }
+              
+              .section-title { font-size: 8px !important; padding-bottom: 2px !important; margin-bottom: 6px !important; }
+              .grid-cols { gap: 15px !important; margin-bottom: 8px !important; }
+              .item-row { font-size: 8.5px !important; margin-bottom: 3px !important; }
+              .item-row.bold { margin-top: 4px !important; padding-top: 3px !important; }
+              
+              .total-section { padding: 6px 10px !important; margin-bottom: 8px !important; border-radius: 8px !important; }
+              .total-label { font-size: 9.5px !important; }
+              .total-value { font-size: 13px !important; }
+              
+              .footer { margin-top: 10px !important; font-size: 8.5px !important; break-inside: avoid; page-break-inside: avoid; }
+              .signature { width: 130px !important; break-inside: avoid; page-break-inside: avoid; }
+              .signature .line { height: 25px !important; margin-bottom: 2px !important; }
+              .signature p { margin: 1px 0 !important; }
+              
+              .verification-seal { padding: 4px 6px !important; margin: 0 auto !important; border-radius: 8px !important; max-width: 150px !important; gap: 4px !important; break-inside: avoid; page-break-inside: avoid; }
+              .verification-seal span { font-size: 7px !important; }
+              .verification-seal svg { width: 34px !important; height: 34px !important; }
             }
           </style>
         </head>
@@ -1857,7 +1885,6 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   </div>
                 </div>
                 <div className="title">
-                  <h2>SLIP GAJI RESMI</h2>
                   <p className="font-quicksand font-bold">Periode: {getIndonesianMonthLabel(selectedSlip.period_month)}</p>
                 </div>
               </div>

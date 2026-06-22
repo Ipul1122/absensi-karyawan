@@ -8,6 +8,7 @@ interface Employee {
   id: number
   name: string
   email: string
+  status?: 'active' | 'pending' | 'pending_delete'
 }
 
 interface ManualAttendanceModalProps {
@@ -285,9 +286,11 @@ export default function ManualAttendanceModal({
               required
             >
               <option value="">-- Pilih Karyawan --</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>{emp.name} ({emp.email})</option>
-              ))}
+              {employees
+                .filter(emp => emp.status === 'active')
+                .map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.name} ({emp.email})</option>
+                ))}
             </select>
           </div>
 

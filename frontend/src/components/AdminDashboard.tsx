@@ -799,6 +799,7 @@ ${window.location.origin}/director/karyawan`
                   todayAttendance={adminAttendance}
                   fetchTodayAttendance={fetchAdminAttendance}
                   leaves={leaves}
+                  fetchAttendances={fetchAttendances}
                 />
               } 
             />

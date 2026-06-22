@@ -31,7 +31,7 @@ class BonusController extends Controller
      */
     public function indexAdmin(Request $request)
     {
-        $query = Bonus::with('user:id,name,email');
+        $query = Bonus::with('user:id,name,email,company');
 
         if ($request->has('user_id') && $request->user_id != 'all') {
             $query->where('user_id', $request->user_id);
@@ -77,7 +77,7 @@ class BonusController extends Controller
             ]);
 
             // Load user info for response
-            $bonus->load('user:id,name,email');
+            $bonus->load('user:id,name,email,company');
 
             return response()->json([
                 'status' => 'success',
@@ -125,7 +125,7 @@ class BonusController extends Controller
                 'description' => $request->description,
             ]);
 
-            $bonus->load('user:id,name,email');
+            $bonus->load('user:id,name,email,company');
 
             return response()->json([
                 'status' => 'success',

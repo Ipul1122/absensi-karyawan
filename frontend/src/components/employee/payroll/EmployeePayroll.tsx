@@ -193,12 +193,18 @@ export default function EmployeePayroll({ token, user, company }: EmployeePayrol
             .signature .line { border-bottom: 1px solid #94a3b8; height: 50px; margin-bottom: 6px; }
             .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; text-transform: uppercase; background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
             @page {
-              size: auto;
+              size: A5 landscape;
               margin: 0;
             }
             @media print {
-              body { margin: 1.6cm; padding: 0; }
-              .slip-card { border: none; padding: 0; max-width: 100%; }
+              body { margin: 0.5cm; padding: 0; background-color: #ffffff; }
+              .slip-card { border: none; padding: 10px 0; max-width: 100%; box-shadow: none; }
+              .header { margin-bottom: 10px; padding-bottom: 8px; }
+              .meta { margin-bottom: 15px; padding: 8px 12px; gap: 8px 15px; }
+              .grid-cols { gap: 20px; margin-bottom: 15px; }
+              .total-section { padding: 10px 15px; margin-bottom: 15px; }
+              .footer { margin-top: 20px; }
+              .signature .line { height: 40px; }
             }
           </style>
         </head>

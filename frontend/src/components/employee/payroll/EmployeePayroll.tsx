@@ -461,7 +461,7 @@ export default function EmployeePayroll({ token, user, company }: EmployeePayrol
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
                 <Coins className="w-4 h-4 text-orange-500" />
-                Slip Gaji Resmi Anda
+                Slip Gaji Anda
               </h3>
               <div className="flex gap-2">
                 <button
@@ -518,7 +518,7 @@ export default function EmployeePayroll({ token, user, company }: EmployeePayrol
                   </div>
                 </div>
                 <div className="title">
-                  <h2>SLIP GAJI RESMI</h2>
+                  <h2>SLIP GAJI</h2>
                   <p>Periode: {getIndonesianMonthLabel(selectedSlip.period_month)}</p>
                 </div>
               </div>

@@ -1885,7 +1885,6 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   </div>
                 </div>
                 <div className="title">
-                  <h2>SLIP GAJI</h2>
                   <p className="font-quicksand font-bold">Periode: {getIndonesianMonthLabel(selectedSlip.period_month)}</p>
                 </div>
               </div>

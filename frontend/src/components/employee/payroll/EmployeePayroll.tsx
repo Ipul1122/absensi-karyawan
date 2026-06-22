@@ -518,7 +518,6 @@ export default function EmployeePayroll({ token, user, company }: EmployeePayrol
                   </div>
                 </div>
                 <div className="title">
-                  <h2>SLIP GAJI</h2>
                   <p>Periode: {getIndonesianMonthLabel(selectedSlip.period_month)}</p>
                 </div>
               </div>

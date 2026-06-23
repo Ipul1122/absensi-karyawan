@@ -14,7 +14,8 @@ import {
   HelpCircle,
   FileDown,
   Plus,
-  CalendarRange
+  CalendarRange,
+  Building2
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 
@@ -65,6 +66,12 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
+  const [selectedCompany, setSelectedCompany] = useState<string>('all')
+
+  const filteredRecords = payrollRecords.filter(record => {
+    if (selectedCompany === 'all') return true
+    return record.user?.company === selectedCompany
   })
   
   // Loading states
@@ -287,18 +294,40 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
     const [year, month] = selectedMonth.split('-')
     const displayMonthName = monthNames[parseInt(month, 10) - 1] + ' ' + year
 
-    const totalSalary = payrollRecords.reduce((sum, r) => sum + r.net_salary, 0)
-    const paidSalary = payrollRecords.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.net_salary, 0)
-    const unpaidSalary = payrollRecords.filter(r => r.status !== 'paid').reduce((sum, r) => sum + r.net_salary, 0)
+    const totalSalary = filteredRecords.reduce((sum, r) => sum + r.net_salary, 0)
+    const paidSalary = filteredRecords.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.net_salary, 0)
+    const unpaidSalary = filteredRecords.filter(r => r.status !== 'paid').reduce((sum, r) => sum + r.net_salary, 0)
+
+    // Dynamic brand elements
+    let companyName = 'Semua Perusahaan'
+    let logoPath = '/logo-perusahaan.png' // default fallback
+    let docTitle = `Laporan Payroll Semua - ${displayMonthName}`
+
+    if (selectedCompany === 'PT Yasodana Parvez Internasional') {
+      companyName = 'PT Yasodana Parvez Internasional'
+      logoPath = '/logo/LOGO-YPI.png'
+      docTitle = `Laporan Payroll YPI - ${displayMonthName}`
+    } else if (selectedCompany === 'PT Cakrawala Parama Internasional') {
+      companyName = 'PT Cakrawala Parama Internasional'
+      logoPath = '/logo/LOGO-CPI.png'
+      docTitle = `Laporan Payroll CPI - ${displayMonthName}`
+    }
+
+    const fullLogoUrl = logoPath.startsWith('http') ? logoPath : `${window.location.origin}${logoPath}`
 
     const htmlContent = `
       <html>
         <head>
-          <title>Laporan Payroll - ${displayMonthName}</title>
+          <title>${docTitle}</title>
           <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; padding: 25px; line-height: 1.5; }
-            h1 { text-align: center; color: #1e293b; margin-bottom: 5px; font-size: 22px; font-weight: 800; }
+            h1 { text-align: center; color: #1e293b; margin-bottom: 5px; font-size: 20px; font-weight: 800; }
             h3 { text-align: center; color: #64748b; font-weight: 600; font-size: 13px; margin-top: 0; margin-bottom: 25px; }
+            .company-header { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+            .company-logo { height: 50px; width: auto; object-fit: contain; }
+            .company-info { text-align: left; }
+            .company-info h2 { margin: 0; font-size: 14px; font-weight: 800; color: #0f172a; text-transform: uppercase; }
+            .company-info p { margin: 2px 0 0 0; font-size: 9px; color: #64748b; font-weight: 600; }
             .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
             .totals-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
             .totals-card .count { font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 4px; }
@@ -319,8 +348,12 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           </style>
         </head>
         <body>
-          <div style="display:flex; align-items:center; gap:16px; margin-bottom:4px;">
-            <img src="${window.location.origin}/logo-perusahaan.png" alt="Logo" style="height:52px; width:auto; object-fit:contain;" />
+          <div class="company-header">
+            <img src="${fullLogoUrl}" alt="Logo" class="company-logo" onerror="this.style.display='none'" />
+            <div class="company-info">
+              <h2>${companyName}</h2>
+              <p>Laporan Rekapitulasi Pembayaran Gaji Karyawan</p>
+            </div>
           </div>
           <h1>Laporan Bulanan Payroll Karyawan</h1>
           <h3>Periode: ${displayMonthName} | Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</h3>
@@ -354,18 +387,19 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               </tr>
             </thead>
             <tbody>
-              ${payrollRecords.length === 0 ? `
+              ${filteredRecords.length === 0 ? `
                 <tr>
                   <td colSpan="8" style="text-align: center; padding: 20px; color: #64748b;">
                     Tidak ada data rekap payroll untuk periode ini (${displayMonthName}).
                   </td>
                 </tr>
-              ` : payrollRecords.map((record, idx) => `
+              ` : filteredRecords.map((record, idx) => `
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
                   <td>
                     <strong>${record.user.name}</strong><br/>
                     <span style="color: #64748b; font-size: 8px;">${record.user.email}</span>
+                    <br/><span style="color: #64748b; font-size: 8px; font-weight: bold;">Perusahaan: ${record.user.company || '-'}</span>
                     ${record.user.join_date ? `<br/><span style="color: #ea580c; font-size: 8px; font-weight: bold;">Masuk: ${new Date(record.user.join_date).toLocaleDateString('id-ID')}</span>` : ''}
                   </td>
                   <td class="text-center">${record.days_present}H / ${record.days_late}T / ${record.days_leave}C</td>
@@ -426,6 +460,18 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
         }).join(', ')
       : 'Tidak ada'
 
+    // Dynamic brand elements
+    let companyName = 'Semua Perusahaan'
+    let filename = `Laporan_Payroll_Semua_Perusahaan_${displayMonthName.replace(/\s+/g, '_')}.xls`
+
+    if (selectedCompany === 'PT Yasodana Parvez Internasional') {
+      companyName = 'PT Yasodana Parvez Internasional'
+      filename = `Laporan_Payroll_YPI_${displayMonthName.replace(/\s+/g, '_')}.xls`
+    } else if (selectedCompany === 'PT Cakrawala Parama Internasional') {
+      companyName = 'PT Cakrawala Parama Internasional'
+      filename = `Laporan_Payroll_CPI_${displayMonthName.replace(/\s+/g, '_')}.xls`
+    }
+
     let excelContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -455,7 +501,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
         </style>
       </head>
       <body>
-        <div class="title">Laporan Bulanan Payroll Karyawan</div>
+        <div class="title">Laporan Bulanan Payroll Karyawan - ${companyName}</div>
         <div class="subtitle">Periode: ${displayMonthName} | Tanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}</div>
         <div class="holidays-label">Hari Libur Nasional: ${holidayInfoStr}</div>
         <table>
@@ -463,6 +509,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             <tr>
               <th>No</th>
               <th>Nama Karyawan</th>
+              <th>Perusahaan</th>
               <th>Email</th>
               <th>Tanggal Bergabung</th>
               <th>Hari Hadir (H)</th>
@@ -483,7 +530,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           <tbody>
     `
 
-    payrollRecords.forEach((record, idx) => {
+    filteredRecords.forEach((record, idx) => {
       const joinDateStr = record.user.join_date 
         ? new Date(record.user.join_date).toLocaleDateString('id-ID')
         : '-'
@@ -491,6 +538,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
         <tr>
           <td class="text-center">${idx + 1}</td>
           <td><b>${record.user.name}</b></td>
+          <td>${record.user.company || '-'}</td>
           <td>${record.user.email}</td>
           <td>${joinDateStr}</td>
           <td class="text-center">${record.days_present}</td>
@@ -510,10 +558,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
       `
     })
 
-    if (payrollRecords.length === 0) {
+    if (filteredRecords.length === 0) {
       excelContent += `
         <tr>
-          <td colspan="16" class="text-center" style="color: #64748b; padding: 20px;">Tidak ada data payroll pada periode ini.</td>
+          <td colspan="18" class="text-center" style="color: #64748b; padding: 20px;">Tidak ada data payroll pada periode ini.</td>
         </tr>
       `
     }
@@ -529,7 +577,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `Laporan_Payroll_${displayMonthName.replace(/\s+/g, '_')}.xls`
+    link.download = filename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -734,20 +782,22 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
   const handleSubmitAllToDirector = async () => {
     Swal.fire({
-      title: 'Ajukan Semua ke Direktur?',
-      text: `Apakah Anda yakin ingin mengajukan seluruh slip gaji Draft pada periode ${selectedMonth} ke Direktur Utama?`,
+      title: 'Ajukan Gaji ke Direktur?',
+      text: selectedCompany === 'all'
+        ? `Apakah Anda yakin ingin mengajukan seluruh slip gaji Draft pada periode ${selectedMonth} ke Direktur Utama?`
+        : `Apakah Anda yakin ingin mengajukan seluruh slip gaji Draft ${selectedCompany} pada periode ${selectedMonth} ke Direktur Utama?`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#4f46e5',
       cancelButtonColor: '#475569',
-      confirmButtonText: 'Ya, Ajukan Semua!',
+      confirmButtonText: 'Ya, Ajukan!',
       cancelButtonText: 'Batal'
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
           const response = await axios.post(
             `http://localhost:8000/api/admin/payroll/submit-all-approval`,
-            { period_month: selectedMonth },
+            { period_month: selectedMonth, company: selectedCompany },
             { headers: { Authorization: `Bearer ${token}` } }
           )
           if (response.data.status === 'success') {
@@ -861,12 +911,40 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             .signature .line { border-bottom: 1px solid #94a3b8; height: 50px; margin-bottom: 6px; }
             .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; text-transform: uppercase; background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
             @page {
-              size: auto;
+              size: A5 landscape;
               margin: 0;
             }
             @media print {
-              body { margin: 1.6cm; padding: 0; }
-              .slip-card { border: none; padding: 0; max-width: 100%; }
+              body { margin: 0.3cm; padding: 0; background-color: #ffffff; font-size: 9px; }
+              .slip-card { border: none; padding: 0; max-width: 100%; box-shadow: none; break-inside: avoid; page-break-inside: avoid; }
+              
+              .header { margin-bottom: 6px !important; padding-bottom: 6px !important; border-bottom: 1.5px solid #000000 !important; }
+              .header .logo img { height: 38px !important; }
+              .header h1 { font-size: 11px !important; }
+              .header p { font-size: 7.5px !important; max-width: 250px !important; line-height: 1.2 !important; }
+              .header .title h2 { font-size: 13px !important; }
+              .header .title p { font-size: 8px !important; }
+              
+              .meta { margin-bottom: 8px !important; padding: 6px 10px !important; gap: 4px 12px !important; font-size: 9px !important; border-radius: 8px !important; }
+              .meta div { margin-bottom: 1px !important; }
+              
+              .section-title { font-size: 8px !important; padding-bottom: 2px !important; margin-bottom: 6px !important; }
+              .grid-cols { gap: 15px !important; margin-bottom: 8px !important; }
+              .item-row { font-size: 8.5px !important; margin-bottom: 3px !important; }
+              .item-row.bold { margin-top: 4px !important; padding-top: 3px !important; }
+              
+              .total-section { padding: 6px 10px !important; margin-bottom: 8px !important; border-radius: 8px !important; }
+              .total-label { font-size: 9.5px !important; }
+              .total-value { font-size: 13px !important; }
+              
+              .footer { margin-top: 10px !important; font-size: 8.5px !important; break-inside: avoid; page-break-inside: avoid; }
+              .signature { width: 130px !important; break-inside: avoid; page-break-inside: avoid; }
+              .signature .line { height: 25px !important; margin-bottom: 2px !important; }
+              .signature p { margin: 1px 0 !important; }
+              
+              .verification-seal { padding: 4px 6px !important; margin: 0 auto !important; border-radius: 8px !important; max-width: 150px !important; gap: 4px !important; break-inside: avoid; page-break-inside: avoid; }
+              .verification-seal span { font-size: 7px !important; }
+              .verification-seal svg { width: 34px !important; height: 34px !important; }
             }
           </style>
         </head>
@@ -934,6 +1012,20 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               />
             </div>
 
+            {/* Company Filter Dropdown */}
+            <div className="flex items-center gap-2 bg-orange-50/30 border border-orange-100 rounded-xl px-3 py-2.5 shadow-sm w-full sm:w-auto shrink-0">
+              <Building2 className="w-4 h-4 text-orange-500" />
+              <select
+                value={selectedCompany}
+                onChange={(e) => setSelectedCompany(e.target.value)}
+                className="bg-transparent border-none text-xs font-bold text-slate-750 outline-none w-full sm:w-[180px] font-quicksand cursor-pointer"
+              >
+                <option value="all">Semua Perusahaan</option>
+                <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
+                <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
+              </select>
+            </div>
+
             {/* Generate Button */}
             <button
               onClick={handleGeneratePayroll}
@@ -954,7 +1046,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             </button>
 
             {/* Submit All Button */}
-            {payrollRecords.some(r => r.status === 'draft') && (
+            {filteredRecords.some(r => r.status === 'draft') && (
               <button
                 onClick={handleSubmitAllToDirector}
                 disabled={generating || loadingPayroll}
@@ -968,7 +1060,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             {/* Export PDF Button */}
             <button
               onClick={handleExportPDF}
-              disabled={generating || loadingPayroll || payrollRecords.length === 0}
+              disabled={generating || loadingPayroll || filteredRecords.length === 0}
               className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98] font-montserrat"
               title="Ekspor PDF"
             >
@@ -979,7 +1071,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             {/* Export Excel Button */}
             <button
               onClick={handleExportExcel}
-              disabled={generating || loadingPayroll || payrollRecords.length === 0}
+              disabled={generating || loadingPayroll || filteredRecords.length === 0}
               className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98] font-montserrat"
               title="Ekspor Excel"
             >
@@ -1029,15 +1121,15 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
         </div>
 
         {/* Summary Cards */}
-        {payrollRecords.length > 0 && (
+        {filteredRecords.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-fade-in">
             <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-100 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:scale-[1.01] transition-transform">
               <div>
                 <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand">Total Gaji Dibayarkan</span>
                 <span className="text-lg font-black text-orange-600 block mt-1 font-montserrat">
-                  {formatRupiah(payrollRecords.reduce((sum, r) => sum + r.net_salary, 0))}
+                  {formatRupiah(filteredRecords.reduce((sum, r) => sum + r.net_salary, 0))}
                 </span>
-                <span className="text-[9px] text-slate-400 font-bold block mt-0.5 font-quicksand">Untuk {payrollRecords.length} karyawan</span>
+                <span className="text-[9px] text-slate-400 font-bold block mt-0.5 font-quicksand">Untuk {filteredRecords.length} karyawan</span>
               </div>
               <div className="p-3 bg-white/80 rounded-xl text-orange-600 shadow-sm">
                 <Coins className="w-5 h-5" />
@@ -1048,10 +1140,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               <div>
                 <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand">Telah Dibayar (Paid)</span>
                 <span className="text-lg font-black text-emerald-600 block mt-1 font-montserrat">
-                  {formatRupiah(payrollRecords.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.net_salary, 0))}
+                  {formatRupiah(filteredRecords.filter(r => r.status === 'paid').reduce((sum, r) => sum + r.net_salary, 0))}
                 </span>
                 <span className="text-[9px] text-slate-400 font-bold block mt-0.5 font-quicksand">
-                  {payrollRecords.filter(r => r.status === 'paid').length} karyawan lunas
+                  {filteredRecords.filter(r => r.status === 'paid').length} karyawan lunas
                 </span>
               </div>
               <div className="p-3 bg-white/80 rounded-xl text-emerald-600 shadow-sm">
@@ -1063,10 +1155,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               <div>
                 <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-quicksand">Belum Dibayar (Draft/Unpaid)</span>
                 <span className="text-lg font-black text-amber-600 block mt-1 font-montserrat">
-                  {formatRupiah(payrollRecords.filter(r => r.status !== 'paid').reduce((sum, r) => sum + r.net_salary, 0))}
+                  {formatRupiah(filteredRecords.filter(r => r.status !== 'paid').reduce((sum, r) => sum + r.net_salary, 0))}
                 </span>
                 <span className="text-[9px] text-slate-400 font-bold block mt-0.5 font-quicksand">
-                  {payrollRecords.filter(r => r.status !== 'paid').length} karyawan tertunda
+                  {filteredRecords.filter(r => r.status !== 'paid').length} karyawan tertunda
                 </span>
               </div>
               <div className="p-3 bg-white/80 rounded-xl text-amber-600 shadow-sm">
@@ -1126,14 +1218,14 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                       </div>
                     </td>
                   </tr>
-                ) : payrollRecords.length === 0 ? (
+                ) : filteredRecords.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold italic">
                       Belum ada data gaji yang di-generate pada periode ini ({getIndonesianMonthLabel(selectedMonth)}).
                     </td>
                   </tr>
                 ) : (
-                  payrollRecords.map((record) => (
+                  filteredRecords.map((record) => (
                     <tr key={record.id} className="hover:bg-orange-50/10 transition-colors">
                       <td className="py-4 px-5">
                         <div>
@@ -1263,12 +1355,12 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 <span>Memuat data rekap gaji bulanan...</span>
               </div>
             </div>
-          ) : payrollRecords.length === 0 ? (
+          ) : filteredRecords.length === 0 ? (
             <div className="py-12 text-center text-slate-400 font-semibold italic bg-white border border-orange-100 rounded-2xl shadow-sm">
               Belum ada data gaji yang di-generate pada periode ini ({getIndonesianMonthLabel(selectedMonth)}).
             </div>
           ) : (
-            payrollRecords.map((record) => (
+            filteredRecords.map((record) => (
               <div key={record.id} className="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm space-y-4 hover:border-orange-200 hover:shadow-md transition-all">
                 {/* Card Header: Initial, Name, Email, Status Badge */}
                 <div className="flex items-start justify-between gap-2">
@@ -1857,7 +1949,6 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                   </div>
                 </div>
                 <div className="title">
-                  <h2>SLIP GAJI RESMI</h2>
                   <p className="font-quicksand font-bold">Periode: {getIndonesianMonthLabel(selectedSlip.period_month)}</p>
                 </div>
               </div>

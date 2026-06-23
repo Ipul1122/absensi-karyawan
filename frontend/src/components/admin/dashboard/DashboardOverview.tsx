@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { API_BASE_URL } from '../../../utils/api'
+import ManualAttendanceModal from '../absensi/ManualAttendanceModal'
 import { 
   Users, 
   CheckCircle2, 
@@ -92,6 +93,7 @@ interface DashboardOverviewProps {
   todayAttendance: Attendance | null
   fetchTodayAttendance: () => Promise<void>
   leaves: any[]
+  fetchAttendances: () => void
 }
 
 export default function DashboardOverview({
@@ -107,10 +109,12 @@ export default function DashboardOverview({
   officeSetting,
   todayAttendance,
   fetchTodayAttendance,
-  leaves
+  leaves,
+  fetchAttendances
 }: DashboardOverviewProps) {
   // Modal State for Check-In/Check-Out Camera
   const [showCheckInModal, setShowCheckInModal] = useState(false)
+  const [showManualModal, setShowManualModal] = useState(false)
   const [modalType, setModalType] = useState<'check-in' | 'check-out'>('check-in')
   const [activeTab, setActiveTab] = useState<'kantor' | 'kunjungan' | 'client'>('kantor')
   const [submitting, setSubmitting] = useState(false)
@@ -674,18 +678,30 @@ export default function DashboardOverview({
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Real-time Employee Status</p>
               </div>
               
-              {/* Simple Search Input */}
-              <div className="relative shrink-0 w-full sm:w-48">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                  <Search className="w-3.5 h-3.5" />
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                {/* Absensi Manual Button */}
+                <button
+                  onClick={() => setShowManualModal(true)}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-orange-500 text-slate-600 hover:text-orange-600 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98] font-quicksand"
+                  title="Absensikan Karyawan (Manual)"
+                >
+                  <Clock className="w-3.5 h-3.5 text-orange-500" />
+                  <span>Absensi Manual</span>
+                </button>
+
+                {/* Simple Search Input */}
+                <div className="relative shrink-0 w-full sm:w-48">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Search className="w-3.5 h-3.5" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cari nama..."
+                    value={searchEmployeeQuery}
+                    onChange={(e) => setSearchEmployeeQuery(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-1.5 pl-9 pr-3 outline-none transition-all text-xs font-semibold"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Cari nama..."
-                  value={searchEmployeeQuery}
-                  onChange={(e) => setSearchEmployeeQuery(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-1.5 pl-9 pr-3 outline-none transition-all text-xs font-semibold"
-                />
               </div>
             </div>
 
@@ -1215,6 +1231,16 @@ export default function DashboardOverview({
           </div>
         </div>
       )}
+      {/* Manual Attendance Modal */}
+      <ManualAttendanceModal
+        isOpen={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        token={token}
+        employees={employees}
+        fetchAttendances={fetchAttendances}
+        officeLatitude={officeSetting?.latitude}
+        officeLongitude={officeSetting?.longitude}
+      />
 
     </div>
   )

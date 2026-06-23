@@ -327,17 +327,19 @@ class AttendanceController extends Controller
         $userId = $request->user_id;
         $date = Carbon::parse($request->date)->toDateString();
 
+        // Check if employee is active
+        $user = \App\Models\User::findOrFail($userId);
+        if ($user->status !== 'active') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tidak dapat membuat absensi untuk karyawan yang belum aktif atau belum disetujui oleh Direktur!'
+            ], 422);
+        }
+
         // Check if attendance already exists for this employee on this date
         $existing = Attendance::where('user_id', $userId)
             ->where('date', $date)
             ->first();
-
-        if ($existing) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Catatan absensi untuk karyawan tersebut pada tanggal yang dipilih sudah ada!'
-            ], 422);
-        }
 
         // Calculate status_in
         $clockIn = Carbon::parse($request->clock_in)->format('H:i:s');
@@ -376,24 +378,48 @@ class AttendanceController extends Controller
             }
         }
 
-        $attendance = Attendance::create([
-            'user_id' => $userId,
-            'date' => $date,
-            'attendance_type' => $request->attendance_type,
-            'clock_in' => $clockIn,
-            'status_in' => $statusIn,
-            'notes_in' => $notesText,
-            'latitude_in' => $latitude,
-            'longitude_in' => $longitude,
-            'photo_in' => $photoPath,
-            'clock_out' => $clockOut,
-            'status_out' => $statusOut,
-            'notes_out' => $clockOut ? $notesText : null,
-            'latitude_out' => $clockOut ? $latitude : null,
-            'longitude_out' => $clockOut ? $longitude : null,
-            'photo_out' => $clockOut ? $photoPath : null,
-            'approval_status' => 'approved',
-        ]);
+        if ($existing) {
+            // Update existing record
+            $existing->update([
+                'attendance_type' => $request->attendance_type,
+                'clock_in' => $clockIn ?: $existing->clock_in,
+                'status_in' => $statusIn ?: $existing->status_in,
+                'notes_in' => $notesText ?: $existing->notes_in,
+                'latitude_in' => $latitude ?: $existing->latitude_in,
+                'longitude_in' => $longitude ?: $existing->longitude_in,
+                'photo_in' => $request->photo ? $photoPath : $existing->photo_in,
+                'clock_out' => $clockOut ?: $existing->clock_out,
+                'status_out' => $statusOut ?: $existing->status_out,
+                'notes_out' => $clockOut ? ($notesText ?: $existing->notes_out) : $existing->notes_out,
+                'latitude_out' => $clockOut ? ($latitude ?: $existing->latitude_out) : $existing->latitude_out,
+                'longitude_out' => $clockOut ? ($longitude ?: $existing->longitude_out) : $existing->longitude_out,
+                'photo_out' => $clockOut ? ($request->photo ? $photoPath : $existing->photo_out) : $existing->photo_out,
+                'approval_status' => 'approved',
+            ]);
+            $attendance = $existing;
+            $msg = 'Absensi manual karyawan berhasil diperbarui!';
+        } else {
+            // Create new record
+            $attendance = Attendance::create([
+                'user_id' => $userId,
+                'date' => $date,
+                'attendance_type' => $request->attendance_type,
+                'clock_in' => $clockIn,
+                'status_in' => $statusIn,
+                'notes_in' => $notesText,
+                'latitude_in' => $latitude,
+                'longitude_in' => $longitude,
+                'photo_in' => $photoPath,
+                'clock_out' => $clockOut,
+                'status_out' => $statusOut,
+                'notes_out' => $clockOut ? $notesText : null,
+                'latitude_out' => $clockOut ? $latitude : null,
+                'longitude_out' => $clockOut ? $longitude : null,
+                'photo_out' => $clockOut ? $photoPath : null,
+                'approval_status' => 'approved',
+            ]);
+            $msg = 'Absensi manual karyawan berhasil dibuat!';
+        }
 
         if ($request->attendance_type === 'kunjungan' || $request->attendance_type === 'client') {
             $clientName = $request->attendance_type === 'client' ? 'Kunjungan Klien Pertama' : 'Kunjungan Lapangan Pertama';
@@ -418,7 +444,7 @@ class AttendanceController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Absensi manual karyawan berhasil dibuat!',
+            'message' => $msg,
             'data' => $attendance
         ]);
     }

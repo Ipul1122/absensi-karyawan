@@ -822,10 +822,21 @@ class PayrollController extends Controller
 
     public function submitAllPayrollApproval(Request $request)
     {
-        $request->validate(['period_month' => 'required|string']);
-        Payroll::where('period_month', $request->period_month)
-            ->where('status', 'draft')
-            ->update(['status' => 'pending_approval']);
+        $request->validate([
+            'period_month' => 'required|string',
+            'company' => 'nullable|string'
+        ]);
+
+        $query = Payroll::where('period_month', $request->period_month)
+            ->where('status', 'draft');
+
+        if ($request->filled('company') && $request->company !== 'all') {
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('company', $request->company);
+            });
+        }
+
+        $query->update(['status' => 'pending_approval']);
         return response()->json(['status' => 'success', 'message' => 'Semua payroll pada periode ini berhasil diajukan ke Direktur.']);
     }
 

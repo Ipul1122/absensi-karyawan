@@ -34,6 +34,7 @@ interface Employee {
   role: string
   status: 'active' | 'pending' | 'pending_delete'
   join_date: string | null
+  photo?: string | null
 }
 
 interface EmployeeProfile {
@@ -354,9 +355,17 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-orange-600 from-indigo-500 to-purple-650 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-md">
-                        {emp.name.charAt(0).toUpperCase()}
-                      </div>
+                      {emp.photo ? (
+                        <img 
+                          src={getAssetUrl(emp.photo)} 
+                          alt={emp.name}
+                          className="w-9 h-9 rounded-xl object-cover shadow-md shrink-0 border border-slate-200" 
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-xl bg-orange-600 from-indigo-500 to-purple-650 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-md">
+                          {emp.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <h4 className="text-xs font-bold text-slate-800 truncate leading-normal">{emp.name}</h4>
@@ -421,12 +430,20 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                   <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <div
-                          className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm"
-                          style={{ background: activeTab === 'pending' ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : 'linear-gradient(135deg,#dc2626,#b91c1c)' }}
-                        >
-                          {emp.name.charAt(0).toUpperCase()}
-                        </div>
+                        {emp.photo ? (
+                          <img 
+                            src={getAssetUrl(emp.photo)} 
+                            alt={emp.name} 
+                            className="w-8 h-8 rounded-xl object-cover shadow-sm shrink-0 border border-slate-200" 
+                          />
+                        ) : (
+                          <div
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm"
+                            style={{ background: activeTab === 'pending' ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : 'linear-gradient(135deg,#dc2626,#b91c1c)' }}
+                          >
+                            {emp.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                         <span className="text-sm font-semibold text-slate-800">{emp.name}</span>
                         {emp.role === 'admin' && (
                           <span className="inline-block text-[8px] font-extrabold px-1.5 py-0.5 bg-orange-100 text-orange-600 border border-orange-200 rounded ml-2 shrink-0">

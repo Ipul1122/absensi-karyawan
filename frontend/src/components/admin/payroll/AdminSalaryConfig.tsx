@@ -202,11 +202,11 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
     if (cfg) {
       const isPending = cfg.salary_change_status === 'pending'
       const basic = (isPending && cfg.pending_basic_salary !== null && cfg.pending_basic_salary !== undefined ? cfg.pending_basic_salary : cfg.basic_salary) ?? 0
-      const meal = (isPending && cfg.pending_allowance_meal_daily !== null && cfg.pending_allowance_meal_daily !== undefined ? cfg.pending_allowance_meal_daily : cfg.allowance_meal_daily) ?? 0
-      const trans = (isPending && cfg.pending_allowance_transport_daily !== null && cfg.pending_allowance_transport_daily !== undefined ? cfg.pending_allowance_transport_daily : cfg.allowance_transport_daily) ?? 0
-      const pos = (isPending && cfg.pending_allowance_position !== null && cfg.pending_allowance_position !== undefined ? cfg.pending_allowance_position : cfg.allowance_position) ?? 0
+      const meal = (isPending && cfg.pending_allowance_meal_daily !== null && cfg.pending_allowance_meal_daily !== undefined ? cfg.pending_allowance_meal_daily : (cfg.allowance_meal_daily ?? 0)) ?? 0
+      const trans = (isPending && cfg.pending_allowance_transport_daily !== null && cfg.pending_allowance_transport_daily !== undefined ? cfg.pending_allowance_transport_daily : (cfg.allowance_transport_daily ?? 0)) ?? 0
+      const pos = (isPending && cfg.pending_allowance_position !== null && cfg.pending_allowance_position !== undefined ? cfg.pending_allowance_position : (cfg.allowance_position ?? 0)) ?? 0
       const late = (isPending && cfg.pending_deduction_late_daily !== null && cfg.pending_deduction_late_daily !== undefined ? cfg.pending_deduction_late_daily : cfg.deduction_late_daily) ?? 0
-      const absence = (isPending && cfg.pending_deduction_absence_daily !== null && cfg.pending_deduction_absence_daily !== undefined ? cfg.pending_deduction_absence_daily : cfg.deduction_absence_daily) ?? 0
+      const absence = (isPending && cfg.pending_deduction_absence_daily !== null && cfg.pending_deduction_absence_daily !== undefined ? cfg.pending_deduction_absence_daily : (cfg.deduction_absence_daily ?? 0)) ?? 0
       const fixedDeduct = (isPending && cfg.pending_deduction_fixed !== null && cfg.pending_deduction_fixed !== undefined ? cfg.pending_deduction_fixed : cfg.deduction_fixed) ?? 0
 
       const directorName = matchedDirector ? matchedDirector.name : 'Direktur'
@@ -250,11 +250,11 @@ Terima kasih.`
       if (cfg) {
         const isPending = cfg.salary_change_status === 'pending'
         const basic = (isPending && cfg.pending_basic_salary !== null && cfg.pending_basic_salary !== undefined ? cfg.pending_basic_salary : cfg.basic_salary) ?? 0
-        const meal = (isPending && cfg.pending_allowance_meal_daily !== null && cfg.pending_allowance_meal_daily !== undefined ? cfg.pending_allowance_meal_daily : cfg.allowance_meal_daily) ?? 0
-        const trans = (isPending && cfg.pending_allowance_transport_daily !== null && cfg.pending_allowance_transport_daily !== undefined ? cfg.pending_allowance_transport_daily : cfg.allowance_transport_daily) ?? 0
-        const pos = (isPending && cfg.pending_allowance_position !== null && cfg.pending_allowance_position !== undefined ? cfg.pending_allowance_position : cfg.allowance_position) ?? 0
+        const meal = (isPending && cfg.pending_allowance_meal_daily !== null && cfg.pending_allowance_meal_daily !== undefined ? cfg.pending_allowance_meal_daily : (cfg.allowance_meal_daily ?? 0)) ?? 0
+        const trans = (isPending && cfg.pending_allowance_transport_daily !== null && cfg.pending_allowance_transport_daily !== undefined ? cfg.pending_allowance_transport_daily : (cfg.allowance_transport_daily ?? 0)) ?? 0
+        const pos = (isPending && cfg.pending_allowance_position !== null && cfg.pending_allowance_position !== undefined ? cfg.pending_allowance_position : (cfg.allowance_position ?? 0)) ?? 0
         const late = (isPending && cfg.pending_deduction_late_daily !== null && cfg.pending_deduction_late_daily !== undefined ? cfg.pending_deduction_late_daily : cfg.deduction_late_daily) ?? 0
-        const absence = (isPending && cfg.pending_deduction_absence_daily !== null && cfg.pending_deduction_absence_daily !== undefined ? cfg.pending_deduction_absence_daily : cfg.deduction_absence_daily) ?? 0
+        const absence = (isPending && cfg.pending_deduction_absence_daily !== null && cfg.pending_deduction_absence_daily !== undefined ? cfg.pending_deduction_absence_daily : (cfg.deduction_absence_daily ?? 0)) ?? 0
         const fixedDeduct = (isPending && cfg.pending_deduction_fixed !== null && cfg.pending_deduction_fixed !== undefined ? cfg.pending_deduction_fixed : cfg.deduction_fixed) ?? 0
 
         const approvalUrl = `${window.location.origin}/director/gaji`

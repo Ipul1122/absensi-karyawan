@@ -99,7 +99,7 @@ function App() {
     const faviconEl = document.getElementById('favicon') as HTMLLinkElement | null
 
     let titleText = 'goodpeople-hcms'
-    let faviconHref = '/favicon.svg'
+    let faviconHref = '/logo/LOGO-CPI.png'
 
     if (user) {
       if (user.role === 'admin') {

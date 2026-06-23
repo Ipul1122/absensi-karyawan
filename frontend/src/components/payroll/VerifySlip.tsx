@@ -65,7 +65,7 @@ export default function VerifySlip() {
       const faviconEl = document.getElementById('favicon') as HTMLLinkElement | null
 
       let titleText = 'goodpeople-hcms - Verifikasi Slip Gaji'
-      let faviconHref = '/favicon.svg'
+      let faviconHref = '/logo/LOGO-CPI.png'
 
       if (data.company === 'PT Yasodana Parvez Internasional') {
         titleText = 'goodpeople-hcms - Verifikasi Slip - PT Yasodana Parvez Internasional'

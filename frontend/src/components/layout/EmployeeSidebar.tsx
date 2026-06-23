@@ -17,7 +17,6 @@ import {
   Compass,
   UserCheck,
   ChevronDown,
-  ChevronUp,
   Briefcase
 } from 'lucide-react'
 import Logo from './Logo'
@@ -168,7 +167,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
                           setIsOperasionalDropdownOpen(!isOperasionalDropdownOpen)
                         }
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] ${
                         isSubActive 
                           ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/60 border border-orange-100/80 text-amber-700 shadow-sm' 
                           : 'text-slate-600 hover:text-amber-650 hover:bg-orange-50/30 border border-transparent'
@@ -183,11 +182,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
                           </span>
                         )}
                       </span>
-                      {isOpen ? (
-                        <ChevronUp className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600" />
-                      ) : (
-                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600" />
-                      )}
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isSubActive ? 'text-amber-700' : 'text-slate-400 group-hover:text-amber-600'}`} />
                     </button>
                     {isOpen && (
                       <div className="pl-6 space-y-1.5 pt-0.5 animate-fade-in">
@@ -208,9 +203,9 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
                               key={subItem.to}
                               to={subItem.to}
                               onClick={handleLinkClick}
-                              className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer group ${
+                              className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer group active:scale-[0.97] duration-150 ${
                                 isActive 
-                                  ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/40 border border-orange-100/60 text-amber-700 shadow-sm' 
+                                  ? 'bg-gradient-to-r from-amber-50/40 to-orange-50/40 border border-orange-100/60 text-amber-700 shadow-sm scale-[1.01]' 
                                   : 'text-slate-500 hover:text-amber-600 hover:bg-orange-50/20 border border-transparent'
                               }`}
                             >
@@ -249,9 +244,9 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
                   key={item.to || ''}
                   to={item.to || ''}
                   onClick={handleLinkClick}
-                  className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
+                  className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] duration-150 ${
                     isActive 
-                      ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/60 border border-orange-100/80 text-amber-700 shadow-sm' 
+                      ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/60 border border-orange-100/80 text-amber-700 shadow-sm scale-[1.01]' 
                       : 'text-slate-600 hover:text-amber-650 hover:bg-orange-50/30 border border-transparent'
                   }`}
                 >
@@ -284,7 +279,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
         </div>
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand active:scale-95 duration-150"
         >
           <LogOut className="w-4 h-4" />
           Keluar Aplikasi

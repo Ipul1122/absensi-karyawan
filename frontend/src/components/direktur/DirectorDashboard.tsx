@@ -96,31 +96,37 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
         />
         
         {/* Mobile Sidebar Drawer */}
-        {showMobileSidebar && (
-          <div className="fixed inset-0 z-50 flex md:hidden">
-            <div
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+        <div 
+          className={`fixed inset-0 z-50 flex md:hidden bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${
+            showMobileSidebar ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <div
+            className="fixed inset-0"
+            onClick={() => setShowMobileSidebar(false)}
+          />
+          <div 
+            className={`relative w-64 max-w-xs h-full flex flex-col p-6 bg-white border-r border-orange-100 shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
+              showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
+            <button
               onClick={() => setShowMobileSidebar(false)}
+              className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer z-10 active:scale-90"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <DirectorSidebar 
+              user={user} 
+              onLogout={onLogout} 
+              onClose={() => setShowMobileSidebar(false)} 
+              pendingKaryawanCount={pendingKaryawanCount} 
+              pendingGajiCount={pendingGajiCount} 
+              pendingPayrollCount={pendingPayrollCount}
+              pendingOperasionalCount={pendingOperasionalCount}
             />
-            <div className="relative w-64 max-w-xs h-full flex flex-col p-6 bg-white border-r border-orange-100 shadow-2xl overflow-y-auto">
-              <button
-                onClick={() => setShowMobileSidebar(false)}
-                className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer z-10"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <DirectorSidebar 
-                user={user} 
-                onLogout={onLogout} 
-                onClose={() => setShowMobileSidebar(false)} 
-                pendingKaryawanCount={pendingKaryawanCount} 
-                pendingGajiCount={pendingGajiCount} 
-                pendingPayrollCount={pendingPayrollCount}
-                pendingOperasionalCount={pendingOperasionalCount}
-              />
-            </div>
           </div>
-        )}
+        </div>
 
         <main
           className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto"

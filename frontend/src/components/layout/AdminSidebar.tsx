@@ -210,7 +210,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                   <div key={item.label} className="space-y-1">
                     <button
                       onClick={toggleOpen}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group border border-transparent ${
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group border border-transparent active:scale-[0.97] ${
                         isChildActive
                           ? 'text-amber-700 bg-orange-50/30'
                           : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40'
@@ -235,7 +235,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                           </span>
                         )}
                       </span>
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-amber-700' : 'text-slate-400 group-hover:text-amber-600'}`} />
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-amber-700' : 'text-slate-400'}`} />
                     </button>
                     
                     <div 
@@ -265,9 +265,9 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                               key={child.to}
                               to={child.to}
                               onClick={handleLinkClick}
-                              className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
+                              className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] duration-150 ${
                                 isActive 
-                                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15' 
+                                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15 scale-[1.01]' 
                                   : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 border border-transparent'
                               }`}
                             >
@@ -302,9 +302,9 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                   key={item.to}
                   to={item.to!}
                   onClick={handleLinkClick}
-                  className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
+                  className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] duration-150 ${
                     isActive 
-                      ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15' 
+                      ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15 scale-[1.01]' 
                       : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 border border-transparent'
                   }`}
                 >
@@ -332,7 +332,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
         </div>
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand active:scale-95 duration-150"
         >
           <LogOut className="w-4 h-4" />
           Keluar Aplikasi

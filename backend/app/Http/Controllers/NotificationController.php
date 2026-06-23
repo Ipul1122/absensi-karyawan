@@ -54,7 +54,7 @@ class NotificationController extends Controller
         } elseif ($user->role === 'director') {
             $pendingKaryawan = User::whereIn('status', ['pending', 'pending_delete'])->count();
             $pendingGaji = SalaryConfiguration::where('salary_change_status', 'pending')->count();
-            $pendingPayroll = Payroll::where('status', 'pending_approval')->count();
+            $pendingPayroll = Payroll::whereIn('status', ['pending_approval', 'unpaid'])->count();
 
             $opCuti = LeaveRequest::where('status', 'pending_director')->count();
             $opLembur = Overtime::where('status', 'pending_director')->count();

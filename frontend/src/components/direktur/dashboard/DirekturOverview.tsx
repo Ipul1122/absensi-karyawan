@@ -495,7 +495,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
       colorLight: 'rgba(245,158,11,0.06)',
       colorBorder: 'rgba(245,158,11,0.15)',
       gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-      desc: `Proposal Slip Gaji: ${stats.pendingPayroll} lembar`,
+      desc: `Siap Dibayar: ${stats.pendingPayroll} lembar`,
       pending: stats.pendingPayroll,
     },
     {

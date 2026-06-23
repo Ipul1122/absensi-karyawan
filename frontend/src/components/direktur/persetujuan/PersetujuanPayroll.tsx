@@ -6,10 +6,8 @@ import {
   Loader2, 
   X, 
   Calendar,
-  CheckSquare,
   CheckCircle2,
   DollarSign,
-  Check,
   CreditCard
 } from 'lucide-react'
 
@@ -52,7 +50,7 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
-  const [activeTab, setActiveTab] = useState<'pending' | 'unpaid' | 'paid'>('pending')
+  const [activeTab, setActiveTab] = useState<'unpaid' | 'paid'>('unpaid')
 
   const fetchPayrolls = async () => {
     setLoading(true)
@@ -68,30 +66,6 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
   useEffect(() => { fetchPayrolls() }, [selectedMonth])
 
   const fmt = (num: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num)
-
-  const handleApproveSingle = (record: PayrollRecord) => {
-    Swal.fire({
-      title: 'Setujui Payroll?',
-      html: `Sahkan gaji <strong>${record.user.name}</strong> sebesar <strong>${fmt(record.net_salary)}</strong>?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#4f46e5',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: 'Ya, Sahkan',
-      cancelButtonText: 'Batal'
-    }).then(async result => {
-      if (result.isConfirmed) {
-        setActionLoading(true)
-        try {
-          const res = await axios.put(`http://localhost:8000/api/director/payroll/${record.id}/approve`, {}, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          if (res.data.status === 'success') { Swal.fire('Berhasil!', res.data.message, 'success'); fetchPayrolls() }
-        } catch (err: any) { Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') }
-        finally { setActionLoading(false) }
-      }
-    })
-  }
 
   const handleRejectSingle = (record: PayrollRecord) => {
     Swal.fire({
@@ -111,30 +85,6 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
             headers: { Authorization: `Bearer ${token}` }
           })
           if (res.data.status === 'success') { Swal.fire('Berhasil!', res.data.message, 'success'); fetchPayrolls() }
-        } catch (err: any) { Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') }
-        finally { setActionLoading(false) }
-      }
-    })
-  }
-
-  const handleApproveAll = () => {
-    Swal.fire({
-      title: 'Sahkan Semua Payroll?',
-      text: `Setujui seluruh slip gaji periode ${selectedMonth}?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#4f46e5',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: 'Ya, Sahkan Semua!',
-      cancelButtonText: 'Batal'
-    }).then(async result => {
-      if (result.isConfirmed) {
-        setActionLoading(true)
-        try {
-          const res = await axios.post('http://localhost:8000/api/director/payroll/approve-all', { period_month: selectedMonth }, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          if (res.data.status === 'success') { Swal.fire('Sukses!', res.data.message, 'success'); fetchPayrolls() }
         } catch (err: any) { Swal.fire('Gagal', err.response?.data?.message || 'Terjadi kesalahan.', 'error') }
         finally { setActionLoading(false) }
       }
@@ -232,17 +182,12 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
     })
   }
 
-  const pendingPayrolls = payrollRecords.filter(r => r.status === 'pending_approval')
-  const unpaidPayrolls = payrollRecords.filter(r => r.status === 'unpaid')
+  const unpaidPayrolls = payrollRecords.filter(r => r.status === 'unpaid' || r.status === 'pending_approval')
   const paidPayrolls = payrollRecords.filter(r => r.status === 'paid')
   
-  const currentRecords = activeTab === 'pending'
-    ? pendingPayrolls
-    : activeTab === 'unpaid'
-      ? unpaidPayrolls
-      : paidPayrolls
-
-  const totalGajiPending = pendingPayrolls.reduce((sum, r) => sum + r.net_salary, 0)
+  const currentRecords = activeTab === 'unpaid'
+    ? unpaidPayrolls
+    : paidPayrolls
 
   return (
     <div className="space-y-6" style={S}>
@@ -273,32 +218,24 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
           </div>
 
           {/* Summary stats */}
-          {activeTab === 'pending' && pendingPayrolls.length > 0 && (
+          {activeTab === 'unpaid' && unpaidPayrolls.length > 0 && (
             <div className="mt-4 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <div className="px-3 py-1.5 rounded-xl border text-xs font-bold" style={{ background: 'rgba(217,119,6,0.06)', borderColor: 'rgba(217,119,6,0.15)', color: '#d97706' }}>
-                  <span className="font-black">{pendingPayrolls.length}</span> Slip Menunggu
+                  <span className="font-black">{unpaidPayrolls.length}</span> Slip Siap Dibayar
                 </div>
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
                   <DollarSign className="w-3.5 h-3.5 text-amber-500" />
-                  Total: <span className="font-black text-slate-800">{fmt(totalGajiPending)}</span>
+                  Total: <span className="font-black text-slate-800">{fmt(unpaidPayrolls.reduce((sum, r) => sum + r.net_salary, 0))}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleRejectAll}
                   disabled={actionLoading}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:border-red-200 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:border-red-200 hover:text-red-650 hover:bg-red-50 transition-all cursor-pointer disabled:opacity-50"
                 >
                   <X className="w-3.5 h-3.5" /> Tolak Semua
-                </button>
-                <button
-                  onClick={handleApproveAll}
-                  disabled={actionLoading}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90 cursor-pointer shadow-sm disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg,#d97706,#b45309)' }}
-                >
-                  <CheckSquare className="w-3.5 h-3.5" /> Sahkan Semua
                 </button>
               </div>
             </div>
@@ -307,16 +244,6 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
 
         {/* Tab Switcher */}
         <div className="flex border-b border-slate-100 px-6 bg-slate-50/50">
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === 'pending'
-                ? 'border-amber-600 text-amber-700 font-extrabold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Menunggu Persetujuan ({pendingPayrolls.length})
-          </button>
           <button
             onClick={() => setActiveTab('unpaid')}
             className={`py-3 px-4 text-xs font-bold border-b-2 transition-all cursor-pointer ${
@@ -351,18 +278,14 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
               <CheckCircle2 className="w-6 h-6 text-emerald-400" />
             </div>
             <p className="text-sm font-semibold text-slate-400">
-              {activeTab === 'pending'
-                ? 'Tidak ada payroll pending'
-                : activeTab === 'unpaid'
-                  ? 'Tidak ada payroll yang siap dibayar'
-                  : 'Belum ada payroll yang lunas'}
+              {activeTab === 'unpaid'
+                ? 'Tidak ada payroll yang siap dibayar'
+                : 'Belum ada payroll yang lunas'}
             </p>
             <p className="text-xs text-slate-300 font-medium mt-1">
-              {activeTab === 'pending'
-                ? 'Semua slip gaji pada periode ini sudah diproses.'
-                : activeTab === 'unpaid'
-                  ? 'Semua slip gaji yang disetujui sudah dilunasi.'
-                  : 'Silakan lakukan pembayaran pada tab "Siap Dibayar".'}
+              {activeTab === 'unpaid'
+                ? 'Semua slip gaji pada periode ini belum diajukan atau sudah diproses.'
+                : 'Silakan lakukan pembayaran pada tab "Siap Dibayar".'}
             </p>
           </div>
         ) : (
@@ -439,37 +362,26 @@ export default function PersetujuanPayroll({ token }: PersetujuanPayrollProps) {
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center gap-2">
-                        {activeTab === 'pending' && (
-                          <>
+                        {activeTab === 'unpaid' && (
+                          <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => handleApproveSingle(record)}
+                              onClick={() => handlePaySingle(record)}
                               disabled={actionLoading}
-                              className="w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all hover:opacity-90 cursor-pointer shadow-sm disabled:opacity-50"
-                              style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}
-                              title="Sahkan"
+                              className="px-3 py-1.5 rounded-xl text-white font-bold text-xs transition-all hover:opacity-95 cursor-pointer shadow-sm disabled:opacity-50 bg-gradient-to-r from-emerald-600 to-teal-700 flex items-center justify-center gap-1"
+                              title="Tandai Gaji Lunas"
                             >
-                              <Check className="w-3.5 h-3.5" />
+                              <CreditCard className="w-3.5 h-3.5" />
+                              Bayar
                             </button>
                             <button
                               onClick={() => handleRejectSingle(record)}
                               disabled={actionLoading}
                               className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 bg-slate-100 hover:bg-red-50 hover:text-red-500 transition-all cursor-pointer disabled:opacity-50"
-                              title="Tolak"
+                              title="Kembalikan ke Draft"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
-                          </>
-                        )}
-                        {activeTab === 'unpaid' && (
-                          <button
-                            onClick={() => handlePaySingle(record)}
-                            disabled={actionLoading}
-                            className="px-3 py-1.5 rounded-xl text-white font-bold text-xs transition-all hover:opacity-95 cursor-pointer shadow-sm disabled:opacity-50 bg-gradient-to-r from-emerald-600 to-teal-700 flex items-center justify-center gap-1"
-                            title="Tandai Gaji Lunas"
-                          >
-                            <CreditCard className="w-3.5 h-3.5" />
-                            Bayar
-                          </button>
+                          </div>
                         )}
                         {activeTab === 'paid' && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">

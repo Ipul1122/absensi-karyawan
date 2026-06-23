@@ -70,7 +70,7 @@ class SidebarNotificationController extends Controller
 
             $data['pendingGajiCount'] = SalaryConfiguration::where('salary_change_status', 'pending')->count();
 
-            $data['pendingPayrollCount'] = Payroll::where('status', 'pending_approval')->count();
+            $data['pendingPayrollCount'] = Payroll::whereIn('status', ['pending_approval', 'unpaid'])->count();
 
             // Director's pending operasional count: cuti, lembur, reimburse, bonus, inventaris
             $data['pendingCutiCount'] = LeaveRequest::where('status', 'pending_director')->count();

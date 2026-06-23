@@ -327,5 +327,14 @@ class EmployeeController extends Controller
             ]
         ]);
     }
+
+    public function getDirectorsList()
+    {
+        $directors = User::where('role', 'director')->get(['id', 'name', 'email', 'company', 'whatsapp']);
+        return response()->json([
+            'status' => 'success',
+            'data' => $directors
+        ]);
+    }
 }
 

@@ -13,7 +13,8 @@ import {
   UserCircle2,
   Info,
   Eye,
-  EyeOff
+  EyeOff,
+  MessageSquare
 } from 'lucide-react'
 
 interface UserProp {
@@ -27,6 +28,7 @@ interface ProfileData {
   name: string
   email: string
   photo: string | null
+  whatsapp?: string | null
 }
 
 interface DirectorSettingsProps {
@@ -40,7 +42,8 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
   const [profile, setProfile] = useState<ProfileData>({
     name: user.name,
     email: user.email,
-    photo: null
+    photo: null,
+    whatsapp: ''
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -72,7 +75,8 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
         setProfile({
           name: d.name ?? '',
           email: d.email ?? '',
-          photo: d.photo ?? null
+          photo: d.photo ?? null,
+          whatsapp: d.whatsapp ?? ''
         })
         if (d.photo) setPhotoPreview(d.photo)
       }
@@ -118,6 +122,7 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
       const formData = new FormData()
       formData.append('name', profile.name)
       formData.append('email', profile.email)
+      formData.append('whatsapp', profile.whatsapp ?? '')
       if (photoFile) formData.append('photo', photoFile)
 
       const res = await axios.post('http://localhost:8000/api/user/profile', formData, {
@@ -142,7 +147,8 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
         setProfile({
           name: updatedData.name ?? '',
           email: updatedData.email ?? '',
-          photo: updatedData.photo ?? null
+          photo: updatedData.photo ?? null,
+          whatsapp: updatedData.whatsapp ?? ''
         })
         if (updatedData.photo) setPhotoPreview(updatedData.photo)
         
@@ -360,6 +366,22 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
                       className={inputClass} 
                     />
                   </div>
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClass}>Nomor WhatsApp</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <input 
+                    type="text" 
+                    value={profile.whatsapp || ''} 
+                    onChange={e => setProfile(p => ({ ...p, whatsapp: e.target.value }))}
+                    placeholder="Contoh: 628123456789 (gunakan kode negara tanpa + atau 0)" 
+                    className={inputClass} 
+                  />
                 </div>
               </div>
 

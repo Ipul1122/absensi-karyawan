@@ -22,7 +22,8 @@ import {
   FileUp,
   Building2,
   CreditCard,
-  Info
+  Info,
+  MessageSquare
 } from 'lucide-react'
 
 interface UserProp {
@@ -45,6 +46,7 @@ interface ProfileData {
   division: string
   no_rekening: string
   company: string
+  whatsapp?: string | null
 }
 
 interface EmployeeSettingsProps {
@@ -70,7 +72,8 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
     cv: null,
     division: '',
     no_rekening: '',
-    company: ''
+    company: '',
+    whatsapp: ''
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -109,7 +112,8 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
           cv: d.cv ?? null,
           division: d.division ?? '',
           no_rekening: d.no_rekening ?? '',
-          company: d.company ?? ''
+          company: d.company ?? '',
+          whatsapp: d.whatsapp ?? ''
         })
         if (d.photo) setPhotoPreview(d.photo)
       }
@@ -174,6 +178,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
       // Required fields for backend validation
       formData.append('name', profile.name)
       formData.append('email', profile.email)
+      formData.append('whatsapp', profile.whatsapp ?? '')
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
 
@@ -185,9 +190,11 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
         setPhotoFile(null)
         setCvFile(null)
         if (res.data.data.photo) setPhotoPreview(res.data.data.photo)
-        if (res.data.data.cv) {
-          setProfile(p => ({ ...p, cv: res.data.data.cv }))
-        }
+        setProfile(p => ({
+          ...p,
+          cv: res.data.data.cv ?? p.cv,
+          whatsapp: res.data.data.whatsapp ?? p.whatsapp
+        }))
       }
     } catch (err: any) {
       Swal.fire({ title: 'Gagal Menyimpan', text: err.response?.data?.message || 'Gagal menyimpan.', icon: 'error', background: '#fffdfb', color: '#3c1105' })
@@ -533,6 +540,22 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   <div className="absolute top-3 left-0 pl-3.5 pointer-events-none text-slate-400"><MapPin className="w-4 h-4" /></div>
                   <textarea rows={3} value={profile.address || 'Belum diisi'} readOnly
                     className="w-full bg-slate-100 border border-slate-200 text-slate-600 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium font-quicksand cursor-not-allowed resize-none" />
+                </div>
+              </div>
+
+              {/* ---- Nomor WhatsApp (read-only) ---- */}
+              <div>
+                <label className={labelClass}>Nomor WhatsApp</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <MessageSquare className="w-4 h-4" />
+                  </div>
+                  <input 
+                    type="text" 
+                    value={profile.whatsapp || 'Belum diatur'} 
+                    readOnly
+                    className="w-full bg-slate-100 border border-slate-200 text-slate-600 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium font-quicksand cursor-not-allowed" 
+                  />
                 </div>
               </div>
 

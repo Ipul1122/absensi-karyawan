@@ -94,6 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/sales-visits', [SalesVisitController::class, 'getAllVisits']);
         Route::get('/admin/leaves', [LeaveController::class, 'getAllRequests']);
         Route::get('/admin/payroll/configurations', [PayrollController::class, 'indexConfigurations']);
+        Route::get('/admin/directors', [EmployeeController::class, 'getDirectorsList']);
         Route::get('/admin/payroll', [PayrollController::class, 'indexPayrolls']);
         Route::get('/admin/inventories', [InventoryController::class, 'index']);
         Route::get('/admin/inventories/{id}', [InventoryController::class, 'show']);

@@ -4,13 +4,17 @@ import Swal from 'sweetalert2'
 import { 
   Settings, 
   Loader2, 
-  Edit3
+  Edit3,
+  MessageSquare,
+  Phone,
+  Send
 } from 'lucide-react'
 
 interface User {
   id: number
   name: string
   email: string
+  company?: string | null
   salary_configuration?: SalaryConfig | null
 }
 
@@ -48,6 +52,14 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<User | null>(null)
   
+  // WhatsApp notification states
+  const [directors, setDirectors] = useState<any[]>([])
+  const [showWaModal, setShowWaModal] = useState(false)
+  const [waEmployee, setWaEmployee] = useState<User | null>(null)
+  const [selectedDirectorId, setSelectedDirectorId] = useState<string>('')
+  const [directorPhone, setDirectorPhone] = useState<string>('')
+  const [waMessage, setWaMessage] = useState<string>('')
+  
   // Form Configuration states
   const [basicSalary, setBasicSalary] = useState('0')
   const [allowanceMealDaily, setAllowanceMealDaily] = useState('0')
@@ -79,8 +91,22 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
     }
   }
 
+  const fetchDirectors = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/directors', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setDirectors(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data direktur:', err)
+    }
+  }
+
   useEffect(() => {
     fetchConfigurations()
+    fetchDirectors()
   }, [])
 
   // Open Edit Config Modal
@@ -156,6 +182,142 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
     }
   }
 
+  const handleOpenWaModal = (employee: User) => {
+    setWaEmployee(employee)
+    
+    const employeeCompany = employee.company
+    let matchedDirector = directors.find(d => d.company === employeeCompany)
+    if (!matchedDirector && directors.length > 0) {
+      matchedDirector = directors[0]
+    }
+
+    if (matchedDirector) {
+      setSelectedDirectorId(matchedDirector.id.toString())
+      setDirectorPhone(matchedDirector.whatsapp || '')
+    } else {
+      setSelectedDirectorId('')
+      setDirectorPhone('')
+    }
+
+    const cfg = employee.salary_configuration
+    if (cfg) {
+      const isPending = cfg.salary_change_status === 'pending'
+      const basic = isPending && cfg.pending_basic_salary !== null ? cfg.pending_basic_salary : cfg.basic_salary
+      const meal = isPending && cfg.pending_allowance_meal_daily !== null ? cfg.pending_allowance_meal_daily : (cfg.allowance_meal_daily ?? 0)
+      const trans = isPending && cfg.pending_allowance_transport_daily !== null ? cfg.pending_allowance_transport_daily : (cfg.allowance_transport_daily ?? 0)
+      const pos = isPending && cfg.pending_allowance_position !== null ? cfg.pending_allowance_position : (cfg.allowance_position ?? 0)
+      const late = isPending && cfg.pending_deduction_late_daily !== null ? cfg.pending_deduction_late_daily : cfg.deduction_late_daily
+      const absence = isPending && cfg.pending_deduction_absence_daily !== null ? cfg.pending_deduction_absence_daily : (cfg.deduction_absence_daily ?? 0)
+      const fixedDeduct = isPending && cfg.pending_deduction_fixed !== null ? cfg.pending_deduction_fixed : cfg.deduction_fixed
+
+      const directorName = matchedDirector ? matchedDirector.name : 'Direktur'
+      const companyName = employee.company || '-'
+      const approvalUrl = `${window.location.origin}/director/gaji`
+
+      const messageText = `Halo *${directorName}*,
+
+Berikut adalah pengajuan perubahan setelan gaji karyawan untuk disetujui:
+
+*Nama Karyawan*: ${employee.name}
+*Perusahaan*: ${companyName}
+
+*Rincian Setelan Gaji Pokok & Tunjangan Baru*:
+- Gaji Pokok: ${formatRupiah(basic)}
+- Tunj. Makan (Harian): ${formatRupiah(meal)}
+- Tunj. Transport (Harian): ${formatRupiah(trans)}
+- Tunj. Jabatan (Bulanan): ${formatRupiah(pos)}
+- Potongan Telat (Harian): ${formatRupiah(late)}
+- Potongan Absen (Harian): ${formatRupiah(absence)}
+- Potongan Tetap: ${formatRupiah(fixedDeduct)}
+
+Mohon untuk memeriksa dan melakukan persetujuan melalui sistem di link berikut:
+${approvalUrl}
+
+Terima kasih.`
+
+      setWaMessage(messageText)
+    }
+
+    setShowWaModal(true)
+  }
+
+  const handleDirectorChange = (directorId: string) => {
+    setSelectedDirectorId(directorId)
+    const director = directors.find(d => d.id.toString() === directorId)
+    if (director && waEmployee) {
+      setDirectorPhone(director.whatsapp || '')
+      
+      const cfg = waEmployee.salary_configuration
+      if (cfg) {
+        const isPending = cfg.salary_change_status === 'pending'
+        const basic = isPending && cfg.pending_basic_salary !== null ? cfg.pending_basic_salary : cfg.basic_salary
+        const meal = isPending && cfg.pending_allowance_meal_daily !== null ? cfg.pending_allowance_meal_daily : (cfg.allowance_meal_daily ?? 0)
+        const trans = isPending && cfg.pending_allowance_transport_daily !== null ? cfg.pending_allowance_transport_daily : (cfg.allowance_transport_daily ?? 0)
+        const pos = isPending && cfg.pending_allowance_position !== null ? cfg.pending_allowance_position : (cfg.allowance_position ?? 0)
+        const late = isPending && cfg.pending_deduction_late_daily !== null ? cfg.pending_deduction_late_daily : cfg.deduction_late_daily
+        const absence = isPending && cfg.pending_deduction_absence_daily !== null ? cfg.pending_deduction_absence_daily : (cfg.deduction_absence_daily ?? 0)
+        const fixedDeduct = isPending && cfg.pending_deduction_fixed !== null ? cfg.pending_deduction_fixed : cfg.deduction_fixed
+
+        const approvalUrl = `${window.location.origin}/director/gaji`
+        const companyName = waEmployee.company || '-'
+
+        const messageText = `Halo *${director.name}*,
+
+Berikut adalah pengajuan perubahan setelan gaji karyawan untuk disetujui:
+
+*Nama Karyawan*: ${waEmployee.name}
+*Perusahaan*: ${companyName}
+
+*Rincian Setelan Gaji Pokok & Tunjangan Baru*:
+- Gaji Pokok: ${formatRupiah(basic)}
+- Tunj. Makan (Harian): ${formatRupiah(meal)}
+- Tunj. Transport (Harian): ${formatRupiah(trans)}
+- Tunj. Jabatan (Bulanan): ${formatRupiah(pos)}
+- Potongan Telat (Harian): ${formatRupiah(late)}
+- Potongan Absen (Harian): ${formatRupiah(absence)}
+- Potongan Tetap: ${formatRupiah(fixedDeduct)}
+
+Mohon untuk memeriksa dan melakukan persetujuan melalui sistem di link berikut:
+${approvalUrl}
+
+Terima kasih.`
+
+        setWaMessage(messageText)
+      }
+    }
+  }
+
+  const handleSendWa = () => {
+    if (!directorPhone) {
+      Swal.fire({
+        title: 'Nomor WhatsApp Kosong',
+        text: 'Silakan isi nomor WhatsApp penerima terlebih dahulu.',
+        icon: 'warning'
+      })
+      return
+    }
+
+    const cleanPhone = directorPhone.replace(/[^0-9]/g, '')
+    if (cleanPhone.length < 9) {
+      Swal.fire({
+        title: 'Nomor Tidak Valid',
+        text: 'Format nomor WhatsApp tidak valid.',
+        icon: 'warning'
+      })
+      return
+    }
+
+    let formattedPhone = cleanPhone
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '62' + formattedPhone.substring(1)
+    }
+
+    const encodedText = encodeURIComponent(waMessage)
+    const waUrl = `https://wa.me/${formattedPhone}?text=${encodedText}`
+    window.open(waUrl, '_blank')
+    setShowWaModal(false)
+  }
+
   const formatRupiah = (number: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -165,7 +327,7 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
   }
 
   // Format number to Rupiah input display with dot separators (e.g. 5000000 -> 5.000.000)
-  const formatInputRupiah = (value: number | string | null | undefined): string => {
+  function formatInputRupiah(value: number | string | null | undefined): string {
     const num = typeof value === 'string' ? parseFloat(value) : (value ?? 0)
     if (isNaN(num)) return '0'
     const intValue = Math.round(num)
@@ -173,12 +335,12 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
   }
 
   // Parse formatted Rupiah input back to plain number string (e.g. 5.000.000 -> 5000000)
-  const parseInputRupiah = (formatted: string): string => {
+  function parseInputRupiah(formatted: string): string {
     return formatted.replace(/\./g, '')
   }
 
   // Handle Rupiah input change: strip non-digits, reformat with dots
-  const handleRupiahInput = (value: string, setter: React.Dispatch<React.SetStateAction<string>>) => {
+  function handleRupiahInput(value: string, setter: React.Dispatch<React.SetStateAction<string>>) {
     const raw = value.replace(/[^0-9]/g, '')
     if (raw === '') {
       setter('0')
@@ -269,13 +431,25 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                         {cfg ? formatRupiah(cfg.deduction_fixed) : <span className="text-slate-400 italic">Belum diset</span>}
                       </td>
                       <td className="py-4 px-5 text-center">
-                        <button
-                          onClick={() => handleOpenConfig(emp)}
-                          className="inline-flex items-center gap-1 px-3 py-2 bg-white border border-slate-200 hover:border-orange-500 hover:text-orange-600 rounded-xl font-bold transition-all cursor-pointer shadow-sm"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                          Atur Gaji
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleOpenConfig(emp)}
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-white border border-slate-200 hover:border-orange-500 hover:text-orange-600 rounded-xl font-bold transition-all cursor-pointer shadow-sm"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            Atur Gaji
+                          </button>
+                          {cfg && cfg.salary_change_status === 'pending' && (
+                            <button
+                              onClick={() => handleOpenWaModal(emp)}
+                              className="inline-flex items-center gap-1 px-3 py-2 bg-emerald-50 border border-emerald-200 hover:border-emerald-500 hover:text-emerald-700 text-emerald-600 rounded-xl font-bold transition-all cursor-pointer shadow-sm"
+                              title="Kirim detail perubahan ke WhatsApp Direktur"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              Kirim WA
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -440,6 +614,98 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: WhatsApp Send */}
+      {showWaModal && waEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-orange-950/20 backdrop-blur-md animate-fade-in overflow-y-auto">
+          <div className="bg-white border border-orange-100 rounded-3xl p-6 max-w-lg w-full relative shadow-xl overflow-hidden animate-zoom-in my-8 max-h-[90vh] overflow-y-auto">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-emerald-500 via-teal-500 to-transparent"></div>
+            
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-emerald-600" />
+                Kirim WA ke Direktur
+              </h3>
+              <button
+                onClick={() => setShowWaModal(false)}
+                className="text-slate-400 hover:text-slate-700 font-bold p-1 hover:bg-slate-100 rounded-lg cursor-pointer text-xs"
+              >
+                Tutup
+              </button>
+            </div>
+
+            <div className="space-y-4 font-semibold text-xs text-slate-700">
+              <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl space-y-1">
+                <p className="text-[10px] uppercase font-bold text-emerald-700">Info Karyawan</p>
+                <p className="text-xs text-slate-800">Nama: <span className="font-extrabold">{waEmployee.name}</span></p>
+                <p className="text-xs text-slate-800">Perusahaan: <span className="font-extrabold">{waEmployee.company || '-'}</span></p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pilih Direktur</label>
+                  <select
+                    value={selectedDirectorId}
+                    onChange={(e) => handleDirectorChange(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl py-2 px-3 outline-none font-bold text-xs"
+                  >
+                    <option value="" disabled>-- Pilih Direktur --</option>
+                    {directors.map((dir) => (
+                      <option key={dir.id} value={dir.id.toString()}>
+                        {dir.name} ({dir.company})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">No. WhatsApp Direktur</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">
+                      <Phone className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="text"
+                      value={directorPhone}
+                      onChange={(e) => setDirectorPhone(e.target.value)}
+                      placeholder="Contoh: 628123456789"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl py-2 pl-9 pr-3 outline-none font-bold text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Isi Pesan WhatsApp (Dapat Diedit)</label>
+                <textarea
+                  rows={10}
+                  value={waMessage}
+                  onChange={(e) => setWaMessage(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl p-3 outline-none font-mono text-[11px] font-medium resize-none leading-relaxed"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowWaModal(false)}
+                  className="flex-1 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendWa}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/10"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Kirim ke WhatsApp
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

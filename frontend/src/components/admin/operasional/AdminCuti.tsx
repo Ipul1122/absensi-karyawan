@@ -21,6 +21,7 @@ interface UserDetails {
   id: number
   name: string
   email: string
+  company?: string
 }
 
 interface LeaveRequest {
@@ -108,14 +109,32 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           )
 
           if (response.data.status === 'success') {
+            const leaveItem = leaves.find((l) => l.id === id)
+            const companyName = leaveItem?.user?.company || 'PT Cakrawala Parama Internasional'
+            const targetPhone = companyName.toLowerCase().includes('yasodana') ? '6289656931184' : '628170038421'
+            const categoryName = leaveItem ? (leaveItem.category === 'LAINNYA' ? leaveItem.custom_category : leaveItem.category) : ''
+            const duration = leaveItem ? calculateDays(leaveItem.start_date, leaveItem.end_date) : 0
+            const periodStr = leaveItem ? `${formatDate(leaveItem.start_date)} s/d ${formatDate(leaveItem.end_date)}` : ''
+            const reasonText = leaveItem?.reason || ''
+
+            const waMessage = `Halo Direktur, terdapat pengajuan cuti baru yang membutuhkan persetujuan Anda.\n\nDetail Pengajuan:\n- Nama Karyawan: ${employeeName}\n- Perusahaan: ${companyName}\n- Kategori Cuti: ${categoryName}\n- Masa Cuti: ${periodStr} (${duration} Hari)\n- Alasan: ${reasonText}\n\nSilakan buka tautan berikut untuk memproses persetujuan:\nhttp://localhost:5173/director/karyawan`
+            const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(waMessage)}`
+
             Swal.fire({
               title: 'Disetujui!',
-              text: 'Pengajuan cuti berhasil disetujui.',
+              text: 'Pengajuan cuti berhasil disetujui. Ingin mengirim notifikasi WhatsApp ke Direktur?',
               icon: 'success',
-              timer: 1500,
-              showConfirmButton: false,
+              showCancelButton: true,
+              confirmButtonText: 'Ya, Kirim WhatsApp',
+              cancelButtonText: 'Tidak, Tutup',
+              confirmButtonColor: '#ea580c',
+              cancelButtonColor: '#94a3b8',
               background: '#fffdfb',
               color: '#3c1105'
+            }).then((waResult) => {
+              if (waResult.isConfirmed) {
+                window.open(waUrl, '_blank')
+              }
             })
             fetchLeaves()
           }

@@ -28,7 +28,6 @@ interface LoginProps {
 }
 
 const BRAND_ORANGE = '#ea580c'
-const BRAND_ORANGE_DARK = '#c2410c'
 
 export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   const [email, setEmail] = useState('')
@@ -193,24 +192,18 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
 
           {/* Form area — scrollable on small screens */}
           <div className="flex-1 flex items-center justify-center px-4 sm:px-10 lg:px-12 xl:px-16 py-8 overflow-y-auto z-10">
-            <div className="w-full max-w-md bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(234,88,12,0.06)] rounded-3xl p-6 sm:p-8 animate-fade-in relative z-20">
+            <div className="w-full max-w-md bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(234,88,12,0.06)] rounded-3xl p-6 sm:p-8 md:p-10 animate-fade-in relative z-20 transition-all duration-300">
 
-              {/* Dual Company Logos Header Capsule */}
-              <div className="flex items-center justify-center gap-4 px-5 py-3 bg-slate-50/70 border border-slate-100/80 rounded-2xl shadow-sm mb-6 w-fit mx-auto transition-all duration-300">
-                <div className="flex items-center gap-2">
-                  <img src="/logo/LOGO-CPI.png" alt="PT Cakrawala Parama Internasional" className="h-7 w-auto object-contain shrink-0" />
-                  <div className="flex flex-col text-left">
-                    <span className="text-[8px] font-black text-slate-800 tracking-wide uppercase leading-none">Cakrawala</span>
-                    <span className="text-[5.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mt-0.5">Parama</span>
-                  </div>
+              {/* Dual Company Logos Header Stack */}
+              <div className="flex items-center justify-center gap-6 mb-7 mx-auto select-none">
+                <div className="flex flex-col items-center group/logo transition-all duration-350 hover:translate-y-[-2px] cursor-pointer">
+                  <img src="/logo/LOGO-CPI.png" alt="PT Cakrawala Parama Internasional" className="h-10 w-auto object-contain shrink-0 transition-transform duration-300 group-hover/logo:scale-[1.03]" />
+                  <span className="text-[10px] font-black text-slate-800 tracking-[0.15em] uppercase mt-2">CAKRAWALA</span>
                 </div>
-                <div className="w-[1px] h-6 bg-slate-200" />
-                <div className="flex items-center gap-2">
-                  <img src="/logo/LOGO-YPI.png" alt="PT Yasodana Parvez Internasional" className="h-7 w-auto object-contain shrink-0" />
-                  <div className="flex flex-col text-left">
-                    <span className="text-[8px] font-black text-slate-800 tracking-wide uppercase leading-none">Yasodana</span>
-                    <span className="text-[5.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mt-0.5">Parvez</span>
-                  </div>
+                <div className="w-[1px] h-9 bg-slate-200/90 self-center" />
+                <div className="flex flex-col items-center group/logo transition-all duration-350 hover:translate-y-[-2px] cursor-pointer">
+                  <img src="/logo/LOGO-YPI.png" alt="PT Yasodana Parvez Internasional" className="h-10 w-auto object-contain shrink-0 transition-transform duration-300 group-hover/logo:scale-[1.03]" />
+                  <span className="text-[10px] font-black text-slate-800 tracking-[0.15em] uppercase mt-2">YASODANA</span>
                 </div>
               </div>
 
@@ -226,7 +219,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                     </>
                   )}
                 </h2>
-                <p className="text-xs text-slate-450 mt-1 font-semibold text-center max-w-xs leading-relaxed">
+                <p className="text-xs text-slate-450 mt-1.5 font-semibold text-center max-w-xs leading-relaxed">
                   {activeTab === 'director'
                     ? 'Silakan masuk dengan kredensial Direktur Utama Anda.'
                     : 'Portal presensi digital terintegrasi untuk karyawan.'}
@@ -234,29 +227,37 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
               </div>
 
               {/* TABS SIDE SWITCHER FOR DIRECTOR */}
-              <div className="flex bg-slate-50 border border-slate-100 p-1 rounded-2xl mb-6 font-quicksand font-bold text-xs select-none shadow-inner shadow-slate-150/10">
+              <div className="relative flex bg-slate-100 p-1.5 rounded-2xl mb-6 font-quicksand font-bold text-xs select-none border border-slate-200/50 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03)]">
+                {/* Sliding active capsule indicator */}
+                <div 
+                  className="absolute top-1.5 bottom-1.5 left-1.5 rounded-xl bg-white shadow-[0_3px_8px_rgba(0,0,0,0.06)] border border-slate-200/30 transition-all duration-300 ease-out"
+                  style={{
+                    width: 'calc(50% - 6px)',
+                    transform: activeTab === 'director' ? 'translateX(100%)' : 'translateX(0%)'
+                  }}
+                />
                 <button
                   type="button"
                   onClick={() => handleTabChange('standard')}
-                  className={`flex-grow py-2.5 rounded-xl transition-all duration-350 flex items-center justify-center gap-1.5 cursor-pointer font-bold ${
+                  className={`relative z-10 flex-1 py-2.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer font-extrabold active:scale-[0.95] ${
                     activeTab === 'standard'
-                      ? 'bg-white text-orange-600 shadow-[0_4px_12px_rgba(234,88,12,0.06)] border border-slate-100/60'
-                      : 'text-slate-400 hover:text-slate-700'
+                      ? 'text-orange-655'
+                      : 'text-slate-400 hover:text-slate-600'
                   }`}
                 >
-                  <ShieldCheck className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'standard' ? 'scale-110 text-orange-500' : 'text-slate-400'}`} />
+                  <ShieldCheck className={`w-4 h-4 transition-all duration-300 ${activeTab === 'standard' ? 'scale-110 text-orange-500' : 'text-slate-400'}`} />
                   Karyawan & Admin
                 </button>
                 <button
                   type="button"
                   onClick={() => handleTabChange('director')}
-                  className={`flex-grow py-2.5 rounded-xl transition-all duration-350 flex items-center justify-center gap-1.5 cursor-pointer font-bold ${
+                  className={`relative z-10 flex-1 py-2.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer font-extrabold active:scale-[0.95] ${
                     activeTab === 'director'
-                      ? 'bg-white text-orange-600 shadow-[0_4px_12px_rgba(234,88,12,0.06)] border border-slate-100/60'
-                      : 'text-slate-400 hover:text-slate-700'
+                      ? 'text-orange-655'
+                      : 'text-slate-400 hover:text-slate-600'
                   }`}
                 >
-                  <LogIn className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'director' ? 'scale-110 text-orange-500' : 'text-slate-400'}`} />
+                  <LogIn className={`w-4 h-4 transition-all duration-300 ${activeTab === 'director' ? 'scale-110 text-orange-500' : 'text-slate-400'}`} />
                   Direktur Utama
                 </button>
               </div>
@@ -282,15 +283,15 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                  <label className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider transition-colors duration-300" style={emailFocused ? { color: BRAND_ORANGE } : {}}>
+                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider transition-colors duration-300" style={emailFocused ? { color: BRAND_ORANGE } : {}}>
                     Alamat Email
                   </label>
-                  <div className={`relative flex items-center border transition-all duration-300 ${
+                  <div className={`relative flex items-center border transition-all duration-350 ${
                     emailFocused 
-                      ? 'border-orange-500 bg-white shadow-[0_0_0_4px_rgba(234,88,12,0.08)]' 
-                      : 'border-slate-200/80 bg-slate-50/20 hover:border-slate-350/50'
-                  }`} style={{ borderRadius: '14px' }}>
-                    <div className={`absolute left-4 transition-colors duration-300 ${emailFocused ? 'text-orange-500' : 'text-slate-400'}`}>
+                      ? 'border-orange-500 bg-white shadow-[0_0_0_4px_rgba(234,88,12,0.12)] scale-[1.01]' 
+                      : 'border-slate-200 bg-slate-50/20 hover:border-slate-300/85'
+                  }`} style={{ borderRadius: '16px' }}>
+                    <div className={`absolute left-4 transition-all duration-300 ${emailFocused ? 'text-orange-500 scale-110' : 'text-slate-400'}`}>
                       <Mail className="w-4 h-4" />
                     </div>
                     <input
@@ -302,7 +303,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       onFocus={() => setEmailFocused(true)}
                       onBlur={() => setEmailFocused(false)}
                       placeholder="nama@perusahaan.com"
-                      className="w-full bg-transparent text-slate-800 placeholder-slate-400/70 rounded-2xl py-3 pl-12 pr-4 outline-none transition-all text-xs font-semibold"
+                      className="w-full bg-transparent text-slate-800 placeholder-slate-400/70 rounded-2xl py-3.5 pl-12 pr-4 outline-none transition-all text-xs font-semibold"
                     />
                   </div>
                 </div>
@@ -310,19 +311,23 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                 {/* Password */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider transition-colors duration-300" style={passwordFocused ? { color: BRAND_ORANGE } : {}}>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider transition-colors duration-300" style={passwordFocused ? { color: BRAND_ORANGE } : {}}>
                       Kata Sandi
                     </label>
-                    <button type="button" className="text-[10px] font-bold hover:text-orange-700 cursor-pointer transition-colors duration-300 font-quicksand" style={{ color: currentAccentColor }}>
+                    <button 
+                      type="button" 
+                      className="text-[10.5px] font-extrabold hover:text-orange-700 cursor-pointer transition-all duration-200 font-quicksand active:scale-95 origin-right hover:underline hover:underline-offset-2" 
+                      style={{ color: currentAccentColor }}
+                    >
                       Lupa Sandi?
                     </button>
                   </div>
-                  <div className={`relative flex items-center border transition-all duration-300 ${
+                  <div className={`relative flex items-center border transition-all duration-350 ${
                     passwordFocused 
-                      ? 'border-orange-500 bg-white shadow-[0_0_0_4px_rgba(234,88,12,0.08)]' 
-                      : 'border-slate-200/80 bg-slate-50/20 hover:border-slate-350/50'
-                  }`} style={{ borderRadius: '14px' }}>
-                    <div className={`absolute left-4 transition-colors duration-300 ${passwordFocused ? 'text-orange-500' : 'text-slate-400'}`}>
+                      ? 'border-orange-500 bg-white shadow-[0_0_0_4px_rgba(234,88,12,0.12)] scale-[1.01]' 
+                      : 'border-slate-200 bg-slate-50/20 hover:border-slate-300/85'
+                  }`} style={{ borderRadius: '16px' }}>
+                    <div className={`absolute left-4 transition-all duration-300 ${passwordFocused ? 'text-orange-500 scale-110' : 'text-slate-400'}`}>
                       <Lock className="w-4 h-4" />
                     </div>
                     <input
@@ -334,14 +339,14 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       onFocus={() => setPasswordFocused(true)}
                       onBlur={() => setPasswordFocused(false)}
                       placeholder="••••••••"
-                      className="w-full bg-transparent text-slate-800 placeholder-slate-400/70 rounded-2xl py-3 pl-12 pr-12 outline-none transition-all text-xs font-semibold"
+                      className="w-full bg-transparent text-slate-800 placeholder-slate-400/70 rounded-2xl py-3.5 pl-12 pr-12 outline-none transition-all text-xs font-semibold"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(v => !v)}
-                      className="absolute right-4 text-slate-400 hover:text-slate-650 transition-colors cursor-pointer"
+                      className="absolute right-4 text-slate-400 hover:text-slate-600 transition-all cursor-pointer active:scale-75 duration-150"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                     </button>
                   </div>
                 </div>
@@ -350,20 +355,18 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                 <button
                   type="button"
                   onClick={() => setRememberMe(v => !v)}
-                  className="flex items-center gap-2.5 cursor-pointer group w-fit select-none"
+                  className="flex items-center gap-2.5 cursor-pointer group w-fit select-none active:scale-[0.97] transition-all duration-150"
                 >
-                  <div className={`w-4.5 h-4.5 rounded-md border transition-all duration-200 flex items-center justify-center shrink-0 ${
+                  <div className={`w-[18px] h-[18px] rounded-md border transition-all duration-200 flex items-center justify-center shrink-0 ${
                     rememberMe 
-                      ? 'bg-gradient-to-tr from-orange-500 to-red-600 border-transparent text-white shadow-sm shadow-orange-500/10' 
-                      : 'border-slate-300 bg-white group-hover:border-slate-400'
+                      ? 'bg-gradient-to-tr from-orange-500 to-red-650 border-transparent text-white shadow-sm shadow-orange-500/20 scale-105' 
+                      : 'border-slate-300 bg-white group-hover:border-slate-450'
                   }`}>
-                    {rememberMe && (
-                      <svg className="w-2.5 h-2.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
+                    <svg className={`w-2.5 h-2.5 stroke-[3] transition-all duration-200 ${rememberMe ? 'scale-100 opacity-100 rotate-0' : 'scale-50 opacity-0 -rotate-12'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
-                  <span className="text-[11px] font-bold text-slate-450 group-hover:text-slate-650 transition-colors">
+                  <span className="text-xs font-bold text-slate-500 group-hover:text-slate-700 transition-colors">
                     Tetap masuk selama 30 hari
                   </span>
                 </button>
@@ -373,22 +376,22 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                   id="login-submit"
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 px-4 flex items-center justify-center gap-2.5 text-white font-extrabold rounded-xl transition-all duration-300 text-xs uppercase tracking-widest cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transform active:scale-[0.98] hover:translate-y-[-1px] group relative overflow-hidden"
+                  className="w-full py-3.5 px-4 flex items-center justify-center gap-2.5 text-white font-extrabold rounded-2xl transition-all duration-350 text-xs uppercase tracking-widest cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transform active:scale-[0.97] hover:translate-y-[-1.5px] hover:shadow-[0_8px_20px_-6px_rgba(234,88,12,0.4)] active:translate-y-[0px] group relative overflow-hidden bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
                   style={{
-                    background: loading 
-                      ? '#c2410c'
-                      : `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_ORANGE_DARK} 100%)`,
                     boxShadow: loading 
                       ? 'none'
-                      : '0 6px 16px -4px rgba(234,88,12,0.3)'
+                      : '0 6px 16px -4px rgba(234,88,12,0.25)'
                   }}
                 >
                   {loading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" />Memproses...</>
+                    <div className="flex items-center gap-2 animate-pulse">
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span className="font-extrabold tracking-widest">MEMPROSES...</span>
+                    </div>
                   ) : (
                     <>
                       <span className="font-black">Masuk Ke Portal</span>
-                      <LogIn className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                      <LogIn className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                     </>
                   )}
                 </button>
@@ -416,16 +419,16 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
       {/* ══════════════════════════════════════
           FOOTER
       ══════════════════════════════════════ */}
-      <footer className="w-full border-t border-slate-200/40 bg-white/50 backdrop-blur-sm px-5 sm:px-8 lg:px-12 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 z-10">
-        <p className="text-[11px] text-slate-400 font-semibold">
+      <footer className="w-full border-t border-slate-200/45 bg-white/60 backdrop-blur-md px-6 sm:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0 z-10">
+        <p className="text-[11px] text-slate-400 font-semibold text-center sm:text-left">
           © 2024 Portal Absensi Karyawan. All rights reserved.
         </p>
-        <div className="flex items-center gap-4 text-[11px] text-slate-400 font-semibold">
-          <a href="#" className="hover:text-slate-600 transition-colors">Privacy Policy</a>
-          <span>·</span>
-          <a href="#" className="hover:text-slate-600 transition-colors">Terms of Service</a>
-          <span>·</span>
-          <a href="#" className="hover:text-slate-600 transition-colors">Security Compliance</a>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-slate-400 font-semibold">
+          <a href="#" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Privacy Policy</a>
+          <span className="hidden sm:inline text-slate-300">•</span>
+          <a href="#" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Terms of Service</a>
+          <span className="hidden sm:inline text-slate-300">•</span>
+          <a href="#" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Security Compliance</a>
         </div>
       </footer>
     </div>

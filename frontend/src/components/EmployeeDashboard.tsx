@@ -347,20 +347,20 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       </header>
 
       {/* Floating Toggle Button on Left Middle Edge */}
-      {!mobileSidebarOpen && (
-        <button
-          onClick={() => setMobileSidebarOpen(true)}
-          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all cursor-pointer flex items-center"
-          title="Buka Menu"
-        >
-          <ChevronRight className="w-5 h-5 animate-pulse" />
-          {totalPending > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full text-[9px] font-black w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
-              {totalPending}
-            </span>
-          )}
-        </button>
-      )}
+      <button
+        onClick={() => setMobileSidebarOpen(true)}
+        className={`md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all duration-300 cursor-pointer flex items-center active:scale-95 active:translate-x-1 ${
+          mobileSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+        title="Buka Menu"
+      >
+        <ChevronRight className="w-5 h-5 animate-pulse" />
+        {totalPending > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full text-[9px] font-black w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
+            {totalPending}
+          </span>
+        )}
+      </button>
 
       {/* Desktop Left Sidebar (Fixed) */}
       <aside className="hidden md:block w-64 bg-white border-r border-slate-200 p-6 flex-shrink-0 shadow-sm transition-colors duration-300">
@@ -368,20 +368,26 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
-      {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden bg-slate-900/40 backdrop-blur-sm animate-fade-in flex">
-          <div className="w-64 bg-white border-r border-slate-200 p-6 h-full flex-shrink-0 relative animate-slide-right transition-colors duration-300">
-            <button
-              onClick={() => setMobileSidebarOpen(false)}
-              className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 rounded-lg transition-all cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <EmployeeSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} company={company} />
-          </div>
-          <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
+      <div 
+        className={`fixed inset-0 z-50 md:hidden bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${
+          mobileSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        } flex`}
+      >
+        <div 
+          className={`w-64 bg-white border-r border-slate-200 p-6 h-full flex-shrink-0 relative transition-transform duration-300 ease-out ${
+            mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } transition-colors duration-300`}
+        >
+          <button
+            onClick={() => setMobileSidebarOpen(false)}
+            className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 rounded-lg transition-all cursor-pointer active:scale-90"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <EmployeeSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} company={company} />
         </div>
-      )}
+        <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
+      </div>
 
       {/* Main Content Area */}
       <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto min-w-0 bg-[#f8fafc] transition-colors duration-300">

@@ -12,7 +12,6 @@ import {
   BarChart2,
   ShieldCheck,
   CheckSquare,
-  Square
 } from 'lucide-react'
 
 interface User {

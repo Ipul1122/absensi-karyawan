@@ -1,13 +1,13 @@
 const getApiBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_URL;
+  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
   if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-    return envUrl;
+    return envUrl.endsWith('/api') ? envUrl.substring(0, envUrl.length - 4) : envUrl;
   }
   const isLocal = window.location.hostname === 'localhost' || 
                   window.location.hostname === '127.0.0.1' || 
                   window.location.hostname === '::1';
                   
-  return isLocal ? 'http://localhost:8000' : 'https://goodpeople-hcms.com/api';
+  return isLocal ? 'http://localhost:8000' : 'https://api.goodpeople-hcms.com';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

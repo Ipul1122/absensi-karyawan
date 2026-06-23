@@ -5,8 +5,11 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const rawApiUrl = env.VITE_API_URL || 'http://localhost:8000'
-  const apiUrl = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl
+  const rawApiUrl = env.VITE_API_BASE_URL || env.VITE_API_URL || 'http://localhost:8000'
+  let apiUrl = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl
+  if (apiUrl.endsWith('/api')) {
+    apiUrl = apiUrl.substring(0, apiUrl.length - 4)
+  }
 
   return {
     plugins: [

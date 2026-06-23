@@ -29,12 +29,13 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'melani.dian@cakrwala-internasional.co.id'],
             [
-                'name' => 'Meladi Dian',
+                'name' => 'Melani Dian',
                 'password' => bcrypt('password'),
                 'password_plain' => 'password',
                 'role' => 'director',
                 'status' => 'active',
                 'company' => 'PT Cakrawala Parama Internasional',
+                'whatsapp' => '628123456789',
             ]
         );
 
@@ -47,6 +48,7 @@ class DatabaseSeeder extends Seeder
                 'role' => 'director',
                 'status' => 'active',
                 'company' => 'PT Yasodana Parvez Internasional',
+                'whatsapp' => '628987654321',
             ]
         );
 

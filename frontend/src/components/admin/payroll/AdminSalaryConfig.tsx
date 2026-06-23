@@ -291,7 +291,7 @@ Terima kasih.`
     if (!directorPhone) {
       Swal.fire({
         title: 'Nomor WhatsApp Kosong',
-        text: 'Silakan isi nomor WhatsApp penerima terlebih dahulu.',
+        text: 'Direktur yang dipilih belum menyetel nomor WhatsApp di profil mereka.',
         icon: 'warning'
       })
       return
@@ -644,38 +644,20 @@ Terima kasih.`
                 <p className="text-xs text-slate-800">Perusahaan: <span className="font-extrabold">{waEmployee.company || '-'}</span></p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pilih Direktur</label>
-                  <select
-                    value={selectedDirectorId}
-                    onChange={(e) => handleDirectorChange(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl py-2 px-3 outline-none font-bold text-xs"
-                  >
-                    <option value="" disabled>-- Pilih Direktur --</option>
-                    {directors.map((dir) => (
-                      <option key={dir.id} value={dir.id.toString()}>
-                        {dir.name} ({dir.company})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">No. WhatsApp Direktur</label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">
-                      <Phone className="w-3.5 h-3.5" />
-                    </span>
-                    <input
-                      type="text"
-                      value={directorPhone}
-                      onChange={(e) => setDirectorPhone(e.target.value)}
-                      placeholder="Contoh: 628123456789"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl py-2 pl-9 pr-3 outline-none font-bold text-xs"
-                    />
-                  </div>
-                </div>
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pilih Direktur</label>
+                <select
+                  value={selectedDirectorId}
+                  onChange={(e) => handleDirectorChange(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl py-2.5 px-3 outline-none font-bold text-xs"
+                >
+                  <option value="" disabled>-- Pilih Direktur --</option>
+                  {directors.map((dir) => (
+                    <option key={dir.id} value={dir.id.toString()}>
+                      {dir.name} ({dir.company})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1">

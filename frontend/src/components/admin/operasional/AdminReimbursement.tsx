@@ -22,6 +22,7 @@ interface UserDetails {
   id: number
   name: string
   email: string
+  company?: string
 }
 
 interface Reimbursement {
@@ -123,14 +124,32 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
           )
 
           if (response.data.status === 'success') {
+            const item = reimbursements.find((r) => r.id === id)
+            const companyName = item?.user?.company || 'PT Cakrawala Parama Internasional'
+            const targetPhone = companyName.toLowerCase().includes('yasodana') ? '6289656931184' : '628170038421'
+            const titleText = item?.title || ''
+            const categoryText = item?.category || ''
+            const amountText = item ? displayRupiah(item.amount) : ''
+            const expenseDateText = item ? formatDate(item.expense_date) : ''
+
+            const waMessage = `Halo Direktur, terdapat pengajuan reimbursement baru yang membutuhkan persetujuan Anda.\n\nDetail Pengajuan:\n- Nama Karyawan: ${employeeName}\n- Perusahaan: ${companyName}\n- Keperluan: ${titleText}\n- Kategori: ${categoryText}\n- Nominal: ${amountText}\n- Tanggal Nota: ${expenseDateText}\n\nSilakan buka tautan berikut untuk memproses persetujuan:\nhttp://localhost:5173/director/karyawan`
+            const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(waMessage)}`
+
             Swal.fire({
               title: 'Disetujui!',
-              text: 'Klaim reimbursement berhasil disetujui.',
+              text: 'Klaim reimbursement berhasil disetujui. Ingin mengirim notifikasi WhatsApp ke Direktur?',
               icon: 'success',
-              timer: 1500,
-              showConfirmButton: false,
+              showCancelButton: true,
+              confirmButtonText: 'Ya, Kirim WhatsApp',
+              cancelButtonText: 'Tidak, Tutup',
+              confirmButtonColor: '#ea580c',
+              cancelButtonColor: '#94a3b8',
               background: '#fffdfb',
               color: '#3c1105'
+            }).then((waResult) => {
+              if (waResult.isConfirmed) {
+                window.open(waUrl, '_blank')
+              }
             })
             loadData()
           }

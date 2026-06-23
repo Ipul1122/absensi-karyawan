@@ -24,6 +24,14 @@ interface User {
   company?: string | null
 }
 
+// Capture requested path for redirect after login synchronously before React Router redirects to "/"
+const initialPath = window.location.pathname
+if (initialPath && initialPath !== '/' && !initialPath.startsWith('/verify-slip')) {
+  if (!sessionStorage.getItem('auth_token')) {
+    sessionStorage.setItem('redirect_to', initialPath)
+  }
+}
+
 function App() {
   const [backendStatus, setBackendStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle')
   
@@ -56,15 +64,6 @@ function App() {
     checkConnection()
   }, [])
 
-  // Capture requested path for redirect after login
-  useEffect(() => {
-    const path = window.location.pathname
-    if (path && path !== '/' && !path.startsWith('/verify-slip')) {
-      if (!sessionStorage.getItem('auth_token')) {
-        sessionStorage.setItem('redirect_to', path)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     if (token) {

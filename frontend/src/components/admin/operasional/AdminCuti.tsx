@@ -117,7 +117,8 @@ export default function AdminCuti({ token }: AdminCutiProps) {
             const periodStr = leaveItem ? `${formatDate(leaveItem.start_date)} s/d ${formatDate(leaveItem.end_date)}` : ''
             const reasonText = leaveItem?.reason || ''
 
-            const waMessage = `Halo Direktur, terdapat pengajuan cuti baru yang membutuhkan persetujuan Anda.\n\nDetail Pengajuan:\n- Nama Karyawan: ${employeeName}\n- Perusahaan: ${companyName}\n- Kategori Cuti: ${categoryName}\n- Masa Cuti: ${periodStr} (${duration} Hari)\n- Alasan: ${reasonText}\n\nSilakan buka tautan berikut untuk memproses persetujuan:\nhttp://localhost:5173/director/karyawan`
+            const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
+            const waMessage = `Halo Direktur, terdapat pengajuan cuti baru yang membutuhkan persetujuan Anda.\n\nDetail Pengajuan:\n- Nama Karyawan: ${employeeName}\n- Perusahaan: ${companyName}\n- Kategori Cuti: ${categoryName}\n- Masa Cuti: ${periodStr} (${duration} Hari)\n- Alasan: ${reasonText}\n\nSilakan buka tautan berikut untuk memproses persetujuan:\n${appUrl}/director/karyawan`
             const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(waMessage)}`
 
             Swal.fire({

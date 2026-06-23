@@ -63,7 +63,7 @@ class DirectorController extends Controller
             ->get();
 
         $pendingPayrolls = Payroll::with('user:id,name,email')
-            ->where('status', 'pending_approval')
+            ->whereIn('status', ['pending_approval', 'unpaid'])
             ->get();
 
         $pendingLeaves = LeaveRequest::with('user:id,name,email')
@@ -195,22 +195,7 @@ class DirectorController extends Controller
             ];
         }
 
-        // 4.4 Payroll Requests
-        foreach ($pendingPayrolls as $record) {
-            $unifiedItems[] = [
-                'id' => $record->id,
-                'type' => 'payroll',
-                'title' => 'Proposal Slip Gaji Bulanan',
-                'subtitle' => 'Periode: ' . $record->period_month,
-                'requesterName' => $record->user ? $record->user->name : 'Karyawan',
-                'requesterEmail' => $record->user ? $record->user->email : null,
-                'date' => $record->created_at ? $record->created_at->toISOString() : now()->toISOString(),
-                'amount' => $record->net_salary,
-                'badgeText' => 'Payroll',
-                'details' => 'Total Transfer Bersih: Rp ' . number_format($record->net_salary, 0, ',', '.') . ' (' . $record->days_present . 'H hadir, ' . $record->days_late . 'T telat)',
-                'originalData' => $record
-            ];
-        }
+        // 4.4 Payroll Requests are paid directly from the payroll menu and excluded from unified inbox tasks
 
         // 4.5 Leaves
         foreach ($pendingLeaves as $r) {

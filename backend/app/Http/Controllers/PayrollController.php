@@ -632,7 +632,7 @@ class PayrollController extends Controller
 
         $payroll = Payroll::findOrFail($id);
 
-        if ($request->status === 'paid' && $payroll->status !== 'unpaid') {
+        if ($request->status === 'paid' && !in_array($payroll->status, ['unpaid', 'pending_approval'], true)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Hanya payroll berstatus Belum Dibayar (unpaid) yang dapat ditandai lunas.'
@@ -816,7 +816,7 @@ class PayrollController extends Controller
     public function submitPayrollApproval(Request $request, $id)
     {
         $payroll = Payroll::findOrFail($id);
-        $payroll->update(['status' => 'pending_approval']);
+        $payroll->update(['status' => 'unpaid']);
         return response()->json(['status' => 'success', 'message' => 'Payroll berhasil diajukan ke Direktur untuk disetujui.']);
     }
 
@@ -836,7 +836,7 @@ class PayrollController extends Controller
             });
         }
 
-        $query->update(['status' => 'pending_approval']);
+        $query->update(['status' => 'unpaid']);
         return response()->json(['status' => 'success', 'message' => 'Semua payroll pada periode ini berhasil diajukan ke Direktur.']);
     }
 
@@ -867,7 +867,7 @@ class PayrollController extends Controller
     {
         $request->validate(['period_month' => 'required|string']);
         Payroll::where('period_month', $request->period_month)
-            ->where('status', 'pending_approval')
+            ->whereIn('status', ['pending_approval', 'unpaid'])
             ->update(['status' => 'draft']);
         return response()->json(['status' => 'success', 'message' => 'Semua payroll pada periode ini ditolak dan dikembalikan sebagai draft.']);
     }

@@ -11,7 +11,7 @@ import {
   MapPin,
   BarChart2,
   ShieldCheck,
-  CheckSquare
+  CheckSquare,
 } from 'lucide-react'
 
 interface User {

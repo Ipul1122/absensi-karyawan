@@ -138,7 +138,8 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
             const amountText = item ? displayRupiah(item.amount) : ''
             const expenseDateText = item ? formatDate(item.expense_date) : ''
 
-            const waMessage = `Halo Direktur, terdapat pengajuan reimbursement baru yang membutuhkan persetujuan Anda.\n\nDetail Pengajuan:\n- Nama Karyawan: ${employeeName}\n- Perusahaan: ${companyName}\n- Keperluan: ${titleText}\n- Kategori: ${categoryText}\n- Nominal: ${amountText}\n- Tanggal Nota: ${expenseDateText}\n\nSilakan buka tautan berikut untuk memproses persetujuan:\nhttp://localhost:5173/director/karyawan`
+            const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
+            const waMessage = `Halo Direktur, terdapat pengajuan reimbursement baru yang membutuhkan persetujuan Anda.\n\nDetail Pengajuan:\n- Nama Karyawan: ${employeeName}\n- Perusahaan: ${companyName}\n- Keperluan: ${titleText}\n- Kategori: ${categoryText}\n- Nominal: ${amountText}\n- Tanggal Nota: ${expenseDateText}\n\nSilakan buka tautan berikut untuk memproses persetujuan:\n${appUrl}/director/karyawan`
             const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(waMessage)}`
 
             Swal.fire({

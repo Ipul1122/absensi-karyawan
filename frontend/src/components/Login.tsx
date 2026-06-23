@@ -14,7 +14,6 @@ import {
   CheckSquare,
   Square
 } from 'lucide-react'
-import Logo from './layout/Logo'
 
 interface User {
   id: number
@@ -195,15 +194,40 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
 
           {/* Form area — scrollable on small screens */}
           <div className="flex-1 flex items-center justify-center px-4 sm:px-10 lg:px-12 xl:px-16 py-8 overflow-y-auto z-10">
-            <div className="w-full max-w-md bg-white/80 backdrop-blur-md border border-white/60 shadow-[0_20px_50px_rgba(234,88,12,0.06)] rounded-3xl p-6 sm:p-8 animate-fade-in relative z-20">
+            <div className="w-full max-w-md bg-white/90 backdrop-blur-xl border border-white/60 shadow-[0_20px_50px_rgba(234,88,12,0.06)] rounded-3xl p-6 sm:p-8 animate-fade-in relative z-20">
 
-              {/* Mobile Logo & Welcome Title — only shown on small screens */}
-              <div className="lg:hidden flex flex-col items-center mb-8">
-                <Logo className="w-12 h-12" />
-                <h2 className="text-xl font-black text-slate-900 mt-4 font-sans tracking-tight">
-                  {activeTab === 'director' ? 'Portal Direksi' : 'goodpeople-hcms'}
+              {/* Dual Company Logos Header Capsule */}
+              <div className="flex items-center justify-center gap-4 px-5 py-3 bg-slate-50/70 border border-slate-100/80 rounded-2xl shadow-sm mb-6 w-fit mx-auto transition-all duration-300">
+                <div className="flex items-center gap-2">
+                  <img src="/logo/LOGO-CPI.png" alt="PT Cakrawala Parama Internasional" className="h-7 w-auto object-contain shrink-0" />
+                  <div className="flex flex-col text-left">
+                    <span className="text-[8px] font-black text-slate-800 tracking-wide uppercase leading-none">Cakrawala</span>
+                    <span className="text-[5.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mt-0.5">Parama</span>
+                  </div>
+                </div>
+                <div className="w-[1px] h-6 bg-slate-200" />
+                <div className="flex items-center gap-2">
+                  <img src="/logo/LOGO-YPI.png" alt="PT Yasodana Parvez Internasional" className="h-7 w-auto object-contain shrink-0" />
+                  <div className="flex flex-col text-left">
+                    <span className="text-[8px] font-black text-slate-800 tracking-wide uppercase leading-none">Yasodana</span>
+                    <span className="text-[5.5px] font-extrabold text-slate-400 uppercase tracking-widest leading-none mt-0.5">Parvez</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Welcome Title — only shown on small screens */}
+              <div className="lg:hidden flex flex-col items-center mb-6">
+                <h2 className="text-xl font-black text-slate-900 tracking-tight font-sans">
+                  {activeTab === 'director' ? (
+                    <span className="bg-gradient-to-r from-orange-600 to-red-650 bg-clip-text text-transparent font-extrabold">Portal Direksi</span>
+                  ) : (
+                    <>
+                      <span className="text-slate-800 font-extrabold">goodpeople</span>
+                      <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent font-medium">-hcms</span>
+                    </>
+                  )}
                 </h2>
-                <p className="text-xs text-slate-500 mt-1 font-medium text-center max-w-xs leading-relaxed">
+                <p className="text-xs text-slate-450 mt-1 font-semibold text-center max-w-xs leading-relaxed">
                   {activeTab === 'director'
                     ? 'Silakan masuk dengan kredensial Direktur Utama Anda.'
                     : 'Portal presensi digital terintegrasi untuk karyawan.'}
@@ -211,39 +235,43 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
               </div>
 
               {/* TABS SIDE SWITCHER FOR DIRECTOR */}
-              <div className="flex bg-slate-100/80 backdrop-blur-sm p-1 rounded-2xl mb-8 font-quicksand font-bold text-xs select-none border border-slate-200/50">
+              <div className="flex bg-slate-50 border border-slate-100 p-1 rounded-2xl mb-6 font-quicksand font-bold text-xs select-none shadow-inner shadow-slate-150/10">
                 <button
                   type="button"
                   onClick={() => handleTabChange('standard')}
-                  className={`flex-grow py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer font-bold ${
+                  className={`flex-grow py-2.5 rounded-xl transition-all duration-350 flex items-center justify-center gap-1.5 cursor-pointer font-bold ${
                     activeTab === 'standard'
-                      ? 'bg-white text-orange-600 shadow-[0_4px_12px_rgba(234,88,12,0.08)]'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-white text-orange-600 shadow-[0_4px_12px_rgba(234,88,12,0.06)] border border-slate-100/60'
+                      : 'text-slate-400 hover:text-slate-700'
                   }`}
                 >
-                  <ShieldCheck className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'standard' ? 'scale-110 text-orange-500' : ''}`} />
+                  <ShieldCheck className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'standard' ? 'scale-110 text-orange-500' : 'text-slate-400'}`} />
                   Karyawan & Admin
                 </button>
                 <button
                   type="button"
                   onClick={() => handleTabChange('director')}
-                  className={`flex-grow py-3 rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer font-bold ${
+                  className={`flex-grow py-2.5 rounded-xl transition-all duration-350 flex items-center justify-center gap-1.5 cursor-pointer font-bold ${
                     activeTab === 'director'
-                      ? 'bg-white text-orange-600 shadow-[0_4px_12px_rgba(234,88,12,0.08)]'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-white text-orange-600 shadow-[0_4px_12px_rgba(234,88,12,0.06)] border border-slate-100/60'
+                      : 'text-slate-400 hover:text-slate-700'
                   }`}
                 >
-                  <LogIn className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'director' ? 'scale-110 text-orange-500' : ''}`} />
+                  <LogIn className={`w-4 h-4 transition-transform duration-300 ${activeTab === 'director' ? 'scale-110 text-orange-500' : 'text-slate-400'}`} />
                   Direktur Utama
                 </button>
               </div>
 
               {/* Desktop Heading — only shown on large screens */}
-              <div className="mb-8 hidden lg:block">
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight transition-all duration-300">
-                  {activeTab === 'director' ? 'Portal Direksi' : 'Selamat Datang'}
+              <div className="mb-6 hidden lg:block">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight transition-all duration-300">
+                  {activeTab === 'director' ? (
+                    <span className="bg-gradient-to-r from-orange-600 to-red-650 bg-clip-text text-transparent font-extrabold">Portal Direksi</span>
+                  ) : (
+                    <span className="text-slate-800 font-extrabold">Selamat Datang</span>
+                  )}
                 </h2>
-                <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed transition-all duration-300">
+                <p className="text-xs text-slate-455 mt-1 font-semibold leading-relaxed transition-all duration-300">
                   {activeTab === 'director'
                     ? 'Silakan masuk dengan kredensial Direktur Utama Anda.'
                     : 'Silakan masuk untuk mengakses portal karyawan Anda.'}
@@ -251,20 +279,20 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleLogin} className="space-y-5">
+              <form onSubmit={handleLogin} className="space-y-4">
 
                 {/* Email */}
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest transition-colors duration-300" style={emailFocused ? { color: BRAND_ORANGE } : {}}>
+                <div className="space-y-1.5">
+                  <label className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider transition-colors duration-300" style={emailFocused ? { color: BRAND_ORANGE } : {}}>
                     Alamat Email
                   </label>
-                  <div className={`relative flex items-center border rounded-2xl transition-all duration-300 ${
+                  <div className={`relative flex items-center border transition-all duration-300 ${
                     emailFocused 
-                      ? 'border-orange-500 bg-white ring-4 ring-orange-100 shadow-[0_4px_12px_rgba(234,88,12,0.05)]' 
-                      : 'border-slate-200 bg-slate-50/50 hover:border-slate-300'
-                  }`}>
+                      ? 'border-orange-500 bg-white shadow-[0_0_0_4px_rgba(234,88,12,0.08)]' 
+                      : 'border-slate-200/80 bg-slate-50/20 hover:border-slate-350/50'
+                  }`} style={{ borderRadius: '14px' }}>
                     <div className={`absolute left-4 transition-colors duration-300 ${emailFocused ? 'text-orange-500' : 'text-slate-400'}`}>
-                      <Mail className="w-4.5 h-4.5" />
+                      <Mail className="w-4 h-4" />
                     </div>
                     <input
                       id="login-email"
@@ -275,28 +303,28 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       onFocus={() => setEmailFocused(true)}
                       onBlur={() => setEmailFocused(false)}
                       placeholder="nama@perusahaan.com"
-                      className="w-full bg-transparent text-slate-800 placeholder-slate-400 rounded-2xl py-3.5 pl-12 pr-4 outline-none transition-all text-sm font-medium"
+                      className="w-full bg-transparent text-slate-800 placeholder-slate-400/70 rounded-2xl py-3 pl-12 pr-4 outline-none transition-all text-xs font-semibold"
                     />
                   </div>
                 </div>
 
                 {/* Password */}
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-widest transition-colors duration-300" style={passwordFocused ? { color: BRAND_ORANGE } : {}}>
+                    <label className="block text-[9px] font-bold text-slate-450 uppercase tracking-wider transition-colors duration-300" style={passwordFocused ? { color: BRAND_ORANGE } : {}}>
                       Kata Sandi
                     </label>
-                    <button type="button" className="text-xs font-bold hover:underline cursor-pointer transition-colors duration-300 hover:text-orange-700 font-sans" style={{ color: currentAccentColor }}>
+                    <button type="button" className="text-[10px] font-bold hover:text-orange-700 cursor-pointer transition-colors duration-300 font-quicksand" style={{ color: currentAccentColor }}>
                       Lupa Sandi?
                     </button>
                   </div>
-                  <div className={`relative flex items-center border rounded-2xl transition-all duration-300 ${
+                  <div className={`relative flex items-center border transition-all duration-300 ${
                     passwordFocused 
-                      ? 'border-orange-500 bg-white ring-4 ring-orange-100 shadow-[0_4px_12px_rgba(234,88,12,0.05)]' 
-                      : 'border-slate-200 bg-slate-50/50 hover:border-slate-300'
-                  }`}>
+                      ? 'border-orange-500 bg-white shadow-[0_0_0_4px_rgba(234,88,12,0.08)]' 
+                      : 'border-slate-200/80 bg-slate-50/20 hover:border-slate-350/50'
+                  }`} style={{ borderRadius: '14px' }}>
                     <div className={`absolute left-4 transition-colors duration-300 ${passwordFocused ? 'text-orange-500' : 'text-slate-400'}`}>
-                      <Lock className="w-4.5 h-4.5" />
+                      <Lock className="w-4 h-4" />
                     </div>
                     <input
                       id="login-password"
@@ -307,14 +335,14 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       onFocus={() => setPasswordFocused(true)}
                       onBlur={() => setPasswordFocused(false)}
                       placeholder="••••••••"
-                      className="w-full bg-transparent text-slate-800 placeholder-slate-400 rounded-2xl py-3.5 pl-12 pr-12 outline-none transition-all text-sm font-medium"
+                      className="w-full bg-transparent text-slate-800 placeholder-slate-400/70 rounded-2xl py-3 pl-12 pr-12 outline-none transition-all text-xs font-semibold"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(v => !v)}
-                      className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      className="absolute right-4 text-slate-400 hover:text-slate-650 transition-colors cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -323,14 +351,20 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                 <button
                   type="button"
                   onClick={() => setRememberMe(v => !v)}
-                  className="flex items-center gap-3 cursor-pointer group w-fit"
+                  className="flex items-center gap-2.5 cursor-pointer group w-fit select-none"
                 >
-                  <div className="transition-all duration-300 transform group-hover:scale-110 shrink-0" style={rememberMe ? { color: currentAccentColor } : { color: '#94a3b8' }}>
-                    {rememberMe
-                      ? <CheckSquare className="w-5 h-5 transition-transform duration-200" />
-                      : <Square className="w-5 h-5 text-slate-300 hover:text-slate-400" />}
+                  <div className={`w-4.5 h-4.5 rounded-md border transition-all duration-200 flex items-center justify-center shrink-0 ${
+                    rememberMe 
+                      ? 'bg-gradient-to-tr from-orange-500 to-red-600 border-transparent text-white shadow-sm shadow-orange-500/10' 
+                      : 'border-slate-300 bg-white group-hover:border-slate-400'
+                  }`}>
+                    {rememberMe && (
+                      <svg className="w-2.5 h-2.5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
                   </div>
-                  <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors select-none">
+                  <span className="text-[11px] font-bold text-slate-450 group-hover:text-slate-650 transition-colors">
                     Tetap masuk selama 30 hari
                   </span>
                 </button>
@@ -340,22 +374,22 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                   id="login-submit"
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 px-4 flex items-center justify-center gap-2.5 text-white font-bold rounded-2xl transition-all duration-300 text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transform active:scale-[0.98] hover:translate-y-[-1px] group relative overflow-hidden"
+                  className="w-full py-3 px-4 flex items-center justify-center gap-2.5 text-white font-extrabold rounded-xl transition-all duration-300 text-xs uppercase tracking-widest cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transform active:scale-[0.98] hover:translate-y-[-1px] group relative overflow-hidden"
                   style={{
                     background: loading 
                       ? '#c2410c'
                       : `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_ORANGE_DARK} 100%)`,
                     boxShadow: loading 
                       ? 'none'
-                      : '0 10px 25px -5px rgba(234,88,12,0.4), 0 8px 10px -6px rgba(234,88,12,0.4)'
+                      : '0 6px 16px -4px rgba(234,88,12,0.3)'
                   }}
                 >
                   {loading ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" />Memproses...</>
+                    <><Loader2 className="w-4 h-4 animate-spin" />Memproses...</>
                   ) : (
                     <>
-                      <span className="font-bold tracking-wide">Masuk Ke Portal</span>
-                      <LogIn className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      <span className="font-black">Masuk Ke Portal</span>
+                      <LogIn className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
                     </>
                   )}
                 </button>
@@ -369,7 +403,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                     <p className="text-xs text-rose-800 font-bold">
                       Koneksi Terputus
                     </p>
-                    <p className="text-[11px] text-rose-600/90 font-medium mt-0.5 leading-relaxed">
+                    <p className="text-[11px] text-rose-650/90 font-medium mt-0.5 leading-relaxed">
                       Server offline — pastikan backend Laravel berjalan dengan perintah <code className="font-mono bg-rose-100/80 px-1.5 py-0.5 rounded text-[10px]">php artisan serve</code>
                     </p>
                   </div>

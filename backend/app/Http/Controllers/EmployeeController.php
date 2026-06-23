@@ -31,6 +31,7 @@ class EmployeeController extends Controller
                 'join_date'       => $emp->join_date,
                 'no_rekening'     => $emp->no_rekening,
                 'company'         => $emp->company,
+                'whatsapp'        => $emp->whatsapp,
                 'created_at'      => $emp->created_at,
                 'updated_at'      => $emp->updated_at,
             ];
@@ -58,6 +59,7 @@ class EmployeeController extends Controller
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'no_rekening'     => 'nullable|string|max:50',
             'company'         => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
+            'whatsapp'        => 'nullable|string|max:20',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -82,6 +84,7 @@ class EmployeeController extends Controller
             'address'         => $request->address,
             'no_rekening'     => $request->no_rekening,
             'company'         => $request->company,
+            'whatsapp'        => $request->whatsapp,
         ];
 
         if ($request->hasFile('photo')) {
@@ -185,6 +188,7 @@ class EmployeeController extends Controller
             'name' => 'required|string|max:255',
             'no_rekening' => 'nullable|string|max:50',
             'company' => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
+            'whatsapp' => 'nullable|string|max:20',
         ];
 
         if ($request->filled('password')) {
@@ -200,6 +204,7 @@ class EmployeeController extends Controller
             'name' => $request->name,
             'no_rekening' => $request->no_rekening,
             'company' => $request->company,
+            'whatsapp' => $request->whatsapp,
         ];
 
         if ($request->filled('password')) {
@@ -246,6 +251,7 @@ class EmployeeController extends Controller
                 'cv'              => $employee->cv ? asset('storage/' . $employee->cv) : null,
                 'no_rekening'     => $employee->no_rekening,
                 'company'         => $employee->company,
+                'whatsapp'        => $employee->whatsapp,
                 'created_at'      => $employee->created_at,
             ]
         ]);
@@ -278,6 +284,7 @@ class EmployeeController extends Controller
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'no_rekening'     => 'nullable|string|max:50',
             'company'         => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
+            'whatsapp'        => 'nullable|string|max:20',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -287,7 +294,7 @@ class EmployeeController extends Controller
             'company.in'             => 'Perusahaan tidak valid.',
         ]);
 
-        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'no_rekening', 'company']);
+        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'no_rekening', 'company', 'whatsapp']);
 
         if ($request->hasFile('photo')) {
             if ($employee->photo) {
@@ -324,6 +331,7 @@ class EmployeeController extends Controller
                 'cv'              => $employee->cv ? asset('storage/' . $employee->cv) : null,
                 'no_rekening'     => $employee->no_rekening,
                 'company'         => $employee->company,
+                'whatsapp'        => $employee->whatsapp,
             ]
         ]);
     }

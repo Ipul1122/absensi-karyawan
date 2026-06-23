@@ -20,7 +20,8 @@ import {
   Save,
   FileText,
   FileUp,
-  Building2
+  Building2,
+  Phone
 } from 'lucide-react'
 
 interface Employee {
@@ -34,6 +35,7 @@ interface Employee {
   no_rekening?: string | null
   company?: string | null
   join_date?: string | null
+  whatsapp?: string | null
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
@@ -53,6 +55,7 @@ interface EmployeeProfile {
   cv: string | null
   no_rekening: string | null
   company: string | null
+  whatsapp: string | null
   created_at: string
 }
 
@@ -203,6 +206,7 @@ export default function AkunKaryawan({
       if (finalDivision) formData.append('division', finalDivision)
       formData.append('no_rekening', editProfile.no_rekening || '')
       formData.append('company', editProfile.company || '')
+      formData.append('whatsapp', editProfile.whatsapp || '')
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
 
@@ -232,15 +236,15 @@ export default function AkunKaryawan({
 
   return (
     <>
-      <section className="bg-white/80 border border-orange-100 rounded-3xl p-6 shadow-sm backdrop-blur-md space-y-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <section className="bg-white/80 border border-orange-100 rounded-3xl p-4 sm:p-6 shadow-sm backdrop-blur-md space-y-6 animate-fade-in">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-slate-800 font-quicksand">Daftar Akun Karyawan</h3>
             <p className="text-xs text-slate-500 font-quicksand font-medium">Total karyawan yang memiliki hak akses login ke sistem portal.</p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative max-w-xs w-full sm:w-64">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
               <input
                 type="text"
@@ -250,28 +254,30 @@ export default function AkunKaryawan({
                 className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs"
               />
             </div>
-            {onRefresh && (
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start">
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={loading}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand disabled:opacity-50 shrink-0"
+                >
+                  <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Segarkan
+                </button>
+              )}
               <button
-                onClick={onRefresh}
-                disabled={loading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs shrink-0 font-quicksand disabled:opacity-50"
+                onClick={() => setShowModal(true)}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand shrink-0"
               >
-                <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Segarkan
+                <UserPlus className="w-4 h-4" />
+                Tambah Karyawan
               </button>
-            )}
-            <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs shrink-0 font-quicksand"
-            >
-              <UserPlus className="w-4 h-4" />
-              Tambah Karyawan
-            </button>
+            </div>
           </div>
         </div>
 
-        {/* Table Container */}
-        <div className="border border-orange-100 rounded-2xl overflow-hidden bg-white">
+        {/* Table Container (Desktop View) */}
+        <div className="hidden md:block border border-orange-100 rounded-2xl overflow-hidden bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -424,6 +430,152 @@ export default function AkunKaryawan({
             </table>
           </div>
         </div>
+
+        {/* Card Container (Mobile View) */}
+        <div className="block md:hidden space-y-4">
+          {loading ? (
+            <div className="py-12 text-center text-slate-500 font-medium bg-white border border-orange-100 rounded-2xl">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-red-500" />
+                <span className="text-xs font-quicksand font-bold">Memuat data karyawan...</span>
+              </div>
+            </div>
+          ) : filteredEmployees.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 font-bold bg-white border border-orange-100 rounded-2xl font-quicksand text-xs">
+              {searchQuery ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
+            </div>
+          ) : (
+            filteredEmployees.map((emp) => (
+              <div key={emp.id} className="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm hover:border-red-200 transition-all space-y-3.5">
+                {/* Header: Photo, Name & Status */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    {emp.photo ? (
+                      <img
+                        src={emp.photo}
+                        alt={emp.name}
+                        className="w-11 h-11 rounded-xl object-cover border border-orange-100 shadow-sm shrink-0"
+                      />
+                    ) : (
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-red-100 to-orange-100 text-red-500 flex items-center justify-center font-bold text-xs uppercase font-quicksand shrink-0 border border-orange-100">
+                        {emp.name.substring(0, 2)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-quicksand text-sm font-bold text-slate-800 truncate block max-w-[150px]">{emp.name}</span>
+                        {emp.role === 'admin' && (
+                          <span className="inline-block text-[8px] font-extrabold px-1.5 py-0.5 bg-orange-100 text-orange-600 border border-orange-200 rounded shrink-0">
+                            Admin HR
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-mono truncate">{emp.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div className="shrink-0">
+                    {(!emp.status || emp.status === 'active') && (
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                        Aktif
+                      </span>
+                    )}
+                    {emp.status === 'pending' && (
+                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-extrabold bg-amber-50 text-amber-600 border border-amber-100 animate-pulse">
+                        Pending
+                      </span>
+                    )}
+                    {emp.status === 'pending_delete' && (
+                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-600 border border-rose-100 animate-pulse">
+                        Hapus
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Details Tags */}
+                <div className="flex flex-wrap gap-1.5">
+                  {emp.division && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-600 border border-violet-100">
+                      <Building2 className="w-2.5 h-2.5" />
+                      {emp.division}
+                    </span>
+                  )}
+                  {emp.company && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                      <Building2 className="w-2.5 h-2.5" />
+                      {emp.company.replace('PT ', '')}
+                    </span>
+                  )}
+                  {emp.no_rekening && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                      <Hash className="w-2.5 h-2.5" />
+                      {emp.no_rekening}
+                    </span>
+                  )}
+                  {emp.join_date && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                      <Calendar className="w-2.5 h-2.5" />
+                      Masuk: {formatDate(emp.join_date)}
+                    </span>
+                  )}
+                  {emp.whatsapp && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
+                      <Phone className="w-2.5 h-2.5" />
+                      {emp.whatsapp}
+                    </span>
+                  )}
+                </div>
+
+                {/* Password block */}
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex items-center justify-between text-xs font-quicksand">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide">Kata Sandi:</span>
+                    <span className="font-mono text-xs text-slate-700 font-bold select-all">
+                      {showPasswords[emp.id] ? emp.password_plain || 'N/A' : '••••••••'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => togglePassword(emp.id)}
+                    className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                {/* Actions & Registered Date */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-50 font-quicksand">
+                  <span className="text-[9px] text-slate-400 font-bold uppercase">Reg: {formatDate(emp.created_at)}</span>
+                  
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => onEditClick(emp)}
+                      className="p-2 text-slate-500 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all"
+                      title="Edit Akun Login"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleOpenEditBio(emp)}
+                      className="p-2 text-slate-500 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all"
+                      title="Edit Biodata Lengkap"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEmployee(emp.id, emp.name)}
+                      className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                      title="Hapus Karyawan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </section>
 
       {/* ===========================
@@ -481,7 +633,7 @@ export default function AkunKaryawan({
               {/* Form Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Nama */}
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1">
                   <label className={labelClass}>Nama Lengkap *</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><User className="w-3.5 h-3.5" /></div>
@@ -491,7 +643,7 @@ export default function AkunKaryawan({
                   </div>
                 </div>
                 {/* Email */}
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1">
                   <label className={labelClass}>Email *</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Mail className="w-3.5 h-3.5" /></div>
@@ -607,6 +759,17 @@ export default function AkunKaryawan({
                       <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
                       <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* WhatsApp */}
+                <div className="col-span-1 sm:col-span-2">
+                  <label className={labelClass}>No. WhatsApp / Telepon</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Phone className="w-3.5 h-3.5" /></div>
+                    <input type="text" value={editProfile.whatsapp ?? ''}
+                      onChange={e => setEditProfile(p => p ? { ...p, whatsapp: e.target.value } : p)}
+                      placeholder="Contoh: 08123456789" className={inputClass} />
                   </div>
                 </div>
 

@@ -43,6 +43,7 @@ interface Employee {
   division?: string | null
   no_rekening?: string | null
   company?: string | null
+  whatsapp?: string | null
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
@@ -150,6 +151,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const [editPassword, setEditPassword] = useState('')
   const [editNoRekening, setEditNoRekening] = useState('')
   const [editCompany, setEditCompany] = useState('')
+  const [editWhatsapp, setEditWhatsapp] = useState('')
   const [submittingEdit, setSubmittingEdit] = useState(false)
 
   useEffect(() => {
@@ -453,6 +455,7 @@ ${window.location.origin}/director/karyawan`
     setEditPassword('')
     setEditNoRekening(employee.no_rekening || '')
     setEditCompany(employee.company || '')
+    setEditWhatsapp(employee.whatsapp || '')
     setShowEditEmployeeModal(true)
   }
 
@@ -492,7 +495,8 @@ ${window.location.origin}/director/karyawan`
           name: editName,
           password: editPassword || null,
           no_rekening: editNoRekening,
-          company: editCompany
+          company: editCompany,
+          whatsapp: editWhatsapp
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -515,6 +519,7 @@ ${window.location.origin}/director/karyawan`
         setEditName('')
         setEditEmail('')
         setEditPassword('')
+        setEditWhatsapp('')
         fetchEmployees() // Refresh employees list
       }
     } catch (err: any) {
@@ -984,6 +989,8 @@ ${window.location.origin}/director/karyawan`
         setNoRekening={setEditNoRekening}
         company={editCompany}
         setCompany={setEditCompany}
+        whatsapp={editWhatsapp}
+        setWhatsapp={setEditWhatsapp}
         submitting={submittingEdit}
         onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
       />

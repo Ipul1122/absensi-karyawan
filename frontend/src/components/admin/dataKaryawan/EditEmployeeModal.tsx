@@ -1,4 +1,4 @@
-import { X, User, Mail, Lock, Loader2, Edit3, BookUser, Hash, Building2 } from 'lucide-react'
+import { X, User, Mail, Lock, Loader2, Edit3, BookUser, Hash, Building2, Phone } from 'lucide-react'
 
 interface EditEmployeeModalProps {
   show: boolean
@@ -13,6 +13,8 @@ interface EditEmployeeModalProps {
   setNoRekening: (v: string) => void
   company: string
   setCompany: (v: string) => void
+  whatsapp: string
+  setWhatsapp: (v: string) => void
   submitting: boolean
   onViewBiodata?: () => void
 }
@@ -30,6 +32,8 @@ export default function EditEmployeeModal({
   setNoRekening,
   company,
   setCompany,
+  whatsapp,
+  setWhatsapp,
   submitting,
   onViewBiodata,
 }: EditEmployeeModalProps) {
@@ -149,6 +153,22 @@ export default function EditEmployeeModal({
                 <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
                 <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
               </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+              No. WhatsApp / Telepon
+            </label>
+            <div className="relative">
+              <Phone className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
+              <input
+                type="text"
+                placeholder="Contoh: 08123456789"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs"
+              />
             </div>
           </div>
 

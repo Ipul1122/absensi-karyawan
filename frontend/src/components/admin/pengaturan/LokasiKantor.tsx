@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import axios from 'axios'
 import Swal from 'sweetalert2'
@@ -386,6 +387,50 @@ export default function LokasiKantor({
 
   return (
     <div className="space-y-6">
+
+      {/* ===== SETTINGS TAB SWITCHER ===== */}
+      <div className="grid grid-cols-3 gap-2 bg-orange-50/20 border border-orange-100 p-2 rounded-2xl font-quicksand shadow-xs shrink-0 max-w-2xl mx-auto">
+        <Link
+          to="/admin/lokasiKantor"
+          className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl text-center text-[10px] sm:text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.98] ${
+            activeTab === 'lokasi'
+              ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-md shadow-orange-500/15'
+              : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 bg-white/70 border border-orange-100/40'
+          }`}
+        >
+          <MapPin className="w-4 h-4 shrink-0" />
+          <span className="truncate">Lokasi & Radius</span>
+        </Link>
+        <Link
+          to="/admin/keamanan"
+          className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl text-center text-[10px] sm:text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.98] ${
+            activeTab === 'akun'
+              ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-md shadow-orange-500/15'
+              : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 bg-white/70 border border-orange-100/40'
+          }`}
+        >
+          <KeyRound className="w-4 h-4 shrink-0" />
+          <span className="truncate">Akun & Keamanan</span>
+        </Link>
+        <Link
+          to="/admin/biodata"
+          className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl text-center text-[10px] sm:text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.98] relative ${
+            activeTab === 'biodata'
+              ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-md shadow-orange-500/15'
+              : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 bg-white/70 border border-orange-100/40'
+          }`}
+        >
+          <UserCircle2 className="w-4 h-4 shrink-0" />
+          <span className="truncate">Biodata Pribadi</span>
+          {percent < 100 && (
+            <span className={`absolute top-1.5 right-1.5 sm:relative sm:top-0 sm:right-0 px-1 py-0.5 rounded text-[8px] font-black leading-none ${
+              activeTab === 'biodata' ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-700'
+            }`}>
+              {percent}%
+            </span>
+          )}
+        </Link>
+      </div>
 
       {/* ===== TAB: LOKASI KANTOR ===== */}
       {activeTab === 'lokasi' && (

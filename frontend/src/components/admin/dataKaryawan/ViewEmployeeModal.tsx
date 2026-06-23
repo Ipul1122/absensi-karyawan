@@ -18,7 +18,8 @@ import {
   Save,
   Camera,
   FileUp,
-  Building2
+  Building2,
+  Phone
 } from 'lucide-react'
 
 interface EmployeeProfile {
@@ -35,6 +36,7 @@ interface EmployeeProfile {
   cv: string | null
   no_rekening: string | null
   company: string | null
+  whatsapp: string | null
   created_at: string
 }
 
@@ -70,6 +72,7 @@ export default function ViewEmployeeModal({
       cv: null,
       no_rekening: null,
       company: null,
+      whatsapp: null,
       created_at: ''
     }
   )
@@ -89,6 +92,7 @@ export default function ViewEmployeeModal({
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [noRekening, setNoRekening] = useState('')
   const [company, setCompany] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
 
   const photoInputRef = useRef<HTMLInputElement>(null)
   const cvInputRef = useRef<HTMLInputElement>(null)
@@ -124,6 +128,7 @@ export default function ViewEmployeeModal({
     setCvFile(null)
     setNoRekening(localProfile.no_rekening || '')
     setCompany(localProfile.company || '')
+    setWhatsapp(localProfile.whatsapp || '')
     setIsEditing(true)
   }
 
@@ -205,6 +210,7 @@ export default function ViewEmployeeModal({
       if (finalDivision) formData.append('division', finalDivision)
       formData.append('no_rekening', noRekening)
       formData.append('company', company)
+      if (whatsapp) formData.append('whatsapp', whatsapp)
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
 
@@ -542,6 +548,21 @@ export default function ViewEmployeeModal({
                   </div>
                 </div>
 
+                {/* WhatsApp */}
+                <div className="col-span-1 sm:col-span-2">
+                  <label className={labelClass}>No. WhatsApp / Telepon</label>
+                  <div className="relative">
+                    <Phone className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Contoh: 08123456789"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+
                 {/* Address */}
                 <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Alamat</label>
@@ -690,6 +711,11 @@ export default function ViewEmployeeModal({
                     label: 'Perusahaan',
                     value: localProfile.company || '-',
                     icon: <Building2 className="w-3 h-3" />
+                  },
+                  {
+                    label: 'No. WhatsApp / Telepon',
+                    value: localProfile.whatsapp || '-',
+                    icon: <Phone className="w-3 h-3" />
                   }
                 ].map((item) => (
                   <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -756,7 +782,8 @@ export default function ViewEmployeeModal({
                   localProfile.gender,
                   localProfile.cv,
                   localProfile.no_rekening,
-                  localProfile.company
+                  localProfile.company,
+                  localProfile.whatsapp
                 ]
                 const filled = fields.filter(Boolean).length
                 const pct = Math.round((filled / fields.length) * 100)

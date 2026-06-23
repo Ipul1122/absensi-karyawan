@@ -13,7 +13,8 @@ import {
   Camera,
   FileText,
   FileUp,
-  Building2
+  Building2,
+  Phone
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 
@@ -43,6 +44,7 @@ export default function AddEmployeeModal({
   const [divisionCustom, setDivisionCustom] = useState('')
   const [noRekening, setNoRekening] = useState('')
   const [company, setCompany] = useState('')
+  const [whatsapp, setWhatsapp] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [cvFile, setCvFile] = useState<File | null>(null)
@@ -65,6 +67,7 @@ export default function AddEmployeeModal({
       setDivisionCustom('')
       setNoRekening('')
       setCompany('')
+      setWhatsapp('')
       setPhotoFile(null)
       setPhotoPreview(null)
       setCvFile(null)
@@ -161,6 +164,7 @@ export default function AddEmployeeModal({
     if (finalDivision) formData.append('division', finalDivision)
     if (noRekening) formData.append('no_rekening', noRekening)
     if (company) formData.append('company', company)
+    if (whatsapp) formData.append('whatsapp', whatsapp)
     if (photoFile) formData.append('photo', photoFile)
     if (cvFile) formData.append('cv', cvFile)
 
@@ -200,7 +204,7 @@ export default function AddEmployeeModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <label className={labelClass}>Nama Lengkap *</label>
               <div className="relative">
                 <User className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
@@ -215,7 +219,7 @@ export default function AddEmployeeModal({
               </div>
             </div>
 
-            <div className="col-span-2 sm:col-span-1">
+            <div className="col-span-1">
               <label className={labelClass}>Email Karyawan *</label>
               <div className="relative">
                 <Mail className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
@@ -230,7 +234,7 @@ export default function AddEmployeeModal({
               </div>
             </div>
 
-            <div className="col-span-2 sm:col-span-1">
+            <div className="col-span-1">
               <label className={labelClass}>Password Login *</label>
               <div className="relative">
                 <Lock className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
@@ -411,6 +415,19 @@ export default function AddEmployeeModal({
                   <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
                   <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
                 </select>
+              </div>
+            </div>
+            <div className="col-span-1 sm:col-span-2">
+              <label className={labelClass}>No. WhatsApp / Telepon</label>
+              <div className="relative">
+                <Phone className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
+                <input
+                  type="text"
+                  placeholder="Contoh: 08123456789"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  className={inputClass}
+                />
               </div>
             </div>
           </div>

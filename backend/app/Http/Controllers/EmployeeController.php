@@ -14,7 +14,7 @@ class EmployeeController extends Controller
 
     public function index()
     {
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         $query = User::where('role', 'employee');
         if ($user && $user->company) {
             $query->where('company', $user->company);
@@ -357,7 +357,7 @@ class EmployeeController extends Controller
 
     private function getEmployeeById($id)
     {
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         $query = User::where('id', $id)->where('role', 'employee');
         if ($user && $user->company) {
             $query->where('company', $user->company);

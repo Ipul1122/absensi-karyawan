@@ -123,7 +123,7 @@ class LeaveController extends Controller
      */
     public function getAllRequests(Request $request)
     {
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         $query = LeaveRequest::with('user:id,name,email,company');
         if ($user && $user->company) {
             $query->whereHas('user', function ($q) use ($user) {

@@ -296,7 +296,7 @@ class AttendanceController extends Controller
      */
     public function getAllAttendances(Request $request)
     {
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         $query = Attendance::with('user:id,name,email,photo,role,join_date,employee_number,division,company');
         if ($user && $user->company) {
             $query->whereHas('user', function ($q) use ($user) {

@@ -278,7 +278,7 @@ class PayrollController extends Controller
      */
     public function indexConfigurations(Request $request)
     {
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         $query = User::where('role', 'employee');
         if ($user && $user->company) {
             $query->where('company', $user->company);
@@ -369,7 +369,7 @@ class PayrollController extends Controller
         ]);
 
         $period = $request->period_month;
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
 
         $query = Payroll::where('period_month', $period)
             ->with(['user:id,name,email,no_rekening,company,division,employee_number,join_date', 'user.salaryConfiguration']);

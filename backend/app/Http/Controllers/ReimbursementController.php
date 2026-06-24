@@ -138,7 +138,7 @@ class ReimbursementController extends Controller
      */
     public function indexAdmin(Request $request)
     {
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         $query = Reimbursement::with('user:id,name,email,company');
 
         if ($user && $user->company) {

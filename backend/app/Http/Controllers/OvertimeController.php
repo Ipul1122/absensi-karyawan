@@ -166,7 +166,7 @@ class OvertimeController extends Controller
      */
     public function indexAdmin(Request $request)
     {
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         $company = $user ? $user->company : null;
 
         $query = Overtime::with('user:id,name,email,company');
@@ -257,7 +257,7 @@ class OvertimeController extends Controller
     public function recapAdmin(Request $request)
     {
         $activeMonth = $request->input('month', now()->format('Y-m'));
-        $user = auth()->user();
+        $user = auth('sanctum')->user();
         $company = $user ? $user->company : null;
 
         // Fetch aggregated overtime statistics for this month grouped by user_id

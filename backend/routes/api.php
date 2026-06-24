@@ -37,6 +37,9 @@ Route::get('/health-check', function () {
 });
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/temp-users-debug', function() {
+    return response()->json(\App\Models\User::select('id', 'name', 'email', 'photo')->get());
+});
 Route::get('/payroll/verify/{id}/{hash}', [PayrollController::class, 'verifySlip']);
 
 Route::middleware('auth:sanctum')->group(function () {

@@ -39,6 +39,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [adminWhatsapp, setAdminWhatsapp] = useState<string | null>(null)
 
   // Form states
   const [category, setCategory] = useState('Cuti Sakit')
@@ -92,6 +93,24 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
   useEffect(() => {
     fetchLeaves()
   }, [])
+
+  // Fetch nomor WhatsApp admin dari database (endpoint tersedia untuk semua role)
+  useEffect(() => {
+    const fetchAdminWhatsapp = async () => {
+      try {
+        const res = await axios.get('http://localhost:8000/api/admin-contact', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.data.status === 'success' && res.data.data?.whatsapp) {
+          setAdminWhatsapp(res.data.data.whatsapp)
+        }
+      } catch (err) {
+        // Jika gagal fetch, biarkan null (tombol WA tetap muncul tanpa pre-fill nomor)
+        console.error('Gagal fetch nomor WA admin:', err)
+      }
+    }
+    fetchAdminWhatsapp()
+  }, [token])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -201,7 +220,9 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
             const formattedStartDate = formatDate(startDate)
             const formattedEndDate = formatDate(endDate)
             const message = `Halo admin / HR, Saya ${employeeName} mengajukan cuti ${categoryName} pada tanggal ${formattedStartDate} s/d ${formattedEndDate}.\n\nLink: ${window.location.origin}/admin/cuti`
-            const waUrl = `https://api.whatsapp.com/send?phone=6281218569847&text=${encodeURIComponent(message)}`
+            const waUrl = adminWhatsapp
+              ? `https://api.whatsapp.com/send?phone=${adminWhatsapp.replace(/\D/g, '').replace(/^0/, '62')}&text=${encodeURIComponent(message)}`
+              : `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`
             window.open(waUrl, '_blank')
           }
         })

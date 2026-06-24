@@ -127,7 +127,7 @@ class AuthController extends Controller
             'photo'           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'no_rekening'     => 'nullable|string|max:50',
-            'whatsapp'        => 'nullable|string|max:20',
+            'whatsapp'        => 'nullable|string|max:30',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',

@@ -296,7 +296,7 @@ class AttendanceController extends Controller
      */
     public function getAllAttendances(Request $request)
     {
-        $attendances = Attendance::with('user:id,name,email,photo,role,join_date')
+        $attendances = Attendance::with('user:id,name,email,photo,role,join_date,employee_number,division,company')
             ->orderBy('date', 'desc')
             ->orderBy('clock_in', 'desc')
             ->get();

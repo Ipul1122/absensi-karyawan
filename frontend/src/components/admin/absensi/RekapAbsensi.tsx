@@ -26,6 +26,9 @@ interface Attendance {
     email: string
     photo?: string | null
     join_date?: string | null
+    employee_number?: string | null
+    division?: string | null
+    company?: string | null
   }
 }
 
@@ -375,124 +378,194 @@ export default function RekapAbsensi({
     printWindow.document.close()
   }
 
-  // Export to Excel
+  // Export to Excel Multi-Sheet (per karyawan)
   const handleExportExcel = () => {
     const activeMonth = reportMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
     const [year, month] = activeMonth.split('-')
-    
+
     const getIndonesianMonthName = (monthNum: number) => {
-      const months = [
-        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-      ];
-      return months[monthNum];
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+      return months[monthNum]
     }
-    
     const indonesianMonthName = getIndonesianMonthName(parseInt(month, 10) - 1)
-    const currentYear = year
 
-    const getTypeLabel = (type: string | null | undefined) => {
-      if (!type || type === 'kantor') return 'Kantor'
-      if (type === 'kunjungan') return 'Kunjungan Kerja'
-      if (type === 'client') return 'Kunjungan Klien'
-      return type
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    const escXml = (s: string | null | undefined) =>
+      (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+    const DAYS_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+    const getDayName = (dateStr: string) => DAYS_ID[new Date(dateStr + 'T00:00:00').getDay()]
+
+    const getShiftLabel = (att: Attendance) => {
+      const day = new Date(att.date + 'T00:00:00').getDay()
+      if (day === 6) return 'Senin - Sabtu'
+      return 'Senin - Jumat'
     }
 
-    const getPhotoHtml = (photo: string | null) => {
-      if (!photo) return '-'
-      return `<img src="${API_BASE_URL}${photo}" width="55" height="55" />`
+    const getKeterangan = (att: Attendance) => {
+      if (!att.clock_in) return 'Tidak Hadir'
+      if (att.status_in === 'late') return 'Terlambat'
+      if (att.status_in === 'early') return 'Hadir Lebih Awal'
+      return 'Masuk Kerja'
     }
 
-    let excelContent = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta charset="utf-8">
-        <!--[if gte mso 9]>
-        <xml>
-          <x:ExcelWorkbook>
-            <x:ExcelWorksheets>
-              <x:Name>Rekap Absensi</x:Name>
-              <x:WorksheetOptions>
-                <x:DisplayGridlines/>
-              </x:WorksheetOptions>
-            </x:ExcelWorksheet>
-          </x:ExcelWorksheets>
-        </x:ExcelWorkbook>
-      </xml>
-      <![endif]-->
-      <style>
-        body { font-family: sans-serif; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #fed7aa; padding: 8px; text-align: left; vertical-align: middle; }
-        th { background-color: #ea580c; color: white; font-weight: bold; }
-        .data-row { height: 65px; }
-        .img-cell { width: 70px; text-align: center; }
-        .text-center { text-align: center; }
-        .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-        .subtitle { font-size: 12px; color: #ea580c; margin-bottom: 20px; }
-      </style>
-      </head>
-      <body>
-        <div class="title">Laporan Rekap Absensi Karyawan</div>
-        <div class="subtitle">Bulan: ${indonesianMonthName} ${currentYear} | Tanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}</div>
-        <table>
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Karyawan</th>
-              <th>Email</th>
-              <th>Tanggal</th>
-              <th>Tipe</th>
-              <th>Clock In</th>
-              <th>Clock Out</th>
-              <th>Foto Selfie Masuk</th>
-              <th>Foto Selfie Keluar</th>
-              <th>Lokasi</th>
-            </tr>
-          </thead>
-          <tbody>
-    `
+    // ── Style IDs ────────────────────────────────────────────────────────────
+    const getStyleId = (att: Attendance) => {
+      const dayIdx = new Date(att.date + 'T00:00:00').getDay()
+      if (dayIdx === 6) return 'sSabtu'   // Sabtu → kuning
+      if (!att.clock_in) return 'sAbsent' // Tidak hadir → merah muda
+      if (att.status_in === 'late') return 'sLate'  // Terlambat → oranye muda
+      return 'sNormal'
+    }
 
-    filteredAttendances.forEach((att, idx) => {
-      excelContent += `
-        <tr class="data-row" style="height: 65px;">
-          <td class="text-center">${idx + 1}</td>
-          <td><b>${att.user.name}</b></td>
-          <td>${att.user.email}</td>
-          <td>${formatDate(att.date)}</td>
-          <td>${getTypeLabel(att.attendance_type)}</td>
-          <td>${att.clock_in || '-'}</td>
-          <td>${att.clock_out || '-'}</td>
-          <td class="img-cell" style="width: 70px; text-align: center; vertical-align: middle;">${getPhotoHtml(att.photo_in)}</td>
-          <td class="img-cell" style="width: 70px; text-align: center; vertical-align: middle;">${getPhotoHtml(att.photo_out)}</td>
-          <td>${getLokasiLabel(att)}</td>
-        </tr>
-      `
+    // ── Build one SS Row ─────────────────────────────────────────────────────
+    const buildRow = (att: Attendance, idx: number) => {
+      const sid = getStyleId(att)
+      const cell = (val: string, type: 'String' | 'Number' = 'String') =>
+        `<Cell ss:StyleID="${sid}"><Data ss:Type="${type}">${escXml(val)}</Data></Cell>`
+
+      return `<Row ss:Height="20">
+        ${cell(String(idx + 1), 'Number')}
+        ${cell(att.date)}
+        ${cell(att.user.name)}
+        ${cell(att.user.employee_number || '-')}
+        ${cell(att.user.division || '-')}
+        ${cell(att.user.company || '-')}
+        ${cell(getShiftLabel(att))}
+        ${cell(getDayName(att.date))}
+        ${cell('08:30:00')}
+        ${cell('17:30:00')}
+        ${cell(att.clock_in || '-')}
+        ${cell(att.clock_out || '-')}
+        ${cell(getKeterangan(att))}
+      </Row>`
+    }
+
+    // ── Header row ───────────────────────────────────────────────────────────
+    const HEADERS = [
+      'No', 'Tanggal Absen', 'Karyawan', 'Nomor Induk', 'Divisi',
+      'Lokasi Absen', 'Shift', 'Hari Absen',
+      'Jam Masuk Kantor', 'Jam Pulang Kantor',
+      'Jam Masuk Absen', 'Jam Pulang Absen', 'Keterangan Absen'
+    ]
+    const COL_WIDTHS = [35, 90, 140, 90, 80, 180, 100, 80, 100, 100, 100, 100, 110]
+
+    const buildHeaderRow = () =>
+      `<Row ss:Height="28">${HEADERS.map(h =>
+        `<Cell ss:StyleID="sHeader"><Data ss:Type="String">${escXml(h)}</Data></Cell>`
+      ).join('')}</Row>`
+
+    const buildColDefs = () =>
+      COL_WIDTHS.map(w => `<Column ss:Width="${w}"/>`).join('')
+
+    // ── Build one worksheet ──────────────────────────────────────────────────
+    const buildWorksheet = (sheetName: string, atts: Attendance[]) => {
+      const sorted = [...atts].sort((a, b) => a.date.localeCompare(b.date))
+      const rows = sorted.map((att, i) => buildRow(att, i)).join('')
+      return `
+        <Worksheet ss:Name="${escXml(sheetName.substring(0, 31))}">
+          <Table>${buildColDefs()}${buildHeaderRow()}${rows}</Table>
+          <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+            <FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal>
+            <TopRowBottomPane>1</TopRowBottomPane>
+          </WorksheetOptions>
+        </Worksheet>`
+    }
+
+    // ── Group attendances per employee ───────────────────────────────────────
+    const empMap = new Map<number, { name: string; atts: Attendance[] }>()
+    filteredAttendances.forEach(att => {
+      const uid = att.user.id
+      if (!empMap.has(uid)) empMap.set(uid, { name: att.user.name, atts: [] })
+      empMap.get(uid)!.atts.push(att)
     })
 
-    if (filteredAttendances.length === 0) {
-      excelContent += `
-        <tr>
-          <td colspan="10" class="text-center" style="color: #64748b; padding: 20px;">Tidak ada data absensi yang sesuai filter.</td>
-        </tr>
-      `
-    }
+    // ── Build all worksheets ─────────────────────────────────────────────────
+    const allSheets: string[] = []
+    allSheets.push(buildWorksheet('FULL REKAP PRESENSI', filteredAttendances))
+    empMap.forEach(({ name, atts }) => {
+      allSheets.push(buildWorksheet(name.toUpperCase(), atts))
+    })
 
-    excelContent += `
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `
+    // ── XML Workbook ─────────────────────────────────────────────────────────
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook
+  xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:x="urn:schemas-microsoft-com:office:excel"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:html="http://www.w3.org/TR/REC-html40">
 
-    const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
+  <Styles>
+    <Style ss:ID="sHeader">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>
+      <Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="10"/>
+      <Interior ss:Color="#EA580C" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#C2410C"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#C2410C"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#C2410C"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#C2410C"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sNormal">
+      <Alignment ss:Vertical="Center"/>
+      <Font ss:Size="9"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sSabtu">
+      <Alignment ss:Vertical="Center"/>
+      <Font ss:Size="9"/>
+      <Interior ss:Color="#FFF9C4" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sLate">
+      <Alignment ss:Vertical="Center"/>
+      <Font ss:Size="9"/>
+      <Interior ss:Color="#FFEDD5" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sAbsent">
+      <Alignment ss:Vertical="Center"/>
+      <Font ss:Size="9"/>
+      <Interior ss:Color="#FEE2E2" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+  </Styles>
+
+  ${allSheets.join('\n')}
+</Workbook>`
+
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    link.href = url
-    link.download = `Rekap_Absensi_${indonesianMonthName.replace(/\s+/g, '_')}_${currentYear}.xls`
+    link.href  = url
+    link.download = `Rekap_Absensi_${indonesianMonthName.replace(/\s+/g, '_')}_${year}.xls`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
 

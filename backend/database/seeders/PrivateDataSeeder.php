@@ -20,7 +20,6 @@ class PrivateDataSeeder extends Seeder
             [
                 'name' => 'Administrator',
                 'password' => bcrypt('password'),
-                'password_plain' => 'password',
                 'role' => 'admin',
                 'status' => 'active',
             ]
@@ -31,7 +30,6 @@ class PrivateDataSeeder extends Seeder
             [
                 'name' => 'Melani Dian',
                 'password' => bcrypt('password'),
-                'password_plain' => 'password',
                 'role' => 'director',
                 'status' => 'active',
                 'company' => 'PT Cakrawala Parama Internasional',
@@ -44,7 +42,6 @@ class PrivateDataSeeder extends Seeder
             [
                 'name' => 'Andri Syahputra',
                 'password' => bcrypt('password'),
-                'password_plain' => 'password',
                 'role' => 'director',
                 'status' => 'active',
                 'company' => 'PT Yasodana Parvez Internasional',
@@ -85,7 +82,6 @@ class PrivateDataSeeder extends Seeder
                 [
                     'name' => $emp['name'],
                     'password' => bcrypt('password'),
-                    'password_plain' => 'password',
                     'role' => 'employee',
                     'status' => 'active',
                     'company' => 'PT Cakrawala Parama Internasional',

@@ -6,8 +6,8 @@ import {
   UserPlus,
   Loader2,
   Trash2,
-  Eye,
-  EyeOff,
+  // Eye,
+  // EyeOff,
   Edit,
   X,
   User,
@@ -21,7 +21,9 @@ import {
   FileText,
   FileUp,
   Building2,
-  Phone
+  Phone,
+  // RefreshCw,
+  Key
 } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
 
@@ -85,7 +87,7 @@ export default function AkunKaryawan({
   token,
   onRefresh,
 }: AkunKaryawanProps) {
-  const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({})
+  const [] = useState<Record<number, boolean>>({})
 
 
 
@@ -101,8 +103,82 @@ export default function AkunKaryawan({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cvInputRef = useRef<HTMLInputElement>(null)
 
-  const togglePassword = (id: number) => {
-    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
+  // const togglePassword = (id: number) => {
+  //   setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
+  // }
+
+  const handleResetPasswordDirect = (emp: Employee) => {
+    const newPassword = Math.random().toString(36).substring(2, 8);
+    
+    Swal.fire({
+      title: 'Reset Kata Sandi Karyawan?',
+      text: `Kata sandi baru akan di-generate secara acak untuk ${emp.name}. Tindakan ini akan mengubah kata sandi aktif mereka.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#475569',
+      confirmButtonText: 'Ya, Reset Sandi!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await axios.put(`http://localhost:8000/api/employees/${emp.id}`, {
+            name: emp.name,
+            password: newPassword,
+            no_rekening: emp.no_rekening,
+            company: emp.company,
+            whatsapp: emp.whatsapp
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+
+          if (response.data.status === 'success') {
+            let cleanPhone = emp.whatsapp?.trim().replace(/\D/g, '') || ''
+            if (cleanPhone.startsWith('0')) {
+              cleanPhone = '62' + cleanPhone.substring(1)
+            }
+
+            const messageText = `Halo ${emp.name}, kata sandi akun goodpeople-hcms Anda telah direset oleh Admin. 
+
+Kata sandi baru Anda: ${newPassword}
+
+Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
+
+            const encodedText = encodeURIComponent(messageText)
+            const waUrl = cleanPhone 
+              ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
+              : `https://api.whatsapp.com/send?text=${encodedText}`
+
+            Swal.fire({
+              title: 'Sandi Berhasil Direset!',
+              html: `Kata sandi baru untuk <b>${emp.name}</b> adalah:<br><br><span class="font-mono text-lg font-black bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-lg text-orange-600">${newPassword}</span><br><br>Klik tombol di bawah untuk mengirimkan kata sandi baru melalui WhatsApp.`,
+              icon: 'success',
+              confirmButtonText: 'Kirim ke WhatsApp',
+              confirmButtonColor: '#ea580c',
+              background: '#fffdfb',
+              color: '#3c1105'
+            }).then((waResult) => {
+              if (waResult.isConfirmed) {
+                window.open(waUrl, '_blank')
+              }
+            })
+            
+            onRefresh?.()
+          }
+        } catch (err: any) {
+          console.error(err)
+          Swal.fire({
+            title: 'Gagal',
+            text: err.response?.data?.message || 'Gagal mereset kata sandi karyawan.',
+            icon: 'error',
+            background: '#fffdfb',
+            color: '#3c1105'
+          })
+        }
+      }
+    })
   }
 
   const fetchEmployeeProfile = async (id: number) => {
@@ -285,7 +361,7 @@ export default function AkunKaryawan({
                 <tr className="bg-orange-50/40 text-orange-950/80 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
                   <th className="py-4 px-5">Nama</th>
                   <th className="py-4 px-5">Email</th>
-                  <th className="py-4 px-5">Kata Sandi</th>
+                  <th className="py-4 px-5">Aksi Cepat</th>
                   <th className="py-4 px-5">Status</th>
                   <th className="py-4 px-5">Terdaftar</th>
                   <th className="py-4 px-5 text-center">Aksi</th>
@@ -369,18 +445,14 @@ export default function AkunKaryawan({
                       </td>
                       <td className="py-4 px-5 font-mono text-xs text-slate-600">{emp.email}</td>
                       <td className="py-4 px-5">
-                        <div className="flex items-center gap-2 max-w-[140px]">
-                          <span className="font-mono text-xs text-slate-700 select-all block truncate">
-                            {showPasswords[emp.id] ? emp.password_plain || 'N/A' : '••••••••'}
-                          </span>
-                          <button
-                            onClick={() => togglePassword(emp.id)}
-                            className="p-1 hover:bg-orange-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors cursor-pointer shrink-0"
-                            title={showPasswords[emp.id] ? 'Sembunyikan' : 'Tampilkan'}
-                          >
-                            {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleResetPasswordDirect(emp)}
+                          className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-xs transition-all cursor-pointer font-quicksand flex items-center gap-1.5 active:scale-95"
+                          title="Reset Kata Sandi Karyawan"
+                        >
+                          <Key className="w-3.5 h-3.5 text-orange-500" />
+                          Reset Sandi
+                        </button>
                       </td>
                       {/* Status */}
                       <td className="py-4 px-5">
@@ -535,21 +607,14 @@ export default function AkunKaryawan({
                   )}
                 </div>
 
-                {/* Password block */}
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex items-center justify-between text-xs font-quicksand">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide">Kata Sandi:</span>
-                    <span className="font-mono text-xs text-slate-700 font-bold select-all">
-                      {showPasswords[emp.id] ? emp.password_plain || 'N/A' : '••••••••'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => togglePassword(emp.id)}
-                    className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
+                {/* Reset Sandi Button */}
+                <button
+                  onClick={() => handleResetPasswordDirect(emp)}
+                  className="w-full py-2.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-xs transition-all cursor-pointer font-quicksand flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Key className="w-3.5 h-3.5 text-orange-500" />
+                  Reset Kata Sandi Karyawan
+                </button>
 
                 {/* Actions & Registered Date */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-50 font-quicksand">

@@ -21,7 +21,6 @@ class EmployeeController extends Controller
                 'id'              => $emp->id,
                 'name'            => $emp->name,
                 'email'           => $emp->email,
-                'password_plain'  => $emp->password_plain,
                 'role'            => $emp->role,
                 'status'          => $emp->status,
                 'photo'           => $emp->photo ? asset('storage/' . $emp->photo) : null,
@@ -73,7 +72,6 @@ class EmployeeController extends Controller
             'name'            => $request->name,
             'email'           => $request->email,
             'password'        => Hash::make($request->password),
-            'password_plain'  => $request->password,
             'role'            => 'employee',
             'status'          => 'pending',
             'employee_number' => $request->employee_number,
@@ -209,7 +207,6 @@ class EmployeeController extends Controller
 
         if ($request->filled('password')) {
             $updateData['password'] = Hash::make($request->password);
-            $updateData['password_plain'] = $request->password;
         }
 
         $employee->update($updateData);

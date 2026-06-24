@@ -23,6 +23,7 @@ import AkunKaryawan from './admin/dataKaryawan/AkunKaryawan'
 import LokasiKantor from './admin/pengaturan/LokasiKantor'
 import AdminCuti from './admin/operasional/AdminCuti'
 import AdminPayroll from './admin/payroll/AdminPayroll'
+import AdminKelolaHariLibur from './admin/pengaturan/AdminKelolaHariLibur'
 import AdminSalaryConfig from './admin/payroll/AdminSalaryConfig'
 import AdminInventaris from './admin/operasional/AdminInventaris'
 import AdminReimbursement from './admin/operasional/AdminReimbursement'
@@ -709,6 +710,9 @@ ${window.location.origin}/director/karyawan`
     if (path.includes('biodata')) {
       return { title: 'Biodata Pribadi Admin', subtitle: 'Admin Profile' }
     }
+    if (path.includes('hariLibur')) {
+      return { title: 'Kelola Hari Libur', subtitle: 'Holiday Settings' }
+    }
     if (path.includes('payroll-config')) {
       return { title: 'Setelan Gaji Karyawan', subtitle: 'Salary Configuration' }
     }
@@ -902,6 +906,14 @@ ${window.location.origin}/director/karyawan`
                   token={token}
                   onProfileUpdate={onProfileUpdate}
                   initialTab="biodata"
+                />
+              } 
+            />
+            <Route 
+              path="hariLibur" 
+              element={
+                <AdminKelolaHariLibur
+                  token={token}
                 />
               } 
             />

@@ -128,6 +128,9 @@ export default function EmployeeOverview({
   const [statsLoading, setStatsLoading] = useState(true)
   const [activeMobileTab, setActiveMobileTab] = useState<'pintasan' | 'presensi' | 'profil'>('pintasan')
   const [currentSlide, setCurrentSlide] = useState(0)
+  
+  // Today's holiday state to customize dashboard warnings
+  const [todayHoliday, setTodayHoliday] = useState<any | null>(null)
 
   // State for announcements including dynamic upcoming holidays
   const [activeAnnouncements, setActiveAnnouncements] = useState<any[]>(() => {
@@ -136,7 +139,7 @@ export default function EmployeeOverview({
       if (cached) {
         const parsed = JSON.parse(cached)
         return parsed.map((item: any) => {
-          if (item.tag === 'Hari Libur') {
+          if (item.tag.includes('Hari Libur')) {
             return {
               ...item,
               icon: <Calendar className="w-5 h-5 text-blue-500" />
@@ -167,33 +170,58 @@ export default function EmployeeOverview({
       try {
         const res = await axios.get('http://localhost:8000/api/holidays/upcoming', { headers })
         if (res.data.status === 'success' && res.data.data.length > 0) {
-          const nextHoliday = res.data.data[0]
-          const holidayDate = new Date(nextHoliday.holiday_date)
-          const formattedHolidayDate = holidayDate.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          })
+          const todayStr = new Date().toLocaleDateString('en-CA')
+          const tomorrow = new Date()
+          tomorrow.setDate(tomorrow.getDate() + 1)
+          const tomorrowStr = tomorrow.toLocaleDateString('en-CA')
 
-          const dynamicHoliday = {
-            id: 'holiday-' + nextHoliday.id,
-            tag: 'Hari Libur',
-            title: `Hari Libur Nasional: ${nextHoliday.name} jatuh pada hari ${formattedHolidayDate}.`,
-            bgColor: 'bg-blue-50/50',
-            borderColor: 'border-blue-100'
+          // Check if today is a holiday
+          const foundToday = res.data.data.find((h: any) => h.holiday_date === todayStr)
+          if (foundToday) {
+            setTodayHoliday(foundToday)
           }
+
+          // Map all upcoming holidays into slides
+          const holidaySlides = res.data.data.map((holiday: any) => {
+            const holidayDate = new Date(holiday.holiday_date)
+            let titleText = ''
+            let tagText = 'Hari Libur'
+
+            if (holiday.holiday_date === todayStr) {
+              tagText = 'Hari Libur Hari Ini'
+              titleText = `Hari Ini Libur Nasional: ${holiday.name}! Selamat berlibur bersama keluarga.`
+            } else if (holiday.holiday_date === tomorrowStr) {
+              tagText = 'Hari Libur Besok'
+              titleText = `Besok Libur Nasional: ${holiday.name}! Bersiaplah untuk hari libur.`
+            } else {
+              const formattedHolidayDate = holidayDate.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+              })
+              titleText = `Hari Libur Nasional: ${holiday.name} jatuh pada hari ${formattedHolidayDate}.`
+            }
+
+            return {
+              id: 'holiday-' + holiday.id,
+              tag: tagText,
+              title: titleText,
+              bgColor: 'bg-blue-50/50',
+              borderColor: 'border-blue-100'
+            }
+          })
 
           const updatedList = [
             announcements[0],
-            dynamicHoliday,
+            ...holidaySlides,
             announcements[2]
           ]
 
           // Map icons back
           const listWithIcons = updatedList.map(item => ({
             ...item,
-            icon: item.tag === 'Hari Libur'
+            icon: item.tag.includes('Hari Libur')
               ? <Calendar className="w-5 h-5 text-blue-500" />
               : item.tag === 'Kebijakan HR'
               ? <AlertCircle className="w-5 h-5 text-orange-500" />
@@ -353,11 +381,15 @@ export default function EmployeeOverview({
                 Halo, {profile?.name || user.name}!
               </h2>
               <p className="text-xs md:text-sm text-white/90 font-medium max-w-md">
-                {attendanceState === 'needs_checkin' 
-                  ? 'Semangat bekerja hari ini. Jangan lupa absen masuk ya!' 
-                  : attendanceState === 'needs_checkout'
-                  ? 'Kerja bagus hari ini! Jangan lupa absen pulang nanti ya.'
-                  : 'Luar biasa! Anda telah menyelesaikan presensi hari ini. Selamat beristirahat!'}
+                {todayHoliday ? (
+                  `Hari ini adalah Hari Libur Nasional (${todayHoliday.name}). Selamat berlibur bersama keluarga!`
+                ) : (
+                  attendanceState === 'needs_checkin' 
+                    ? 'Semangat bekerja hari ini. Jangan lupa absen masuk ya!' 
+                    : attendanceState === 'needs_checkout'
+                    ? 'Kerja bagus hari ini! Jangan lupa absen pulang nanti ya.'
+                    : 'Luar biasa! Anda telah menyelesaikan presensi hari ini. Selamat beristirahat!'
+                )}
               </p>
             </div>
 
@@ -450,9 +482,17 @@ export default function EmployeeOverview({
           </div>
 
           <div className="z-10 w-full mt-2 lg:mt-0">
-            <p className="text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-fit">
-              {formatDate(time)}
-            </p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <p className="text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 w-fit">
+                {formatDate(time)}
+              </p>
+              {todayHoliday && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold font-sans">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Libur Nasional: {todayHoliday.name}
+                </span>
+              )}
+            </div>
             
             {/* Divider */}
             <div className="w-full h-px bg-slate-200 my-4"></div>
@@ -790,15 +830,23 @@ export default function EmployeeOverview({
 
           {/* Conditional Notice Message Box */}
           <div className={`mt-6 p-4 rounded-2xl flex items-center gap-3 border ${
-            attendanceState === 'needs_checkin'
+            todayHoliday
+              ? 'bg-rose-50/50 border border-rose-200 text-rose-800'
+              : attendanceState === 'needs_checkin'
               ? 'bg-amber-50/50 border border-amber-200 text-amber-800'
               : attendanceState === 'needs_checkout'
               ? 'bg-orange-50/50 border border-orange-200 text-orange-800'
               : 'bg-emerald-50/50 border border-emerald-200 text-emerald-800'
           }`}>
-            <Clock className="w-5 h-5 shrink-0 animate-pulse" />
+            {todayHoliday ? (
+              <Calendar className="w-5 h-5 shrink-0 animate-pulse text-rose-600" />
+            ) : (
+              <Clock className="w-5 h-5 shrink-0 animate-pulse" />
+            )}
             <p className="text-xs font-bold font-sans">
-              {attendanceState === 'needs_checkin'
+              {todayHoliday
+                ? `Hari ini Libur Nasional (${todayHoliday.name}). Presensi tidak wajib dilakukan.`
+                : attendanceState === 'needs_checkin'
                 ? 'Jangan lupa melakukan absen masuk hari ini!'
                 : attendanceState === 'needs_checkout'
                 ? 'Jangan lupa absen pulang pukul 17:30'

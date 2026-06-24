@@ -893,7 +893,7 @@ class PayrollController extends Controller
             'name' => $request->name,
         ]);
 
-        \Illuminate\Support\Facades\Cache::forget('upcoming_holidays');
+        \Illuminate\Support\Facades\Cache::forget('upcoming_holidays_v2');
 
         return response()->json([
             'status' => 'success',
@@ -907,7 +907,7 @@ class PayrollController extends Controller
         $holiday = Holiday::findOrFail($id);
         $holiday->delete();
 
-        \Illuminate\Support\Facades\Cache::forget('upcoming_holidays');
+        \Illuminate\Support\Facades\Cache::forget('upcoming_holidays_v2');
 
         return response()->json([
             'status' => 'success',
@@ -926,7 +926,7 @@ class PayrollController extends Controller
         $success = false;
 
         try {
-            \Illuminate\Support\Facades\Cache::forget('upcoming_holidays');
+            \Illuminate\Support\Facades\Cache::forget('upcoming_holidays_v2');
             // Panggil API Hari Libur Nasional & Cuti Bersama Indonesia (timeout 8 detik)
             $response = Http::withoutVerifying()->timeout(8)->get("https://api-hari-libur.vercel.app/api?year={$year}");
 
@@ -1025,11 +1025,12 @@ class PayrollController extends Controller
      */
     public function getUpcomingHolidays(Request $request)
     {
-        $upcoming = \Illuminate\Support\Facades\Cache::remember('upcoming_holidays', 86400, function () {
+        $upcoming = \Illuminate\Support\Facades\Cache::remember('upcoming_holidays_v2', 86400, function () {
             return Holiday::where('holiday_date', '>=', Carbon::today()->toDateString())
                 ->orderBy('holiday_date', 'asc')
                 ->limit(5)
-                ->get();
+                ->get()
+                ->toArray();
         });
 
         return response()->json([

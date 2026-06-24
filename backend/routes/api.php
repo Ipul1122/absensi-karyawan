@@ -64,6 +64,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/office-setting', [AttendanceController::class, 'getOfficeSetting']);
     Route::get('/holidays/upcoming', [PayrollController::class, 'getUpcomingHolidays']);
 
+    // Public contact info (admin WhatsApp) - accessible by all roles
+    Route::get('/admin-contact', function (Request $request) {
+        $admin = \App\Models\User::where('role', 'admin')
+            ->whereNotNull('whatsapp')
+            ->where('status', 'active')
+            ->first(['name', 'whatsapp']);
+        return response()->json([
+            'status' => 'success',
+            'data'   => $admin ? ['name' => $admin->name, 'whatsapp' => $admin->whatsapp] : null
+        ]);
+    });
+
     // Leave routes for employee
     Route::get('/leaves', [LeaveController::class, 'index']);
     Route::post('/leaves', [LeaveController::class, 'store']);

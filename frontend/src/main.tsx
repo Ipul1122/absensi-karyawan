@@ -22,9 +22,22 @@ const getApiBaseUrl = (): string => {
 };
 
 const apiBaseUrl = getApiBaseUrl();
+
+// Daftar semua URL base yang mungkin digunakan di seluruh komponen
+const KNOWN_API_BASES = [
+  'http://localhost:8000',
+  'https://api.goodpeople-hcms.com',
+  'https://goodpeople-hcms.com',
+];
+
 axios.interceptors.request.use((config) => {
-  if (config.url && config.url.startsWith('http://localhost:8000')) {
-    config.url = config.url.replace('http://localhost:8000', apiBaseUrl);
+  if (config.url) {
+    for (const base of KNOWN_API_BASES) {
+      if (config.url.startsWith(base)) {
+        config.url = config.url.replace(base, apiBaseUrl);
+        break;
+      }
+    }
   }
   return config;
 }, (error) => {

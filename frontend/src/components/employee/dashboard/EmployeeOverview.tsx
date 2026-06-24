@@ -16,7 +16,8 @@ import {
   AlertCircle,
   Wallet,
   Calendar,
-  Fingerprint
+  Fingerprint,
+  Phone
 } from 'lucide-react'
 
 interface User {
@@ -56,6 +57,7 @@ interface ProfileData {
   division: string | null
   cv: string | null
   company?: string | null
+  whatsapp?: string | null
 }
 
 interface PayrollRecord {
@@ -897,7 +899,7 @@ export default function EmployeeOverview({
               <div className="flex items-center gap-3 text-slate-600">
                 <Briefcase className="w-4 h-4 text-slate-400 shrink-0" />
                 <span className="text-xs font-bold">
-                  {profile?.division || 'Staf Produksi'}
+                  {profile?.division || '-'}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-slate-600">
@@ -905,8 +907,24 @@ export default function EmployeeOverview({
                 <span className="text-xs font-bold">
                   {profile?.date_of_birth 
                     ? new Date(profile.date_of_birth).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                    : 'Senin, 19 Juni 1944'}
+                    : '-'}
                 </span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-600">
+                <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                {profile?.whatsapp ? (
+                  <a
+                    href={`https://wa.me/${profile.whatsapp.replace(/\D/g, '').replace(/^0/, '62')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline transition-colors"
+                    title="Buka WhatsApp"
+                  >
+                    {profile.whatsapp}
+                  </a>
+                ) : (
+                  <span className="text-xs font-bold text-slate-400">Belum diatur</span>
+                )}
               </div>
             </div>
           </div>

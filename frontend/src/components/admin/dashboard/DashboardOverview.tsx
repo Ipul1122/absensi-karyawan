@@ -227,6 +227,19 @@ export default function DashboardOverview({
     emp.name.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
   )
 
+  const getDivisionBadgeStyle = (division: string | null | undefined) => {
+    if (!division) return 'bg-slate-50 text-slate-500 border-slate-100'
+    const div = division.toLowerCase()
+    if (div.includes('it') || div.includes('tekno') || div.includes('dev')) return 'bg-indigo-50 text-indigo-700 border-indigo-100'
+    if (div.includes('keuangan') || div.includes('akuntan') || div.includes('finance')) return 'bg-emerald-50 text-emerald-700 border-emerald-100'
+    if (div.includes('sdm') || div.includes('hr')) return 'bg-violet-50 text-violet-750 border-violet-100'
+    if (div.includes('pemasaran') || div.includes('sales') || div.includes('marketing') || div.includes('pemasar')) return 'bg-blue-50 text-blue-700 border-blue-100'
+    if (div.includes('operasional') || div.includes('ops')) return 'bg-amber-50 text-amber-700 border-amber-100'
+    if (div.includes('produksi')) return 'bg-rose-50 text-rose-700 border-rose-100'
+    if (div.includes('hukum') || div.includes('legal')) return 'bg-slate-100 text-slate-700 border-slate-200'
+    return 'bg-slate-50 text-slate-650 border-slate-200'
+  }
+
   // Format date helper
   const getIndonesianDate = (d: Date) => {
     return d.toLocaleDateString('id-ID', {
@@ -470,19 +483,28 @@ export default function DashboardOverview({
     <div className="space-y-6 animate-fade-in font-quicksand">
       
       {/* 1. GREETING BANNER */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-red-600 to-orange-600 rounded-[32px] p-8 text-white shadow-lg shadow-red-500/10">
+      <div className="relative overflow-hidden bg-gradient-to-r from-red-500 to-orange-600 rounded-[32px] p-8 text-white shadow-lg shadow-red-500/10">
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 select-none">
+            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 select-none font-quicksand">
               Akses Admin Utama HR
             </span>
-            <h1 className="text-3xl font-black mt-3 font-quicksand capitalize">
-              {getGreeting()}, {user.name}!
+            <h1 className="text-3xl font-black mt-3 font-quicksand capitalize leading-tight">
+              {getGreeting()}, {user.name.split(' ')[0]}!
             </h1>
             <p className="text-xs text-orange-50 font-medium mt-1">
               Kelola dan pantau seluruh aktivitas absensi serta perizinan staf Anda secara realtime.
             </p>
+          </div>
+          
+          <div className="text-left md:text-right flex flex-col md:items-end shrink-0 select-none bg-white/10 px-5 py-3 rounded-2xl border border-white/10 backdrop-blur-sm">
+            <span className="text-[10px] font-black text-orange-200 uppercase tracking-widest block font-quicksand">
+              {time.toLocaleDateString('id-ID', { weekday: 'long' })}
+            </span>
+            <span className="text-sm font-bold text-white mt-0.5 block font-quicksand">
+              {getIndonesianDate(time)}
+            </span>
           </div>
         </div>
       </div>
@@ -490,11 +512,11 @@ export default function DashboardOverview({
       {/* 2. STATS KPI GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Employees */}
-        <div className="bg-white border border-orange-100/60 rounded-[28px] p-6 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 border-l-blue-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Total Staf Aktif</p>
-              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Total Staf Aktif</p>
+              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono leading-none">
                 {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : employeesCount}
               </h3>
             </div>
@@ -502,17 +524,17 @@ export default function DashboardOverview({
               <Users className="w-5.5 h-5.5" />
             </div>
           </div>
-          <div className="mt-3 text-[10px] text-slate-500 font-semibold flex items-center gap-1 select-none">
+          <div className="mt-4 text-[10px] text-slate-500 font-semibold flex items-center gap-1.5 select-none font-quicksand">
             <TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Karyawan terdaftar aktif
           </div>
         </div>
 
         {/* Present Today */}
-        <div className="bg-white border border-orange-100/60 rounded-[28px] p-6 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 border-l-emerald-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Hadir Hari Ini</p>
-              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono flex items-baseline gap-1.5">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Hadir Hari Ini</p>
+              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono leading-none flex items-baseline gap-1.5">
                 {attendanceLoading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : presentTodayCount}
                 <span className="text-xs text-slate-400 font-bold font-quicksand">({presencePercentage}%)</span>
               </h3>
@@ -521,35 +543,53 @@ export default function DashboardOverview({
               <CheckCircle2 className="w-5.5 h-5.5" />
             </div>
           </div>
-          <div className="mt-3.5 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden select-none">
-            <div className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-1000" style={{ width: `${presencePercentage}%` }}></div>
+          <div className="mt-5.5 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden select-none">
+            <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${presencePercentage}%` }}></div>
           </div>
         </div>
 
         {/* Late Today */}
-        <div className="bg-white border border-orange-100/60 rounded-[28px] p-6 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+        <div className={`border rounded-[28px] p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 ${
+          lateTodayCount > 0
+            ? 'bg-rose-50/30 border-rose-100 border-l-rose-500'
+            : 'bg-white border-slate-100 border-l-slate-350'
+        }`}>
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Datang Terlambat</p>
-              <h3 className="text-3xl font-black text-rose-600 mt-2 font-mono">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Datang Terlambat</p>
+              <h3 className={`text-3xl font-black mt-2 font-mono leading-none ${lateTodayCount > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
                 {attendanceLoading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : lateTodayCount}
               </h3>
             </div>
-            <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 group-hover:scale-110 transition-transform">
+            <div className={`p-3 rounded-2xl border group-hover:scale-110 transition-transform ${
+              lateTodayCount > 0
+                ? 'bg-rose-100/60 text-rose-600 border-rose-200'
+                : 'bg-slate-50 text-slate-400 border-slate-100'
+            }`}>
               <Clock className="w-5.5 h-5.5" />
             </div>
           </div>
-          <div className="mt-3 text-[10px] text-slate-500 font-semibold flex items-center gap-1 select-none">
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> Check-in setelah jam 09:00 WIB
+          <div className="mt-4 text-[10px] text-slate-500 font-semibold flex items-center gap-1.5 select-none font-quicksand">
+            {lateTodayCount > 0 ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                <span className="text-rose-650 font-bold">Butuh pantauan HR</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Semua tepat waktu</span>
+              </>
+            )}
           </div>
         </div>
 
         {/* On Leave / Cuti */}
-        <div className="bg-white border border-orange-100/60 rounded-[28px] p-6 shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+        <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 border-l-amber-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Izin & Cuti Aktif</p>
-              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Izin & Cuti Aktif</p>
+              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono leading-none">
                 {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : cutiTodayCount}
               </h3>
             </div>
@@ -557,106 +597,118 @@ export default function DashboardOverview({
               <FileText className="w-5.5 h-5.5" />
             </div>
           </div>
-          <div className="mt-3 text-[10px] text-slate-500 font-semibold flex items-center gap-1 select-none">
-            <Calendar className="w-3.5 h-3.5 text-amber-500" /> Berdasarkan persetujuan Admin
+          <div className="mt-4 text-[10px] text-slate-500 font-semibold flex items-center gap-1.5 select-none font-quicksand">
+            <Calendar className="w-3.5 h-3.5 text-amber-500" /> Berdasarkan izin disetujui
           </div>
         </div>
       </div>
 
       {/* 3. PENDING ACTION PANEL */}
-      <div className="bg-white border border-orange-100/60 rounded-[32px] p-6 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 border-b border-orange-50 pb-3">
+      <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-50 pb-3">
           <ShieldAlert className="w-5 h-5 text-red-500 animate-pulse" />
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Permintaan Menunggu Tindakan (HR Verifikasi)</h3>
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider font-quicksand">Permintaan Menunggu Tindakan (Verifikasi HR)</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* Leaves */}
           <button
             onClick={() => navigate('/admin/cuti')}
-            className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group select-none ${
+            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 cursor-pointer group select-none ${
               pendingLeavesCount > 0
-                ? 'bg-red-50/40 border-red-200 hover:border-red-300 shadow-sm shadow-red-500/5 hover:scale-101'
-                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
+                ? 'bg-rose-50/30 border-rose-100 hover:border-rose-200 shadow-sm hover:scale-[1.01]'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200/80 hover:bg-slate-50'
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${pendingLeavesCount > 0 ? 'bg-red-500 text-white shadow-md shadow-red-300' : 'bg-slate-100 text-slate-400'}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingLeavesCount > 0 ? 'bg-red-500 text-white shadow-md shadow-red-300 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
                 <Calendar className="w-4.5 h-4.5" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Persetujuan Cuti</span>
-                <span className={`text-[11px] font-black truncate block ${pendingLeavesCount > 0 ? 'text-red-700' : 'text-slate-600'}`}>
+                <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Persetujuan Cuti</span>
+                <span className={`text-[11px] font-black truncate block mt-0.5 ${pendingLeavesCount > 0 ? 'text-red-700' : 'text-slate-600'}`}>
                   {pendingLeavesCount > 0 ? `${pendingLeavesCount} Berkas` : 'Selesai'}
+                </span>
+                <span className="block text-[8px] text-slate-400 font-medium truncate mt-0.5 font-quicksand">
+                  {pendingLeavesCount > 0 ? 'Ada pengajuan izin baru' : 'Tidak ada antrean'}
                 </span>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform animate-pulse" />
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
           </button>
-
+ 
           {/* Reimbursement */}
           <button
             onClick={() => navigate('/admin/reimbursement')}
-            className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group select-none ${
+            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 cursor-pointer group select-none ${
               pendingReimbursementsCount > 0
-                ? 'bg-orange-50/40 border-orange-200 hover:border-orange-300 shadow-sm shadow-orange-500/5 hover:scale-101'
-                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
+                ? 'bg-orange-50/30 border-orange-100 hover:border-orange-200 shadow-sm hover:scale-[1.01]'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200/80 hover:bg-slate-50'
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${pendingReimbursementsCount > 0 ? 'bg-orange-500 text-white shadow-md shadow-orange-300' : 'bg-slate-100 text-slate-400'}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingReimbursementsCount > 0 ? 'bg-orange-500 text-white shadow-md shadow-orange-300 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
                 <DollarSign className="w-4.5 h-4.5" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Klaim Biaya</span>
-                <span className={`text-[11px] font-black truncate block ${pendingReimbursementsCount > 0 ? 'text-orange-700' : 'text-slate-600'}`}>
+                <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Klaim Biaya</span>
+                <span className={`text-[11px] font-black truncate block mt-0.5 ${pendingReimbursementsCount > 0 ? 'text-orange-700' : 'text-slate-600'}`}>
                   {pendingReimbursementsCount > 0 ? `${pendingReimbursementsCount} Berkas` : 'Selesai'}
+                </span>
+                <span className="block text-[8px] text-slate-400 font-medium truncate mt-0.5 font-quicksand">
+                  {pendingReimbursementsCount > 0 ? 'Klaim baru masuk' : 'Semua biaya beres'}
                 </span>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
           </button>
-
+ 
           {/* Overtimes */}
           <button
             onClick={() => navigate('/admin/lembur')}
-            className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group select-none ${
+            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 cursor-pointer group select-none ${
               pendingOvertimesCount > 0
-                ? 'bg-amber-50/40 border-amber-200 hover:border-amber-300 shadow-sm shadow-amber-500/5 hover:scale-101'
-                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
+                ? 'bg-amber-50/30 border-amber-100 hover:border-amber-200 shadow-sm hover:scale-[1.01]'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200/80 hover:bg-slate-50'
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${pendingOvertimesCount > 0 ? 'bg-amber-500 text-white shadow-md shadow-amber-300' : 'bg-slate-100 text-slate-400'}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingOvertimesCount > 0 ? 'bg-amber-500 text-white shadow-md shadow-amber-300 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
                 <Clock className="w-4.5 h-4.5" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Verifikasi Lembur</span>
-                <span className={`text-[11px] font-black truncate block ${pendingOvertimesCount > 0 ? 'text-amber-700' : 'text-slate-600'}`}>
+                <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Verifikasi Lembur</span>
+                <span className={`text-[11px] font-black truncate block mt-0.5 ${pendingOvertimesCount > 0 ? 'text-amber-700' : 'text-slate-655'}`}>
                   {pendingOvertimesCount > 0 ? `${pendingOvertimesCount} Berkas` : 'Selesai'}
+                </span>
+                <span className="block text-[8px] text-slate-400 font-medium truncate mt-0.5 font-quicksand">
+                  {pendingOvertimesCount > 0 ? 'Ada klaim lembur baru' : 'Tidak ada antrean'}
                 </span>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
           </button>
-
+ 
           {/* Account Verification */}
           <button
             onClick={() => navigate('/admin/akunKaryawan')}
-            className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group select-none ${
+            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 cursor-pointer group select-none ${
               pendingRegistrationsCount > 0
-                ? 'bg-blue-50/40 border-blue-200 hover:border-blue-300 shadow-sm shadow-blue-500/5 hover:scale-101'
-                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
+                ? 'bg-blue-50/30 border-blue-100 hover:border-blue-250 shadow-sm hover:scale-[1.01]'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200/80 hover:bg-slate-50'
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${pendingRegistrationsCount > 0 ? 'bg-blue-500 text-white shadow-md shadow-blue-300' : 'bg-slate-100 text-slate-400'}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingRegistrationsCount > 0 ? 'bg-blue-500 text-white shadow-md shadow-blue-300 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
                 <Users className="w-4.5 h-4.5" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">Pendaftaran Karyawan</span>
-                <span className={`text-[11px] font-black truncate block ${pendingRegistrationsCount > 0 ? `${pendingRegistrationsCount} Akun` : 'Selesai'}`}>
+                <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Pendaftaran Akun</span>
+                <span className={`text-[11px] font-black truncate block mt-0.5 ${pendingRegistrationsCount > 0 ? 'text-blue-700' : 'text-slate-600'}`}>
                   {pendingRegistrationsCount > 0 ? `${pendingRegistrationsCount} Akun` : 'Selesai'}
+                </span>
+                <span className="block text-[8px] text-slate-400 font-medium truncate mt-0.5 font-quicksand">
+                  {pendingRegistrationsCount > 0 ? 'Ada akun baru daftar' : 'Semua akun terverifikasi'}
                 </span>
               </div>
             </div>
@@ -749,29 +801,30 @@ export default function DashboardOverview({
                   filteredPresentList.map((att) => {
                     const photoUrl = getFullPhotoUrl(att.user.photo)
                     const checkinPhoto = getFullPhotoUrl(att.photo_in)
+                    const empDivision = employees.find(e => e.id === att.user.id)?.division
 
                     return (
-                      <div key={att.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50/50 transition-colors duration-150 animate-fade-in">
+                      <div key={att.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50 hover:shadow-[inset_3px_0_0_0_#dc2626] transition-all duration-200 animate-fade-in font-quicksand">
                         <div className="flex items-center gap-3">
                           {photoUrl ? (
                             <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-400 to-red-500 border border-slate-100 flex items-center justify-center text-white font-extrabold text-xs shadow-inner shrink-0 select-none">
-                              {att.user.name.charAt(0).toUpperCase()}
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 border border-orange-200/40 flex items-center justify-center text-white font-extrabold text-xs shadow-md shrink-0 select-none">
+                              {att.user.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <h4 className="text-xs font-black text-slate-800">{att.user.name}</h4>
-                              <span className="px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded text-[8px] font-bold uppercase font-mono tracking-wider">
-                                {employees.find(e => e.id === att.user.id)?.division || 'Umum'}
+                              <span className={`inline-block px-2 py-0.2 rounded-full text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(empDivision)}`}>
+                                {empDivision || 'Umum'}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono">
                                 {att.clock_in ? att.clock_in.substring(0, 5) : '-'} WIB
                               </span>
-                              <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                              <span className="w-1 h-1 bg-slate-355 rounded-full"></span>
                               <span className="text-[9px] text-slate-400 font-extrabold capitalize">
                                 {att.attendance_type === 'kantor' ? 'Kantor Utama' : att.attendance_type === 'client' ? 'Visit Klien' : 'Dinas Luar'}
                               </span>
@@ -780,7 +833,7 @@ export default function DashboardOverview({
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider ${getBadgeStyle(att.status_in)}`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider shadow-inner ${getBadgeStyle(att.status_in)}`}>
                             {getStatusText(att.status_in)}
                           </span>
                           {checkinPhoto && (
@@ -790,12 +843,12 @@ export default function DashboardOverview({
                                   title: `Bukti Foto Check-In: ${att.user.name}`,
                                   imageUrl: checkinPhoto,
                                   imageAlt: 'Check-In Foto Wajah',
-                                  confirmButtonColor: '#ea580c',
+                                  confirmButtonColor: '#dc2626',
                                   confirmButtonText: 'Tutup',
                                   background: '#ffffff',
                                 })
                               }}
-                              className="p-1 text-slate-400 hover:text-orange-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                               title="Lihat Foto Absen"
                             >
                               <Camera className="w-4 h-4" />
@@ -815,30 +868,30 @@ export default function DashboardOverview({
                   filteredCutiList.map((l) => {
                     const photoUrl = getFullPhotoUrl(l.employee?.photo)
                     return (
-                      <div key={l.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50/50 transition-colors duration-150 animate-fade-in">
+                      <div key={l.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50 hover:shadow-[inset_3px_0_0_0_#ea580c] transition-all duration-200 animate-fade-in font-quicksand">
                         <div className="flex items-center gap-3 min-w-0">
                           {photoUrl ? (
                             <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 border border-slate-100 flex items-center justify-center text-white font-extrabold text-xs shadow-inner shrink-0 select-none">
-                              {l.employee?.name ? l.employee.name.charAt(0).toUpperCase() : '?'}
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border border-orange-200/40 flex items-center justify-center text-white font-extrabold text-xs shadow-md shrink-0 select-none">
+                              {l.employee?.name ? l.employee.name.substring(0, 2).toUpperCase() : '?'}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <h4 className="text-xs font-black text-slate-800 truncate">{l.employee?.name || 'Karyawan'}</h4>
-                              <span className="px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded text-[8px] font-bold uppercase font-mono tracking-wider shrink-0">
+                              <span className={`inline-block px-2 py-0.2 rounded-full text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(l.employee?.division)}`}>
                                 {l.employee?.division || 'Umum'}
                               </span>
                             </div>
                             <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5">
-                              Alasan: <strong className="text-slate-600 font-bold">{l.reason}</strong>
+                              Alasan: <strong className="text-slate-655 font-bold">{l.reason}</strong>
                             </p>
                           </div>
                         </div>
 
-                        <div className="shrink-0 text-right">
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                        <div className="shrink-0 text-right font-quicksand">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider bg-amber-50 text-amber-700 border border-amber-100 shadow-sm block w-fit ml-auto">
                             {l.leave_type ? l.leave_type.toUpperCase() : 'CUTI'}
                           </span>
                           <span className="block text-[8px] text-slate-400 font-semibold font-mono mt-1 select-none">
@@ -860,33 +913,38 @@ export default function DashboardOverview({
                     const mailSubject = encodeURIComponent("Pemberitahuan Absensi Hari Ini - " + todayStr)
                     const mailBody = encodeURIComponent(`Halo ${emp.name},\n\nKami mendeteksi Anda belum melakukan absensi masuk (check-in) pada hari ini tanggal ${getIndonesianDate(new Date())} di aplikasi E-Absensi Karyawan.\n\nMohon lakukan absensi masuk segera atau hubungi pihak HR/Admin jika ada kendala atau jika Anda berhalangan hadir.\n\nTerima kasih,\nTim HR / Admin`)
                     return (
-                      <div key={emp.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50/50 transition-colors duration-150 animate-fade-in">
+                      <div key={emp.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50 hover:shadow-[inset_3px_0_0_0_#64748b] transition-all duration-200 animate-fade-in font-quicksand">
                         <div className="flex items-center gap-3">
                           {photoUrl ? (
                             <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-slate-300 to-slate-500 border border-slate-100 flex items-center justify-center text-white font-extrabold text-xs shadow-inner shrink-0 select-none">
-                              {emp.name.charAt(0).toUpperCase()}
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-550 border border-slate-200/50 flex items-center justify-center text-white font-extrabold text-xs shadow-md shrink-0 select-none">
+                              {emp.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
                           <div>
-                            <h4 className="text-xs font-black text-slate-800">{emp.name}</h4>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono mt-0.5">
-                              {emp.division || 'Umum'}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-xs font-black text-slate-800">{emp.name}</h4>
+                              <span className={`inline-block px-2 py-0.2 rounded-full text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(emp.division)}`}>
+                                {emp.division || 'Umum'}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono mt-0.5 select-none">
+                              Belum Check-In
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+                        <div className="flex items-center gap-2.5">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider bg-rose-50 text-rose-700 border border-rose-100 shadow-sm select-none">
                             BELUM PRESENSI
                           </span>
                           <a
                             href={`mailto:${emp.email}?subject=${mailSubject}&body=${mailBody}`}
-                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-red-500 hover:text-white hover:bg-red-550/90 rounded-xl transition-all shadow-xs border border-red-100 bg-red-50/20 cursor-pointer"
                             title="Kirim Email Pengingat"
                           >
-                            <ExternalLink className="w-4 h-4" />
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         </div>
                       </div>
@@ -902,16 +960,16 @@ export default function DashboardOverview({
         <section className="lg:col-span-5 order-1 lg:order-2 space-y-6">
           
           {/* Admin Self Check-In Circular Dial */}
-          <div className="relative bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+          <div className="relative bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden font-quicksand">
+            <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-br from-orange-500/5 to-red-500/5 rounded-full blur-2xl pointer-events-none"></div>
             
             <div className="flex flex-col items-center text-center space-y-5">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-b border-orange-50 pb-1.5 w-full select-none">Presensi Mandiri Admin HR</span>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-1.5 w-full select-none font-quicksand">Presensi Mandiri Admin HR</span>
               
               {/* Circular Clock Dial */}
               <div className="relative flex-shrink-0 flex items-center justify-center select-none">
                 <svg className="w-36 h-36 transform -rotate-90">
-                  <circle cx="72" cy="72" r="56" className="stroke-slate-50" strokeWidth="6" fill="transparent" />
+                  <circle cx="72" cy="72" r="56" className="stroke-slate-100/70" strokeWidth="6" fill="transparent" />
                   <circle
                     cx="72"
                     cy="72"
@@ -931,52 +989,65 @@ export default function DashboardOverview({
                   </defs>
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-xl font-black text-slate-800 font-mono tracking-tight">
+                  <span className="text-xl font-black text-slate-800 font-mono tracking-tight leading-none">
                     {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider font-mono">WIB</span>
+                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider font-mono mt-1">WIB</span>
                 </div>
               </div>
 
-              {/* Status details */}
-              <div className="w-full bg-slate-50/50 rounded-2xl p-4 border border-slate-100 space-y-2 text-left text-xs font-semibold text-slate-700">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Status Absen:</span>
-                  <span className={`px-2 py-0.2 rounded-md text-[9px] font-black font-mono tracking-wider ${todayAttendance?.clock_in ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
-                    {todayAttendance?.clock_in ? 'HADIR' : 'BELUM HADIR'}
+              {/* Status details - Digital Punch-card */}
+              <div className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl p-4 space-y-3 text-xs font-semibold text-slate-700">
+                <div className="flex justify-between items-center border-b border-slate-100/60 pb-2">
+                  <span className="text-slate-450 font-quicksand font-bold">Status Kehadiran</span>
+                  <span className={`inline-flex items-center gap-1 py-0.5 px-2.5 rounded-full text-[9px] font-black font-mono tracking-wider ${todayAttendance?.clock_in ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
+                    {todayAttendance?.clock_in ? (
+                      <>
+                        <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                        HADIR
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse"></span>
+                        BELUM ABSEN
+                      </>
+                    )}
                   </span>
                 </div>
-                {todayAttendance?.clock_in && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Jam Masuk:</span>
-                    <span className="font-mono text-emerald-600 font-bold">{todayAttendance.clock_in}</span>
+                
+                <div className="grid grid-cols-2 gap-3 text-left">
+                  <div className="p-2 bg-white rounded-xl border border-slate-100 shadow-xs">
+                    <span className="text-[9px] text-slate-450 font-extrabold uppercase tracking-wider block font-quicksand">Jam Masuk</span>
+                    <span className="font-mono text-xs font-black text-slate-800 block mt-0.5">
+                      {todayAttendance?.clock_in || '--:--'}
+                    </span>
                   </div>
-                )}
-                {todayAttendance?.clock_out && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Jam Keluar:</span>
-                    <span className="font-mono text-orange-600 font-bold">{todayAttendance.clock_out}</span>
+                  <div className="p-2 bg-white rounded-xl border border-slate-100 shadow-xs">
+                    <span className="text-[9px] text-slate-455 font-extrabold uppercase tracking-wider block font-quicksand">Jam Keluar</span>
+                    <span className="font-mono text-xs font-black text-slate-800 block mt-0.5">
+                      {todayAttendance?.clock_out || '--:--'}
+                    </span>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Checkin button */}
               <div className="w-full">
                 {todayAttendance?.clock_in && todayAttendance?.clock_out ? (
-                  <div className="w-full text-center py-2.5 bg-emerald-50 border border-emerald-250 text-emerald-700 text-xs font-extrabold rounded-2xl shadow-xs flex items-center justify-center gap-1.5 select-none">
+                  <div className="w-full text-center py-2.5 bg-emerald-50 border border-emerald-250 text-emerald-700 text-xs font-extrabold rounded-2xl shadow-xs flex items-center justify-center gap-1.5 select-none font-quicksand">
                     <CheckCircle className="w-4 h-4 text-emerald-600 animate-pulse" /> Presensi Hari Ini Lengkap
                   </div>
                 ) : todayAttendance?.clock_in ? (
                   <button
                     onClick={() => handleOpenCheckInModal('check-out')}
-                    className="w-full py-3 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs uppercase tracking-wider hover:scale-102 active:scale-98"
+                    className="w-full py-3 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs uppercase tracking-widest font-quicksand hover:scale-102 active:scale-98"
                   >
                     Check-Out Mandiri
                   </button>
                 ) : (
                   <button
                     onClick={() => handleOpenCheckInModal('check-in')}
-                    className="w-full py-3 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs uppercase tracking-wider hover:scale-102 active:scale-98"
+                    className="w-full py-3 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs uppercase tracking-widest font-quicksand hover:scale-102 active:scale-98"
                   >
                     Check-In Mandiri
                   </button>

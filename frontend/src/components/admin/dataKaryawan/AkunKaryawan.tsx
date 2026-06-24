@@ -21,7 +21,12 @@ import {
   FileText,
   FileUp,
   Building2,
-  Phone
+  Phone,
+  Users,
+  UserCheck,
+  Clock,
+  Copy,
+  ExternalLink
 } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
 
@@ -32,6 +37,7 @@ interface Employee {
   role?: string
   password_plain?: string
   photo?: string | null
+  employee_number?: string | null
   division?: string | null
   no_rekening?: string | null
   company?: string | null
@@ -230,7 +236,48 @@ export default function AkunKaryawan({
     }
   }
 
+  const getDivisionBadgeStyle = (division: string | null | undefined) => {
+    if (!division) return 'bg-slate-50 text-slate-500 border-slate-100'
+    const div = division.toLowerCase()
+    if (div.includes('it') || div.includes('tekno') || div.includes('dev')) return 'bg-indigo-50 text-indigo-700 border-indigo-100'
+    if (div.includes('keuangan') || div.includes('akuntan') || div.includes('finance')) return 'bg-emerald-50 text-emerald-700 border-emerald-100'
+    if (div.includes('sdm') || div.includes('hr')) return 'bg-violet-50 text-violet-750 border-violet-100'
+    if (div.includes('pemasaran') || div.includes('sales') || div.includes('marketing') || div.includes('pemasar')) return 'bg-blue-50 text-blue-700 border-blue-100'
+    if (div.includes('operasional') || div.includes('ops')) return 'bg-amber-50 text-amber-700 border-amber-100'
+    if (div.includes('produksi')) return 'bg-rose-50 text-rose-700 border-rose-100'
+    if (div.includes('hukum') || div.includes('legal')) return 'bg-slate-100 text-slate-700 border-slate-200'
+    return 'bg-slate-50 text-slate-650 border-slate-200'
+  }
 
+  const getWhatsAppUrl = (phone: string | null | undefined) => {
+    if (!phone) return '#'
+    let clean = phone.replace(/[^0-9]/g, '')
+    if (clean.startsWith('0')) {
+      clean = '62' + clean.slice(1)
+    }
+    return `https://wa.me/${clean}`
+  }
+
+  const handleCopyPassword = (password: string | undefined) => {
+    if (!password) return
+    navigator.clipboard.writeText(password)
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: 'Kata sandi disalin',
+      showConfirmButton: false,
+      timer: 1500,
+      background: '#fffdfb',
+      color: '#3c1105'
+    })
+  }
+
+  // Stats calculations based on current employees
+  const totalEmployees = filteredEmployees.length
+  const activeEmployees = filteredEmployees.filter(emp => !emp.status || emp.status === 'active').length
+  const pendingEmployees = filteredEmployees.filter(emp => emp.status === 'pending').length
+  const totalDivisions = new Set(filteredEmployees.map(emp => emp.division).filter(Boolean)).size
 
   const inputClass = "w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-3 outline-none transition-all text-xs font-medium font-quicksand focus:ring-2 focus:ring-red-100"
   const labelClass = "block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1 font-quicksand"
@@ -277,24 +324,82 @@ export default function AkunKaryawan({
           </div>
         </div>
 
+        {/* Panel Statistik Ringkasan */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Total Karyawan */}
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-red-500">
+            <div className="w-12 h-12 rounded-xl bg-red-550/5 flex items-center justify-center text-red-600 group-hover:scale-110 transition-transform shadow-inner">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block">Total Karyawan</span>
+              <h4 className="text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{totalEmployees}</h4>
+              <p className="text-[9px] text-slate-400 font-quicksand mt-1 font-medium">Pengguna terdaftar</p>
+            </div>
+          </div>
+          
+          {/* Card 2: Karyawan Aktif */}
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-emerald-500">
+            <div className="w-12 h-12 rounded-xl bg-emerald-550/5 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shadow-inner">
+              <UserCheck className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block">Karyawan Aktif</span>
+              <h4 className="text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{activeEmployees}</h4>
+              <p className="text-[9px] text-emerald-600 font-quicksand mt-1 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-550 animate-pulse block"></span>
+                Siap presensi
+              </p>
+            </div>
+          </div>
+
+          {/* Card 3: Pending Approval */}
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-amber-500">
+            <div className="w-12 h-12 rounded-xl bg-amber-550/5 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform shadow-inner">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block">Pending Approval</span>
+              <h4 className="text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{pendingEmployees}</h4>
+              <p className="text-[9px] text-amber-600 font-quicksand mt-1 font-semibold flex items-center gap-1">
+                {pendingEmployees > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping block"></span>}
+                Menunggu aktivasi
+              </p>
+            </div>
+          </div>
+
+          {/* Card 4: Total Divisi */}
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-blue-500">
+            <div className="w-12 h-12 rounded-xl bg-blue-550/5 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shadow-inner">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block">Departemen/Divisi</span>
+              <h4 className="text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{totalDivisions}</h4>
+              <p className="text-[9px] text-slate-400 font-quicksand mt-1 font-medium">Struktur operasional</p>
+            </div>
+          </div>
+        </div>
+
         {/* Table Container (Desktop View) */}
-        <div className="hidden md:block border border-orange-100 rounded-2xl overflow-hidden bg-white">
+        <div className="hidden md:block border border-orange-100/80 rounded-2xl overflow-hidden bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-orange-50/40 text-orange-950/80 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
-                  <th className="py-4 px-5">Nama</th>
-                  <th className="py-4 px-5">Email</th>
-                  <th className="py-4 px-5">Kata Sandi</th>
-                  <th className="py-4 px-5">Status</th>
-                  <th className="py-4 px-5">Terdaftar</th>
-                  <th className="py-4 px-5 text-center">Aksi</th>
+                <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider font-quicksand">
+                  <th className="py-3.5 px-5">Karyawan</th>
+                  <th className="py-3.5 px-5">Penempatan</th>
+                  <th className="py-3.5 px-5">Hubungi &amp; WA</th>
+                  <th className="py-3.5 px-5">Keuangan &amp; Masuk</th>
+                  <th className="py-3.5 px-5">Kredensial</th>
+                  <th className="py-3.5 px-5">Status</th>
+                  <th className="py-3.5 px-5 text-center">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-orange-50 text-sm text-slate-700">
+              <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-500 font-medium">
+                    <td colSpan={7} className="py-12 text-center text-slate-500 font-medium">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                         Memuat data karyawan...
@@ -303,111 +408,147 @@ export default function AkunKaryawan({
                   </tr>
                 ) : filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold">
+                    <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold font-quicksand">
                       {searchQuery ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
                     </td>
                   </tr>
                 ) : (
                   filteredEmployees.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-orange-50/20 transition-colors">
+                    <tr key={emp.id} className="hover:bg-slate-50/60 hover:shadow-[inset_4px_0_0_0_#dc2626] transition-all duration-200">
+                      {/* Column 1: Karyawan (Name, Avatar, NIK) */}
                       <td className="py-4 px-5 font-semibold text-slate-800">
                         <div className="flex items-center gap-3">
                           {emp.photo ? (
                             <img
                               src={getAssetUrl(emp.photo)}
                               alt={emp.name}
-                              className="w-9 h-9 rounded-xl object-cover border-2 border-orange-100 shadow-sm shrink-0"
+                              className="w-10 h-10 rounded-full object-cover border-2 border-orange-100 shadow-sm shrink-0"
                             />
                           ) : (
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-100 to-orange-100 text-red-500 flex items-center justify-center font-bold text-xs uppercase font-quicksand shrink-0 border border-orange-100">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm uppercase font-quicksand shrink-0 border border-orange-200/50 shadow-md">
                               {emp.name.substring(0, 2)}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-quicksand text-sm font-semibold text-slate-800 block truncate">{emp.name}</span>
-                              {emp.role === 'admin' && (
-                                <span className="inline-block text-[8px] font-extrabold px-1.5 py-0.5 bg-orange-100 text-orange-600 border border-orange-200 rounded shrink-0">
-                                  Admin HR
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap gap-1 mt-0.5">
-                              {emp.division && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-600 border border-violet-100">
-                                  <Building2 className="w-2.5 h-2.5" />
-                                  {emp.division}
-                                </span>
-                              )}
-                              {emp.company && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
-                                  <Building2 className="w-2.5 h-2.5" />
-                                  {emp.company}
-                                </span>
-                              )}
-                              {emp.no_rekening && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
-                                  <Hash className="w-2.5 h-2.5" />
-                                  {emp.no_rekening}
-                                </span>
-                              )}
-                              {emp.join_date && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
-                                  <Calendar className="w-2.5 h-2.5" />
-                                  Masuk: {formatDate(emp.join_date)}
-                                </span>
-                              )}
-                              {emp.whatsapp && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
-                                  <Phone className="w-2.5 h-2.5" />
-                                  {emp.whatsapp}
-                                </span>
-                              )}
-                            </div>
+                            <span className="font-quicksand text-sm font-bold text-slate-800 block truncate leading-snug">
+                              {emp.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono tracking-wider block mt-0.5">
+                              {emp.employee_number || 'NIK: -'}
+                            </span>
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-5 font-mono text-xs text-slate-600">{emp.email}</td>
+
+                      {/* Column 2: Penempatan (Division, Company) */}
                       <td className="py-4 px-5">
-                        <div className="flex items-center gap-2 max-w-[140px]">
-                          <span className="font-mono text-xs text-slate-700 select-all block truncate">
-                            {showPasswords[emp.id] ? emp.password_plain || 'N/A' : '••••••••'}
+                        <div className="min-w-0 flex flex-col gap-1">
+                          <span className={`inline-block py-0.5 px-2.5 rounded-full text-[10px] font-extrabold border w-fit font-quicksand ${getDivisionBadgeStyle(emp.division)}`}>
+                            {emp.division || 'Umum / Divisi -'}
                           </span>
-                          <button
-                            onClick={() => togglePassword(emp.id)}
-                            className="p-1 hover:bg-orange-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors cursor-pointer shrink-0"
-                            title={showPasswords[emp.id] ? 'Sembunyikan' : 'Tampilkan'}
-                          >
-                            {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
+                          <span className="text-[10px] text-slate-400 font-semibold block truncate max-w-[180px]">
+                            {emp.company ? emp.company.replace('PT ', '') : 'Tanpa Perusahaan'}
+                          </span>
                         </div>
                       </td>
-                      {/* Status */}
+
+                      {/* Column 3: Hubungi (Email, WhatsApp Link) */}
+                      <td className="py-4 px-5">
+                        <div className="min-w-0 flex flex-col gap-1">
+                          <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                            <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            {emp.email}
+                          </span>
+                          {emp.whatsapp ? (
+                            <a
+                              href={getWhatsAppUrl(emp.whatsapp)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:text-emerald-800 transition-colors w-fit font-quicksand"
+                              title="Hubungi via WhatsApp"
+                            >
+                              <Phone className="w-2.5 h-2.5 shrink-0" />
+                              {emp.whatsapp}
+                              <ExternalLink className="w-2 h-2 opacity-50 ml-0.5" />
+                            </a>
+                          ) : (
+                            <span className="text-[9px] text-slate-400 font-medium block italic pl-4">
+                              WhatsApp: -
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Column 4: Keuangan & Masuk (No. Rekening, Tgl Masuk) */}
+                      <td className="py-4 px-5">
+                        <div className="min-w-0 flex flex-col gap-0.5">
+                          <span className="text-xs text-slate-600 block truncate font-mono font-medium flex items-center gap-1">
+                            <Hash className="w-3.5 h-3.5 text-slate-400" />
+                            Rek: {emp.no_rekening || '-'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            Masuk: {emp.join_date ? formatDate(emp.join_date) : '-'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Column 5: Kata Sandi (Credentials) */}
+                      <td className="py-4 px-5">
+                        <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 max-w-[145px]">
+                          <span className="font-mono text-xs text-slate-600 select-all block truncate max-w-[80px]">
+                            {showPasswords[emp.id] ? emp.password_plain || 'N/A' : '••••••••'}
+                          </span>
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => togglePassword(emp.id)}
+                              className="p-1 hover:bg-slate-200/70 rounded-lg text-slate-400 hover:text-red-500 transition-colors cursor-pointer shrink-0"
+                              title={showPasswords[emp.id] ? 'Sembunyikan' : 'Tampilkan'}
+                            >
+                              {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                            {emp.password_plain && (
+                              <button
+                                onClick={() => handleCopyPassword(emp.password_plain)}
+                                className="p-1 hover:bg-slate-200/70 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
+                                title="Salin Sandi"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Column 6: Status */}
                       <td className="py-4 px-5">
                         {(!emp.status || emp.status === 'active') && (
-                          <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 shadow-sm font-quicksand">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                             Aktif
                           </span>
                         )}
                         {emp.status === 'pending' && (
-                          <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-600 border border-amber-100 animate-pulse">
-                            Menunggu Direktur
+                          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 shadow-sm font-quicksand">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            Pending
                           </span>
                         )}
                         {emp.status === 'pending_delete' && (
-                          <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-100 animate-pulse">
+                          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-100 shadow-sm font-quicksand">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
                             Proses Hapus
                           </span>
                         )}
                       </td>
-                      <td className="py-4 px-5 text-xs text-slate-500 font-quicksand">{formatDate(emp.created_at)}</td>
+
+                      {/* Column 7: Aksi */}
                       <td className="py-4 px-5">
                         <div className="flex items-center justify-center gap-1">
-
                           {/* Edit Akun Credentials */}
                           <button
                             onClick={() => onEditClick(emp)}
-                            className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer inline-flex items-center"
                             title="Edit Akun Login"
                           >
                             <Edit className="w-4 h-4" />
@@ -415,7 +556,7 @@ export default function AkunKaryawan({
                           {/* Edit Biodata */}
                           <button
                             onClick={() => handleOpenEditBio(emp)}
-                            className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                            className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer inline-flex items-center"
                             title="Edit Biodata Lengkap"
                           >
                             <FileText className="w-4 h-4" />
@@ -423,7 +564,7 @@ export default function AkunKaryawan({
                           {/* Hapus */}
                           <button
                             onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                            className="p-2 text-slate-400 hover:text-red-750 hover:bg-red-50 rounded-xl transition-all cursor-pointer inline-flex items-center"
                             title="Hapus Karyawan"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -453,9 +594,12 @@ export default function AkunKaryawan({
             </div>
           ) : (
             filteredEmployees.map((emp) => (
-              <div key={emp.id} className="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm hover:border-red-200 transition-all space-y-3.5">
+              <div key={emp.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-red-200 transition-all duration-300 space-y-3.5 relative overflow-hidden">
+                {/* Accent Top Bar */}
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
+                
                 {/* Header: Photo, Name & Status */}
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3 pt-1">
                   <div className="flex items-center gap-3">
                     {emp.photo ? (
                       <img
@@ -464,7 +608,7 @@ export default function AkunKaryawan({
                         className="w-11 h-11 rounded-xl object-cover border border-orange-100 shadow-sm shrink-0"
                       />
                     ) : (
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-red-100 to-orange-100 text-red-500 flex items-center justify-center font-bold text-xs uppercase font-quicksand shrink-0 border border-orange-100">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 text-white flex items-center justify-center font-bold text-xs uppercase font-quicksand shrink-0 border border-orange-100 shadow-sm">
                         {emp.name.substring(0, 2)}
                       </div>
                     )}
@@ -472,107 +616,131 @@ export default function AkunKaryawan({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-quicksand text-sm font-bold text-slate-800 truncate block max-w-[150px]">{emp.name}</span>
                         {emp.role === 'admin' && (
-                          <span className="inline-block text-[8px] font-extrabold px-1.5 py-0.5 bg-orange-100 text-orange-600 border border-orange-200 rounded shrink-0">
+                          <span className="inline-block text-[8px] font-black px-1.5 py-0.5 bg-red-50 text-red-650 border border-red-150 rounded shrink-0 font-quicksand uppercase">
                             Admin HR
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-500 font-mono truncate">{emp.email}</p>
+                      <p className="text-[11px] text-slate-400 font-mono truncate">{emp.email}</p>
                     </div>
                   </div>
-
+ 
                   {/* Status */}
                   <div className="shrink-0">
                     {(!emp.status || emp.status === 'active') && (
-                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 font-quicksand shadow-sm">
+                        <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
                         Aktif
                       </span>
                     )}
                     {emp.status === 'pending' && (
-                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-extrabold bg-amber-50 text-amber-600 border border-amber-100 animate-pulse">
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 font-quicksand shadow-sm">
+                        <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse"></span>
                         Pending
                       </span>
                     )}
                     {emp.status === 'pending_delete' && (
-                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-600 border border-rose-100 animate-pulse">
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-100 font-quicksand shadow-sm">
+                        <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse"></span>
                         Hapus
                       </span>
                     )}
                   </div>
                 </div>
+ 
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-2 text-xs border-y border-slate-50 py-3 font-quicksand">
+                  <div>
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block">Penempatan</span>
+                    <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border mt-1 ${getDivisionBadgeStyle(emp.division)}`}>
+                      {emp.division || 'Umum'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium block mt-1 truncate">
+                      {emp.company ? emp.company.replace('PT ', '') : 'Tanpa Perusahaan'}
+                    </span>
+                  </div>
 
-                {/* Details Tags */}
-                <div className="flex flex-wrap gap-1.5">
-                  {emp.division && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-600 border border-violet-100">
-                      <Building2 className="w-2.5 h-2.5" />
-                      {emp.division}
+                  <div>
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block">Kontak & WA</span>
+                    {emp.whatsapp ? (
+                      <a
+                        href={getWhatsAppUrl(emp.whatsapp)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:text-emerald-800 transition-colors mt-1 font-quicksand"
+                      >
+                        <Phone className="w-2.5 h-2.5 shrink-0" />
+                        {emp.whatsapp}
+                        <ExternalLink className="w-2 h-2 opacity-50" />
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-slate-405 font-medium block mt-1 italic">WA: -</span>
+                    )}
+                  </div>
+
+                  <div className="mt-1">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block font-quicksand">No. Rekening</span>
+                    <span className="text-[10px] text-slate-600 font-mono font-bold block mt-1">
+                      {emp.no_rekening || '-'}
                     </span>
-                  )}
-                  {emp.company && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
-                      <Building2 className="w-2.5 h-2.5" />
-                      {emp.company.replace('PT ', '')}
+                  </div>
+
+                  <div className="mt-1">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block font-quicksand">Tanggal Masuk</span>
+                    <span className="text-[10px] text-slate-600 font-bold block mt-1">
+                      {emp.join_date ? formatDate(emp.join_date) : '-'}
                     </span>
-                  )}
-                  {emp.no_rekening && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
-                      <Hash className="w-2.5 h-2.5" />
-                      {emp.no_rekening}
-                    </span>
-                  )}
-                  {emp.join_date && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
-                      <Calendar className="w-2.5 h-2.5" />
-                      Masuk: {formatDate(emp.join_date)}
-                    </span>
-                  )}
-                  {emp.whatsapp && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
-                      <Phone className="w-2.5 h-2.5" />
-                      {emp.whatsapp}
-                    </span>
-                  )}
+                  </div>
                 </div>
-
+ 
                 {/* Password block */}
                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex items-center justify-between text-xs font-quicksand">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide">Kata Sandi:</span>
+                    <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide">Kredensial:</span>
                     <span className="font-mono text-xs text-slate-700 font-bold select-all">
                       {showPasswords[emp.id] ? emp.password_plain || 'N/A' : '••••••••'}
                     </span>
                   </div>
-                  <button
-                    onClick={() => togglePassword(emp.id)}
-                    className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
-                  >
-                    {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => togglePassword(emp.id)}
+                      className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                    >
+                      {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                    {emp.password_plain && (
+                      <button
+                        onClick={() => handleCopyPassword(emp.password_plain)}
+                        className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-
+ 
                 {/* Actions & Registered Date */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-50 font-quicksand">
                   <span className="text-[9px] text-slate-400 font-bold uppercase">Reg: {formatDate(emp.created_at)}</span>
                   
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => onEditClick(emp)}
-                      className="p-2 text-slate-500 hover:text-indigo-500 hover:bg-indigo-50 rounded-xl transition-all"
+                      className="p-2 text-slate-400 hover:text-red-650 hover:bg-red-550/5 rounded-xl transition-all cursor-pointer"
                       title="Edit Akun Login"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleOpenEditBio(emp)}
-                      className="p-2 text-slate-500 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all"
+                      className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer"
                       title="Edit Biodata Lengkap"
                     >
                       <FileText className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                      className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                      className="p-2 text-slate-400 hover:text-red-750 hover:bg-red-550/5 rounded-xl transition-all cursor-pointer"
                       title="Hapus Karyawan"
                     >
                       <Trash2 className="w-4 h-4" />

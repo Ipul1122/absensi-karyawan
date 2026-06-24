@@ -18,7 +18,18 @@ export const API_BASE_URL = getApiBaseUrl();
  */
 export const getAssetUrl = (path: string | null | undefined): string => {
   if (!path) return '';
-  if (path.startsWith('http')) return path;
+  if (path.startsWith('blob:') || path.startsWith('data:')) {
+    return path;
+  }
+  if (path.startsWith('http')) {
+    if (path.includes('://localhost/') && !path.includes(':8000/')) {
+      return path.replace('://localhost/', '://localhost:8000/');
+    }
+    if (path.includes('://127.0.0.1/') && !path.includes(':8000/')) {
+      return path.replace('://127.0.0.1/', '://127.0.0.1:8000/');
+    }
+    return path;
+  }
   const cleanPath = path.startsWith('/') ? path.substring(1) : path;
   return `${API_BASE_URL}/${cleanPath}`;
 };

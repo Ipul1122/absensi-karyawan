@@ -21,6 +21,7 @@ import {
   Building2,
   Phone
 } from 'lucide-react'
+import { getAssetUrl } from '../../../utils/api'
 
 interface EmployeeProfile {
   id: number
@@ -210,7 +211,7 @@ export default function ViewEmployeeModal({
       if (finalDivision) formData.append('division', finalDivision)
       formData.append('no_rekening', noRekening)
       formData.append('company', company)
-      if (whatsapp) formData.append('whatsapp', whatsapp)
+      formData.append('whatsapp', whatsapp || '')
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
 
@@ -350,7 +351,7 @@ export default function ViewEmployeeModal({
                 <div className="relative shrink-0">
                   {photoPreview ? (
                     <img
-                      src={photoPreview}
+                      src={getAssetUrl(photoPreview)}
                       alt="Foto"
                       className="w-14 h-14 rounded-xl object-cover border border-orange-200 shadow-sm"
                     />
@@ -649,7 +650,7 @@ export default function ViewEmployeeModal({
               <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
                 {localProfile.photo ? (
                   <img
-                    src={localProfile.photo}
+                    src={getAssetUrl(localProfile.photo)}
                     alt="Foto"
                     className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-sm shrink-0"
                   />
@@ -756,7 +757,7 @@ export default function ViewEmployeeModal({
                       Dokumen CV Karyawan
                     </span>
                     <a
-                      href={localProfile.cv}
+                      href={getAssetUrl(localProfile.cv)}
                       target="_blank"
                       rel="noreferrer"
                       className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer"

@@ -23,6 +23,7 @@ import {
   Building2,
   Phone
 } from 'lucide-react'
+import { getAssetUrl } from '../../../utils/api'
 
 interface Employee {
   id: number
@@ -313,7 +314,7 @@ export default function AkunKaryawan({
                         <div className="flex items-center gap-3">
                           {emp.photo ? (
                             <img
-                              src={emp.photo}
+                              src={getAssetUrl(emp.photo)}
                               alt={emp.name}
                               className="w-9 h-9 rounded-xl object-cover border-2 border-orange-100 shadow-sm shrink-0"
                             />
@@ -354,6 +355,12 @@ export default function AkunKaryawan({
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
                                   <Calendar className="w-2.5 h-2.5" />
                                   Masuk: {formatDate(emp.join_date)}
+                                </span>
+                              )}
+                              {emp.whatsapp && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
+                                  <Phone className="w-2.5 h-2.5" />
+                                  {emp.whatsapp}
                                 </span>
                               )}
                             </div>
@@ -452,7 +459,7 @@ export default function AkunKaryawan({
                   <div className="flex items-center gap-3">
                     {emp.photo ? (
                       <img
-                        src={emp.photo}
+                        src={getAssetUrl(emp.photo)}
                         alt={emp.name}
                         className="w-11 h-11 rounded-xl object-cover border border-orange-100 shadow-sm shrink-0"
                       />
@@ -606,7 +613,7 @@ export default function AkunKaryawan({
               <div className="flex items-center gap-4 p-4 bg-orange-50/30 border border-orange-100 rounded-2xl">
                 <div className="relative shrink-0">
                   {photoPreview ? (
-                    <img src={photoPreview} alt="Foto"
+                    <img src={getAssetUrl(photoPreview)} alt="Foto"
                       className="w-16 h-16 rounded-xl object-cover border-2 border-orange-200 shadow-sm" />
                   ) : (
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-red-100 to-orange-100 border-2 border-orange-200 flex items-center justify-center">
@@ -790,7 +797,7 @@ export default function AkunKaryawan({
                     <div className="flex items-center gap-1.5 shrink-0">
                       {editProfile.cv && (
                         <a
-                          href={editProfile.cv}
+                          href={getAssetUrl(editProfile.cv)}
                           target="_blank"
                           rel="noreferrer"
                           className="p-1.5 bg-white border border-orange-200 text-orange-600 rounded-lg text-[10px] font-bold hover:bg-orange-50 transition-all font-quicksand"

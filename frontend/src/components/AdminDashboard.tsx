@@ -319,18 +319,45 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
         let salutation = 'Halo Pak/Bu,'
         let phoneNum = ''
 
-        if (emp.company === 'PT Yasodana Parvez Internasional') {
-          salutation = 'Halo Pak Andre,'
-          phoneNum = '6289656931184'
-        } else if (emp.company === 'PT Cakrawala Parama Internasional') {
-          salutation = 'Halo Bu Dian,'
-          phoneNum = '628170038421'
+        // Fetch director's phone number dynamically from database
+        try {
+          const directorsRes = await axios.get('http://localhost:8000/api/admin/directors', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          if (directorsRes.data.status === 'success' && Array.isArray(directorsRes.data.data)) {
+            const directorsList = directorsRes.data.data
+            const matchedDirector = directorsList.find((d: any) => d.company === emp.company)
+            if (matchedDirector) {
+              salutation = `Halo Pak/Bu ${matchedDirector.name},`
+              if (matchedDirector.whatsapp) {
+                let cleanPhone = matchedDirector.whatsapp.trim().replace(/\D/g, '')
+                if (cleanPhone.startsWith('0')) {
+                  cleanPhone = '62' + cleanPhone.substring(1)
+                }
+                phoneNum = cleanPhone
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Gagal mengambil data direktur dari database, menggunakan data statis.', err)
+        }
+
+        // Fallback to static numbers if no database match is found
+        if (!phoneNum) {
+          if (emp.company === 'PT Yasodana Parvez Internasional') {
+            salutation = 'Halo Pak Andre,'
+            phoneNum = '6289656931184'
+          } else if (emp.company === 'PT Cakrawala Parama Internasional') {
+            salutation = 'Halo Bu Dian,'
+            phoneNum = '628170038421'
+          }
         }
 
         const messageText = `${salutation} mohon persetujuan untuk pengajuan pendaftaran karyawan baru:
 
 Nama: ${emp.name}
 Email: ${emp.email}
+WhatsApp: ${emp.whatsapp || '-'}
 Divisi: ${emp.division || '-'}
 Perusahaan: ${emp.company || '-'}
 

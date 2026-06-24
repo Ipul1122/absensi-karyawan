@@ -30,10 +30,12 @@ import {
   FileText,
   Building2,
   Check,
-  ExternalLink
+  ExternalLink,
+  Phone
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 
 interface DirekturOverviewProps {
   token: string
@@ -150,6 +152,15 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
       minute: '2-digit'
     })
     return `${dateFormatted}, ${timeFormatted} WIB`
+  }
+
+  const formatWaNumber = (phone: string | null | undefined): string => {
+    if (!phone) return ''
+    let cleanPhone = phone.trim().replace(/\D/g, '')
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '62' + cleanPhone.substring(1)
+    }
+    return cleanPhone
   }
 
   // Quick action handlers
@@ -549,7 +560,18 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
       case 'employee_new':
       case 'employee_delete':
         if (!selectedProfile) return null
-        const fields = [selectedProfile.photo, selectedProfile.date_of_birth, selectedProfile.address, selectedProfile.employee_number, selectedProfile.join_date, selectedProfile.gender, selectedProfile.cv]
+        const fields = [
+          selectedProfile.photo,
+          selectedProfile.date_of_birth,
+          selectedProfile.address,
+          selectedProfile.employee_number,
+          selectedProfile.join_date,
+          selectedProfile.gender,
+          selectedProfile.cv,
+          selectedProfile.no_rekening,
+          selectedProfile.company,
+          selectedProfile.whatsapp
+        ]
         const filled = fields.filter(Boolean).length
         const pct = Math.round((filled / fields.length) * 100)
         return (
@@ -559,16 +581,40 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                 { label: 'Jenis Kelamin', value: selectedProfile.gender === 'male' ? 'Laki-laki' : selectedProfile.gender === 'female' ? 'Perempuan' : '-', icon: <User className="w-3 h-3" /> },
                 { label: 'Tanggal Lahir', value: formatDateSafe(selectedProfile.date_of_birth, { day: 'numeric', month: 'long', year: 'numeric' }), icon: <Calendar className="w-3 h-3" /> },
                 { label: 'Bergabung', value: formatDateSafe(selectedProfile.join_date, { day: 'numeric', month: 'long', year: 'numeric' }), icon: <Briefcase className="w-3 h-3" /> },
-                { label: 'Divisi Utama', value: selectedProfile.division || 'Umum', icon: <Shield className="w-3 h-3" /> },
+                { label: 'Divisi Utama', value: selectedProfile.division || 'Umum', icon: <Building2 className="w-3 h-3" /> },
+                { label: 'No. Rekening', value: selectedProfile.no_rekening || '-', icon: <Coins className="w-3 h-3" /> },
+                { label: 'Perusahaan', value: selectedProfile.company || '-', icon: <Building2 className="w-3 h-3" /> },
               ].map(item => (
                 <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                   <div className="flex items-center gap-1 text-slate-400 mb-1">
                     {item.icon}
                     <span className="text-[9px] uppercase tracking-wider font-extrabold">{item.label}</span>
                   </div>
-                  <p className="text-xs font-bold text-slate-700">{item.value}</p>
+                  <p className="text-xs font-bold text-slate-705">{item.value}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+              <div className="flex items-center gap-1 text-slate-400 mb-1.5">
+                <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="text-[9px] uppercase tracking-wider font-extrabold">WhatsApp / No. Telp</span>
+              </div>
+              {selectedProfile.whatsapp ? (
+                <a 
+                  href={`https://wa.me/${formatWaNumber(selectedProfile.whatsapp)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-bold text-indigo-650 hover:text-indigo-800 transition-colors inline-flex items-center gap-1.5 hover:underline"
+                >
+                  <span>{selectedProfile.whatsapp}</span>
+                  <span className="text-[8px] font-bold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 flex items-center gap-0.5 ml-2">
+                    Hubungi Karyawan
+                  </span>
+                </a>
+              ) : (
+                <span className="text-xs font-bold text-slate-705">-</span>
+              )}
             </div>
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
@@ -576,7 +622,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                 <MapPin className="w-3 h-3" />
                 <span className="text-[9px] uppercase tracking-wider font-extrabold">Alamat Lengkap</span>
               </div>
-              <p className="text-xs font-semibold text-slate-700 leading-relaxed">
+              <p className="text-xs font-semibold text-slate-705 leading-relaxed">
                 {selectedProfile.address || <span className="italic text-slate-400">Belum diisi</span>}
               </p>
             </div>
@@ -593,7 +639,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                     Dokumen CV Karyawan
                   </span>
                   <a
-                    href={selectedProfile.cv}
+                    href={getAssetUrl(selectedProfile.cv)}
                     target="_blank"
                     rel="noreferrer"
                     className="px-2.5 py-1 bg-gradient-to-r from-indigo-500 to-purple-650 hover:from-indigo-600 hover:to-purple-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer"
@@ -1450,7 +1496,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
               {selectedProfile ? (
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                   {selectedProfile.photo ? (
-                    <img src={selectedProfile.photo} alt="Foto Profil"
+                    <img src={getAssetUrl(selectedProfile.photo)} alt="Foto Profil"
                       className="w-11 h-11 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0" />
                   ) : (
                     <div className="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0 border border-slate-100 text-indigo-300">

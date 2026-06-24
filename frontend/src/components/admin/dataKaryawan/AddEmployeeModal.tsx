@@ -164,7 +164,7 @@ export default function AddEmployeeModal({
     if (finalDivision) formData.append('division', finalDivision)
     if (noRekening) formData.append('no_rekening', noRekening)
     if (company) formData.append('company', company)
-    if (whatsapp) formData.append('whatsapp', whatsapp)
+    formData.append('whatsapp', whatsapp || '')
     if (photoFile) formData.append('photo', photoFile)
     if (cvFile) formData.append('cv', cvFile)
 

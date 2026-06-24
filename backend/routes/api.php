@@ -37,9 +37,8 @@ Route::get('/health-check', function () {
 });
 
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/temp-users-debug', function() {
-    return response()->json(\App\Models\User::select('id', 'name', 'email', 'photo')->get());
-});
+// Route debug dihapus (tidak aman - ekspos data user tanpa auth)
+// Route::get('/temp-users-debug', ...);
 Route::get('/payroll/verify/{id}/{hash}', [PayrollController::class, 'verifySlip']);
 
 Route::middleware('auth:sanctum')->group(function () {

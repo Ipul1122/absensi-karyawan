@@ -123,9 +123,14 @@ class LeaveController extends Controller
      */
     public function getAllRequests(Request $request)
     {
-        $leaves = LeaveRequest::with('user:id,name,email,company')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $user = auth()->user();
+        $query = LeaveRequest::with('user:id,name,email,company');
+        if ($user && $user->company) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('company', $user->company);
+            });
+        }
+        $leaves = $query->orderBy('created_at', 'desc')->get();
 
         return response()->json([
             'status' => 'success',

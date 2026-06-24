@@ -138,7 +138,14 @@ class ReimbursementController extends Controller
      */
     public function indexAdmin(Request $request)
     {
+        $user = auth()->user();
         $query = Reimbursement::with('user:id,name,email,company');
+
+        if ($user && $user->company) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('company', $user->company);
+            });
+        }
 
         if ($request->has('status') && $request->status != 'all') {
             $query->where('status', $request->status);

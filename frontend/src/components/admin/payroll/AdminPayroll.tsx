@@ -13,7 +13,6 @@ import {
   Info,
   HelpCircle,
   FileDown,
-  Plus,
   CalendarRange,
   Building2
 } from 'lucide-react'
@@ -100,7 +99,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
   // Holidays states
   const [holidays, setHolidays] = useState<any[]>([])
-  const [loadingHolidays, setLoadingHolidays] = useState(false)
+  const [, setLoadingHolidays] = useState(false)
 
   // Fetch holidays list
   const fetchHolidays = async () => {

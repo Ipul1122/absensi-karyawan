@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { API_BASE_URL } from '../../../utils/api'
 import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
 import ManualAttendanceModal from './ManualAttendanceModal'
 import SalesVisitsLog from './SalesVisitsLog'

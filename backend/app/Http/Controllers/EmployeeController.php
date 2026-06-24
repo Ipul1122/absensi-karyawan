@@ -59,7 +59,7 @@ class EmployeeController extends Controller
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'no_rekening'     => 'nullable|string|max:50',
             'company'         => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
-            'whatsapp'        => 'nullable|string|max:20',
+            'whatsapp'        => 'nullable|string|max:30',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -188,7 +188,7 @@ class EmployeeController extends Controller
             'name' => 'required|string|max:255',
             'no_rekening' => 'nullable|string|max:50',
             'company' => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
-            'whatsapp' => 'nullable|string|max:20',
+            'whatsapp' => 'nullable|string|max:30',
         ];
 
         if ($request->filled('password')) {
@@ -201,10 +201,10 @@ class EmployeeController extends Controller
         ]);
 
         $updateData = [
-            'name' => $request->name,
-            'no_rekening' => $request->no_rekening,
-            'company' => $request->company,
-            'whatsapp' => $request->whatsapp,
+            'name'        => $request->name,
+            'no_rekening' => $request->no_rekening ?: null,
+            'company'     => $request->company ?: null,
+            'whatsapp'    => $request->whatsapp ?: null,
         ];
 
         if ($request->filled('password')) {
@@ -284,7 +284,7 @@ class EmployeeController extends Controller
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'no_rekening'     => 'nullable|string|max:50',
             'company'         => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
-            'whatsapp'        => 'nullable|string|max:20',
+            'whatsapp'        => 'nullable|string|max:30',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -294,14 +294,28 @@ class EmployeeController extends Controller
             'company.in'             => 'Perusahaan tidak valid.',
         ]);
 
-        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'no_rekening', 'company', 'whatsapp']);
+        $data = [
+            'name'            => $request->name,
+            'email'           => $request->email,
+            'date_of_birth'   => $request->date_of_birth ?: null,
+            'address'         => $request->address ?: null,
+            'employee_number' => $request->employee_number ?: null,
+            'join_date'       => $request->join_date ?: null,
+            'gender'          => $request->gender ?: null,
+            'division'        => $request->division ?: null,
+            'no_rekening'     => $request->no_rekening ?: null,
+            'company'         => $request->company ?: null,
+            'whatsapp'        => $request->whatsapp ?: null,
+        ];
+
+        $employee->update($data);
 
         if ($request->hasFile('photo')) {
             if ($employee->photo) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($employee->photo);
             }
             $path = ImageHelper::compressAndSaveWebp($request->file('photo'), 'photos');
-            $data['photo'] = $path;
+            $employee->update(['photo' => $path]);
         }
 
         if ($request->hasFile('cv')) {
@@ -309,10 +323,10 @@ class EmployeeController extends Controller
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($employee->cv);
             }
             $path = $request->file('cv')->store('cvs', 'public');
-            $data['cv'] = $path;
+            $employee->update(['cv' => $path]);
         }
 
-        $employee->update($data);
+        $employee->refresh();
 
         return response()->json([
             'status'  => 'success',

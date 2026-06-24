@@ -74,7 +74,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
     return [
       '/admin/lokasiKantor',
       '/admin/keamanan',
-      '/admin/biodata'
+      '/admin/biodata',
+      '/admin/hariLibur'
     ].includes(location.pathname)
   })
 
@@ -108,7 +109,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       [
         '/admin/lokasiKantor',
         '/admin/keamanan',
-        '/admin/biodata'
+        '/admin/biodata',
+        '/admin/hariLibur'
       ].includes(location.pathname)
     ) {
       setIsPengaturanOpen(true)
@@ -149,6 +151,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       icon: Settings,
       children: [
         { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin },
+        { to: '/admin/hariLibur', label: 'Kelola Hari Libur', icon: CalendarDays },
         { to: '/admin/keamanan', label: 'Akun & Keamanan', icon: KeyRound },
         { to: '/admin/biodata', label: 'Biodata Pribadi', icon: UserCircle2 },
       ]

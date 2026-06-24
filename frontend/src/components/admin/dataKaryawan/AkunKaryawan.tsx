@@ -23,7 +23,11 @@ import {
   Building2,
   Phone,
   // RefreshCw,
-  Key
+  Key,
+  Users,
+  UserCheck,
+  Clock,
+  ExternalLink
 } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
 
@@ -329,20 +333,20 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
     return `https://wa.me/${clean}`
   }
 
-  const handleCopyPassword = (password: string | undefined) => {
-    if (!password) return
-    navigator.clipboard.writeText(password)
-    Swal.fire({
-      toast: true,
-      position: 'top-end',
-      icon: 'success',
-      title: 'Kata sandi disalin',
-      showConfirmButton: false,
-      timer: 1500,
-      background: '#fffdfb',
-      color: '#3c1105'
-    })
-  }
+  // const handleCopyPassword = (password: string | undefined) => {
+  //   if (!password) return
+  //   navigator.clipboard.writeText(password)
+  //   Swal.fire({
+  //     toast: true,
+  //     position: 'top-end',
+  //     icon: 'success',
+  //     title: 'Kata sandi disalin',
+  //     showConfirmButton: false,
+  //     timer: 1500,
+  //     background: '#fffdfb',
+  //     color: '#3c1105'
+  //   })
+  // }
 
   // Stats calculations based on current employees
   const totalEmployees = filteredEmployees.length

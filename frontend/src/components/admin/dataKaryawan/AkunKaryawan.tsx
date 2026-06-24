@@ -6,8 +6,8 @@ import {
   UserPlus,
   Loader2,
   Trash2,
-  Eye,
-  EyeOff,
+  // Eye,
+  // EyeOff,
   Edit,
   X,
   User,
@@ -22,11 +22,8 @@ import {
   FileUp,
   Building2,
   Phone,
-  Users,
-  UserCheck,
-  Clock,
-  Copy,
-  ExternalLink
+  // RefreshCw,
+  Key
 } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
 
@@ -91,7 +88,7 @@ export default function AkunKaryawan({
   token,
   onRefresh,
 }: AkunKaryawanProps) {
-  const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({})
+  const [] = useState<Record<number, boolean>>({})
 
 
 
@@ -107,8 +104,82 @@ export default function AkunKaryawan({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cvInputRef = useRef<HTMLInputElement>(null)
 
-  const togglePassword = (id: number) => {
-    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
+  // const togglePassword = (id: number) => {
+  //   setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
+  // }
+
+  const handleResetPasswordDirect = (emp: Employee) => {
+    const newPassword = Math.random().toString(36).substring(2, 8);
+    
+    Swal.fire({
+      title: 'Reset Kata Sandi Karyawan?',
+      text: `Kata sandi baru akan di-generate secara acak untuk ${emp.name}. Tindakan ini akan mengubah kata sandi aktif mereka.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#475569',
+      confirmButtonText: 'Ya, Reset Sandi!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await axios.put(`http://localhost:8000/api/employees/${emp.id}`, {
+            name: emp.name,
+            password: newPassword,
+            no_rekening: emp.no_rekening,
+            company: emp.company,
+            whatsapp: emp.whatsapp
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+
+          if (response.data.status === 'success') {
+            let cleanPhone = emp.whatsapp?.trim().replace(/\D/g, '') || ''
+            if (cleanPhone.startsWith('0')) {
+              cleanPhone = '62' + cleanPhone.substring(1)
+            }
+
+            const messageText = `Halo ${emp.name}, kata sandi akun goodpeople-hcms Anda telah direset oleh Admin. 
+
+Kata sandi baru Anda: ${newPassword}
+
+Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
+
+            const encodedText = encodeURIComponent(messageText)
+            const waUrl = cleanPhone 
+              ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
+              : `https://api.whatsapp.com/send?text=${encodedText}`
+
+            Swal.fire({
+              title: 'Sandi Berhasil Direset!',
+              html: `Kata sandi baru untuk <b>${emp.name}</b> adalah:<br><br><span class="font-mono text-lg font-black bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-lg text-orange-600">${newPassword}</span><br><br>Klik tombol di bawah untuk mengirimkan kata sandi baru melalui WhatsApp.`,
+              icon: 'success',
+              confirmButtonText: 'Kirim ke WhatsApp',
+              confirmButtonColor: '#ea580c',
+              background: '#fffdfb',
+              color: '#3c1105'
+            }).then((waResult) => {
+              if (waResult.isConfirmed) {
+                window.open(waUrl, '_blank')
+              }
+            })
+            
+            onRefresh?.()
+          }
+        } catch (err: any) {
+          console.error(err)
+          Swal.fire({
+            title: 'Gagal',
+            text: err.response?.data?.message || 'Gagal mereset kata sandi karyawan.',
+            icon: 'error',
+            background: '#fffdfb',
+            color: '#3c1105'
+          })
+        }
+      }
+    })
   }
 
   const fetchEmployeeProfile = async (id: number) => {
@@ -386,14 +457,13 @@ export default function AkunKaryawan({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider font-quicksand">
-                  <th className="py-3.5 px-5">Karyawan</th>
-                  <th className="py-3.5 px-5">Penempatan</th>
-                  <th className="py-3.5 px-5">Hubungi &amp; WA</th>
-                  <th className="py-3.5 px-5">Keuangan &amp; Masuk</th>
-                  <th className="py-3.5 px-5">Kredensial</th>
-                  <th className="py-3.5 px-5">Status</th>
-                  <th className="py-3.5 px-5 text-center">Aksi</th>
+                <tr className="bg-orange-50/40 text-orange-950/80 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
+                  <th className="py-4 px-5">Nama</th>
+                  <th className="py-4 px-5">Email</th>
+                  <th className="py-4 px-5">Aksi Cepat</th>
+                  <th className="py-4 px-5">Status</th>
+                  <th className="py-4 px-5">Terdaftar</th>
+                  <th className="py-4 px-5 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
@@ -442,82 +512,14 @@ export default function AkunKaryawan({
 
                       {/* Column 2: Penempatan (Division, Company) */}
                       <td className="py-4 px-5">
-                        <div className="min-w-0 flex flex-col gap-1">
-                          <span className={`inline-block py-0.5 px-2.5 rounded-full text-[10px] font-extrabold border w-fit font-quicksand ${getDivisionBadgeStyle(emp.division)}`}>
-                            {emp.division || 'Umum / Divisi -'}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-semibold block truncate max-w-[180px]">
-                            {emp.company ? emp.company.replace('PT ', '') : 'Tanpa Perusahaan'}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Column 3: Hubungi (Email, WhatsApp Link) */}
-                      <td className="py-4 px-5">
-                        <div className="min-w-0 flex flex-col gap-1">
-                          <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
-                            <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            {emp.email}
-                          </span>
-                          {emp.whatsapp ? (
-                            <a
-                              href={getWhatsAppUrl(emp.whatsapp)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:text-emerald-800 transition-colors w-fit font-quicksand"
-                              title="Hubungi via WhatsApp"
-                            >
-                              <Phone className="w-2.5 h-2.5 shrink-0" />
-                              {emp.whatsapp}
-                              <ExternalLink className="w-2 h-2 opacity-50 ml-0.5" />
-                            </a>
-                          ) : (
-                            <span className="text-[9px] text-slate-400 font-medium block italic pl-4">
-                              WhatsApp: -
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Column 4: Keuangan & Masuk (No. Rekening, Tgl Masuk) */}
-                      <td className="py-4 px-5">
-                        <div className="min-w-0 flex flex-col gap-0.5">
-                          <span className="text-xs text-slate-600 block truncate font-mono font-medium flex items-center gap-1">
-                            <Hash className="w-3.5 h-3.5 text-slate-400" />
-                            Rek: {emp.no_rekening || '-'}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            Masuk: {emp.join_date ? formatDate(emp.join_date) : '-'}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Column 5: Kata Sandi (Credentials) */}
-                      <td className="py-4 px-5">
-                        <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 max-w-[145px]">
-                          <span className="font-mono text-xs text-slate-600 select-all block truncate max-w-[80px]">
-                            {showPasswords[emp.id] ? emp.password_plain || 'N/A' : '••••••••'}
-                          </span>
-                          <div className="flex items-center">
-                            <button
-                              onClick={() => togglePassword(emp.id)}
-                              className="p-1 hover:bg-slate-200/70 rounded-lg text-slate-400 hover:text-red-500 transition-colors cursor-pointer shrink-0"
-                              title={showPasswords[emp.id] ? 'Sembunyikan' : 'Tampilkan'}
-                            >
-                              {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
-                            {emp.password_plain && (
-                              <button
-                                onClick={() => handleCopyPassword(emp.password_plain)}
-                                className="p-1 hover:bg-slate-200/70 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
-                                title="Salin Sandi"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                        <button
+                          onClick={() => handleResetPasswordDirect(emp)}
+                          className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-xs transition-all cursor-pointer font-quicksand flex items-center gap-1.5 active:scale-95"
+                          title="Reset Kata Sandi Karyawan"
+                        >
+                          <Key className="w-3.5 h-3.5 text-orange-500" />
+                          Reset Sandi
+                        </button>
                       </td>
 
                       {/* Column 6: Status */}
@@ -692,33 +694,16 @@ export default function AkunKaryawan({
                     </span>
                   </div>
                 </div>
- 
-                {/* Password block */}
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex items-center justify-between text-xs font-quicksand">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wide">Kredensial:</span>
-                    <span className="font-mono text-xs text-slate-700 font-bold select-all">
-                      {showPasswords[emp.id] ? emp.password_plain || 'N/A' : '••••••••'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => togglePassword(emp.id)}
-                      className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
-                    >
-                      {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                    {emp.password_plain && (
-                      <button
-                        onClick={() => handleCopyPassword(emp.password_plain)}
-                        className="p-1 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
- 
+
+                {/* Reset Sandi Button */}
+                <button
+                  onClick={() => handleResetPasswordDirect(emp)}
+                  className="w-full py-2.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-xs transition-all cursor-pointer font-quicksand flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Key className="w-3.5 h-3.5 text-orange-500" />
+                  Reset Kata Sandi Karyawan
+                </button>
+
                 {/* Actions & Registered Date */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-50 font-quicksand">
                   <span className="text-[9px] text-slate-400 font-bold uppercase">Reg: {formatDate(emp.created_at)}</span>

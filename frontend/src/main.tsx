@@ -5,23 +5,9 @@ import './index.css'
 import 'leaflet/dist/leaflet.css'
 import App from './App.tsx'
 
-const getApiBaseUrl = (): string => {
-  const isLocal = window.location.hostname === 'localhost' || 
-                  window.location.hostname === '127.0.0.1' || 
-                  window.location.hostname === '::1';
-                  
-  if (isLocal) {
-    return 'http://localhost:8000';
-  }
+import { API_BASE_URL } from './utils/api.ts'
 
-  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-    return envUrl.endsWith('/api') ? envUrl.substring(0, envUrl.length - 4) : envUrl;
-  }
-  return 'https://api.goodpeople-hcms.com';
-};
-
-const apiBaseUrl = getApiBaseUrl();
+const apiBaseUrl = API_BASE_URL;
 
 // Daftar semua URL base yang mungkin digunakan di seluruh komponen
 const KNOWN_API_BASES = [

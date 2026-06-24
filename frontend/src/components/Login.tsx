@@ -12,7 +12,9 @@ import {
   BarChart2,
   ShieldCheck,
   CheckSquare,
+  X,
 } from 'lucide-react'
+import { API_BASE_URL } from '../utils/api'
 
 interface User {
   id: number
@@ -39,12 +41,131 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
   const [emailFocused, setEmailFocused] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
 
+  // Forgot password states
+  const [showForgotModal, setShowForgotModal] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotOtp, setForgotOtp] = useState('')
+  const [forgotNewPassword, setForgotNewPassword] = useState('')
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('')
+  const [forgotStep, setForgotStep] = useState<number>(1)
+  const [forgotLoading, setForgotLoading] = useState(false)
+
   const currentAccentColor = BRAND_ORANGE
 
   const handleTabChange = (tab: 'standard' | 'director') => {
     setActiveTab(tab)
     setEmail('')
     setPassword('')
+  }
+
+  const handleCloseForgotModal = () => {
+    setShowForgotModal(false)
+    setForgotEmail('')
+    setForgotOtp('')
+    setForgotNewPassword('')
+    setForgotConfirmPassword('')
+    setForgotStep(1)
+  }
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!forgotEmail) return
+    
+    setForgotLoading(true)
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/forgot-password`, { email: forgotEmail })
+      if (res.data.status === 'success') {
+        Swal.fire({
+          title: 'OTP Terkirim!',
+          text: res.data.message,
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false,
+          background: '#fff7f5',
+          color: '#3c1105'
+        })
+        setForgotStep(2)
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Gagal mengirim kode OTP.'
+      Swal.fire({
+        title: 'Gagal',
+        text: msg,
+        icon: 'error',
+        background: '#fff7f5',
+        color: '#3c1105'
+      })
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!forgotOtp || !forgotNewPassword || !forgotConfirmPassword) {
+      Swal.fire({
+        title: 'Form Belum Lengkap',
+        text: 'Silakan isi semua bidang.',
+        icon: 'warning',
+        background: '#fff7f5',
+        color: '#3c1105'
+      })
+      return
+    }
+
+    if (forgotNewPassword.length < 6) {
+      Swal.fire({
+        title: 'Password Terlalu Pendek',
+        text: 'Kata sandi minimal harus terdiri dari 6 karakter.',
+        icon: 'warning',
+        background: '#fff7f5',
+        color: '#3c1105'
+      })
+      return
+    }
+
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      Swal.fire({
+        title: 'Password Tidak Cocok',
+        text: 'Konfirmasi kata sandi tidak cocok dengan kata sandi baru.',
+        icon: 'warning',
+        background: '#fff7f5',
+        color: '#3c1105'
+      })
+      return
+    }
+
+    setForgotLoading(true)
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/reset-password`, {
+        email: forgotEmail,
+        otp: forgotOtp,
+        password: forgotNewPassword
+      })
+      if (res.data.status === 'success') {
+        Swal.fire({
+          title: 'Berhasil!',
+          text: res.data.message,
+          icon: 'success',
+          background: '#fff7f5',
+          color: '#3c1105',
+          timer: 2000,
+          showConfirmButton: false
+        })
+        handleCloseForgotModal()
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Gagal mengatur ulang kata sandi.'
+      Swal.fire({
+        title: 'Gagal',
+        text: msg,
+        icon: 'error',
+        background: '#fff7f5',
+        color: '#3c1105'
+      })
+    } finally {
+      setForgotLoading(false)
+    }
   }
 
   const handleLogin = async (e?: React.FormEvent | React.MouseEvent) => {
@@ -316,6 +437,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                     </label>
                     <button 
                       type="button" 
+                      onClick={() => setShowForgotModal(true)}
                       className="text-[10.5px] font-extrabold hover:text-orange-700 cursor-pointer transition-all duration-200 font-quicksand active:scale-95 origin-right hover:underline hover:underline-offset-2" 
                       style={{ color: currentAccentColor }}
                     >
@@ -431,6 +553,156 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
           <a href="#" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Security Compliance</a>
         </div>
       </footer>
+
+      {/* ══════════════════════════════════════
+          MODAL: LUPA SANDI
+      ══════════════════════════════════════ */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-zoom-in flex flex-col border border-slate-100">
+            <div className="h-1.5 bg-gradient-to-r from-orange-600 to-red-650" />
+            <div className="p-6 sm:p-8 space-y-6">
+              
+              {/* Header */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-655 flex items-center justify-center shadow-inner">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800 font-quicksand">Pemulihan Kata Sandi</h3>
+                    <p className="text-[10px] text-slate-400 font-extrabold tracking-wider uppercase font-quicksand">Portal Karyawan</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handleCloseForgotModal()}
+                  className="p-1.5 text-slate-450 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {forgotStep === 1 ? (
+                /* Step 1: Input Email */
+                <form onSubmit={handleRequestOtp} className="space-y-4">
+                  <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+                    Masukkan alamat email terdaftar Anda. Kami akan mengirimkan kode verifikasi OTP 6-digit untuk mengatur ulang kata sandi Anda.
+                  </p>
+                  
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      Alamat Email
+                    </label>
+                    <div className="relative flex items-center border border-slate-205 rounded-2xl bg-slate-50/20 hover:border-slate-350 focus-within:border-orange-550 transition-all duration-300">
+                      <div className="absolute left-4 text-slate-400">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="email"
+                        required
+                        value={forgotEmail}
+                        onChange={e => setForgotEmail(e.target.value)}
+                        placeholder="nama@perusahaan.com"
+                        className="w-full bg-transparent text-slate-800 placeholder-slate-400/70 rounded-2xl py-3.5 pl-12 pr-4 outline-none text-xs font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="w-full py-3.5 px-4 flex items-center justify-center gap-2 text-white font-extrabold rounded-2xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 transition-all text-xs uppercase tracking-widest cursor-pointer disabled:opacity-60"
+                  >
+                    {forgotLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      'Kirim Kode OTP'
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Step 2: Verification and Reset */
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                  <div className="bg-orange-50/50 border border-orange-100 p-3 rounded-2xl flex items-start gap-2.5">
+                    <CheckSquare className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
+                    <p className="text-[10.5px] text-orange-850 font-semibold leading-relaxed">
+                      Kode OTP telah dikirim ke email <strong className="text-orange-950">{forgotEmail}</strong>. Silakan periksa kotak masuk (atau Mailtrap) Anda.
+                    </p>
+                  </div>
+
+                  {/* OTP Code */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      Kode OTP 6-Digit
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={forgotOtp}
+                      onChange={e => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="E.g. 123456"
+                      className="w-full text-center bg-slate-50 border border-slate-205 focus:border-orange-500 rounded-2xl py-3 text-lg font-black tracking-[0.4em] outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Password Baru */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      Kata Sandi Baru
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={forgotNewPassword}
+                      onChange={e => setForgotNewPassword(e.target.value)}
+                      placeholder="Minimal 6 karakter"
+                      className="w-full bg-slate-50 border border-slate-205 focus:border-orange-500 rounded-2xl py-3 px-4 outline-none text-xs font-semibold"
+                    />
+                  </div>
+
+                  {/* Konfirmasi Password */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      Konfirmasi Kata Sandi Baru
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={forgotConfirmPassword}
+                      onChange={e => setForgotConfirmPassword(e.target.value)}
+                      placeholder="Ulangi kata sandi baru"
+                      className="w-full bg-slate-50 border border-slate-205 focus:border-orange-500 rounded-2xl py-3 px-4 outline-none text-xs font-semibold"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setForgotStep(1)}
+                      className="flex-1 py-3.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-750 font-bold rounded-2xl text-xs transition-all cursor-pointer text-center"
+                    >
+                      Kembali
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={forgotLoading}
+                      className="flex-[2] py-3.5 px-4 flex items-center justify-center gap-2 text-white font-extrabold rounded-2xl bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 transition-all text-xs uppercase tracking-widest cursor-pointer disabled:opacity-60"
+                    >
+                      {forgotLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      ) : (
+                        'Reset Password'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,6 @@
-const getApiBaseUrl = (): string => {
+import axios from 'axios';
+
+export const getApiBaseUrl = (): string => {
   const isLocal = window.location.hostname === 'localhost' || 
                   window.location.hostname === '127.0.0.1' || 
                   window.location.hostname === '::1';
@@ -37,3 +39,22 @@ export const getAssetUrl = (path: string | null | undefined): string => {
   const cleanPath = path.startsWith('/') ? path.substring(1) : path;
   return `${API_BASE_URL}/${cleanPath}`;
 };
+
+// Create a centralized Axios client
+export const apiClient = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+});
+
+// Automatically inject Authorization header if token is present
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = sessionStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);

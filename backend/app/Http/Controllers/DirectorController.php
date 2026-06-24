@@ -115,14 +115,17 @@ class DirectorController extends Controller
                 'requesterEmail' => $emp->email,
                 'date' => $emp->join_date ?: ($emp->created_at ? $emp->created_at->toISOString() : now()->toISOString()),
                 'badgeText' => 'Pendaftaran',
-                'details' => 'Tanggal Bergabung: ' . ($emp->join_date ? date('j M Y', strtotime($emp->join_date)) : '-'),
+                'details' => 'Tanggal Bergabung: ' . ($emp->join_date ? date('j M Y', strtotime($emp->join_date)) : '-') . ' | WhatsApp: ' . ($emp->whatsapp ?: '-'),
                 'originalData' => [
                     'id' => $emp->id,
                     'name' => $emp->name,
                     'email' => $emp->email,
                     'role' => $emp->role,
                     'status' => $emp->status,
-                    'join_date' => $emp->join_date
+                    'join_date' => $emp->join_date,
+                    'whatsapp' => $emp->whatsapp,
+                    'no_rekening' => $emp->no_rekening,
+                    'company' => $emp->company
                 ]
             ];
         }
@@ -138,14 +141,17 @@ class DirectorController extends Controller
                 'requesterEmail' => $emp->email,
                 'date' => $emp->updated_at ? $emp->updated_at->toISOString() : now()->toISOString(),
                 'badgeText' => 'Hapus Akun',
-                'details' => 'Meminta persetujuan direktur untuk menghapus akun secara permanen dari sistem.',
+                'details' => 'Meminta persetujuan direktur untuk menghapus akun secara permanen dari sistem. | WhatsApp: ' . ($emp->whatsapp ?: '-'),
                 'originalData' => [
                     'id' => $emp->id,
                     'name' => $emp->name,
                     'email' => $emp->email,
                     'role' => $emp->role,
                     'status' => $emp->status,
-                    'join_date' => $emp->join_date
+                    'join_date' => $emp->join_date,
+                    'whatsapp' => $emp->whatsapp,
+                    'no_rekening' => $emp->no_rekening,
+                    'company' => $emp->company
                 ]
             ];
         }

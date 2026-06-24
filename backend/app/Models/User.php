@@ -32,6 +32,57 @@ class User extends Authenticatable
     }
 
     /**
+     * The "booted" method of the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($user) {
+            // Delete user's own profile photo
+            if ($user->photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $user->photo));
+            }
+
+            // Delete user's CV document
+            if ($user->cv) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $user->cv));
+            }
+
+            // Delete related attendance photos (photo_in and photo_out)
+            $user->attendances()->each(function ($attendance) {
+                if ($attendance->photo_in) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $attendance->photo_in));
+                }
+                if ($attendance->photo_out) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $attendance->photo_out));
+                }
+            });
+
+            // Delete related leave request attachment images
+            $user->leaveRequests()->each(function ($leave) {
+                if ($leave->image) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $leave->image));
+                }
+            });
+
+            // Delete related reimbursement receipt files
+            $user->reimbursements()->each(function ($reimbursement) {
+                if ($reimbursement->receipt_path) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $reimbursement->receipt_path));
+                }
+            });
+
+            // Delete related sales visit photos
+            $user->salesVisits()->each(function ($visit) {
+                if ($visit->photo_path) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $visit->photo_path));
+                }
+            });
+        });
+    }
+
+    /**
      * Get the attendances for the user.
      */
     public function attendances()

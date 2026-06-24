@@ -376,7 +376,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                           className="w-9 h-9 rounded-xl object-cover shadow-md shrink-0 border border-slate-200" 
                         />
                       ) : (
-                        <div className="w-9 h-9 rounded-xl bg-orange-600 from-indigo-500 to-purple-650 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-md">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-md">
                           {emp.name.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -574,7 +574,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in overflow-y-auto">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl my-8 overflow-hidden animate-zoom-in flex flex-col max-h-[90vh]">
             {/* Header gradient bar */}
-            <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shrink-0" />
+            <div className="h-1.5 bg-indigo-600 shrink-0" />
             <div className="p-6 md:p-8 flex flex-col flex-grow overflow-hidden">
               <div className="flex items-center justify-between pb-5 border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-3.5">
@@ -622,9 +622,9 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                               />
                             </div>
                           ) : (
-                            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-650 p-[1px] shadow-md">
+                            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-[1px] shadow-md">
                               <div className="w-full h-full rounded-2xl bg-white flex items-center justify-center">
-                                <span className="text-3xl font-extrabold bg-gradient-to-br from-indigo-500 to-purple-650 bg-clip-text text-transparent">
+                                <span className="text-3xl font-extrabold bg-gradient-to-br from-indigo-500 to-indigo-600 bg-clip-text text-transparent">
                                   {selectedProfile.name.charAt(0).toUpperCase()}
                                 </span>
                               </div>
@@ -838,7 +838,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                                 href={getAssetUrl(selectedProfile.cv)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-650 hover:brightness-105 active:scale-95 text-white rounded-lg text-[10px] font-extrabold transition-all cursor-pointer shadow-sm tracking-wide text-center shrink-0"
+                                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-lg text-[10px] font-extrabold transition-all cursor-pointer shadow-sm tracking-wide text-center shrink-0"
                               >
                                 Buka Dokumen
                               </a>
@@ -869,7 +869,7 @@ export default function PersetujuanKaryawan({ token, onApprovalChange }: Persetu
                           }
                         }}
                         disabled={actionLoading}
-                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:brightness-105 hover:shadow-lg hover:shadow-indigo-100 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-indigo-50"
+                        className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-100/50 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-indigo-50"
                       >
                         <Check className="w-4 h-4" />
                         {activeTab === 'pending' ? 'Setujui Pendaftaran' : 'Setujui Hapus Akun'}

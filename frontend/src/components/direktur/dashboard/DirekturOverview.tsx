@@ -642,7 +642,7 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
                     href={getAssetUrl(selectedProfile.cv)}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-2.5 py-1 bg-gradient-to-r from-indigo-500 to-purple-650 hover:from-indigo-600 hover:to-purple-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer"
+                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer shadow-sm"
                   >
                     Lihat / Unduh
                   </a>
@@ -1470,12 +1470,12 @@ export default function DirekturOverview({ token }: DirekturOverviewProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-zoom-in max-h-[90vh] flex flex-col">
             {/* Header gradient bar */}
-            <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shrink-0" />
+            <div className="h-1.5 bg-indigo-600 shrink-0" />
             
             {/* Modal Header */}
             <div className="p-6 pb-4 border-b border-slate-100 flex items-start justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-650 flex items-center justify-center shadow-md text-white shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md text-white shrink-0">
                   <BookUser className="w-4 h-4" />
                 </div>
                 <div>

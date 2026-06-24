@@ -204,3 +204,33 @@ body {
   background-color: #059669 !important; /* Solid emerald-600 */
   color: #ffffff !important;
 }
+
+/* 7. Blue/Indigo Buttons, Headers, and Active States -> Premium Solid Blue-600 */
+.bg-gradient-to-r.from-blue-600.to-indigo-600,
+.bg-gradient-to-r.from-blue-500.to-indigo-600,
+.bg-gradient-to-r.from-indigo-500.to-indigo-600,
+.bg-gradient-to-r.from-blue-500.to-indigo-500,
+.bg-gradient-to-br.from-blue-500.to-indigo-600,
+.bg-gradient-to-r.from-blue-500.via-indigo-500.to-indigo-400,
+.bg-gradient-to-r.from-blue-500.via-indigo-500.to-blue-400,
+.bg-gradient-to-r.from-amber-400.to-indigo-500 {
+  background-image: none !important;
+  background-color: #2563eb !important; /* Solid Blue-600 */
+  color: #ffffff !important;
+}
+
+/* 8. Light Blue/Indigo backgrounds -> Solid Light Blue */
+.bg-gradient-to-tr.from-blue-100.to-indigo-100 {
+  background-image: none !important;
+  background-color: #dbeafe !important; /* Solid light blue (blue-100) */
+  color: #1e40af !important; /* Solid dark blue text (blue-800) */
+}
+
+/* 9. Hover States for Blue/Indigo Buttons */
+.hover\:from-blue-700:hover,
+.hover\:to-indigo-700:hover,
+.hover\:to-indigo-750:hover {
+  background-image: none !important;
+  background-color: #1d4ed8 !important; /* Solid Blue-700 hover */
+  color: #ffffff !important;
+}

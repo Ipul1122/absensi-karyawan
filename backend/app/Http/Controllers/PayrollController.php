@@ -278,8 +278,12 @@ class PayrollController extends Controller
      */
     public function indexConfigurations(Request $request)
     {
-        $employees = User::whereIn('role', ['employee', 'admin'])
-            ->with('salaryConfiguration')
+        $user = auth('sanctum')->user();
+        $query = User::where('role', 'employee');
+        if ($user && $user->company) {
+            $query->where('company', $user->company);
+        }
+        $employees = $query->with('salaryConfiguration')
             ->orderBy('name', 'asc')
             ->get();
 
@@ -365,12 +369,24 @@ class PayrollController extends Controller
         ]);
 
         $period = $request->period_month;
+        $user = auth('sanctum')->user();
 
-        $payrolls = Payroll::where('period_month', $period)
-            ->with(['user:id,name,email,no_rekening,company,division,employee_number,join_date', 'user.salaryConfiguration'])
-            ->get();
+        $query = Payroll::where('period_month', $period)
+            ->with(['user:id,name,email,no_rekening,company,division,employee_number,join_date', 'user.salaryConfiguration']);
 
-        $hrManager = User::where('role', 'admin')->first();
+        if ($user && $user->company) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('company', $user->company);
+            });
+        }
+
+        $payrolls = $query->get();
+
+        $hrQuery = User::where('role', 'admin');
+        if ($user && $user->company) {
+            $hrQuery->where('company', $user->company);
+        }
+        $hrManager = $hrQuery->first();
         $hrManagerName = $hrManager ? $hrManager->name : 'HRD Department';
 
         return response()->json([

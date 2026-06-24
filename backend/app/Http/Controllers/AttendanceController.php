@@ -296,8 +296,14 @@ class AttendanceController extends Controller
      */
     public function getAllAttendances(Request $request)
     {
-        $attendances = Attendance::with('user:id,name,email,photo,role,join_date,employee_number,division,company')
-            ->orderBy('date', 'desc')
+        $user = auth('sanctum')->user();
+        $query = Attendance::with('user:id,name,email,photo,role,join_date,employee_number,division,company');
+        if ($user && $user->company) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('company', $user->company);
+            });
+        }
+        $attendances = $query->orderBy('date', 'desc')
             ->orderBy('clock_in', 'desc')
             ->get();
 

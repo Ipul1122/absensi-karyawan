@@ -42,11 +42,12 @@ class AuthController extends Controller
             'status' => 'success',
             'token' => $token,
             'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
+                'id'      => $user->id,
+                'name'    => $user->name,
+                'email'   => $user->email,
+                'role'    => $user->role,
                 'company' => $user->company,
+                'photo'   => $user->photo ? asset('storage/' . $user->photo) : null,
             ]
         ]);
     }
@@ -142,7 +143,7 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
-        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'no_rekening', 'whatsapp']);
+        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'no_rekening', 'whatsapp', 'company']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -183,6 +184,7 @@ class AuthController extends Controller
                 'division'        => $user->division,
                 'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
                 'no_rekening'     => $user->no_rekening,
+                'company'         => $user->company,
                 'whatsapp'        => $user->whatsapp,
             ]
         ]);

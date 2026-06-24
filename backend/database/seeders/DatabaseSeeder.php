@@ -57,9 +57,9 @@ class DatabaseSeeder extends Seeder
             ['holiday_date' => '2026-12-24', 'name' => 'Cuti Bersama Kelahiran Yesus Kristus'],
         ];
         foreach ($holidays as $h) {
-            \App\Models\Holiday::updateOrCreate(
+            \Illuminate\Support\Facades\DB::table('holidays')->updateOrInsert(
                 ['holiday_date' => $h['holiday_date']],
-                ['name' => $h['name']]
+                ['name' => $h['name'], 'updated_at' => now(), 'created_at' => now()]
             );
         }
 

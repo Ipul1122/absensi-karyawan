@@ -166,14 +166,28 @@ class OvertimeController extends Controller
      */
     public function indexAdmin(Request $request)
     {
+        $user = auth('sanctum')->user();
+        $company = $user ? $user->company : null;
+
         $query = Overtime::with('user:id,name,email,company');
+
+        if ($company) {
+            $query->whereHas('user', function ($q) use ($company) {
+                $q->where('company', $company);
+            });
+        }
 
         // Search by employee name or email
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
-            $query->whereHas('user', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+            $query->whereHas('user', function ($q) use ($search, $company) {
+                $q->where(function ($sq) use ($search) {
+                    $sq->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+                if ($company) {
+                    $q->where('company', $company);
+                }
             });
         }
 
@@ -195,14 +209,27 @@ class OvertimeController extends Controller
         // Summary stats for Admin KPI Cards
         $activeMonth = $request->input('month', now()->format('Y-m'));
 
-        $totalApprovedHoursThisMonth = Overtime::where('status', 'approved')
-            ->where('date', 'like', $activeMonth . '%')
-            ->sum('duration');
+        $totalApprovedHoursQuery = Overtime::where('status', 'approved')
+            ->where('date', 'like', $activeMonth . '%');
 
-        $pendingCount = Overtime::where('status', 'pending')->count();
-        $pendingDirectorCount = Overtime::where('status', 'pending_director')->count();
-        $approvedCount = Overtime::where('status', 'approved')->count();
-        $rejectedCount = Overtime::where('status', 'rejected')->count();
+        $pendingQuery = Overtime::where('status', 'pending');
+        $pendingDirectorQuery = Overtime::where('status', 'pending_director');
+        $approvedQuery = Overtime::where('status', 'approved');
+        $rejectedQuery = Overtime::where('status', 'rejected');
+
+        if ($company) {
+            $totalApprovedHoursQuery->whereHas('user', function ($q) use ($company) { $q->where('company', $company); });
+            $pendingQuery->whereHas('user', function ($q) use ($company) { $q->where('company', $company); });
+            $pendingDirectorQuery->whereHas('user', function ($q) use ($company) { $q->where('company', $company); });
+            $approvedQuery->whereHas('user', function ($q) use ($company) { $q->where('company', $company); });
+            $rejectedQuery->whereHas('user', function ($q) use ($company) { $q->where('company', $company); });
+        }
+
+        $totalApprovedHoursThisMonth = $totalApprovedHoursQuery->sum('duration');
+        $pendingCount = $pendingQuery->count();
+        $pendingDirectorCount = $pendingDirectorQuery->count();
+        $approvedCount = $approvedQuery->count();
+        $rejectedCount = $rejectedQuery->count();
 
         return response()->json([
             'status' => 'success',
@@ -230,10 +257,17 @@ class OvertimeController extends Controller
     public function recapAdmin(Request $request)
     {
         $activeMonth = $request->input('month', now()->format('Y-m'));
+        $user = auth('sanctum')->user();
+        $company = $user ? $user->company : null;
 
         // Fetch aggregated overtime statistics for this month grouped by user_id
-        $overtimeStats = Overtime::where('date', 'like', $activeMonth . '%')
-            ->select('user_id')
+        $overtimeQuery = Overtime::where('date', 'like', $activeMonth . '%');
+        if ($company) {
+            $overtimeQuery->whereHas('user', function ($q) use ($company) {
+                $q->where('company', $company);
+            });
+        }
+        $overtimeStats = $overtimeQuery->select('user_id')
             ->selectRaw("SUM(CASE WHEN status = 'approved' THEN duration ELSE 0 END) as approved_hours")
             ->selectRaw("SUM(CASE WHEN status IN ('pending', 'pending_director') THEN duration ELSE 0 END) as pending_hours")
             ->selectRaw("COUNT(*) as request_count")
@@ -241,16 +275,20 @@ class OvertimeController extends Controller
             ->get()
             ->keyBy('user_id');
 
-        // Fetch all employees
-        $users = \App\Models\User::where('role', 'employee')->get();
+        // Fetch all employees of this company
+        $userQuery = \App\Models\User::where('role', 'employee');
+        if ($company) {
+            $userQuery->where('company', $company);
+        }
+        $users = $userQuery->get();
 
-        $recap = $users->map(function ($user) use ($overtimeStats) {
-            $stats = $overtimeStats->get($user->id);
+        $recap = $users->map(function ($employee) use ($overtimeStats) {
+            $stats = $overtimeStats->get($employee->id);
 
             return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'email' => $employee->email,
                 'approved_hours' => round($stats ? $stats->approved_hours : 0, 2),
                 'pending_hours' => round($stats ? $stats->pending_hours : 0, 2),
                 'request_count' => $stats ? $stats->request_count : 0

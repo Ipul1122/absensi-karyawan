@@ -41,6 +41,7 @@ interface Employee {
   email: string
   password_plain?: string
   photo?: string | null
+  employee_number?: string | null
   division?: string | null
   no_rekening?: string | null
   company?: string | null

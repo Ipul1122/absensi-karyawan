@@ -14,7 +14,12 @@ class EmployeeController extends Controller
 
     public function index()
     {
-        $employees = User::whereIn('role', ['employee', 'admin'])->orderBy('id', 'desc')->get();
+        $user = auth('sanctum')->user();
+        $query = User::where('role', 'employee');
+        if ($user && $user->company) {
+            $query->where('company', $user->company);
+        }
+        $employees = $query->orderBy('id', 'desc')->get();
 
         $data = $employees->map(function ($emp) {
             return [
@@ -106,7 +111,7 @@ class EmployeeController extends Controller
 
     public function destroy($id)
     {
-        $employee = User::where('id', $id)->whereIn('role', ['employee', 'admin'])->first();
+        $employee = $this->getEmployeeById($id);
 
         if (!$employee) {
             return response()->json([
@@ -133,7 +138,7 @@ class EmployeeController extends Controller
 
     public function approveEmployee($id)
     {
-        $employee = User::where('id', $id)->whereIn('role', ['employee', 'admin'])->first();
+        $employee = $this->getEmployeeById($id);
         if (!$employee) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
         }
@@ -143,7 +148,7 @@ class EmployeeController extends Controller
 
     public function rejectEmployee($id)
     {
-        $employee = User::where('id', $id)->whereIn('role', ['employee', 'admin'])->first();
+        $employee = $this->getEmployeeById($id);
         if (!$employee) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
         }
@@ -153,7 +158,7 @@ class EmployeeController extends Controller
 
     public function approveDeleteEmployee($id)
     {
-        $employee = User::where('id', $id)->whereIn('role', ['employee', 'admin'])->first();
+        $employee = $this->getEmployeeById($id);
         if (!$employee) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
         }
@@ -163,7 +168,7 @@ class EmployeeController extends Controller
 
     public function rejectDeleteEmployee($id)
     {
-        $employee = User::where('id', $id)->whereIn('role', ['employee', 'admin'])->first();
+        $employee = $this->getEmployeeById($id);
         if (!$employee) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
         }
@@ -173,7 +178,7 @@ class EmployeeController extends Controller
 
     public function update(Request $request, $id)
     {
-        $employee = User::where('id', $id)->whereIn('role', ['employee', 'admin'])->first();
+        $employee = $this->getEmployeeById($id);
 
         if (!$employee) {
             return response()->json([
@@ -223,7 +228,7 @@ class EmployeeController extends Controller
      */
     public function getEmployeeProfile($id)
     {
-        $employee = User::where('id', $id)->whereIn('role', ['employee', 'admin'])->first();
+        $employee = $this->getEmployeeById($id);
 
         if (!$employee) {
             return response()->json([
@@ -259,7 +264,7 @@ class EmployeeController extends Controller
      */
     public function updateEmployeeProfile(Request $request, $id)
     {
-        $employee = User::where('id', $id)->whereIn('role', ['employee', 'admin'])->first();
+        $employee = $this->getEmployeeById($id);
 
         if (!$employee) {
             return response()->json([
@@ -345,6 +350,16 @@ class EmployeeController extends Controller
                 'whatsapp'        => $employee->whatsapp,
             ]
         ]);
+    }
+
+    private function getEmployeeById($id)
+    {
+        $user = auth('sanctum')->user();
+        $query = User::where('id', $id)->where('role', 'employee');
+        if ($user && $user->company) {
+            $query->where('company', $user->company);
+        }
+        return $query->first();
     }
 
     public function getDirectorsList()

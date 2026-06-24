@@ -171,7 +171,6 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
   }
 
   const handleProfileSubmit = async () => {
-    if (!photoFile && !cvFile) return
     setSavingProfile(true)
     try {
       const formData = new FormData()
@@ -186,7 +185,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
       })
       if (res.data.status === 'success') {
-        Swal.fire({ title: 'Berhasil!', text: 'Foto / CV berhasil disimpan.', icon: 'success', background: '#fffdfb', color: '#3c1105', timer: 2000, showConfirmButton: false })
+        Swal.fire({ title: 'Berhasil!', text: 'Biodata berhasil disimpan.', icon: 'success', background: '#fffdfb', color: '#3c1105', timer: 2000, showConfirmButton: false })
         setPhotoFile(null)
         setCvFile(null)
         if (res.data.data.photo) setPhotoPreview(res.data.data.photo)
@@ -543,7 +542,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                 </div>
               </div>
 
-              {/* ---- Nomor WhatsApp (read-only) ---- */}
+              {/* ---- Nomor WhatsApp ---- */}
               <div>
                 <label className={labelClass}>Nomor WhatsApp</label>
                 <div className="relative">
@@ -552,9 +551,10 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                   </div>
                   <input 
                     type="text" 
-                    value={profile.whatsapp || 'Belum diatur'} 
-                    readOnly
-                    className="w-full bg-slate-100 border border-slate-200 text-slate-600 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium font-quicksand cursor-not-allowed" 
+                    value={profile.whatsapp || ''} 
+                    onChange={e => setProfile(p => ({ ...p, whatsapp: e.target.value }))}
+                    placeholder="Contoh: 08123456789"
+                    className="w-full bg-slate-50 border border-slate-200 hover:border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 text-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-xs font-semibold font-quicksand outline-none transition-all" 
                   />
                 </div>
               </div>
@@ -616,17 +616,15 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                 )}
               </div>
 
-              {/* Save button hanya untuk foto & CV */}
-              {(photoFile || cvFile) && (
-                <div className="flex justify-end pt-1">
-                  <button type="button" onClick={handleProfileSubmit} disabled={savingProfile}
-                    className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/15 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand">
-                    {savingProfile
-                      ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />Menyimpan...</>
-                      : <><Save className="w-4 h-4" />Simpan Foto / CV</>}
-                  </button>
-                </div>
-              )}
+              {/* Save button untuk Foto, CV & WhatsApp */}
+              <div className="flex justify-end pt-1">
+                <button type="button" onClick={handleProfileSubmit} disabled={savingProfile}
+                  className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/15 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand">
+                  {savingProfile
+                    ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />Menyimpan...</>
+                    : <><Save className="w-4 h-4" />Simpan Biodata</>}
+                </button>
+              </div>
             </div>
           )}
         </section>

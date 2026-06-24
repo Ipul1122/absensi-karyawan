@@ -21,7 +21,8 @@ import {
   Lock,
   ShieldAlert,
   CheckCircle2,
-  CreditCard
+  CreditCard,
+  Phone
 } from 'lucide-react'
 
 interface UserProp {
@@ -45,6 +46,7 @@ interface ProfileData {
   cv: string | null
   division: string
   no_rekening: string
+  whatsapp: string
 }
 
 type ActiveTab = 'lokasi' | 'akun' | 'biodata'
@@ -92,7 +94,8 @@ export default function LokasiKantor({
     gender: '',
     cv: null,
     division: '',
-    no_rekening: ''
+    no_rekening: '',
+    whatsapp: ''
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -137,7 +140,8 @@ export default function LokasiKantor({
           gender: d.gender ?? '',
           cv: d.cv ?? null,
           division: d.division ?? '',
-          no_rekening: d.no_rekening ?? ''
+          no_rekening: d.no_rekening ?? '',
+          whatsapp: d.whatsapp ?? ''
         })
         if (d.photo) setPhotoPreview(d.photo)
       }
@@ -316,6 +320,7 @@ export default function LokasiKantor({
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
       formData.append('no_rekening', profile.no_rekening)
+      formData.append('whatsapp', profile.whatsapp || '')
 
       const res = await axios.post('http://localhost:8000/api/user/profile', formData, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
@@ -325,10 +330,12 @@ export default function LokasiKantor({
         setPhotoFile(null)
         setCvFile(null)
         if (res.data.data.photo) setPhotoPreview(res.data.data.photo)
-        if (res.data.data.cv) {
-          setProfile(p => ({ ...p, cv: res.data.data.cv }))
-        }
-        setProfile(p => ({ ...p, no_rekening: res.data.data.no_rekening ?? '' }))
+        setProfile(p => ({
+          ...p,
+          cv: res.data.data.cv ?? p.cv,
+          no_rekening: res.data.data.no_rekening ?? '',
+          whatsapp: res.data.data.whatsapp ?? ''
+        }))
         if (onProfileUpdate) {
           onProfileUpdate({
             name: res.data.data.name,
@@ -381,7 +388,7 @@ export default function LokasiKantor({
   const labelClass = "block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand"
 
   // Completeness indicator calculation
-  const biodataFields = [profile.photo, profile.date_of_birth, profile.address, profile.employee_number, profile.join_date, profile.gender, profile.cv, profile.no_rekening]
+  const biodataFields = [profile.photo, profile.date_of_birth, profile.address, profile.employee_number, profile.join_date, profile.gender, profile.cv, profile.no_rekening, profile.whatsapp]
   const filled = biodataFields.filter(Boolean).length
   const percent = Math.round((filled / biodataFields.length) * 100)
 
@@ -844,6 +851,23 @@ export default function LokasiKantor({
                     value={profile.no_rekening}
                     onChange={e => setProfile(p => ({ ...p, no_rekening: e.target.value }))}
                     placeholder="Masukkan nomor rekening bank..."
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              {/* ---- Nomor WhatsApp ---- */}
+              <div>
+                <label className={labelClass}>Nomor WhatsApp</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.whatsapp}
+                    onChange={e => setProfile(p => ({ ...p, whatsapp: e.target.value }))}
+                    placeholder="Contoh: 08123456789"
                     className={inputClass}
                   />
                 </div>

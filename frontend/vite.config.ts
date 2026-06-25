@@ -29,5 +29,25 @@ export default defineConfig(({ mode }) => {
         }
       }
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('leaflet')) {
+                return 'vendor-leaflet'
+              }
+              if (id.includes('sweetalert2')) {
+                return 'vendor-sweetalert'
+              }
+              if (id.includes('lucide-react')) {
+                return 'vendor-lucide'
+              }
+              return 'vendor'
+            }
+          }
+        }
+      }
+    }
   }
 })

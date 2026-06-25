@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { 
@@ -16,20 +16,21 @@ import {
 import AdminSidebar from './layout/AdminSidebar'
 import AdminNavbar, { AdminMobileNavbar } from './layout/AdminNavbar'
 
-// Import sub-components
-import DashboardOverview from './admin/dashboard/DashboardOverview'
-import RekapAbsensi from './admin/absensi/RekapAbsensi'
-import AbsenMandiriAdmin from './admin/absensi/AbsenMandiriAdmin'
-import AkunKaryawan from './admin/dataKaryawan/AkunKaryawan'
-import LokasiKantor from './admin/pengaturan/LokasiKantor'
-import AdminCuti from './admin/operasional/AdminCuti'
-import AdminPayroll from './admin/payroll/AdminPayroll'
-import AdminKelolaHariLibur from './admin/pengaturan/AdminKelolaHariLibur'
-import AdminSalaryConfig from './admin/payroll/AdminSalaryConfig'
-import AdminInventaris from './admin/operasional/AdminInventaris'
-import AdminReimbursement from './admin/operasional/AdminReimbursement'
-import AdminBonus from './admin/payroll/AdminBonus'
-import AdminOvertime from './admin/operasional/AdminOvertime'
+// Import sub-components (Lazy loaded for optimal code splitting & chunk sizing)
+const DashboardOverview = lazy(() => import('./admin/dashboard/DashboardOverview'))
+const RekapAbsensi = lazy(() => import('./admin/absensi/RekapAbsensi'))
+const AbsenMandiriAdmin = lazy(() => import('./admin/absensi/AbsenMandiriAdmin'))
+const AkunKaryawan = lazy(() => import('./admin/dataKaryawan/AkunKaryawan'))
+const LokasiKantor = lazy(() => import('./admin/pengaturan/LokasiKantor'))
+const AdminCuti = lazy(() => import('./admin/operasional/AdminCuti'))
+const AdminPayroll = lazy(() => import('./admin/payroll/AdminPayroll'))
+const AdminKelolaHariLibur = lazy(() => import('./admin/pengaturan/AdminKelolaHariLibur'))
+const AdminSalaryConfig = lazy(() => import('./admin/payroll/AdminSalaryConfig'))
+const AdminInventaris = lazy(() => import('./admin/operasional/AdminInventaris'))
+const AdminReimbursement = lazy(() => import('./admin/operasional/AdminReimbursement'))
+const AdminBonus = lazy(() => import('./admin/payroll/AdminBonus'))
+const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
+
 import AddEmployeeModal from './admin/dataKaryawan/AddEmployeeModal'
 import EditEmployeeModal from './admin/dataKaryawan/EditEmployeeModal'
 import ViewEmployeeModal from './admin/dataKaryawan/ViewEmployeeModal'
@@ -809,7 +810,13 @@ ${window.location.origin}/director/karyawan`
         {/* Main page content container */}
         <main className="flex-grow p-6 md:p-8 overflow-y-auto">
           {/* Nested Routing Views */}
-          <Routes>
+          <Suspense fallback={
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500 font-sans text-xs">
+              <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-2 text-orange-500"></div>
+              Memuat halaman...
+            </div>
+          }>
+            <Routes>
             <Route 
               path="dashboard" 
               element={
@@ -1001,7 +1008,8 @@ ${window.location.origin}/director/karyawan`
             {/* Default fallback route */}
             <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
           </Routes>
-        </main>
+        </Suspense>
+      </main>
       </div>
 
       {/* Add Employee Modal */}

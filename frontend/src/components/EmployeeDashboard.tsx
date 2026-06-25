@@ -24,6 +24,7 @@ import EmployeeSales from './employee/absensi/EmployeeSales'
 import EmployeeClient from './employee/absensi/EmployeeClient'
 import EmployeeHistory from './employee/absensi/EmployeeHistory'
 import EmployeeSettings from './employee/pengaturan/EmployeeSettings'
+import BiodataSetting from './employee/pengaturan/BiodataSetting'
 import EmployeeCuti from './employee/operasional/EmployeeCuti'
 import EmployeePayroll from './employee/payroll/EmployeePayroll'
 import EmployeeReimbursement from './employee/operasional/EmployeeReimbursement'
@@ -306,6 +307,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     if (path.includes('pengaturan')) {
       return { title: 'Pengaturan Akun', subtitle: 'Settings' }
     }
+    if (path.includes('biodata')) {
+      return { title: 'Atur Biodata', subtitle: 'Biodata Settings' }
+    }
     if (path.includes('payroll')) {
       return { title: 'Rincian Slip Gaji', subtitle: 'My Payslips' }
     }
@@ -513,6 +517,15 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="pengaturan" 
               element={
                 <EmployeeSettings
+                  user={user}
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="biodata" 
+              element={
+                <BiodataSetting
                   user={user}
                   token={token}
                 />

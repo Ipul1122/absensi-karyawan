@@ -18,7 +18,8 @@ import {
   ClipboardList,
   MapPin,
   KeyRound,
-  UserCircle2
+  UserCircle2,
+  UserCheck
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -119,6 +120,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
 
   const menuItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/admin/absen-mandiri', label: 'Absen', icon: UserCheck },
     {
       label: 'Data Karyawan',
       icon: Users,

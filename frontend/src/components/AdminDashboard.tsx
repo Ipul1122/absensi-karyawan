@@ -19,6 +19,7 @@ import AdminNavbar, { AdminMobileNavbar } from './layout/AdminNavbar'
 // Import sub-components
 import DashboardOverview from './admin/dashboard/DashboardOverview'
 import RekapAbsensi from './admin/absensi/RekapAbsensi'
+import AbsenMandiriAdmin from './admin/absensi/AbsenMandiriAdmin'
 import AkunKaryawan from './admin/dataKaryawan/AkunKaryawan'
 import LokasiKantor from './admin/pengaturan/LokasiKantor'
 import AdminCuti from './admin/operasional/AdminCuti'
@@ -109,7 +110,6 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const [time, setTime] = useState(new Date())
 
   // Admin's own attendance & leaves states
-  const [adminAttendance, setAdminAttendance] = useState<Attendance | null>(null)
   const [leaves, setLeaves] = useState<any[]>([])
 
   const fetchProfile = async () => {
@@ -162,19 +162,6 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     }, 1000)
     return () => clearInterval(clock)
   }, [])
-
-  const fetchAdminAttendance = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/attendance/today', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (response.data.status === 'success') {
-        setAdminAttendance(response.data.data)
-      }
-    } catch (err) {
-      console.error('Gagal mengambil data absensi admin hari ini:', err)
-    }
-  }
 
   const fetchLeaves = async () => {
     try {
@@ -268,7 +255,6 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     fetchEmployees()
     fetchAttendances()
     fetchOfficeSetting()
-    fetchAdminAttendance()
     fetchLeaves()
     fetchProfile()
   }, [])
@@ -717,6 +703,9 @@ ${window.location.origin}/director/karyawan`
   // Get current route info for headers
   const getRouteInfo = () => {
     const path = location.pathname
+    if (path.includes('absen-mandiri')) {
+      return { title: 'Presensi Mandiri Admin', subtitle: 'Self Check-In / Check-Out' }
+    }
     if (path.includes('rekapAbsensi')) {
       return { title: 'Rekap Absensi Karyawan', subtitle: 'Attendance Logs' }
     }
@@ -839,10 +828,17 @@ ${window.location.origin}/director/karyawan`
                       ? { latitude: officeLatitude, longitude: officeLongitude, radius: officeRadius }
                       : null
                   }
-                  todayAttendance={adminAttendance}
-                  fetchTodayAttendance={fetchAdminAttendance}
                   leaves={leaves}
                   fetchAttendances={fetchAttendances}
+                />
+              } 
+            />
+            <Route 
+              path="absen-mandiri" 
+              element={
+                <AbsenMandiriAdmin 
+                  token={token} 
+                  user={user} 
                 />
               } 
             />
@@ -860,6 +856,7 @@ ${window.location.origin}/director/karyawan`
                   setSelectedAttendance={setSelectedAttendance}
                   officeLatitude={officeLatitude}
                   officeLongitude={officeLongitude}
+                  leaves={leaves}
                 />
               } 
             />

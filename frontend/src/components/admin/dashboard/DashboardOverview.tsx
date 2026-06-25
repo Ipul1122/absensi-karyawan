@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Swal from 'sweetalert2'
@@ -9,26 +9,15 @@ import {
   CheckCircle2, 
   Clock, 
   Loader2, 
-  Camera, 
-  RefreshCw, 
-  AlertCircle, 
-  Check, 
-  Upload, 
-  X,
+  Camera,
   FileText,
   Calendar,
-  AlertTriangle,
-  Building,
-  Compass,
-  UserCheck,
   TrendingUp,
   DollarSign,
   ArrowRight,
   ExternalLink,
   ShieldAlert,
-  Search,
-  CheckCircle,
-  FlipHorizontal2
+  Search
 } from 'lucide-react'
 
 interface Attendance {
@@ -90,8 +79,6 @@ interface DashboardOverviewProps {
   token: string
   time: Date
   officeSetting: OfficeSetting | null
-  todayAttendance: Attendance | null
-  fetchTodayAttendance: () => Promise<void>
   leaves: any[]
   fetchAttendances: () => void
 }
@@ -107,33 +94,11 @@ export default function DashboardOverview({
   token,
   time,
   officeSetting,
-  todayAttendance,
-  fetchTodayAttendance,
   leaves,
   fetchAttendances
 }: DashboardOverviewProps) {
-  // Modal State for Check-In/Check-Out Camera
-  const [showCheckInModal, setShowCheckInModal] = useState(false)
+  // Modal State for Manual Input
   const [showManualModal, setShowManualModal] = useState(false)
-  const [modalType, setModalType] = useState<'check-in' | 'check-out'>('check-in')
-  const [activeTab, setActiveTab] = useState<'kantor' | 'kunjungan' | 'client'>('kantor')
-  const [submitting, setSubmitting] = useState(false)
-  
-  // Camera & Location Local States
-  const [latitude, setLatitude] = useState<number | null>(null)
-  const [longitude, setLongitude] = useState<number | null>(null)
-  const [gpsLoading, setGpsLoading] = useState(false)
-  const [gpsError, setGpsError] = useState<string | null>(null)
-  
-  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
-  const [stream, setStream] = useState<MediaStream | null>(null)
-  const [cameraError, setCameraError] = useState<string | null>(null)
-  const [notes, setNotes] = useState('')
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
-
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
 
   // ---------- Additional Local States for Monitoring & Sync ----------
   const navigate = useNavigate()
@@ -167,8 +132,6 @@ export default function DashboardOverview({
     }
   }
 
-  // Live seconds for the clock circular progress
-  const seconds = time.getSeconds()
 
   // Standarize photo URLs
   const getFullPhotoUrl = (path: string | null | undefined) => {
@@ -258,206 +221,6 @@ export default function DashboardOverview({
     return 'Selamat Malam'
   }
 
-  // Open modal handler
-  const handleOpenCheckInModal = (type: 'check-in' | 'check-out') => {
-    setModalType(type)
-    setCapturedPhoto(null)
-    setNotes('')
-    setCameraError(null)
-    setGpsError(null)
-    setShowCheckInModal(true)
-    fetchLocation()
-    startCamera()
-  }
-
-  // Close modal handler
-  const handleCloseCheckInModal = () => {
-    stopCamera()
-    setShowCheckInModal(false)
-  }
-
-  // Fetch Geolocation
-  const fetchLocation = () => {
-    setGpsLoading(true)
-    setGpsError(null)
-    if (!navigator.geolocation) {
-      setGpsError('Browser tidak mendukung lokasi GPS.')
-      setGpsLoading(false)
-      return
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLatitude(pos.coords.latitude)
-        setLongitude(pos.coords.longitude)
-        setGpsLoading(false)
-      },
-      (err) => {
-        console.error(err)
-        setGpsError('Gagal mendeteksi lokasi. Harap berikan izin GPS.')
-        setGpsLoading(false)
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    )
-  }
-
-  // Start Camera Stream
-  const startCamera = async (mode?: 'user' | 'environment') => {
-    const currentMode = mode ?? facingMode
-    setCameraError(null)
-    try {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
-      }
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: { ideal: currentMode } }
-      })
-      streamRef.current = mediaStream
-      setStream(mediaStream)
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
-      }
-    } catch (err) {
-      console.error(err)
-      setCameraError('Gagal mengakses kamera. Mohon berikan izin kamera.')
-    }
-  }
-
-  const flipCamera = async () => {
-    const newMode = facingMode === 'user' ? 'environment' : 'user'
-    setFacingMode(newMode)
-    await startCamera(newMode)
-  }
-
-  // Stop Camera Stream
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-      streamRef.current = null
-    }
-    setStream(null)
-  }
-
-  // Bind video stream
-  useEffect(() => {
-    if (showCheckInModal && videoRef.current && stream && videoRef.current.srcObject !== stream) {
-      videoRef.current.srcObject = stream
-    }
-  }, [showCheckInModal, stream])
-
-  useEffect(() => {
-    return () => {
-      stopCamera()
-    }
-  }, [])
-
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current
-      const canvas = canvasRef.current
-      canvas.width = video.videoWidth || 640
-      canvas.height = video.videoHeight || 480
-      const ctx = canvas.getContext('2d')
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        setCapturedPhoto(canvas.toDataURL('image/jpeg'))
-        stopCamera()
-      }
-    }
-  }
-
-  const retakePhoto = () => {
-    setCapturedPhoto(null)
-    startCamera()
-  }
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      setCapturedPhoto(event.target?.result as string)
-      stopCamera()
-    }
-    reader.readAsDataURL(file)
-  }
-
-  // Calculate distance between employee and office (in meters)
-  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const earthRadius = 6371000 // meters
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLon = (lon2 - lon1) * Math.PI / 180
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-    return earthRadius * c
-  }
-
-  const currentDistance = latitude && longitude && officeSetting
-    ? getDistance(latitude, longitude, parseFloat(officeSetting.latitude), parseFloat(officeSetting.longitude))
-    : null
-
-  const isWithinRadius = currentDistance !== null && officeSetting !== null && currentDistance <= officeSetting.radius
-
-  // Submit check-in/check-out to server API
-  const handleSubmit = async () => {
-    if (!capturedPhoto) {
-      Swal.fire({ title: 'Foto Wajib', text: 'Ambil foto wajah Anda terlebih dahulu.', icon: 'warning', confirmButtonColor: '#ea580c' })
-      return
-    }
-    if (!latitude || !longitude) {
-      Swal.fire({ title: 'Lokasi Wajib', text: 'Sinyal GPS belum didapatkan.', icon: 'warning', confirmButtonColor: '#ea580c' })
-      return
-    }
-
-    const isKantor = modalType === 'check-in' ? activeTab === 'kantor' : todayAttendance?.attendance_type === 'kantor'
-    if (isKantor && officeSetting && !isWithinRadius) {
-      Swal.fire({
-        title: 'Di Luar Radius Kantor',
-        text: `Jarak Anda ${Math.round(currentDistance || 0)}m melebihi batas radius ${officeSetting.radius}m.`,
-        icon: 'error',
-        confirmButtonColor: '#dc2626'
-      })
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      const url = `http://localhost:8000/api/attendance/${modalType}`
-      const response = await axios.post(
-        url,
-        {
-          latitude: String(latitude),
-          longitude: String(longitude),
-          photo: capturedPhoto,
-          notes: notes,
-          attendance_type: modalType === 'check-in' ? activeTab : undefined
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-
-      if (response.data.status === 'success') {
-        Swal.fire({
-          title: 'Berhasil!',
-          text: response.data.message,
-          icon: 'success',
-          timer: 1500,
-          showConfirmButton: false,
-          background: '#ffffff',
-        })
-        handleCloseCheckInModal()
-        await fetchTodayAttendance()
-      }
-    } catch (err: any) {
-      console.error(err)
-      const msg = err.response?.data?.message || 'Gagal memproses absensi.'
-      Swal.fire({ title: 'Gagal', text: msg, icon: 'error', confirmButtonColor: '#dc2626' })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   // Format single recent attendance log status badge
   const getBadgeStyle = (status: string | null) => {
     if (!status) return 'bg-slate-100 text-slate-700 border border-slate-200'
@@ -479,105 +242,132 @@ export default function DashboardOverview({
     return status.toUpperCase()
   }
 
+  const userPhotoUrl = getFullPhotoUrl(user.photo)
+
   return (
-    <div className="space-y-6 animate-fade-in font-quicksand">
+    <div className="space-y-4 md:space-y-6 animate-fade-in font-quicksand">
       
       {/* 1. GREETING BANNER */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-red-500 to-orange-600 rounded-[32px] p-8 text-white shadow-lg shadow-red-500/10">
+      <div className="relative overflow-hidden bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl md:rounded-[32px] p-5 md:p-8 text-white shadow-lg shadow-red-500/10 select-none">
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 select-none font-quicksand">
-              Akses Admin Utama HR
-            </span>
-            <h1 className="text-3xl font-black mt-3 font-quicksand capitalize leading-tight">
-              {getGreeting()}, {user.name.split(' ')[0]}!
-            </h1>
-            <p className="text-xs text-orange-50 font-medium mt-1">
-              Kelola dan pantau seluruh aktivitas absensi serta perizinan staf Anda secara realtime.
-            </p>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
+          
+          {/* User Info & Avatar */}
+          <div className="flex items-center gap-3.5 md:gap-5">
+            {userPhotoUrl ? (
+              <img src={userPhotoUrl} alt={user.name} className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-white/30 shadow-md object-cover shrink-0" />
+            ) : (
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/25 flex items-center justify-center text-white font-black text-sm md:text-xl shrink-0 shadow-inner">
+                {user.name.substring(0, 2).toUpperCase()}
+              </div>
+            )}
+            
+            <div>
+              <span className="text-white/95 text-[8px] md:text-[9.5px] font-extrabold uppercase tracking-widest bg-white/15 px-2.5 py-1 rounded-full border border-white/10 select-none font-quicksand">
+                Akses Admin Utama HR
+              </span>
+              <h1 className="text-lg md:text-2xl font-black mt-2 font-quicksand capitalize leading-tight">
+                {getGreeting()}, {user.name.split(' ')[0]}!
+              </h1>
+              <p className="text-[10px] md:text-xs text-orange-50/90 font-semibold mt-1 max-w-[280px] md:max-w-md">
+                Kelola dan pantau seluruh aktivitas absensi serta perizinan staf secara realtime.
+              </p>
+              
+              <button 
+                onClick={() => navigate('/admin/absen-mandiri')} 
+                className="inline-flex items-center gap-1 mt-2.5 px-3 py-1.5 bg-white/25 hover:bg-white/35 active:scale-95 transition-all text-white border border-white/15 rounded-lg text-[9px] md:text-[10px] font-bold tracking-wide backdrop-blur-md select-none cursor-pointer"
+              >
+                <span>Absen Anda</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
           
-          <div className="text-left md:text-right flex flex-col md:items-end shrink-0 select-none bg-white/10 px-5 py-3 rounded-2xl border border-white/10 backdrop-blur-sm">
-            <span className="text-[10px] font-black text-orange-200 uppercase tracking-widest block font-quicksand">
+          {/* Date Info */}
+          <div className="text-left md:text-right flex flex-row md:flex-col md:items-end justify-between items-center shrink-0 select-none bg-white/15 px-4 py-2 md:px-5 md:py-3 rounded-xl md:rounded-2xl border border-white/10 backdrop-blur-md w-full md:w-auto">
+            <span className="text-[9px] md:text-[10px] font-black text-orange-100 uppercase tracking-widest block font-quicksand">
               {time.toLocaleDateString('id-ID', { weekday: 'long' })}
             </span>
-            <span className="text-sm font-bold text-white mt-0.5 block font-quicksand">
+            <span className="text-xs md:text-sm font-bold text-white md:mt-0.5 block font-quicksand">
               {getIndonesianDate(time)}
             </span>
           </div>
+          
         </div>
       </div>
 
       {/* 2. STATS KPI GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {/* Total Employees */}
-        <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 border-l-blue-500">
-          <div className="flex justify-between items-start">
+        <div className="bg-white border border-slate-100 rounded-2xl md:rounded-[28px] p-4 md:p-6 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 border-l-blue-500">
+          <div className="flex justify-between items-start gap-1">
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Total Staf Aktif</p>
-              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono leading-none">
-                {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : employeesCount}
+              <p className="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">Total Staf</p>
+              <h3 className="text-2xl md:text-3xl font-black text-slate-800 mt-1 md:mt-2 font-mono leading-none">
+                {loading ? <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin text-slate-400" /> : employeesCount}
               </h3>
             </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100 group-hover:scale-110 transition-transform">
-              <Users className="w-5.5 h-5.5" />
+            <div className="p-2.5 md:p-3 bg-blue-50 text-blue-600 rounded-xl md:rounded-2xl border border-blue-100 group-hover:scale-110 transition-transform shrink-0 shadow-xs">
+              <Users className="w-4.5 h-4.5 md:w-5.5 md:h-5.5" />
             </div>
           </div>
-          <div className="mt-4 text-[10px] text-slate-500 font-semibold flex items-center gap-1.5 select-none font-quicksand">
-            <TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Karyawan terdaftar aktif
+          <div className="mt-3.5 md:mt-4 text-[9px] md:text-xs text-slate-500 font-semibold flex items-center gap-1 select-none font-quicksand truncate">
+            <TrendingUp className="w-3.5 h-3.5 text-blue-500 shrink-0" /> Karyawan terdaftar aktif
           </div>
         </div>
 
         {/* Present Today */}
-        <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 border-l-emerald-500">
-          <div className="flex justify-between items-start">
+        <div className="bg-white border border-slate-100 rounded-2xl md:rounded-[28px] p-4 md:p-6 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 border-l-emerald-500">
+          <div className="flex justify-between items-start gap-1">
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Hadir Hari Ini</p>
-              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono leading-none flex items-baseline gap-1.5">
-                {attendanceLoading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : presentTodayCount}
-                <span className="text-xs text-slate-400 font-bold font-quicksand">({presencePercentage}%)</span>
+              <p className="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">Hadir Hari Ini</p>
+              <h3 className="text-2xl md:text-3xl font-black text-slate-800 mt-1 md:mt-2 font-mono leading-none flex items-baseline gap-1">
+                {attendanceLoading ? <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin text-slate-400" /> : presentTodayCount}
+                <span className="text-[10px] md:text-xs text-slate-400 font-bold font-quicksand">({presencePercentage}%)</span>
               </h3>
             </div>
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100 group-hover:scale-110 transition-transform">
-              <CheckCircle2 className="w-5.5 h-5.5" />
+            <div className="p-2.5 md:p-3 bg-emerald-50 text-emerald-600 rounded-xl md:rounded-2xl border border-emerald-100 group-hover:scale-110 transition-transform shrink-0 shadow-xs">
+              <CheckCircle2 className="w-4.5 h-4.5 md:w-5.5 md:h-5.5" />
             </div>
           </div>
-          <div className="mt-5.5 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden select-none">
+          <div className="mt-4 md:mt-5.5 w-full h-1 bg-slate-100 rounded-full overflow-hidden select-none">
             <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${presencePercentage}%` }}></div>
           </div>
         </div>
 
         {/* Late Today */}
-        <div className={`border rounded-[28px] p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 ${
+        <div className={`border rounded-2xl md:rounded-[28px] p-4 md:p-6 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 ${
           lateTodayCount > 0
-            ? 'bg-rose-50/30 border-rose-100 border-l-rose-500'
-            : 'bg-white border-slate-100 border-l-slate-350'
+            ? 'bg-rose-50/15 border-rose-100 border-l-rose-500'
+            : 'bg-white border-slate-100 border-l-slate-400'
         }`}>
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-start gap-1">
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Datang Terlambat</p>
-              <h3 className={`text-3xl font-black mt-2 font-mono leading-none ${lateTodayCount > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
-                {attendanceLoading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : lateTodayCount}
+              <p className="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">Terlambat</p>
+              <h3 className={`text-2xl md:text-3xl font-black mt-1 md:mt-2 font-mono leading-none ${lateTodayCount > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                {attendanceLoading ? <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin text-slate-400" /> : lateTodayCount}
               </h3>
             </div>
-            <div className={`p-3 rounded-2xl border group-hover:scale-110 transition-transform ${
+            <div className={`p-2.5 md:p-3 rounded-xl md:rounded-2xl border group-hover:scale-110 transition-transform shrink-0 shadow-xs ${
               lateTodayCount > 0
                 ? 'bg-rose-100/60 text-rose-600 border-rose-200'
                 : 'bg-slate-50 text-slate-400 border-slate-100'
             }`}>
-              <Clock className="w-5.5 h-5.5" />
+              <Clock className="w-4.5 h-4.5 md:w-5.5 md:h-5.5" />
             </div>
           </div>
-          <div className="mt-4 text-[10px] text-slate-500 font-semibold flex items-center gap-1.5 select-none font-quicksand">
+          <div className="mt-3.5 md:mt-4 text-[9px] md:text-xs text-slate-500 font-semibold flex items-center gap-1 select-none font-quicksand truncate">
             {lateTodayCount > 0 ? (
               <>
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-450 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
                 <span className="text-rose-650 font-bold">Butuh pantauan HR</span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 <span>Semua tepat waktu</span>
               </>
             )}
@@ -585,208 +375,219 @@ export default function DashboardOverview({
         </div>
 
         {/* On Leave / Cuti */}
-        <div className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 border-l-amber-500">
-          <div className="flex justify-between items-start">
+        <div className="bg-white border border-slate-100 rounded-2xl md:rounded-[28px] p-4 md:p-6 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group border-l-4 border-l-amber-500">
+          <div className="flex justify-between items-start gap-1">
             <div>
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Izin & Cuti Aktif</p>
-              <h3 className="text-3xl font-black text-slate-800 mt-2 font-mono leading-none">
-                {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-400" /> : cutiTodayCount}
+              <p className="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider font-quicksand">Izin & Cuti</p>
+              <h3 className="text-2xl md:text-3xl font-black text-slate-800 mt-1 md:mt-2 font-mono leading-none">
+                {loading ? <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin text-slate-400" /> : cutiTodayCount}
               </h3>
             </div>
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100 group-hover:scale-110 transition-transform">
-              <FileText className="w-5.5 h-5.5" />
+            <div className="p-2.5 md:p-3 bg-amber-50 text-amber-600 rounded-xl md:rounded-2xl border border-amber-100 group-hover:scale-110 transition-transform shrink-0 shadow-xs">
+              <FileText className="w-4.5 h-4.5 md:w-5.5 md:h-5.5" />
             </div>
           </div>
-          <div className="mt-4 text-[10px] text-slate-500 font-semibold flex items-center gap-1.5 select-none font-quicksand">
-            <Calendar className="w-3.5 h-3.5 text-amber-500" /> Berdasarkan izin disetujui
+          <div className="mt-3.5 md:mt-4 text-[9px] md:text-xs text-slate-500 font-semibold flex items-center gap-1 select-none font-quicksand truncate">
+            <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Berdasarkan izin disetujui
           </div>
         </div>
       </div>
 
       {/* 3. PENDING ACTION PANEL */}
-      <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm space-y-4">
+      <div className="bg-white border border-slate-100 rounded-2xl md:rounded-[32px] p-4 md:p-6 shadow-sm space-y-4">
         <div className="flex items-center gap-2 border-b border-slate-50 pb-3">
-          <ShieldAlert className="w-5 h-5 text-red-500 animate-pulse" />
-          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider font-quicksand">Permintaan Menunggu Tindakan (Verifikasi HR)</h3>
+          <ShieldAlert className="w-4 h-4 md:w-5 h-5 text-red-500 animate-pulse shrink-0" />
+          <h3 className="text-[10px] md:text-xs font-black text-slate-800 uppercase tracking-wider font-quicksand">Persetujuan Menunggu Tindakan HR</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           
           {/* Leaves */}
           <button
             onClick={() => navigate('/admin/cuti')}
-            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 cursor-pointer group select-none ${
+            className={`relative flex items-center justify-between p-3.5 md:p-4.5 rounded-xl md:rounded-2xl border transition-all duration-200 cursor-pointer group select-none active:scale-[0.98] ${
               pendingLeavesCount > 0
-                ? 'bg-rose-50/30 border-rose-100 hover:border-rose-200 shadow-sm hover:scale-[1.01]'
-                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200/80 hover:bg-slate-50'
+                ? 'bg-rose-50/20 border-red-200 hover:border-red-300 hover:bg-rose-50/40 shadow-xs'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingLeavesCount > 0 ? 'bg-red-500 text-white shadow-md shadow-red-300 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
+            {pendingLeavesCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-650 text-[10px] font-black text-white shadow-md ring-2 ring-white animate-pulse">
+                {pendingLeavesCount}
+              </span>
+            )}
+            <div className="flex items-center gap-2.5 md:gap-3 min-w-0 flex-1">
+              <div className={`w-8.5 h-8.5 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingLeavesCount > 0 ? 'bg-red-500 text-white shadow-md shadow-red-200' : 'bg-slate-100 text-slate-400'}`}>
                 <Calendar className="w-4.5 h-4.5" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Persetujuan Cuti</span>
-                <span className={`text-[11px] font-black truncate block mt-0.5 ${pendingLeavesCount > 0 ? 'text-red-700' : 'text-slate-600'}`}>
+                <span className="block text-[8px] md:text-[9.5px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Cuti & Izin</span>
+                <span className={`text-[11px] md:text-xs font-black truncate block mt-0.5 ${pendingLeavesCount > 0 ? 'text-red-700' : 'text-slate-600'}`}>
                   {pendingLeavesCount > 0 ? `${pendingLeavesCount} Berkas` : 'Selesai'}
-                </span>
-                <span className="block text-[8px] text-slate-400 font-medium truncate mt-0.5 font-quicksand">
-                  {pendingLeavesCount > 0 ? 'Ada pengajuan izin baru' : 'Tidak ada antrean'}
                 </span>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="hidden md:block w-3.5 h-3.5 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
           </button>
  
           {/* Reimbursement */}
           <button
             onClick={() => navigate('/admin/reimbursement')}
-            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 cursor-pointer group select-none ${
+            className={`relative flex items-center justify-between p-3.5 md:p-4.5 rounded-xl md:rounded-2xl border transition-all duration-200 cursor-pointer group select-none active:scale-[0.98] ${
               pendingReimbursementsCount > 0
-                ? 'bg-orange-50/30 border-orange-100 hover:border-orange-200 shadow-sm hover:scale-[1.01]'
-                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200/80 hover:bg-slate-50'
+                ? 'bg-orange-50/20 border-orange-200 hover:border-orange-300 hover:bg-orange-50/40 shadow-xs'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingReimbursementsCount > 0 ? 'bg-orange-500 text-white shadow-md shadow-orange-300 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
+            {pendingReimbursementsCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-[10px] font-black text-white shadow-md ring-2 ring-white animate-pulse">
+                {pendingReimbursementsCount}
+              </span>
+            )}
+            <div className="flex items-center gap-2.5 md:gap-3 min-w-0 flex-1">
+              <div className={`w-8.5 h-8.5 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingReimbursementsCount > 0 ? 'bg-orange-500 text-white shadow-md shadow-orange-200' : 'bg-slate-100 text-slate-400'}`}>
                 <DollarSign className="w-4.5 h-4.5" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Klaim Biaya</span>
-                <span className={`text-[11px] font-black truncate block mt-0.5 ${pendingReimbursementsCount > 0 ? 'text-orange-700' : 'text-slate-600'}`}>
+                <span className="block text-[8px] md:text-[9.5px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Klaim Biaya</span>
+                <span className={`text-[11px] md:text-xs font-black truncate block mt-0.5 ${pendingReimbursementsCount > 0 ? 'text-orange-700' : 'text-slate-600'}`}>
                   {pendingReimbursementsCount > 0 ? `${pendingReimbursementsCount} Berkas` : 'Selesai'}
-                </span>
-                <span className="block text-[8px] text-slate-400 font-medium truncate mt-0.5 font-quicksand">
-                  {pendingReimbursementsCount > 0 ? 'Klaim baru masuk' : 'Semua biaya beres'}
                 </span>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="hidden md:block w-3.5 h-3.5 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
           </button>
  
           {/* Overtimes */}
           <button
             onClick={() => navigate('/admin/lembur')}
-            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 cursor-pointer group select-none ${
+            className={`relative flex items-center justify-between p-3.5 md:p-4.5 rounded-xl md:rounded-2xl border transition-all duration-200 cursor-pointer group select-none active:scale-[0.98] ${
               pendingOvertimesCount > 0
-                ? 'bg-amber-50/30 border-amber-100 hover:border-amber-200 shadow-sm hover:scale-[1.01]'
-                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200/80 hover:bg-slate-50'
+                ? 'bg-amber-50/20 border-amber-200 hover:border-amber-300 hover:bg-amber-50/40 shadow-xs'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingOvertimesCount > 0 ? 'bg-amber-500 text-white shadow-md shadow-amber-300 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
+            {pendingOvertimesCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-white shadow-md ring-2 ring-white animate-pulse">
+                {pendingOvertimesCount}
+              </span>
+            )}
+            <div className="flex items-center gap-2.5 md:gap-3 min-w-0 flex-1">
+              <div className={`w-8.5 h-8.5 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingOvertimesCount > 0 ? 'bg-amber-500 text-white shadow-md shadow-amber-200' : 'bg-slate-100 text-slate-400'}`}>
                 <Clock className="w-4.5 h-4.5" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Verifikasi Lembur</span>
-                <span className={`text-[11px] font-black truncate block mt-0.5 ${pendingOvertimesCount > 0 ? 'text-amber-700' : 'text-slate-655'}`}>
+                <span className="block text-[8px] md:text-[9.5px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Klaim Lembur</span>
+                <span className={`text-[11px] md:text-xs font-black truncate block mt-0.5 ${pendingOvertimesCount > 0 ? 'text-amber-700' : 'text-slate-655'}`}>
                   {pendingOvertimesCount > 0 ? `${pendingOvertimesCount} Berkas` : 'Selesai'}
-                </span>
-                <span className="block text-[8px] text-slate-400 font-medium truncate mt-0.5 font-quicksand">
-                  {pendingOvertimesCount > 0 ? 'Ada klaim lembur baru' : 'Tidak ada antrean'}
                 </span>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="hidden md:block w-3.5 h-3.5 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
           </button>
  
           {/* Account Verification */}
           <button
             onClick={() => navigate('/admin/akunKaryawan')}
-            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-200 cursor-pointer group select-none ${
+            className={`relative flex items-center justify-between p-3.5 md:p-4.5 rounded-xl md:rounded-2xl border transition-all duration-200 cursor-pointer group select-none active:scale-[0.98] ${
               pendingRegistrationsCount > 0
-                ? 'bg-blue-50/30 border-blue-100 hover:border-blue-250 shadow-sm hover:scale-[1.01]'
-                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200/80 hover:bg-slate-50'
+                ? 'bg-blue-50/20 border-blue-200 hover:border-blue-305 hover:bg-blue-50/40 shadow-xs'
+                : 'bg-slate-50/40 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingRegistrationsCount > 0 ? 'bg-blue-500 text-white shadow-md shadow-blue-300 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
+            {pendingRegistrationsCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-blue-650 text-[10px] font-black text-white shadow-md ring-2 ring-white animate-pulse">
+                {pendingRegistrationsCount}
+              </span>
+            )}
+            <div className="flex items-center gap-2.5 md:gap-3 min-w-0 flex-1">
+              <div className={`w-8.5 h-8.5 md:w-10 md:h-10 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${pendingRegistrationsCount > 0 ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'bg-slate-100 text-slate-400'}`}>
                 <Users className="w-4.5 h-4.5" />
               </div>
               <div className="text-left min-w-0">
-                <span className="block text-[9px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Pendaftaran Akun</span>
-                <span className={`text-[11px] font-black truncate block mt-0.5 ${pendingRegistrationsCount > 0 ? 'text-blue-700' : 'text-slate-600'}`}>
+                <span className="block text-[8px] md:text-[9.5px] text-slate-400 font-extrabold uppercase tracking-wider font-quicksand">Daftar Akun</span>
+                <span className={`text-[11px] md:text-xs font-black truncate block mt-0.5 ${pendingRegistrationsCount > 0 ? 'text-blue-700' : 'text-slate-600'}`}>
                   {pendingRegistrationsCount > 0 ? `${pendingRegistrationsCount} Akun` : 'Selesai'}
-                </span>
-                <span className="block text-[8px] text-slate-400 font-medium truncate mt-0.5 font-quicksand">
-                  {pendingRegistrationsCount > 0 ? 'Ada akun baru daftar' : 'Semua akun terverifikasi'}
                 </span>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="hidden md:block w-3.5 h-3.5 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
           </button>
         </div>
       </div>
 
-      {/* 4. MAIN MONITORING & SELF CHECK-IN GRID (2 Columns) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* 4. MAIN MONITORING GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-start">
         
-        {/* Left Column: Workforce Presence Monitor (7 Columns) - Appears second on mobile */}
-        <section className="lg:col-span-7 order-2 lg:order-1 bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 min-h-[520px] flex flex-col justify-between">
-          <div className="space-y-5">
+        {/* Left Column: Workforce Presence Monitor (Full Width) */}
+        <section className="lg:col-span-12 bg-white border border-slate-100 rounded-2xl md:rounded-[32px] p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-300 min-h-[520px] flex flex-col justify-between">
+          <div className="space-y-4 md:space-y-5">
             {/* Header + Search bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-extrabold text-slate-800">Pusat Pemantauan Kehadiran</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Real-time Employee Status</p>
+                <h3 className="text-sm md:text-base font-extrabold text-slate-800">Pusat Pemantauan Kehadiran</h3>
+                <p className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Real-time Employee Status</p>
               </div>
               
-              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 {/* Absensi Manual Button */}
                 <button
                   onClick={() => setShowManualModal(true)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-orange-500 text-slate-600 hover:text-orange-600 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98] font-quicksand"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-red-500 hover:text-red-650 hover:bg-red-50/10 text-slate-600 font-bold rounded-xl text-[10px] md:text-xs transition-all shadow-xs cursor-pointer hover:scale-[1.02] active:scale-[0.98] font-quicksand shrink-0"
                   title="Absensikan Karyawan (Manual)"
                 >
-                  <Clock className="w-3.5 h-3.5 text-orange-500" />
+                  <Clock className="w-3.5 h-3.5 text-red-500 shrink-0" />
                   <span>Absensi Manual</span>
                 </button>
 
                 {/* Simple Search Input */}
-                <div className="relative shrink-0 w-full sm:w-48">
+                <div className="relative shrink-0 flex-grow sm:flex-grow-0 sm:w-48">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Search className="w-3.5 h-3.5" />
+                    <Search className="w-3.5 h-3.5 text-slate-400" />
                   </div>
                   <input
                     type="text"
                     placeholder="Cari nama..."
                     value={searchEmployeeQuery}
                     onChange={(e) => setSearchEmployeeQuery(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-1.5 pl-9 pr-3 outline-none transition-all text-xs font-semibold"
+                    className="w-full bg-slate-50 border border-slate-200 hover:border-red-200 focus:border-red-400 text-slate-800 placeholder-slate-450 rounded-xl py-1.5 pl-9 pr-3 outline-none transition-all text-[10px] md:text-xs font-semibold"
                   />
                 </div>
               </div>
             </div>
 
             {/* Tab controls */}
-            <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl">
+            <div className="flex items-center gap-1.5 bg-slate-50 p-1 rounded-xl overflow-x-auto select-none no-scrollbar">
               {[
-                { id: 'hadir', label: 'Hadir', count: presentTodayCount, color: 'text-emerald-600 bg-white border-slate-200 shadow-xs' },
-                { id: 'cuti', label: 'Izin/Cuti', count: cutiTodayCount, color: 'text-amber-600 bg-white border-slate-200 shadow-xs' },
-                { id: 'belum_hadir', label: 'Belum Hadir', count: absentTodayCount, color: 'text-rose-600 bg-white border-slate-200 shadow-xs' },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveAttendanceTab(tab.id as any)}
-                  className={`flex-grow flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-extrabold cursor-pointer transition-all ${
-                    activeAttendanceTab === tab.id
-                      ? 'bg-white text-slate-800 border border-orange-100 shadow-xs shadow-orange-500/5'
-                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
-                  }`}
-                >
-                  {tab.label}
-                  <span className={`px-2 py-0.2 rounded-full text-[9px] font-bold font-mono ${
-                    activeAttendanceTab === tab.id
-                      ? (tab.id === 'hadir' ? 'bg-emerald-50 text-emerald-700' : tab.id === 'cuti' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700')
-                      : 'bg-slate-200/60 text-slate-600'
-                  }`}>
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
+                { id: 'hadir', label: 'Hadir', count: presentTodayCount, activeColor: 'bg-white text-emerald-700 border-emerald-100 shadow-xs shadow-emerald-500/5', badgeActive: 'bg-emerald-50 text-emerald-700' },
+                { id: 'cuti', label: 'Izin/Cuti', count: cutiTodayCount, activeColor: 'bg-white text-amber-700 border-amber-100 shadow-xs shadow-amber-500/5', badgeActive: 'bg-amber-50 text-amber-700' },
+                { id: 'belum_hadir', label: 'Belum Hadir', count: absentTodayCount, activeColor: 'bg-white text-rose-700 border-rose-100 shadow-xs shadow-rose-500/5', badgeActive: 'bg-rose-50 text-rose-700' },
+              ].map(tab => {
+                const isActive = activeAttendanceTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveAttendanceTab(tab.id as any)}
+                    className={`flex-grow flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[10px] md:text-xs font-extrabold cursor-pointer transition-all duration-200 whitespace-nowrap border border-transparent ${
+                      isActive
+                        ? tab.activeColor
+                        : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
+                    }`}
+                  >
+                    {tab.label}
+                    <span className={`px-2 py-0.5 rounded-full text-[8.5px] md:text-[9.5px] font-bold font-mono ${
+                      isActive
+                        ? tab.badgeActive
+                        : 'bg-slate-200/60 text-slate-600'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Tab content lists */}
-            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+            <div className="space-y-2 md:space-y-3 max-h-[350px] overflow-y-auto pr-1">
               {attendanceLoading ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-400 font-bold text-xs">
                   <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
@@ -804,54 +605,59 @@ export default function DashboardOverview({
                     const empDivision = employees.find(e => e.id === att.user.id)?.division
 
                     return (
-                      <div key={att.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50 hover:shadow-[inset_3px_0_0_0_#dc2626] transition-all duration-200 animate-fade-in font-quicksand">
-                        <div className="flex items-center gap-3">
+                      <div 
+                        key={att.id} 
+                        className={`flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/50 hover:shadow-sm hover:scale-[1.005] transition-all duration-200 animate-fade-in font-quicksand gap-3 border-l-4 ${
+                          att.status_in === 'late' ? 'border-l-rose-500' : 'border-l-emerald-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
                           {photoUrl ? (
-                            <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
+                            <img src={photoUrl} alt="Foto" className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 border border-orange-200/40 flex items-center justify-center text-white font-extrabold text-xs shadow-md shrink-0 select-none">
+                            <div className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 border border-orange-200/40 flex items-center justify-center text-white font-extrabold text-[10px] md:text-xs shadow-md shrink-0 select-none">
                               {att.user.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="text-xs font-black text-slate-800">{att.user.name}</h4>
-                              <span className={`inline-block px-2 py-0.2 rounded-full text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(empDivision)}`}>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="text-[11px] md:text-xs font-black text-slate-800 truncate">{att.user.name}</h4>
+                              <span className={`inline-block px-1.5 py-0.2 rounded-full text-[7.5px] md:text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(empDivision)}`}>
                                 {empDivision || 'Umum'}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono">
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[8px] md:text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono">
                                 {att.clock_in ? att.clock_in.substring(0, 5) : '-'} WIB
                               </span>
-                              <span className="w-1 h-1 bg-slate-355 rounded-full"></span>
-                              <span className="text-[9px] text-slate-400 font-extrabold capitalize">
-                                {att.attendance_type === 'kantor' ? 'Kantor Utama' : att.attendance_type === 'client' ? 'Visit Klien' : 'Dinas Luar'}
+                              <span className="w-0.5 h-0.5 bg-slate-300 rounded-full"></span>
+                              <span className="text-[8px] md:text-[9px] text-slate-400 font-extrabold capitalize truncate">
+                                {att.attendance_type === 'kantor' ? 'Kantor' : att.attendance_type === 'client' ? 'Klien' : 'Dinas'}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider shadow-inner ${getBadgeStyle(att.status_in)}`}>
+                        <div className="flex items-center gap-2 md:gap-3 shrink-0 select-none">
+                          <span className={`px-2 py-0.5 rounded-full text-[8.5px] md:text-[9.5px] font-black font-mono tracking-wider shadow-xs scale-90 md:scale-100 ${getBadgeStyle(att.status_in)}`}>
                             {getStatusText(att.status_in)}
                           </span>
                           {checkinPhoto && (
                             <button
                               onClick={() => {
                                 Swal.fire({
-                                  title: `Bukti Foto Check-In: ${att.user.name}`,
+                                  title: `Bukti Foto Absen Masuk: ${att.user.name}`,
                                   imageUrl: checkinPhoto,
-                                  imageAlt: 'Check-In Foto Wajah',
+                                  imageAlt: 'Absen Masuk Foto Wajah',
                                   confirmButtonColor: '#dc2626',
                                   confirmButtonText: 'Tutup',
                                   background: '#ffffff',
                                 })
                               }}
-                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-full transition-colors cursor-pointer shrink-0"
                               title="Lihat Foto Absen"
                             >
-                              <Camera className="w-4 h-4" />
+                              <Camera className="w-3.5 h-3.5 md:w-4 md:h-4" />
                             </button>
                           )}
                         </div>
@@ -868,33 +674,36 @@ export default function DashboardOverview({
                   filteredCutiList.map((l) => {
                     const photoUrl = getFullPhotoUrl(l.employee?.photo)
                     return (
-                      <div key={l.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50 hover:shadow-[inset_3px_0_0_0_#ea580c] transition-all duration-200 animate-fade-in font-quicksand">
-                        <div className="flex items-center gap-3 min-w-0">
+                      <div 
+                        key={l.id} 
+                        className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/50 hover:shadow-sm hover:scale-[1.005] transition-all duration-200 animate-fade-in font-quicksand gap-3 border-l-4 border-l-amber-500"
+                      >
+                        <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
                           {photoUrl ? (
-                            <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
+                            <img src={photoUrl} alt="Foto" className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border border-orange-200/40 flex items-center justify-center text-white font-extrabold text-xs shadow-md shrink-0 select-none">
+                            <div className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 border border-orange-200/40 flex items-center justify-center text-white font-extrabold text-[10px] md:text-xs shadow-md shrink-0 select-none">
                               {l.employee?.name ? l.employee.name.substring(0, 2).toUpperCase() : '?'}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="text-xs font-black text-slate-800 truncate">{l.employee?.name || 'Karyawan'}</h4>
-                              <span className={`inline-block px-2 py-0.2 rounded-full text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(l.employee?.division)}`}>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="text-[11px] md:text-xs font-black text-slate-800 truncate">{l.employee?.name || 'Karyawan'}</h4>
+                              <span className={`inline-block px-1.5 py-0.2 rounded-full text-[7.5px] md:text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(l.employee?.division)}`}>
                                 {l.employee?.division || 'Umum'}
                               </span>
                             </div>
-                            <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5">
-                              Alasan: <strong className="text-slate-655 font-bold">{l.reason}</strong>
+                            <p className="text-[9px] md:text-[10px] text-slate-400 font-medium truncate mt-0.5">
+                              Alasan: <strong className="text-slate-600 font-bold">{l.reason}</strong>
                             </p>
                           </div>
                         </div>
 
-                        <div className="shrink-0 text-right font-quicksand">
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider bg-amber-50 text-amber-700 border border-amber-100 shadow-sm block w-fit ml-auto">
+                        <div className="shrink-0 text-right font-quicksand scale-90 md:scale-100">
+                          <span className="px-2 py-0.5 rounded-full text-[8.5px] md:text-[9.5px] font-black font-mono tracking-wider bg-amber-50 text-amber-700 border border-amber-100 shadow-xs block w-fit ml-auto">
                             {l.leave_type ? l.leave_type.toUpperCase() : 'CUTI'}
                           </span>
-                          <span className="block text-[8px] text-slate-400 font-semibold font-mono mt-1 select-none">
+                          <span className="block text-[7.5px] md:text-[8.5px] text-slate-400 font-bold font-mono mt-1 select-none">
                             {l.start_date.substring(5)} s/d {l.end_date.substring(5)}
                           </span>
                         </div>
@@ -911,37 +720,40 @@ export default function DashboardOverview({
                   filteredAbsentList.map((emp) => {
                     const photoUrl = getFullPhotoUrl(emp.photo)
                     const mailSubject = encodeURIComponent("Pemberitahuan Absensi Hari Ini - " + todayStr)
-                    const mailBody = encodeURIComponent(`Halo ${emp.name},\n\nKami mendeteksi Anda belum melakukan absensi masuk (check-in) pada hari ini tanggal ${getIndonesianDate(new Date())} di aplikasi E-Absensi Karyawan.\n\nMohon lakukan absensi masuk segera atau hubungi pihak HR/Admin jika ada kendala atau jika Anda berhalangan hadir.\n\nTerima kasih,\nTim HR / Admin`)
+                    const mailBody = encodeURIComponent(`Halo ${emp.name},\n\nKami mendeteksi Anda belum melakukan absensi masuk pada hari ini tanggal ${getIndonesianDate(new Date())} di aplikasi E-Absensi Karyawan.\n\nMohon lakukan absensi masuk segera atau hubungi pihak HR/Admin jika ada kendala atau jika Anda berhalangan hadir.\n\nTerima kasih,\nTim HR / Admin`)
                     return (
-                      <div key={emp.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:bg-slate-50 hover:shadow-[inset_3px_0_0_0_#64748b] transition-all duration-200 animate-fade-in font-quicksand">
-                        <div className="flex items-center gap-3">
+                      <div 
+                        key={emp.id} 
+                        className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/50 hover:shadow-sm hover:scale-[1.005] transition-all duration-200 animate-fade-in font-quicksand gap-3 border-l-4 border-l-slate-400"
+                      >
+                        <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
                           {photoUrl ? (
-                            <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
+                            <img src={photoUrl} alt="Foto" className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-550 border border-slate-200/50 flex items-center justify-center text-white font-extrabold text-xs shadow-md shrink-0 select-none">
+                            <div className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 border border-slate-200/50 flex items-center justify-center text-white font-extrabold text-[10px] md:text-xs shadow-md shrink-0 select-none">
                               {emp.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="text-xs font-black text-slate-800">{emp.name}</h4>
-                              <span className={`inline-block px-2 py-0.2 rounded-full text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(emp.division)}`}>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="text-[11px] md:text-xs font-black text-slate-800 truncate">{emp.name}</h4>
+                              <span className={`inline-block px-1.5 py-0.2 rounded-full text-[7.5px] md:text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(emp.division)}`}>
                                 {emp.division || 'Umum'}
                               </span>
                             </div>
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono mt-0.5 select-none">
-                              Belum Check-In
+                            <p className="text-[8px] md:text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono mt-0.5 select-none">
+                              Belum Absen Masuk
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2.5">
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black font-mono tracking-wider bg-rose-50 text-rose-700 border border-rose-100 shadow-sm select-none">
-                            BELUM PRESENSI
+                        <div className="flex items-center gap-2 md:gap-2.5 shrink-0 select-none">
+                          <span className="px-2 py-0.5 rounded-full text-[8.5px] md:text-[9.5px] font-black font-mono tracking-wider bg-rose-50 text-rose-700 border border-rose-100 shadow-xs scale-90 md:scale-100">
+                            ABSEN
                           </span>
                           <a
                             href={`mailto:${emp.email}?subject=${mailSubject}&body=${mailBody}`}
-                            className="p-1.5 text-red-500 hover:text-white hover:bg-red-550/90 rounded-xl transition-all shadow-xs border border-red-100 bg-red-50/20 cursor-pointer"
+                            className="p-1.5 text-red-500 hover:text-white hover:bg-red-600 rounded-full transition-all shadow-xs border border-red-150 bg-red-50/30 cursor-pointer shrink-0"
                             title="Kirim Email Pengingat"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -955,353 +767,8 @@ export default function DashboardOverview({
             </div>
           </div>
         </section>
-
-        {/* Right Column: Admin Self Presence & Radius Widget (5 Columns) - Appears first on mobile */}
-        <section className="lg:col-span-5 order-1 lg:order-2 space-y-6">
-          
-          {/* Admin Self Check-In Circular Dial */}
-          <div className="relative bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden font-quicksand">
-            <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-br from-orange-500/5 to-red-500/5 rounded-full blur-2xl pointer-events-none"></div>
-            
-            <div className="flex flex-col items-center text-center space-y-5">
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest border-b border-slate-50 pb-1.5 w-full select-none font-quicksand">Presensi Mandiri Admin HR</span>
-              
-              {/* Circular Clock Dial */}
-              <div className="relative flex-shrink-0 flex items-center justify-center select-none">
-                <svg className="w-36 h-36 transform -rotate-90">
-                  <circle cx="72" cy="72" r="56" className="stroke-slate-100/70" strokeWidth="6" fill="transparent" />
-                  <circle
-                    cx="72"
-                    cy="72"
-                    r="56"
-                    className="stroke-[url(#adminGrad)] transition-all duration-1000 ease-out"
-                    strokeWidth="8"
-                    strokeDasharray={2 * Math.PI * 56}
-                    strokeDashoffset={2 * Math.PI * 56 - (seconds / 60) * (2 * Math.PI * 56)}
-                    strokeLinecap="round"
-                    fill="transparent"
-                  />
-                  <defs>
-                    <linearGradient id="adminGrad" x1="1" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#dc2626" />
-                      <stop offset="100%" stopColor="#ea580c" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-xl font-black text-slate-800 font-mono tracking-tight leading-none">
-                    {time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider font-mono mt-1">WIB</span>
-                </div>
-              </div>
-
-              {/* Status details - Digital Punch-card */}
-              <div className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl p-4 space-y-3 text-xs font-semibold text-slate-700">
-                <div className="flex justify-between items-center border-b border-slate-100/60 pb-2">
-                  <span className="text-slate-450 font-quicksand font-bold">Status Kehadiran</span>
-                  <span className={`inline-flex items-center gap-1 py-0.5 px-2.5 rounded-full text-[9px] font-black font-mono tracking-wider ${todayAttendance?.clock_in ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
-                    {todayAttendance?.clock_in ? (
-                      <>
-                        <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
-                        HADIR
-                      </>
-                    ) : (
-                      <>
-                        <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse"></span>
-                        BELUM ABSEN
-                      </>
-                    )}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3 text-left">
-                  <div className="p-2 bg-white rounded-xl border border-slate-100 shadow-xs">
-                    <span className="text-[9px] text-slate-450 font-extrabold uppercase tracking-wider block font-quicksand">Jam Masuk</span>
-                    <span className="font-mono text-xs font-black text-slate-800 block mt-0.5">
-                      {todayAttendance?.clock_in || '--:--'}
-                    </span>
-                  </div>
-                  <div className="p-2 bg-white rounded-xl border border-slate-100 shadow-xs">
-                    <span className="text-[9px] text-slate-455 font-extrabold uppercase tracking-wider block font-quicksand">Jam Keluar</span>
-                    <span className="font-mono text-xs font-black text-slate-800 block mt-0.5">
-                      {todayAttendance?.clock_out || '--:--'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Checkin button */}
-              <div className="w-full">
-                {todayAttendance?.clock_in && todayAttendance?.clock_out ? (
-                  <div className="w-full text-center py-2.5 bg-emerald-50 border border-emerald-250 text-emerald-700 text-xs font-extrabold rounded-2xl shadow-xs flex items-center justify-center gap-1.5 select-none font-quicksand">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 animate-pulse" /> Presensi Hari Ini Lengkap
-                  </div>
-                ) : todayAttendance?.clock_in ? (
-                  <button
-                    onClick={() => handleOpenCheckInModal('check-out')}
-                    className="w-full py-3 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs uppercase tracking-widest font-quicksand hover:scale-102 active:scale-98"
-                  >
-                    Check-Out Mandiri
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleOpenCheckInModal('check-in')}
-                    className="w-full py-3 bg-[#dc2626] hover:bg-[#b91c1c] text-white font-extrabold rounded-2xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs uppercase tracking-widest font-quicksand hover:scale-102 active:scale-98"
-                  >
-                    Check-In Mandiri
-                  </button>
-                )}
-              </div>
-
-            </div>
-          </div>
-
-        </section>
-
       </div>
 
-      {/* 5. WEBCAM CAMERA MODAL */}
-      {showCheckInModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-fade-in p-4">
-          <div className="bg-white border border-slate-100 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-scale-up max-h-[90vh] flex flex-col">
-            
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
-              <div>
-                <h3 className="text-base font-black text-slate-800 capitalize">
-                  Formulir Presensi Mandiri Admin: {modalType === 'check-in' ? 'Masuk' : 'Keluar'}
-                </h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Webcam & Geolocation</p>
-              </div>
-              <button 
-                onClick={handleCloseCheckInModal}
-                className="p-1.5 bg-white border border-slate-200 text-slate-400 hover:text-rose-600 rounded-lg hover:border-rose-100 transition-all cursor-pointer"
-              >
-                <X className="w-4.5 h-4.5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 space-y-6 overflow-y-auto flex-grow">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Camera Section */}
-                <div className="space-y-3">
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                    1. Foto Wajah Webcam
-                  </label>
-                  
-                  <div className="relative aspect-video w-full rounded-2xl bg-slate-50 border border-slate-200/60 overflow-hidden flex items-center justify-center shadow-inner">
-                    {capturedPhoto ? (
-                      <img src={capturedPhoto} alt="Captured Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <>
-                        <video
-                          ref={videoRef}
-                          autoPlay
-                          playsInline
-                          muted
-                          className={`w-full h-full object-cover ${facingMode === 'user' ? 'transform -scale-x-100' : ''}`}
-                        />
-                        {/* Flip Camera Button */}
-                        {!cameraError && (
-                          <button
-                            type="button"
-                            onClick={flipCamera}
-                            title={facingMode === 'user' ? 'Ganti ke Kamera Belakang' : 'Ganti ke Kamera Depan'}
-                            className="absolute top-2 right-2 z-10 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl transition-all cursor-pointer backdrop-blur-sm"
-                          >
-                            <FlipHorizontal2 className="w-4 h-4" />
-                          </button>
-                        )}
-                        {cameraError && (
-                          <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-4 text-center text-rose-600 gap-2">
-                            <AlertCircle className="w-7 h-7 text-rose-500" />
-                            <p className="text-xs font-bold leading-relaxed">{cameraError}</p>
-                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-sm">
-                              <Upload className="w-3.5 h-3.5" /> Pilih File
-                              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                            </label>
-                          </div>
-                        )}
-                      </>
-                    )}
-                    <canvas ref={canvasRef} className="hidden" />
-                  </div>
-
-                  <div className="flex justify-center pt-1">
-                    {capturedPhoto ? (
-                      <button
-                        onClick={retakePhoto}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" /> Foto Ulang
-                      </button>
-                    ) : (
-                      <button
-                        onClick={capturePhoto}
-                        disabled={!!cameraError}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/15 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Camera className="w-4 h-4" /> Ambil Foto Wajah
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Geolocation Section */}
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                      2. Koordinat Lokasi GPS
-                    </label>
-                    <button 
-                      onClick={fetchLocation} 
-                      disabled={gpsLoading}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 hover:text-red-700 cursor-pointer"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${gpsLoading ? 'animate-spin' : ''}`} /> Refresh
-                    </button>
-                  </div>
-
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 space-y-3">
-                    <div className="flex justify-between items-center text-xs font-mono">
-                      <span className="text-slate-400 font-bold">Latitude:</span>
-                      <span className="text-slate-700 font-bold">{latitude?.toFixed(6) || 'Locking...'}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs font-mono">
-                      <span className="text-slate-400 font-bold">Longitude:</span>
-                      <span className="text-slate-700 font-bold">{longitude?.toFixed(6) || 'Locking...'}</span>
-                    </div>
-
-                    {gpsLoading && (
-                      <div className="text-[11px] text-slate-400 font-bold flex items-center justify-center gap-1.5 py-1">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" />
-                        Mendeteksi lokasi satelit...
-                      </div>
-                    )}
-
-                    {gpsError && (
-                      <div className="text-[11px] text-rose-600 font-bold flex items-center gap-1.5 py-1">
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
-                        {gpsError}
-                      </div>
-                    )}
-
-                    {latitude && longitude && officeSetting && currentDistance !== null && (
-                      modalType === 'check-in' && activeTab === 'kantor' ? (
-                        <div className={`p-2.5 rounded-xl border text-[11px] font-bold leading-relaxed flex items-start gap-1.5 ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-250' : 'text-rose-700 bg-rose-50 border-rose-250'}`}>
-                          {isWithinRadius ? (
-                            <>
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                              <span>Di dalam radius kantor (Jarak: {Math.round(currentDistance)}m, Radius: {officeSetting.radius}m).</span>
-                            </>
-                          ) : (
-                            <>
-                              <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                              <span>Di luar radius batas kantor (Jarak: {Math.round(currentDistance)}m, Batas: {officeSetting.radius}m). Absen ditolak.</span>
-                            </>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="p-2.5 rounded-xl border text-[11px] font-bold leading-relaxed text-emerald-700 bg-emerald-50 border-emerald-250 flex items-start gap-1.5">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>Koordinat aman untuk tipe {activeTab === 'kunjungan' ? 'Dinas Luar' : 'Visit Klien'}. Radius bebas.</span>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Tipe Presensi (check-in only) */}
-              {modalType === 'check-in' && (
-                <div className="space-y-3 pt-2 border-t border-slate-100">
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                    3. Kategori Tipe Presensi
-                  </label>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {[
-                      { id: 'kantor', label: 'Kantor Utama', icon: Building, desc: 'Radius GPS dihitung' },
-                      { id: 'kunjungan', label: 'Dinas Luar', icon: Compass, desc: 'Bebas radius kantor' },
-                      { id: 'client', label: 'Ke Klien', icon: UserCheck, desc: 'Bebas radius kantor' }
-                    ].map((tab) => {
-                      const Icon = tab.icon
-                      const active = activeTab === tab.id
-                      return (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setActiveTab(tab.id as any)}
-                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                            active 
-                              ? 'border-orange-500 bg-orange-50/10 shadow-xs' 
-                              : 'border-slate-200 hover:border-orange-200 bg-white'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={`p-1.5 rounded-lg ${active ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                              <Icon className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <span className="block text-xs font-bold text-slate-800">{tab.label}</span>
-                              <span className="text-[9px] text-slate-400 font-bold">{tab.desc}</span>
-                            </div>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  Keterangan Catatan
-                </label>
-                <textarea
-                  placeholder="Tambahkan pesan keterangan absen (opsional)..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={2}
-                  className="w-full bg-slate-50 border border-slate-200/80 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-2xl py-2 px-4 outline-none transition-all text-xs resize-none font-semibold"
-                />
-              </div>
-
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 flex-shrink-0">
-              <button
-                type="button"
-                onClick={handleCloseCheckInModal}
-                className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || !capturedPhoto || !latitude || !longitude || (modalType === 'check-in' && activeTab === 'kantor' && officeSetting !== null && !isWithinRadius)}
-                className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-extrabold rounded-xl text-xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-red-500/10 flex items-center gap-1.5"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Mengirim...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-3.5 h-3.5" /> Kirim Absensi
-                  </>
-                )}
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
       {/* Manual Attendance Modal */}
       <ManualAttendanceModal
         isOpen={showManualModal}

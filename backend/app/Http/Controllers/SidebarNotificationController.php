@@ -95,7 +95,7 @@ class SidebarNotificationController extends Controller
             $pendingBonusQuery = Bonus::where('status', 'pending');
             $pendingInventoryQuery = Inventory::where('status', 'pending');
 
-            if ($company) {
+            if (false && $company) {
                 $pendingKaryawanQuery->where('company', $company);
                 $pendingGajiQuery->whereHas('user', function ($q) use ($company) {
                     $q->where('company', $company);

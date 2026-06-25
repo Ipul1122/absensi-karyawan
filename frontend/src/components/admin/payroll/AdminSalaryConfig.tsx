@@ -355,7 +355,134 @@ Terima kasih.`
         <p className="text-[11px] text-slate-500 font-medium">Tentukan gaji pokok, tunjangan harian, serta potongan tetap, potongan tidak masuk & terlambat untuk masing-masing karyawan.</p>
       </div>
 
-      <div className="border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
+      {/* Mobile / Tablet View: Card-based Layout */}
+      <div className="block lg:hidden space-y-4">
+        {loadingEmployees ? (
+          <div className="py-12 text-center text-slate-400 bg-orange-50/5 border border-orange-100 rounded-2xl">
+            <div className="flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+              <p className="text-xs font-semibold">Memuat data karyawan...</p>
+            </div>
+          </div>
+        ) : employees.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 font-semibold bg-orange-50/5 border border-orange-100 rounded-2xl">
+            Tidak ada data karyawan ditemukan.
+          </div>
+        ) : (
+          employees.map((emp) => {
+            const cfg = emp.salary_configuration
+            return (
+              <div 
+                key={emp.id} 
+                className="bg-white border border-orange-100/80 rounded-2xl p-5 shadow-sm space-y-4 hover:shadow-md hover:border-orange-200 transition-all duration-300 relative overflow-hidden"
+              >
+                {/* Visual Accent Bar */}
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-red-500 to-orange-500"></div>
+                
+                <div className="pl-1">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <h4 className="font-extrabold text-slate-800 text-sm">{emp.name}</h4>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{emp.email}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {cfg && cfg.salary_change_status === 'pending' && (
+                        <span className="inline-flex items-center gap-1 py-0.5 px-2.5 rounded-full text-[9px] font-black bg-amber-50 text-amber-600 border border-amber-100 animate-pulse">
+                          Menunggu Direktur
+                        </span>
+                      )}
+                      {cfg && cfg.salary_change_status === 'rejected' && (
+                        <span className="inline-flex items-center gap-1 py-0.5 px-2.5 rounded-full text-[9px] font-black bg-rose-50 text-rose-600 border border-rose-100">
+                          Ditolak
+                        </span>
+                      )}
+                      {cfg && (cfg.salary_change_status === 'approved' || cfg.salary_change_status === 'none') && (
+                        <span className="inline-flex items-center gap-1 py-0.5 px-2.5 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100">
+                          Aktif
+                        </span>
+                      )}
+                      {!cfg && (
+                        <span className="inline-flex items-center gap-1 py-0.5 px-2.5 rounded-full text-[9px] font-black bg-slate-50 text-slate-400 border border-slate-100 italic">
+                          Belum Diset
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Grid details */}
+                  <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-dashed border-orange-100 text-xs">
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Gaji Pokok (Bulanan)</p>
+                      <p className="font-extrabold text-slate-800 mt-0.5">
+                        {cfg ? formatRupiah(cfg.basic_salary) : <span className="text-slate-400 italic font-normal">Belum diset</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tunj. Jabatan</p>
+                      <p className="font-bold text-slate-800 mt-0.5">
+                        {cfg ? formatRupiah(cfg.allowance_position) : <span className="text-slate-400 italic font-normal">Belum diset</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tunj. Makan (Harian)</p>
+                      <p className="font-bold text-slate-700 mt-0.5">
+                        {cfg ? formatRupiah(cfg.allowance_meal_daily) : <span className="text-slate-400 italic font-normal">Belum diset</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tunj. Transport (Harian)</p>
+                      <p className="font-bold text-slate-700 mt-0.5">
+                        {cfg ? formatRupiah(cfg.allowance_transport_daily) : <span className="text-slate-400 italic font-normal">Belum diset</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Potongan Telat (Harian)</p>
+                      <p className="font-bold text-rose-600 mt-0.5">
+                        {cfg ? `${formatRupiah(cfg.deduction_late_daily)}` : <span className="text-slate-400 italic font-normal">Belum diset</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Potongan Absen (Harian)</p>
+                      <p className="font-bold text-rose-600 mt-0.5">
+                        {cfg ? `${formatRupiah(cfg.deduction_absence_daily)}` : <span className="text-slate-400 italic font-normal">Belum diset</span>}
+                      </p>
+                    </div>
+                    <div className="col-span-2 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100 flex justify-between items-center mt-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Potongan Tetap (BPJS dll)</p>
+                      <p className="font-extrabold text-rose-600 text-[11px]">
+                        {cfg ? formatRupiah(cfg.deduction_fixed) : <span className="text-slate-400 italic font-normal">Belum diset</span>}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2.5 pt-4 mt-3 border-t border-slate-100/80">
+                    <button
+                      onClick={() => handleOpenConfig(emp)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 hover:border-orange-500 hover:text-orange-600 rounded-xl font-bold transition-all cursor-pointer shadow-sm text-xs hover:shadow animate-hover-lift"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Atur Gaji
+                    </button>
+                    {cfg && cfg.salary_change_status === 'pending' && (
+                      <button
+                        onClick={() => handleOpenWaModal(emp)}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-50 border border-emerald-200 hover:border-emerald-500 hover:text-emerald-700 text-emerald-600 rounded-xl font-bold transition-all cursor-pointer shadow-sm text-xs hover:shadow animate-hover-lift"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        Kirim WA
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Desktop view: table */}
+      <div className="hidden lg:block border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -479,119 +606,134 @@ Terima kasih.`
             </div>
 
             <form onSubmit={handleSaveConfig} className="space-y-4 font-semibold text-xs">
-              <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gaji Pokok (Bulanan)</label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={basicSalary}
-                    onChange={(e) => handleRupiahInput(e.target.value, setBasicSalary)}
-                    placeholder="Contoh: 4.000.000"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Section 1: Gaji & Tunjangan Bulanan */}
+              <div className="bg-orange-50/20 border border-orange-100/50 rounded-2xl p-4 space-y-3">
+                <h4 className="text-[10px] uppercase font-bold text-orange-600 tracking-wider">Gaji & Tunjangan Bulanan</h4>
+                
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Makan (Harian)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gaji Pokok (Bulanan)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={allowanceMealDaily}
-                      onChange={(e) => handleRupiahInput(e.target.value, setAllowanceMealDaily)}
-                      placeholder="Contoh: 15.000"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
+                      value={basicSalary}
+                      onChange={(e) => handleRupiahInput(e.target.value, setBasicSalary)}
+                      placeholder="Contoh: 4.000.000"
+                      className="w-full bg-white border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Transport (Harian)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Jabatan (Bulanan)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={allowanceTransportDaily}
-                      onChange={(e) => handleRupiahInput(e.target.value, setAllowanceTransportDaily)}
-                      placeholder="Contoh: 20.000"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
+                      value={allowancePosition}
+                      onChange={(e) => handleRupiahInput(e.target.value, setAllowancePosition)}
+                      placeholder="Contoh: 500.000"
+                      className="w-full bg-white border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Jabatan (Bulanan)</label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={allowancePosition}
-                    onChange={(e) => handleRupiahInput(e.target.value, setAllowancePosition)}
-                    placeholder="Contoh: 500.000"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
-                    required
-                  />
+              {/* Section 2: Tunjangan Harian */}
+              <div className="bg-emerald-50/10 border border-emerald-100/20 rounded-2xl p-4 space-y-3">
+                <h4 className="text-[10px] uppercase font-bold text-emerald-600 tracking-wider">Tunjangan Harian (Kehadiran)</h4>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Makan</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={allowanceMealDaily}
+                        onChange={(e) => handleRupiahInput(e.target.value, setAllowanceMealDaily)}
+                        placeholder="Contoh: 15.000"
+                        className="w-full bg-white border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tunj. Transport</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={allowanceTransportDaily}
+                        onChange={(e) => handleRupiahInput(e.target.value, setAllowanceTransportDaily)}
+                        placeholder="Contoh: 20.000"
+                        className="w-full bg-white border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Section 3: Potongan & Denda */}
+              <div className="bg-rose-50/10 border border-rose-100/20 rounded-2xl p-4 space-y-3">
+                <h4 className="text-[10px] uppercase font-bold text-rose-600 tracking-wider">Potongan & Denda</h4>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Telat (Harian)</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={deductionLateDaily}
+                        onChange={(e) => handleRupiahInput(e.target.value, setDeductionLateDaily)}
+                        placeholder="Contoh: 15.000"
+                        className="w-full bg-white border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Absen (Harian)</label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={deductionAbsenceDaily}
+                        onChange={(e) => handleRupiahInput(e.target.value, setDeductionAbsenceDaily)}
+                        placeholder="Contoh: 50.000"
+                        className="w-full bg-white border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Telat (Harian)</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Tetap (BPJS dll)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={deductionLateDaily}
-                      onChange={(e) => handleRupiahInput(e.target.value, setDeductionLateDaily)}
-                      placeholder="Contoh: 15.000"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
+                      value={deductionFixed}
+                      onChange={(e) => handleRupiahInput(e.target.value, setDeductionFixed)}
+                      placeholder="Contoh: 100.000"
+                      className="w-full bg-white border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
                       required
                     />
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Absen (Harian)</label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={deductionAbsenceDaily}
-                      onChange={(e) => handleRupiahInput(e.target.value, setDeductionAbsenceDaily)}
-                      placeholder="Contoh: 50.000"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Potongan Tetap (BPJS dll)</label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-[11px]">Rp</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={deductionFixed}
-                    onChange={(e) => handleRupiahInput(e.target.value, setDeductionFixed)}
-                    placeholder="Contoh: 100.000"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-3 outline-none transition-all font-bold text-xs"
-                    required
-                  />
                 </div>
               </div>
 

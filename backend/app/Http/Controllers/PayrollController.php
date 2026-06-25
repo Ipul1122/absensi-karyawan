@@ -280,7 +280,7 @@ class PayrollController extends Controller
     {
         $user = auth('sanctum')->user();
         $query = User::where('role', 'employee');
-        if ($user && $user->company) {
+        if ($user && $user->company && $user->role !== 'director') {
             $query->where('company', $user->company);
         }
         $employees = $query->with('salaryConfiguration')
@@ -374,7 +374,7 @@ class PayrollController extends Controller
         $query = Payroll::where('period_month', $period)
             ->with(['user:id,name,email,no_rekening,company,division,employee_number,join_date', 'user.salaryConfiguration']);
 
-        if ($user && $user->company) {
+        if ($user && $user->company && $user->role !== 'director') {
             $query->whereHas('user', function ($q) use ($user) {
                 $q->where('company', $user->company);
             });
@@ -383,7 +383,7 @@ class PayrollController extends Controller
         $payrolls = $query->get();
 
         $hrQuery = User::where('role', 'admin');
-        if ($user && $user->company) {
+        if ($user && $user->company && $user->role !== 'director') {
             $hrQuery->where('company', $user->company);
         }
         $hrManager = $hrQuery->first();

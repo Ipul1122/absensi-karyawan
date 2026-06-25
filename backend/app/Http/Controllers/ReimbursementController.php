@@ -141,7 +141,7 @@ class ReimbursementController extends Controller
         $user = auth('sanctum')->user();
         $query = Reimbursement::with('user:id,name,email,company');
 
-        if ($user && $user->company) {
+        if ($user && $user->company && $user->role !== 'director') {
             $query->whereHas('user', function ($q) use ($user) {
                 $q->where('company', $user->company);
             });

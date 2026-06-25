@@ -298,7 +298,7 @@ class AttendanceController extends Controller
     {
         $user = auth('sanctum')->user();
         $query = Attendance::with('user:id,name,email,photo,role,join_date,employee_number,division,company');
-        if ($user && $user->company) {
+        if ($user && $user->company && $user->role !== 'director') {
             $query->whereHas('user', function ($q) use ($user) {
                 $q->where('company', $user->company);
             });

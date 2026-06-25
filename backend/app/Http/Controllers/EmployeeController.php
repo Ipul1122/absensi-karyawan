@@ -16,7 +16,7 @@ class EmployeeController extends Controller
     {
         $user = auth('sanctum')->user();
         $query = User::where('role', 'employee');
-        if ($user && $user->company) {
+        if ($user && $user->company && $user->role !== 'director') {
             $query->where('company', $user->company);
         }
         $employees = $query->orderBy('id', 'desc')->get();
@@ -356,7 +356,7 @@ class EmployeeController extends Controller
     {
         $user = auth('sanctum')->user();
         $query = User::where('id', $id)->where('role', 'employee');
-        if ($user && $user->company) {
+        if ($user && $user->company && $user->role !== 'director') {
             $query->where('company', $user->company);
         }
         return $query->first();

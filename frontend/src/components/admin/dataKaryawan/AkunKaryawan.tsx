@@ -462,18 +462,18 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-orange-50/40 text-orange-950/80 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
-                  <th className="py-4 px-5">Nama</th>
-                  <th className="py-4 px-5">Email</th>
-                  <th className="py-4 px-5">Aksi Cepat</th>
+                  <th className="py-4 px-5">Karyawan</th>
+                  <th className="py-4 px-5">Kontak & Email</th>
+                  <th className="py-4 px-5">Penempatan</th>
+                  <th className="py-4 px-5">Rekening & Join</th>
                   <th className="py-4 px-5">Status</th>
-                  <th className="py-4 px-5">Terdaftar</th>
                   <th className="py-4 px-5 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-500 font-medium">
+                    <td colSpan={6} className="py-12 text-center text-slate-500 font-medium">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                         Memuat data karyawan...
@@ -482,7 +482,7 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                   </tr>
                 ) : filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-400 font-semibold font-quicksand">
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold font-quicksand">
                       {searchQuery ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
                     </td>
                   </tr>
@@ -514,67 +514,118 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                         </div>
                       </td>
 
-                      {/* Column 2: Penempatan (Division, Company) */}
+                      {/* Column 2: Kontak & Email */}
                       <td className="py-4 px-5">
-                        <button
-                          onClick={() => handleResetPasswordDirect(emp)}
-                          className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-xs transition-all cursor-pointer font-quicksand flex items-center gap-1.5 active:scale-95"
-                          title="Reset Kata Sandi Karyawan"
-                        >
-                          <Key className="w-3.5 h-3.5 text-orange-500" />
-                          Reset Sandi
-                        </button>
+                        <div className="space-y-1">
+                          <span className="text-xs text-slate-500 font-mono block truncate max-w-[180px]">
+                            {emp.email}
+                          </span>
+                          {emp.whatsapp ? (
+                            <a
+                              href={getWhatsAppUrl(emp.whatsapp)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:text-emerald-800 transition-colors font-quicksand"
+                            >
+                              <Phone className="w-2.5 h-2.5 shrink-0" />
+                              {emp.whatsapp}
+                              <ExternalLink className="w-2 h-2 opacity-50" />
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-medium italic block">WA: -</span>
+                          )}
+                        </div>
                       </td>
 
-                      {/* Column 6: Status */}
+                      {/* Column 3: Penempatan */}
                       <td className="py-4 px-5">
-                        {(!emp.status || emp.status === 'active') && (
-                          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 shadow-sm font-quicksand">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Aktif
+                        <div className="space-y-1">
+                          <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${getDivisionBadgeStyle(emp.division)}`}>
+                            {emp.division || 'Umum'}
                           </span>
-                        )}
-                        {emp.status === 'pending' && (
-                          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 shadow-sm font-quicksand">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                            Pending
+                          <span className="text-[10px] text-slate-500 font-medium block truncate max-w-[180px]" title={emp.company || ''}>
+                            {emp.company || 'Tanpa Perusahaan'}
                           </span>
-                        )}
-                        {emp.status === 'pending_delete' && (
-                          <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-100 shadow-sm font-quicksand">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                            Proses Hapus
-                          </span>
-                        )}
+                        </div>
                       </td>
 
-                      {/* Column 7: Aksi */}
+                      {/* Column 4: Rekening & Join */}
                       <td className="py-4 px-5">
-                        <div className="flex items-center justify-center gap-1">
-                          {/* Edit Akun Credentials */}
+                        <div className="space-y-0.5 font-quicksand">
+                          <span className="text-xs text-slate-700 font-mono font-bold block">
+                            {emp.no_rekening || '-'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            Masuk: {emp.join_date ? formatDate(emp.join_date) : '-'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Column 5: Status & Terdaftar */}
+                      <td className="py-4 px-5">
+                        <div className="space-y-1">
+                          {(!emp.status || emp.status === 'active') && (
+                            <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 shadow-sm font-quicksand">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              Aktif
+                            </span>
+                          )}
+                          {emp.status === 'pending' && (
+                            <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 shadow-sm font-quicksand">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                              Pending
+                            </span>
+                          )}
+                          {emp.status === 'pending_delete' && (
+                            <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-100 shadow-sm font-quicksand">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                              Proses Hapus
+                            </span>
+                          )}
+                          <span className="text-[9px] text-slate-400 block pl-1">
+                            Reg: {formatDate(emp.created_at)}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Column 6: Aksi */}
+                      <td className="py-4 px-5 text-center">
+                        <div className="flex items-center justify-center gap-2">
                           <button
-                            onClick={() => onEditClick(emp)}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer inline-flex items-center"
-                            title="Edit Akun Login"
+                            onClick={() => handleResetPasswordDirect(emp)}
+                            className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-[10px] transition-all cursor-pointer font-quicksand flex items-center gap-1 active:scale-95 shadow-sm"
+                            title="Reset Kata Sandi Karyawan"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Key className="w-3 h-3 text-orange-500" />
+                            Reset Sandi
                           </button>
-                          {/* Edit Biodata */}
-                          <button
-                            onClick={() => handleOpenEditBio(emp)}
-                            className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer inline-flex items-center"
-                            title="Edit Biodata Lengkap"
-                          >
-                            <FileText className="w-4 h-4" />
-                          </button>
-                          {/* Hapus */}
-                          <button
-                            onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                            className="p-2 text-slate-400 hover:text-red-750 hover:bg-red-50 rounded-xl transition-all cursor-pointer inline-flex items-center"
-                            title="Hapus Karyawan"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          
+                          <div className="flex items-center border-l border-slate-100 pl-2">
+                            {/* Edit Akun Credentials */}
+                            <button
+                              onClick={() => onEditClick(emp)}
+                              className="p-1.5 text-slate-400 hover:text-red-650 hover:bg-red-550/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                              title="Edit Akun Login"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            {/* Edit Biodata */}
+                            <button
+                              onClick={() => handleOpenEditBio(emp)}
+                              className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                              title="Edit Biodata Lengkap"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                            </button>
+                            {/* Hapus */}
+                            <button
+                              onClick={() => handleDeleteEmployee(emp.id, emp.name)}
+                              className="p-1.5 text-slate-450 hover:text-red-750 hover:bg-red-550/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                              title="Hapus Karyawan"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>

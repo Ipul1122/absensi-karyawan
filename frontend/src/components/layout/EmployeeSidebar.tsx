@@ -17,7 +17,9 @@ import {
   Compass,
   UserCheck,
   ChevronDown,
-  Briefcase
+  Briefcase,
+  ClipboardList,
+  User
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -69,6 +71,10 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
            location.pathname.startsWith('/employee/bonus') || 
            location.pathname.startsWith('/employee/lembur')
   })
+  const [isPengaturanDropdownOpen, setIsPengaturanDropdownOpen] = useState(() => {
+    return location.pathname.startsWith('/employee/pengaturan') || 
+           location.pathname.startsWith('/employee/biodata')
+  })
 
   useEffect(() => {
     if (
@@ -88,6 +94,15 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
       location.pathname.startsWith('/employee/lembur')
     ) {
       setIsOperasionalDropdownOpen(true)
+    }
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (
+      location.pathname.startsWith('/employee/pengaturan') || 
+      location.pathname.startsWith('/employee/biodata')
+    ) {
+      setIsPengaturanDropdownOpen(true)
     }
   }, [location.pathname])
 
@@ -114,7 +129,14 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
       ]
     },
     { to: '/employee/payroll', label: 'Slip Gaji', icon: Coins },
-    { to: '/employee/pengaturan', label: 'Atur Akun', icon: Settings }
+    {
+      label: 'Pengaturan',
+      icon: Settings,
+      subItems: [
+        { to: '/employee/pengaturan', label: 'Atur Akun', icon: User },
+        { to: '/employee/biodata', label: 'Atur Biodata', icon: ClipboardList }
+      ]
+    }
   ]
 
   const handleLinkClick = () => {
@@ -150,7 +172,10 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
               if (item.subItems) {
                 const IconComponent = item.icon
                 const isSubActive = item.subItems?.some(sub => location.pathname === sub.to) || false
-                const isOpen = item.label === 'Absen Mandiri' ? isAbsenDropdownOpen : isOperasionalDropdownOpen
+                const isOpen = 
+                  item.label === 'Absen Mandiri' ? isAbsenDropdownOpen :
+                  item.label === 'Operasional' ? isOperasionalDropdownOpen :
+                  isPengaturanDropdownOpen
                 
                 let parentBadge = 0
                 if (item.label === 'Operasional') {
@@ -163,8 +188,10 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
                       onClick={() => {
                         if (item.label === 'Absen Mandiri') {
                           setIsAbsenDropdownOpen(!isAbsenDropdownOpen)
-                        } else {
+                        } else if (item.label === 'Operasional') {
                           setIsOperasionalDropdownOpen(!isOperasionalDropdownOpen)
+                        } else if (item.label === 'Pengaturan') {
+                          setIsPengaturanDropdownOpen(!isPengaturanDropdownOpen)
                         }
                       }}
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] ${

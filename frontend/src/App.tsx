@@ -8,6 +8,10 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
 const EmployeeDashboard = lazy(() => import('./components/EmployeeDashboard'))
 const DirectorDashboard = lazy(() => import('./components/direktur/DirectorDashboard'))
 const VerifySlip = lazy(() => import('./components/payroll/VerifySlip'))
+const PrivacyPolicy = lazy(() => import('./components/public/PrivacyPolicy'))
+const TermsOfService = lazy(() => import('./components/public/TermsOfService'))
+const SecurityCompliance = lazy(() => import('./components/public/SecurityCompliance'))
+
 
 interface HealthResponse {
   status: string
@@ -162,6 +166,10 @@ function App() {
       }>
         <Routes>
           <Route path="/verify-slip/:id/:hash" element={<VerifySlip />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/security-compliance" element={<SecurityCompliance />} />
+
           {token && user ? (
             user.role === 'admin' ? (
               <>

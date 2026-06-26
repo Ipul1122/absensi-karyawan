@@ -9,6 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
+            $table->boolean('saturday_off')->default(false)->after('whatsapp');
             $table->boolean('sunday_off')->default(true)->after('saturday_off');
         });
     }
@@ -16,7 +17,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('sunday_off');
+            $table->dropColumn(['saturday_off', 'sunday_off']);
         });
     }
 };

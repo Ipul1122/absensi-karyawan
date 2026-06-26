@@ -210,15 +210,24 @@ class AttendanceController extends Controller
             // Determine status based on server time
             $now = Carbon::now();
             $timeStr = $now->format('H:i:s');
+            $isSaturday = $now->isSaturday();
             
             // Rules:
-            // - Before 17:00: early_departure (Pulang Cepat)
-            // - 17:00 - 18:00: normal (Normal)
-            // - After 18:00: overtime (Lembur)
+            // - Saturday:
+            //   - Before 14:00: early_departure (Pulang Cepat)
+            //   - 14:00 - 15:00: normal (Normal)
+            //   - After 15:00: overtime (Lembur)
+            // - Other days:
+            //   - Before 17:00: early_departure (Pulang Cepat)
+            //   - 17:00 - 18:00: normal (Normal)
+            //   - After 18:00: overtime (Lembur)
+            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+
             $status = 'normal';
-            if ($timeStr < '17:00:00') {
+            if ($timeStr < $limitEarly) {
                 $status = 'early_departure';
-            } elseif ($timeStr > '18:00:00') {
+            } elseif ($timeStr > $limitOvertime) {
                 $status = 'overtime';
             }
 
@@ -359,10 +368,14 @@ class AttendanceController extends Controller
         $statusOut = null;
         if ($request->clock_out) {
             $clockOut = Carbon::parse($request->clock_out)->format('H:i:s');
+            $isSaturday = Carbon::parse($date)->isSaturday();
+            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+
             $statusOut = 'normal';
-            if ($clockOut < '17:00:00') {
+            if ($clockOut < $limitEarly) {
                 $statusOut = 'early_departure';
-            } elseif ($clockOut > '18:00:00') {
+            } elseif ($clockOut > $limitOvertime) {
                 $statusOut = 'overtime';
             }
         }
@@ -485,10 +498,14 @@ class AttendanceController extends Controller
 
         if ($clockOut) {
             $clockOut = Carbon::parse($clockOut)->format('H:i:s');
+            $isSaturday = Carbon::parse($attendance->date)->isSaturday();
+            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+
             $statusOut = 'normal';
-            if ($clockOut < '17:00:00') {
+            if ($clockOut < $limitEarly) {
                 $statusOut = 'early_departure';
-            } elseif ($clockOut > '18:00:00') {
+            } elseif ($clockOut > $limitOvertime) {
                 $statusOut = 'overtime';
             }
             $attendance->clock_out = $clockOut;

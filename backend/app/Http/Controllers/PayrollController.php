@@ -46,14 +46,6 @@ class PayrollController extends Controller
     {
         [$startOfMonth, $endOfMonth] = $this->getPayrollPeriodRange($period);
 
-        // Ambil jumlah hari libur nasional (Senin-Sabtu) pada periode ini
-        $holidays = Holiday::whereBetween('holiday_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-            ->get()
-            ->filter(function($h) {
-                return !Carbon::parse($h->holiday_date)->isSunday();
-            });
-        $holidaysCount = $holidays->count();
-
         $employee = User::where('id', $userId)
             ->with([
                 'salaryConfiguration',
@@ -78,6 +70,24 @@ class PayrollController extends Controller
         if (!$employee) {
             return false;
         }
+
+        $isSatOff = (bool)$employee->saturday_off;
+        $isSunOff = $employee->sunday_off !== false;
+
+        // Ambil jumlah hari libur nasional pada periode ini yang bukan merupakan hari libur mingguan karyawan
+        $holidays = Holiday::whereBetween('holiday_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+            ->get()
+            ->filter(function($h) use ($isSatOff, $isSunOff) {
+                $carbonDate = Carbon::parse($h->holiday_date);
+                if ($carbonDate->isSunday() && $isSunOff) {
+                    return false;
+                }
+                if ($carbonDate->isSaturday() && $isSatOff) {
+                    return false;
+                }
+                return true;
+            });
+        $holidaysCount = $holidays->count();
 
         $existing = Payroll::where('user_id', $employee->id)
             ->where('period_month', $period)
@@ -112,19 +122,31 @@ class PayrollController extends Controller
             }
         }
 
-        // Hitung hari kerja aktif (Senin–Sabtu) karyawan di masa aktifnya dalam bulan ini
+        // Hitung hari kerja aktif karyawan di masa aktifnya dalam bulan ini (mempertimbangkan hari libur perorangan)
         $activeWorkingDays = 0;
         $tempDate = $startOfPeriod->copy();
         while ($tempDate->lte($endOfMonth)) {
-            if (!$tempDate->isSunday()) {
+            $isOff = false;
+            if ($tempDate->isSunday() && $isSunOff) {
+                $isOff = true;
+            } elseif ($tempDate->isSaturday() && $isSatOff) {
+                $isOff = true;
+            }
+            if (!$isOff) {
                 $activeWorkingDays++;
             }
             $tempDate->addDay();
         }
 
-        // Hitung total hari libur nasional (Senin-Sabtu) yang jatuh di masa aktif karyawan
-        $holidaysInActivePeriod = $holidays->filter(function($h) use ($startOfPeriod, $endOfMonth) {
+        // Hitung total hari libur nasional yang jatuh di masa aktif karyawan
+        $holidaysInActivePeriod = $holidays->filter(function($h) use ($startOfPeriod, $endOfMonth, $isSatOff, $isSunOff) {
             $hDate = Carbon::parse($h->holiday_date);
+            if ($hDate->isSunday() && $isSunOff) {
+                return false;
+            }
+            if ($hDate->isSaturday() && $isSatOff) {
+                return false;
+            }
             return $hDate->between($startOfPeriod, $endOfMonth);
         })->count();
 
@@ -144,7 +166,7 @@ class PayrollController extends Controller
             })
             ->count();
 
-        // 3. Hitung total hari cuti yang disetujui di masa aktif
+        // 3. Hitung total hari cuti yang disetujui di masa aktif (skip hari libur mingguan karyawan)
         $leaves = $employee->leaveRequests;
 
         $daysLeave = 0;
@@ -157,10 +179,15 @@ class PayrollController extends Controller
             $overlapEnd = $leaveEnd->min($endOfMonth);
             
             if ($overlapStart <= $overlapEnd) {
-                // Hitung hanya hari kerja (Senin–Sabtu), skip hari Minggu
                 $tempLeaveDate = $overlapStart->copy();
                 while ($tempLeaveDate->lte($overlapEnd)) {
-                    if (!$tempLeaveDate->isSunday()) {
+                    $isOff = false;
+                    if ($tempLeaveDate->isSunday() && $isSunOff) {
+                        $isOff = true;
+                    } elseif ($tempLeaveDate->isSaturday() && $isSatOff) {
+                        $isOff = true;
+                    }
+                    if (!$isOff) {
                         $daysLeave++;
                     }
                     $tempLeaveDate->addDay();
@@ -226,21 +253,28 @@ class PayrollController extends Controller
             $netSalary = 0; // Gaji tidak boleh negatif
         }
 
-        // Hitung total hari kerja efektif (Senin - Sabtu) di rentang cut-off tersebut untuk catatan
+        // Hitung total hari kerja efektif di rentang cut-off tersebut untuk catatan
         $workingDaysInMonth = 0;
         $tempDate = $startOfMonth->copy();
         while ($tempDate->lte($endOfMonth)) {
-            if (!$tempDate->isSunday()) {
+            $isOff = false;
+            if ($tempDate->isSunday() && $isSunOff) {
+                $isOff = true;
+            } elseif ($tempDate->isSaturday() && $isSatOff) {
+                $isOff = true;
+            }
+            if (!$isOff) {
                 $workingDaysInMonth++;
             }
             $tempDate->addDay();
         }
 
         // Susun catatan payroll yang mendetail dan transparan
+        $scheduleText = ($isSatOff && $isSunOff) ? "Sen–Jum" : ((!$isSatOff && !$isSunOff) ? "Sen–Min" : ($isSatOff ? "Sen–Jum & Min" : "Sen–Sab"));
         if ($isProrated) {
-            $notes = "Periode aktif (bergabung " . Carbon::parse($joinDate)->format('d-m-Y') . "): " . $startOfPeriod->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja aktif: $activeWorkingDays (Sen–Sab). Gaji Pokok Prorata: Rp" . number_format($baseBasicSalaryForPeriod, 0, ',', '.') . " ($activeWorkingDays/26 hari). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional aktif: $holidaysInActivePeriod. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
+            $notes = "Periode aktif (bergabung " . Carbon::parse($joinDate)->format('d-m-Y') . "): " . $startOfPeriod->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja aktif: $activeWorkingDays ($scheduleText). Gaji Pokok Prorata: Rp" . number_format($baseBasicSalaryForPeriod, 0, ',', '.') . " ($activeWorkingDays/26 hari). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional aktif: $holidaysInActivePeriod. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
         } else {
-            $notes = "Periode: " . $startOfMonth->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja: $workingDaysInMonth (Sen–Sab). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
+            $notes = "Periode: " . $startOfMonth->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja: $workingDaysInMonth ($scheduleText). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
         }
 
         $payrollData = [
@@ -415,7 +449,6 @@ class PayrollController extends Controller
                 'message' => 'Tidak ada data karyawan (employee/admin) untuk di-generate.'
             ], 404);
         }
-
         $generatedCount = 0;
 
         // Tentukan rentang bulan dari period_month (format YYYY-MM)
@@ -426,17 +459,27 @@ class PayrollController extends Controller
         $holidays = Holiday::whereBetween('holiday_date', [
             $startOfMonth->toDateString(),
             $endOfMonth->toDateString()
-        ])->get()
-        ->filter(function ($h) {
-            return !Carbon::parse($h->holiday_date)->isSunday(); // bukan Minggu
-        });
-
-        $holidaysCount = $holidays->count();
+        ])->get();
 
         try {
             DB::beginTransaction();
 
             foreach ($employees as $employee) {
+                $isSatOff = (bool)$employee->saturday_off;
+                $isSunOff = $employee->sunday_off !== false;
+
+                // Hitung total hari libur nasional di bulan ini untuk catatan karyawan
+                $holidaysCount = $holidays->filter(function($h) use ($isSatOff, $isSunOff) {
+                    $hDate = Carbon::parse($h->holiday_date);
+                    if ($hDate->isSunday() && $isSunOff) {
+                        return false;
+                    }
+                    if ($hDate->isSaturday() && $isSatOff) {
+                        return false;
+                    }
+                    return true;
+                })->count();
+
                 // Tentukan tanggal mulai perhitungan gaji berdasarkan join_date
                 $joinDate = $employee->join_date;
                 $startOfPeriod = $startOfMonth->copy();
@@ -452,19 +495,31 @@ class PayrollController extends Controller
                     }
                 }
 
-                // Hitung hari kerja aktif (Senin–Sabtu) karyawan di masa aktifnya dalam bulan ini
+                // Hitung hari kerja aktif karyawan di masa aktifnya dalam bulan ini (mempertimbangkan hari libur perorangan)
                 $activeWorkingDays = 0;
                 $tempDate = $startOfPeriod->copy();
                 while ($tempDate->lte($endOfMonth)) {
-                    if (!$tempDate->isSunday()) {
+                    $isOff = false;
+                    if ($tempDate->isSunday() && $isSunOff) {
+                        $isOff = true;
+                    } elseif ($tempDate->isSaturday() && $isSatOff) {
+                        $isOff = true;
+                    }
+                    if (!$isOff) {
                         $activeWorkingDays++;
                     }
                     $tempDate->addDay();
                 }
 
-                // Hitung total hari libur nasional (Senin-Sabtu) yang jatuh di masa aktif karyawan
-                $holidaysInActivePeriod = $holidays->filter(function($h) use ($startOfPeriod, $endOfMonth) {
+                // Hitung total hari libur nasional yang jatuh di masa aktif karyawan
+                $holidaysInActivePeriod = $holidays->filter(function($h) use ($startOfPeriod, $endOfMonth, $isSatOff, $isSunOff) {
                     $hDate = Carbon::parse($h->holiday_date);
+                    if ($hDate->isSunday() && $isSunOff) {
+                        return false;
+                    }
+                    if ($hDate->isSaturday() && $isSatOff) {
+                        return false;
+                    }
                     return $hDate->between($startOfPeriod, $endOfMonth);
                 })->count();
 
@@ -484,7 +539,7 @@ class PayrollController extends Controller
                     })
                     ->count();
 
-                // 3. Hitung total hari cuti yang disetujui di dalam masa aktif karyawan
+                // 3. Hitung total hari cuti yang disetujui di dalam masa aktif karyawan (skip hari libur mingguan karyawan)
                 $leaves = $employee->leaveRequests;
                 $daysLeave = 0;
                 foreach ($leaves as $leave) {
@@ -498,7 +553,13 @@ class PayrollController extends Controller
                     if ($overlapStart <= $overlapEnd) {
                         $tempLeaveDate = $overlapStart->copy();
                         while ($tempLeaveDate->lte($overlapEnd)) {
-                            if (!$tempLeaveDate->isSunday()) {
+                            $isOff = false;
+                            if ($tempLeaveDate->isSunday() && $isSunOff) {
+                                $isOff = true;
+                            } elseif ($tempLeaveDate->isSaturday() && $isSatOff) {
+                                $isOff = true;
+                            }
+                            if (!$isOff) {
                                 $daysLeave++;
                             }
                             $tempLeaveDate->addDay();
@@ -564,21 +625,28 @@ class PayrollController extends Controller
                     $netSalary = 0; // Gaji tidak boleh negatif
                 }
 
-                // Hitung total hari kerja efektif (Senin - Sabtu) di rentang cut-off tersebut untuk catatan
+                // Hitung total hari kerja efektif di rentang cut-off tersebut untuk catatan
                 $workingDaysInMonth = 0;
                 $tempDate = $startOfMonth->copy();
                 while ($tempDate->lte($endOfMonth)) {
-                    if (!$tempDate->isSunday()) {
+                    $isOff = false;
+                    if ($tempDate->isSunday() && $isSunOff) {
+                        $isOff = true;
+                    } elseif ($tempDate->isSaturday() && $isSatOff) {
+                        $isOff = true;
+                    }
+                    if (!$isOff) {
                         $workingDaysInMonth++;
                     }
                     $tempDate->addDay();
                 }
 
                 // Susun catatan payroll yang mendetail dan transparan
+                $scheduleText = ($isSatOff && $isSunOff) ? "Sen–Jum" : ((!$isSatOff && !$isSunOff) ? "Sen–Min" : ($isSatOff ? "Sen–Jum & Min" : "Sen–Sab"));
                 if ($isProrated) {
-                    $notes = "Periode aktif (bergabung " . Carbon::parse($joinDate)->format('d-m-Y') . "): " . $startOfPeriod->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja aktif: $activeWorkingDays (Sen–Sab). Gaji Pokok Prorata: Rp" . number_format($baseBasicSalaryForPeriod, 0, ',', '.') . " ($activeWorkingDays/26 hari). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional aktif: $holidaysInActivePeriod. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
+                    $notes = "Periode aktif (bergabung " . Carbon::parse($joinDate)->format('d-m-Y') . "): " . $startOfPeriod->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja aktif: $activeWorkingDays ($scheduleText). Gaji Pokok Prorata: Rp" . number_format($baseBasicSalaryForPeriod, 0, ',', '.') . " ($activeWorkingDays/26 hari). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional aktif: $holidaysInActivePeriod. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
                 } else {
-                    $notes = "Periode: " . $startOfMonth->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja: $workingDaysInMonth (Sen–Sab). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
+                    $notes = "Periode: " . $startOfMonth->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja: $workingDaysInMonth ($scheduleText). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
                 }
 
                 // 6. Buat atau perbarui transaksi payroll

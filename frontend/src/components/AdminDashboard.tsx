@@ -48,6 +48,8 @@ interface Employee {
   no_rekening?: string | null
   company?: string | null
   whatsapp?: string | null
+  saturday_off?: boolean | number
+  sunday_off?: boolean | number
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
@@ -155,6 +157,8 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const [editNoRekening, setEditNoRekening] = useState('')
   const [editCompany, setEditCompany] = useState('')
   const [editWhatsapp, setEditWhatsapp] = useState('')
+  const [editSaturdayOff, setEditSaturdayOff] = useState(false)
+  const [editSundayOff, setEditSundayOff] = useState(true)
   const [submittingEdit, setSubmittingEdit] = useState(false)
 
   useEffect(() => {
@@ -472,6 +476,8 @@ ${window.location.origin}/director/karyawan`
     setEditNoRekening(employee.no_rekening || '')
     setEditCompany(employee.company || '')
     setEditWhatsapp(employee.whatsapp || '')
+    setEditSaturdayOff(!!employee.saturday_off)
+    setEditSundayOff(employee.sunday_off !== false)
     setShowEditEmployeeModal(true)
   }
 
@@ -512,7 +518,9 @@ ${window.location.origin}/director/karyawan`
           password: editPassword || null,
           no_rekening: editNoRekening,
           company: editCompany,
-          whatsapp: editWhatsapp
+          whatsapp: editWhatsapp,
+          saturday_off: editSaturdayOff ? '1' : '0',
+          sunday_off: editSundayOff ? '1' : '0'
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -536,6 +544,8 @@ ${window.location.origin}/director/karyawan`
         setEditEmail('')
         setEditPassword('')
         setEditWhatsapp('')
+        setEditSaturdayOff(false)
+        setEditSundayOff(true)
         fetchEmployees() // Refresh employees list
       }
     } catch (err: any) {
@@ -1036,6 +1046,10 @@ ${window.location.origin}/director/karyawan`
         setCompany={setEditCompany}
         whatsapp={editWhatsapp}
         setWhatsapp={setEditWhatsapp}
+        saturdayOff={editSaturdayOff}
+        setSaturdayOff={setEditSaturdayOff}
+        sundayOff={editSundayOff}
+        setSundayOff={setEditSundayOff}
         submitting={submittingEdit}
         onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
       />

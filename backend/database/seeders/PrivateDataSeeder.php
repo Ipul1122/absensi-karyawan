@@ -56,21 +56,27 @@ class PrivateDataSeeder extends Seeder
                 'name' => 'Sky',
                 'join_date' => '2026-06-01',
                 'employee_number' => 'EMP-001',
-                'late_days_count' => 0
+                'late_days_count' => 0,
+                'saturday_off' => true,
+                'sunday_off' => true
             ],
             [
                 'email' => 'skyfox@gmail.com',
                 'name' => 'Skyfox',
                 'join_date' => '2026-06-01',
                 'employee_number' => 'EMP-002',
-                'late_days_count' => 5
+                'late_days_count' => 5,
+                'saturday_off' => true,
+                'sunday_off' => false
             ],
             [
                 'email' => 'skyfoxmarket@gmail.com',
                 'name' => 'Skyfox Market',
                 'join_date' => '2026-06-17',
                 'employee_number' => 'EMP-003',
-                'late_days_count' => 0
+                'late_days_count' => 0,
+                'saturday_off' => false,
+                'sunday_off' => true
             ],
         ];
 
@@ -88,6 +94,8 @@ class PrivateDataSeeder extends Seeder
                     'join_date' => $emp['join_date'],
                     'employee_number' => $emp['employee_number'],
                     'division' => 'Operational',
+                    'saturday_off' => $emp['saturday_off'] ?? false,
+                    'sunday_off' => $emp['sunday_off'] ?? true,
                 ]
             );
 
@@ -127,8 +135,14 @@ class PrivateDataSeeder extends Seeder
                     continue;
                 }
 
-                // Skip Sundays
-                if ($currentDate->isSunday()) {
+                // Skip Sundays if Sunday off
+                if ($currentDate->isSunday() && ($emp['sunday_off'] ?? true)) {
+                    $currentDate->addDay();
+                    continue;
+                }
+
+                // Skip Saturdays if Saturday off
+                if ($currentDate->isSaturday() && ($emp['saturday_off'] ?? false)) {
                     $currentDate->addDay();
                     continue;
                 }
@@ -172,8 +186,15 @@ class PrivateDataSeeder extends Seeder
             // Get holidays count in active period
             $holidaysList = \App\Models\Holiday::whereBetween('holiday_date', [$startOfMonthPeriod->toDateString(), $endOfMonthPeriod->toDateString()])
                 ->get()
-                ->filter(function($h) {
-                    return !\Carbon\Carbon::parse($h->holiday_date)->isSunday();
+                ->filter(function($h) use ($user) {
+                    $carbonDate = \Carbon\Carbon::parse($h->holiday_date);
+                    if ($carbonDate->isSunday() && $user->sunday_off) {
+                        return false;
+                    }
+                    if ($carbonDate->isSaturday() && $user->saturday_off) {
+                        return false;
+                    }
+                    return true;
                 });
             $holidaysCount = $holidaysList->count();
 
@@ -187,19 +208,31 @@ class PrivateDataSeeder extends Seeder
                 }
             }
 
-            // Hitung hari kerja aktif (Senin–Sabtu) karyawan di masa aktifnya dalam bulan ini
+            // Hitung hari kerja aktif (mempertimbangkan hari libur perorangan)
             $activeWorkingDays = 0;
             $tempDate = $startOfPeriod->copy();
             while ($tempDate->lte($endOfMonthPeriod)) {
-                if (!$tempDate->isSunday()) {
+                $isOff = false;
+                if ($tempDate->isSunday() && $user->sunday_off) {
+                    $isOff = true;
+                } elseif ($tempDate->isSaturday() && $user->saturday_off) {
+                    $isOff = true;
+                }
+                if (!$isOff) {
                     $activeWorkingDays++;
                 }
                 $tempDate->addDay();
             }
 
-            // Hitung total hari libur nasional (Senin-Sabtu) yang jatuh di masa aktif karyawan
-            $holidaysInActivePeriod = $holidaysList->filter(function($h) use ($startOfPeriod, $endOfMonthPeriod) {
+            // Hitung total hari libur nasional yang jatuh di masa aktif karyawan
+            $holidaysInActivePeriod = $holidaysList->filter(function($h) use ($startOfPeriod, $endOfMonthPeriod, $user) {
                 $hDate = \Carbon\Carbon::parse($h->holiday_date);
+                if ($hDate->isSunday() && $user->sunday_off) {
+                    return false;
+                }
+                if ($hDate->isSaturday() && $user->saturday_off) {
+                    return false;
+                }
                 return $hDate->between($startOfPeriod, $endOfMonthPeriod);
             })->count();
 
@@ -256,21 +289,28 @@ class PrivateDataSeeder extends Seeder
                 $netSalary = 0;
             }
 
-            // Hitung total hari kerja efektif (Senin - Sabtu) di rentang cut-off tersebut untuk catatan
+            // Hitung total hari kerja efektif di rentang cut-off tersebut untuk catatan
             $workingDaysInMonth = 0;
             $tempDate = $startOfMonthPeriod->copy();
             while ($tempDate->lte($endOfMonthPeriod)) {
-                if (!$tempDate->isSunday()) {
+                $isOff = false;
+                if ($tempDate->isSunday() && $user->sunday_off) {
+                    $isOff = true;
+                } elseif ($tempDate->isSaturday() && $user->saturday_off) {
+                    $isOff = true;
+                }
+                if (!$isOff) {
                     $workingDaysInMonth++;
                 }
                 $tempDate->addDay();
             }
 
             // Susun catatan payroll yang mendetail dan transparan
+            $scheduleText = ($user->saturday_off && $user->sunday_off) ? "Sen–Jum" : ((!$user->saturday_off && !$user->sunday_off) ? "Sen–Min" : ($user->saturday_off ? "Sen–Jum & Min" : "Sen–Sab"));
             if ($isProrated) {
-                $notes = "Periode aktif (bergabung " . \Carbon\Carbon::parse($joinDate)->format('d-m-Y') . "): " . $startOfPeriod->format('d-m-Y') . " s.d " . $endOfMonthPeriod->format('d-m-Y') . ". Hari kerja aktif: $activeWorkingDays (Sen–Sab). Gaji Pokok Prorata: Rp" . number_format($baseBasicSalaryForPeriod, 0, ',', '.') . " ($activeWorkingDays/26 hari). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional aktif: $holidaysInActivePeriod. Lembur: 0 jam (Rp0) | Bonus: Rp0.";
+                $notes = "Periode aktif (bergabung " . \Carbon\Carbon::parse($joinDate)->format('d-m-Y') . "): " . $startOfPeriod->format('d-m-Y') . " s.d " . $endOfMonthPeriod->format('d-m-Y') . ". Hari kerja aktif: $activeWorkingDays ($scheduleText). Gaji Pokok Prorata: Rp" . number_format($baseBasicSalaryForPeriod, 0, ',', '.') . " ($activeWorkingDays/26 hari). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional aktif: $holidaysInActivePeriod. Lembur: 0 jam (Rp0) | Bonus: Rp0.";
             } else {
-                $notes = "Periode: " . $startOfMonthPeriod->format('d-m-Y') . " s.d " . $endOfMonthPeriod->format('d-m-Y') . ". Hari kerja: $workingDaysInMonth (Sen–Sab). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount. Lembur: 0 jam (Rp0) | Bonus: Rp0.";
+                $notes = "Periode: " . $startOfMonthPeriod->format('d-m-Y') . " s.d " . $endOfMonthPeriod->format('d-m-Y') . ". Hari kerja: $workingDaysInMonth ($scheduleText). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount. Lembur: 0 jam (Rp0) | Bonus: Rp0.";
             }
 
             \App\Models\Payroll::updateOrCreate(

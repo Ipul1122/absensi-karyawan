@@ -48,6 +48,8 @@ class AuthController extends Controller
                 'role'    => $user->role,
                 'company' => $user->company,
                 'photo'   => $user->photo ? asset('storage/' . $user->photo) : null,
+                'saturday_off' => (bool)$user->saturday_off,
+                'sunday_off' => (bool)$user->sunday_off,
             ]
         ]);
     }
@@ -113,6 +115,8 @@ class AuthController extends Controller
                 'no_rekening'     => $user->no_rekening,
                 'company'         => $user->company,
                 'whatsapp'        => $user->whatsapp,
+                'saturday_off'    => (bool)$user->saturday_off,
+                'sunday_off'      => (bool)$user->sunday_off,
             ]
         ]);
     }

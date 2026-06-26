@@ -40,6 +40,8 @@ interface Employee {
   division?: string | null
   company?: string | null
   status?: 'active' | 'pending' | 'pending_delete'
+  saturday_off?: boolean | number
+  sunday_off?: boolean | number
 }
 
 interface RekapAbsensiProps {
@@ -72,8 +74,8 @@ export default function RekapAbsensi({
   const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'sales_visits' | 'client_visits'>('attendance')
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily')
 
-  // Helper to calculate total working days in reportMonth (excluding Sundays)
-  const getWorkingDaysCount = (monthStr: string) => {
+  // Helper to calculate total working days in reportMonth (excluding Sundays/Saturdays based on user schedule settings)
+  const getWorkingDaysCount = (monthStr: string, emp: Employee) => {
     if (!monthStr) return 0
     const [year, month] = monthStr.split('-').map(Number)
     const now = new Date()
@@ -90,10 +92,21 @@ export default function RekapAbsensi({
       return 0
     }
 
+    const isSatOff = !!emp.saturday_off
+    const isSunOff = emp.sunday_off !== false
+
     let workingDays = 0
     for (let d = 1; d <= endDay; d++) {
       const dayOfWeek = new Date(year, month - 1, d).getDay()
-      if (dayOfWeek !== 0) { // Exclude Sunday
+      
+      let isOff = false
+      if (dayOfWeek === 0 && isSunOff) {
+        isOff = true
+      } else if (dayOfWeek === 6 && isSatOff) {
+        isOff = true
+      }
+
+      if (!isOff) {
         workingDays++
       }
     }
@@ -102,9 +115,9 @@ export default function RekapAbsensi({
 
   // Calculate aggregated stats for all employees for the selected reportMonth
   const getEmployeeMonthlyStats = () => {
-    const workingDays = getWorkingDaysCount(reportMonth)
-
     return employees.map((emp) => {
+      const workingDays = getWorkingDaysCount(reportMonth, emp)
+
       // 1. Filter user attendances for this month
       const userMonthAtt = attendances.filter(
         (att) => att.user.id === emp.id && att.date.startsWith(reportMonth)
@@ -121,7 +134,10 @@ export default function RekapAbsensi({
         (l) => l.user_id === emp.id && l.status === 'approved'
       )
 
-      // Calculate leave days count that overlap with the selected month and are not Sundays
+      const isSatOff = !!emp.saturday_off
+      const isSunOff = emp.sunday_off !== false
+
+      // Calculate leave days count that overlap with the selected month and are not employee off days
       let leaveDaysCount = 0
       if (reportMonth) {
         const [year, month] = reportMonth.split('-').map(Number)
@@ -129,9 +145,16 @@ export default function RekapAbsensi({
         
         for (let d = 1; d <= daysInMonth; d++) {
           const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-          const isSunday = new Date(year, month - 1, d).getDay() === 0
+          const dayOfWeek = new Date(year, month - 1, d).getDay()
+          
+          let isOff = false
+          if (dayOfWeek === 0 && isSunOff) {
+            isOff = true
+          } else if (dayOfWeek === 6 && isSatOff) {
+            isOff = true
+          }
 
-          if (!isSunday) {
+          if (!isOff) {
             // Check if dateStr is within any of the user leaves range
             const isOnLeave = userLeaves.some(
               (l) => dateStr >= l.start_date && dateStr <= l.end_date

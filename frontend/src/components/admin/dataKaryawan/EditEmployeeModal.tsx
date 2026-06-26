@@ -15,6 +15,10 @@ interface EditEmployeeModalProps {
   setCompany: (v: string) => void
   whatsapp: string
   setWhatsapp: (v: string) => void
+  saturdayOff: boolean
+  setSaturdayOff: (v: boolean) => void
+  sundayOff: boolean
+  setSundayOff: (v: boolean) => void
   submitting: boolean
   onViewBiodata?: () => void
 }
@@ -34,6 +38,10 @@ export default function EditEmployeeModal({
   setCompany,
   whatsapp,
   setWhatsapp,
+  saturdayOff,
+  setSaturdayOff,
+  sundayOff,
+  setSundayOff,
   submitting,
   onViewBiodata,
 }: EditEmployeeModalProps) {
@@ -170,6 +178,36 @@ export default function EditEmployeeModal({
                 className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs"
               />
             </div>
+          </div>
+
+          <div className="space-y-2 mt-2">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={saturdayOff}
+                onChange={(e) => setSaturdayOff(e.target.checked)}
+                className="w-4 h-4 accent-red-500 rounded border-slate-300 text-red-650 focus:ring-red-500 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-slate-700 font-quicksand">
+                Libur Hari Sabtu (Jadwal 5 Hari Kerja)
+              </span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={sundayOff}
+                onChange={(e) => setSundayOff(e.target.checked)}
+                className="w-4 h-4 accent-red-500 rounded border-slate-300 text-red-650 focus:ring-red-500 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-slate-700 font-quicksand">
+                Libur Hari Minggu (Jadwal Standar)
+              </span>
+            </label>
+            
+            <p className="text-[10px] text-slate-400 mt-1 font-quicksand leading-relaxed">
+              * Jika checkbox libur diaktifkan, hari tersebut tidak dihitung sebagai hari kerja wajib (tidak dianggap Alpa).
+            </p>
           </div>
 
           <div className="pt-3 flex items-center justify-end gap-3">

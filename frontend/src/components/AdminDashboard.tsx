@@ -16,7 +16,7 @@ import {
 import AdminSidebar from './layout/AdminSidebar'
 import AdminNavbar, { AdminMobileNavbar } from './layout/AdminNavbar'
 
-// Import sub-components (Lazy Loaded to resolve Vite chunk size warning)
+// Import sub-components (Lazy loaded for optimal code splitting & chunk sizing)
 const DashboardOverview = lazy(() => import('./admin/dashboard/DashboardOverview'))
 const RekapAbsensi = lazy(() => import('./admin/absensi/RekapAbsensi'))
 const AbsenMandiriAdmin = lazy(() => import('./admin/absensi/AbsenMandiriAdmin'))
@@ -30,11 +30,12 @@ const AdminInventaris = lazy(() => import('./admin/operasional/AdminInventaris')
 const AdminReimbursement = lazy(() => import('./admin/operasional/AdminReimbursement'))
 const AdminBonus = lazy(() => import('./admin/payroll/AdminBonus'))
 const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
-const AddEmployeeModal = lazy(() => import('./admin/dataKaryawan/AddEmployeeModal'))
-const EditEmployeeModal = lazy(() => import('./admin/dataKaryawan/EditEmployeeModal'))
-const ViewEmployeeModal = lazy(() => import('./admin/dataKaryawan/ViewEmployeeModal'))
-const DetailAttendanceModal = lazy(() => import('./admin/absensi/DetailAttendanceModal'))
-const EditTimeModal = lazy(() => import('./admin/absensi/EditTimeModal'))
+
+import AddEmployeeModal from './admin/dataKaryawan/AddEmployeeModal'
+import EditEmployeeModal from './admin/dataKaryawan/EditEmployeeModal'
+import ViewEmployeeModal from './admin/dataKaryawan/ViewEmployeeModal'
+import DetailAttendanceModal from './admin/absensi/DetailAttendanceModal'
+import EditTimeModal from './admin/absensi/EditTimeModal'
 
 interface Employee {
   id: number
@@ -813,8 +814,8 @@ ${window.location.origin}/director/karyawan`
         <main className="flex-grow p-6 md:p-8 overflow-y-auto">
           {/* Nested Routing Views */}
           <Suspense fallback={
-            <div className="h-64 flex flex-col items-center justify-center text-slate-500 font-sans text-xs">
-              <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500 font-sans text-xs">
+              <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-2 text-orange-500"></div>
               Memuat halaman...
             </div>
           }>
@@ -1025,25 +1026,28 @@ ${window.location.origin}/director/karyawan`
       </Suspense>
 
       {/* Edit Employee Modal */}
-      <Suspense fallback={null}>
-        <EditEmployeeModal
-          show={showEditEmployeeModal}
-          onClose={() => setShowEditEmployeeModal(false)}
-          onSubmit={handleEditEmployee}
-          name={editName}
-          setName={setEditName}
-          email={editEmail}
-          password={editPassword}
-          setPassword={setEditPassword}
-
-          saturdayOff={editSaturdayOff}
-          setSaturdayOff={setEditSaturdayOff}
-          sundayOff={editSundayOff}
-          setSundayOff={setEditSundayOff}
-          submitting={submittingEdit}
-          onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
-        />
-      </Suspense>
+      <EditEmployeeModal
+        show={showEditEmployeeModal}
+        onClose={() => setShowEditEmployeeModal(false)}
+        onSubmit={handleEditEmployee}
+        name={editName}
+        setName={setEditName}
+        email={editEmail}
+        password={editPassword}
+        setPassword={setEditPassword}
+        noRekening={editNoRekening}
+        setNoRekening={setEditNoRekening}
+        company={editCompany}
+        setCompany={setEditCompany}
+        whatsapp={editWhatsapp}
+        setWhatsapp={setEditWhatsapp}
+        saturdayOff={editSaturdayOff}
+        setSaturdayOff={setEditSaturdayOff}
+        sundayOff={editSundayOff}
+        setSundayOff={setEditSundayOff}
+        submitting={submittingEdit}
+        onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
+      />
 
       {/* View Biodata Modal (Admin) */}
       <Suspense fallback={null}>

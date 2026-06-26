@@ -13,7 +13,11 @@ import {
   Camera,
   FileText,
   FileUp,
+<<<<<<< HEAD
   Building2
+=======
+  Building2,
+>>>>>>> 7982f3728ee25815bbdb64d00253b7d206e625ca
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 

@@ -145,15 +145,34 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
       }
     } catch (err: any) {
       console.error('Gagal mengatur notifikasi push:', err)
-      Swal.fire({
-        title: 'Kesalahan Sistem',
-        text: err.response?.data?.message || err.message || 'Terjadi kegagalan saat menghubungi server.',
-        icon: 'error',
-        confirmButtonText: 'Tutup',
-        background: '#fffdfb',
-        color: '#3c1105',
-        confirmButtonColor: '#ea580c'
-      })
+      const errMsg = err.message || '';
+      const errName = err.name || '';
+      const isPermissionDenied = errMsg.includes('permission denied') || 
+                                 errMsg.includes('denied') || 
+                                 errName === 'AbortError' || 
+                                 errName === 'NotAllowedError';
+
+      if (isPermissionDenied) {
+        Swal.fire({
+          title: 'Izin Notifikasi Ditolak / Dibatasi 🚫',
+          text: 'Browser Anda memblokir notifikasi push. Ini biasanya terjadi jika Anda menggunakan Mode Penyamaran (Incognito), memblokir izin notifikasi di setelan browser, atau browser tidak mendukung fitur ini.',
+          icon: 'warning',
+          confirmButtonText: 'Mengerti',
+          background: '#fffdfb',
+          color: '#3c1105',
+          confirmButtonColor: '#ea580c'
+        })
+      } else {
+        Swal.fire({
+          title: 'Kesalahan Sistem',
+          text: err.response?.data?.message || err.message || 'Terjadi kegagalan saat menghubungi server.',
+          icon: 'error',
+          confirmButtonText: 'Tutup',
+          background: '#fffdfb',
+          color: '#3c1105',
+          confirmButtonColor: '#ea580c'
+        })
+      }
     } finally {
       setLoadingNotification(false)
     }

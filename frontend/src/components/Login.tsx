@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
+import { Link } from 'react-router-dom'
 import axios from 'axios'
+
 import Swal from 'sweetalert2'
 import {
   Mail,
@@ -543,14 +545,14 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
       ══════════════════════════════════════ */}
       <footer className="w-full border-t border-slate-200/45 bg-white/60 backdrop-blur-md px-6 sm:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0 z-10">
         <p className="text-[11px] text-slate-400 font-semibold text-center sm:text-left">
-          © 2024 Portal Absensi Karyawan. All rights reserved.
+          © 2025 Portal Absensi Karyawan. All rights reserved.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-slate-400 font-semibold">
-          <a href="#" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Privacy Policy</a>
+          <Link to="/privacy-policy" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Privacy Policy</Link>
           <span className="hidden sm:inline text-slate-300">•</span>
-          <a href="#" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Terms of Service</a>
+          <Link to="/terms-of-service" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Terms of Service</Link>
           <span className="hidden sm:inline text-slate-300">•</span>
-          <a href="#" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Security Compliance</a>
+          <Link to="/security-compliance" className="hover:text-slate-600 transition-colors active:scale-95 duration-150">Security Compliance</Link>
         </div>
       </footer>
 

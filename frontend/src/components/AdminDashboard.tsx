@@ -16,7 +16,11 @@ import {
 import AdminSidebar from './layout/AdminSidebar'
 import AdminNavbar, { AdminMobileNavbar } from './layout/AdminNavbar'
 
+<<<<<<< HEAD
 // Import sub-components (Lazy loaded for optimal code splitting & chunk sizing)
+=======
+// Import sub-components (Lazy Loaded to resolve Vite chunk size warning)
+>>>>>>> 167276465a21a09907505cf0cc51b19099227dbb
 const DashboardOverview = lazy(() => import('./admin/dashboard/DashboardOverview'))
 const RekapAbsensi = lazy(() => import('./admin/absensi/RekapAbsensi'))
 const AbsenMandiriAdmin = lazy(() => import('./admin/absensi/AbsenMandiriAdmin'))
@@ -30,12 +34,21 @@ const AdminInventaris = lazy(() => import('./admin/operasional/AdminInventaris')
 const AdminReimbursement = lazy(() => import('./admin/operasional/AdminReimbursement'))
 const AdminBonus = lazy(() => import('./admin/payroll/AdminBonus'))
 const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
+<<<<<<< HEAD
 
 import AddEmployeeModal from './admin/dataKaryawan/AddEmployeeModal'
 import EditEmployeeModal from './admin/dataKaryawan/EditEmployeeModal'
 import ViewEmployeeModal from './admin/dataKaryawan/ViewEmployeeModal'
 import DetailAttendanceModal from './admin/absensi/DetailAttendanceModal'
 import EditTimeModal from './admin/absensi/EditTimeModal'
+=======
+const AddEmployeeModal = lazy(() => import('./admin/dataKaryawan/AddEmployeeModal'))
+const EditEmployeeModal = lazy(() => import('./admin/dataKaryawan/EditEmployeeModal'))
+const ViewEmployeeModal = lazy(() => import('./admin/dataKaryawan/ViewEmployeeModal'))
+const DetailAttendanceModal = lazy(() => import('./admin/absensi/DetailAttendanceModal'))
+const EditTimeModal = lazy(() => import('./admin/absensi/EditTimeModal'))
+
+>>>>>>> 167276465a21a09907505cf0cc51b19099227dbb
 
 interface Employee {
   id: number
@@ -821,12 +834,18 @@ ${window.location.origin}/director/karyawan`
         <main className="flex-grow p-6 md:p-8 overflow-y-auto">
           {/* Nested Routing Views */}
           <Suspense fallback={
+<<<<<<< HEAD
             <div className="flex flex-col items-center justify-center py-12 text-slate-500 font-sans text-xs">
               <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-2 text-orange-500"></div>
+=======
+            <div className="h-64 flex flex-col items-center justify-center text-slate-500 font-sans text-xs">
+              <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+>>>>>>> 167276465a21a09907505cf0cc51b19099227dbb
               Memuat halaman...
             </div>
           }>
             <Routes>
+<<<<<<< HEAD
             <Route 
               path="dashboard" 
               element={
@@ -1020,17 +1039,215 @@ ${window.location.origin}/director/karyawan`
           </Routes>
         </Suspense>
       </main>
+=======
+              <Route 
+                path="dashboard" 
+                element={
+                  <DashboardOverview
+                    loading={loading}
+                    attendanceLoading={attendanceLoading}
+                    employees={employees}
+                    presentTodayCount={presentToday.length}
+                    presentTodayList={presentToday}
+                    todayStr={todayStr}
+                    user={user}
+                    token={token}
+                    time={time}
+                    officeSetting={
+                      officeLatitude && officeLongitude 
+                        ? { latitude: officeLatitude, longitude: officeLongitude, radius: officeRadius }
+                        : null
+                    }
+                    leaves={leaves}
+                    fetchAttendances={fetchAttendances}
+                  />
+                } 
+              />
+              <Route 
+                path="absen-mandiri" 
+                element={
+                  <AbsenMandiriAdmin 
+                    token={token} 
+                    user={user} 
+                  />
+                } 
+              />
+              <Route 
+                path="rekapAbsensi" 
+                element={
+                  <RekapAbsensi
+                    token={token}
+                    employees={employees}
+                    attendanceLoading={attendanceLoading}
+                    attendances={attendances}
+                    fetchAttendances={fetchAttendances}
+                    formatDate={formatDate}
+                    getStatusBadge={getStatusBadge}
+                    setSelectedAttendance={setSelectedAttendance}
+                    officeLatitude={officeLatitude}
+                    officeLongitude={officeLongitude}
+                    leaves={leaves}
+                  />
+                } 
+              />
+              <Route 
+                path="akunKaryawan" 
+                element={
+                  <AkunKaryawan
+                    loading={loading}
+                    filteredEmployees={filteredEmployees}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    handleDeleteEmployee={handleDeleteEmployee}
+                    onEditClick={handleOpenEditEmployeeModal}
+                    setShowModal={setShowModal}
+                    formatDate={formatDate}
+                    token={token}
+                    onRefresh={fetchEmployees}
+                  />
+                } 
+              />
+              <Route 
+                path="lokasiKantor" 
+                element={
+                  <LokasiKantor
+                    officeLatitude={officeLatitude}
+                    setOfficeLatitude={setOfficeLatitude}
+                    officeLongitude={officeLongitude}
+                    setOfficeLongitude={setOfficeLongitude}
+                    officeRadius={officeRadius}
+                    setOfficeRadius={setOfficeRadius}
+                    savingOffice={savingOffice}
+                    handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                    user={user}
+                    token={token}
+                    onProfileUpdate={onProfileUpdate}
+                    initialTab="lokasi"
+                  />
+                } 
+              />
+              <Route 
+                path="keamanan" 
+                element={
+                  <LokasiKantor
+                    officeLatitude={officeLatitude}
+                    setOfficeLatitude={setOfficeLatitude}
+                    officeLongitude={officeLongitude}
+                    setOfficeLongitude={setOfficeLongitude}
+                    officeRadius={officeRadius}
+                    setOfficeRadius={setOfficeRadius}
+                    savingOffice={savingOffice}
+                    handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                    user={user}
+                    token={token}
+                    onProfileUpdate={onProfileUpdate}
+                    initialTab="akun"
+                  />
+                } 
+              />
+              <Route 
+                path="biodata" 
+                element={
+                  <LokasiKantor
+                    officeLatitude={officeLatitude}
+                    setOfficeLatitude={setOfficeLatitude}
+                    officeLongitude={officeLongitude}
+                    setOfficeLongitude={setOfficeLongitude}
+                    officeRadius={officeRadius}
+                    setOfficeRadius={setOfficeRadius}
+                    savingOffice={savingOffice}
+                    handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                    user={user}
+                    token={token}
+                    onProfileUpdate={onProfileUpdate}
+                    initialTab="biodata"
+                  />
+                } 
+              />
+              <Route 
+                path="hariLibur" 
+                element={
+                  <AdminKelolaHariLibur
+                    token={token}
+                  />
+                } 
+              />
+              <Route 
+                path="cuti" 
+                element={
+                  <AdminCuti
+                    token={token}
+                  />
+                } 
+              />
+              <Route 
+                path="inventaris" 
+                element={
+                  <AdminInventaris
+                    token={token}
+                  />
+                } 
+              />
+              <Route 
+                path="payroll" 
+                element={
+                  <AdminPayroll
+                    token={token}
+                  />
+                } 
+              />
+              <Route 
+                path="payroll-config" 
+                element={
+                  <AdminSalaryConfig
+                    token={token}
+                  />
+                } 
+              />
+              <Route 
+                path="reimbursement" 
+                element={
+                  <AdminReimbursement
+                    token={token}
+                  />
+                } 
+              />
+              <Route 
+                path="bonus" 
+                element={
+                  <AdminBonus
+                    token={token}
+                  />
+                } 
+              />
+              <Route 
+                path="lembur" 
+                element={
+                  <AdminOvertime
+                    token={token}
+                  />
+                } 
+              />
+              {/* Default fallback route */}
+              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+            </Routes>
+          </Suspense>
+        </main>
+>>>>>>> 167276465a21a09907505cf0cc51b19099227dbb
       </div>
 
       {/* Add Employee Modal */}
-      <AddEmployeeModal
-        show={showModal}
-        onClose={() => setShowModal(false)}
-        onSubmit={handleAddEmployee}
-        submitting={submitting}
-      />
+      <Suspense fallback={null}>
+        <AddEmployeeModal
+          show={showModal}
+          onClose={() => setShowModal(false)}
+          onSubmit={handleAddEmployee}
+          submitting={submitting}
+        />
+      </Suspense>
 
       {/* Edit Employee Modal */}
+<<<<<<< HEAD
       <EditEmployeeModal
         show={showEditEmployeeModal}
         onClose={() => setShowEditEmployeeModal(false)}
@@ -1053,47 +1270,75 @@ ${window.location.origin}/director/karyawan`
         submitting={submittingEdit}
         onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
       />
+=======
+      <Suspense fallback={null}>
+        <EditEmployeeModal
+          show={showEditEmployeeModal}
+          onClose={() => setShowEditEmployeeModal(false)}
+          onSubmit={handleEditEmployee}
+          name={editName}
+          setName={setEditName}
+          email={editEmail}
+          password={editPassword}
+          setPassword={setEditPassword}
+          noRekening={editNoRekening}
+          setNoRekening={setEditNoRekening}
+          company={editCompany}
+          setCompany={setEditCompany}
+          whatsapp={editWhatsapp}
+          setWhatsapp={setEditWhatsapp}
+          submitting={submittingEdit}
+          onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
+        />
+      </Suspense>
+>>>>>>> 167276465a21a09907505cf0cc51b19099227dbb
 
       {/* View Biodata Modal (Admin) */}
-      <ViewEmployeeModal
-        show={showViewModal}
-        onClose={() => setShowViewModal(false)}
-        profile={viewProfile}
-        onRefresh={() => {
-          fetchEmployees()
-          setShowEditEmployeeModal(false)
-        }}
-        token={token}
-      />
+      <Suspense fallback={null}>
+        <ViewEmployeeModal
+          show={showViewModal}
+          onClose={() => setShowViewModal(false)}
+          profile={viewProfile}
+          onRefresh={() => {
+            fetchEmployees()
+            setShowEditEmployeeModal(false)
+          }}
+          token={token}
+        />
+      </Suspense>
 
       {/* Detail Attendance Modal */}
-      <DetailAttendanceModal
-        attendance={selectedAttendance}
-        onClose={() => setSelectedAttendance(null)}
-        formatDate={formatDate}
-        getStatusBadge={getStatusBadge}
-        token={token}
-        officeLatitude={officeLatitude}
-        officeLongitude={officeLongitude}
-        onEditClick={selectedAttendance ? () => {
-          handleOpenEditModal(selectedAttendance)
-          setSelectedAttendance(null)
-        } : undefined}
-      />
+      <Suspense fallback={null}>
+        <DetailAttendanceModal
+          attendance={selectedAttendance}
+          onClose={() => setSelectedAttendance(null)}
+          formatDate={formatDate}
+          getStatusBadge={getStatusBadge}
+          token={token}
+          officeLatitude={officeLatitude}
+          officeLongitude={officeLongitude}
+          onEditClick={selectedAttendance ? () => {
+            handleOpenEditModal(selectedAttendance)
+            setSelectedAttendance(null)
+          } : undefined}
+        />
+      </Suspense>
 
       {/* Edit Time Modal */}
-      <EditTimeModal
-        show={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSubmit={handleEditTimeSubmit}
-        attendance={editingAttendance}
-        editClockIn={editClockIn}
-        setEditClockIn={setEditClockIn}
-        editClockOut={editClockOut}
-        setEditClockOut={setEditClockOut}
-        updating={updating}
-        formatDate={formatDate}
-      />
+      <Suspense fallback={null}>
+        <EditTimeModal
+          show={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSubmit={handleEditTimeSubmit}
+          attendance={editingAttendance}
+          editClockIn={editClockIn}
+          setEditClockIn={setEditClockIn}
+          editClockOut={editClockOut}
+          setEditClockOut={setEditClockOut}
+          updating={updating}
+          formatDate={formatDate}
+        />
+      </Suspense>
     </div>
   )
 }

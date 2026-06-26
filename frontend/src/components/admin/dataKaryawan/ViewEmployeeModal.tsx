@@ -19,7 +19,6 @@ import {
   Camera,
   FileUp,
   Building2,
-  Phone
 } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
 

@@ -154,6 +154,9 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editPassword, setEditPassword] = useState('')
+  const [editNoRekening, setEditNoRekening] = useState('')
+  const [editCompany, setEditCompany] = useState('')
+  const [editWhatsapp, setEditWhatsapp] = useState('')
 
   const [editSaturdayOff, setEditSaturdayOff] = useState(false)
   const [editSundayOff, setEditSundayOff] = useState(true)
@@ -471,6 +474,9 @@ ${window.location.origin}/director/karyawan`
     setEditName(employee.name)
     setEditEmail(employee.email)
     setEditPassword('')
+    setEditNoRekening(employee.no_rekening || '')
+    setEditCompany(employee.company || '')
+    setEditWhatsapp(employee.whatsapp || '')
 
     setEditSaturdayOff(!!employee.saturday_off)
     setEditSundayOff(employee.sunday_off !== false)
@@ -512,7 +518,9 @@ ${window.location.origin}/director/karyawan`
         {
           name: editName,
           password: editPassword || null,
-
+          no_rekening: editNoRekening || null,
+          company: editCompany || null,
+          whatsapp: editWhatsapp || null,
           saturday_off: editSaturdayOff ? '1' : '0',
           sunday_off: editSundayOff ? '1' : '0'
         },
@@ -537,6 +545,9 @@ ${window.location.origin}/director/karyawan`
         setEditName('')
         setEditEmail('')
         setEditPassword('')
+        setEditNoRekening('')
+        setEditCompany('')
+        setEditWhatsapp('')
         setEditSaturdayOff(false)
         setEditSundayOff(true)
         fetchEmployees() // Refresh employees list

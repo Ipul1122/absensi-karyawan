@@ -50,6 +50,7 @@ class AuthController extends Controller
                 'photo'   => $user->photo ? asset('storage/' . $user->photo) : null,
                 'saturday_off' => (bool)$user->saturday_off,
                 'sunday_off' => (bool)$user->sunday_off,
+                'vapid_public_key' => env('VAPID_PUBLIC_KEY'),
             ]
         ]);
     }
@@ -118,6 +119,7 @@ class AuthController extends Controller
                 'whatsapp'        => $user->whatsapp,
                 'saturday_off'    => (bool)$user->saturday_off,
                 'sunday_off'      => (bool)$user->sunday_off,
+                'vapid_public_key' => env('VAPID_PUBLIC_KEY'),
             ]
         ]);
     }

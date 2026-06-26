@@ -31,6 +31,12 @@ import EmployeeReimbursement from './employee/operasional/EmployeeReimbursement'
 import EmployeeBonus from './employee/payroll/EmployeeBonus'
 import EmployeeOvertime from './employee/operasional/EmployeeOvertime'
 import { getAssetUrl } from '../utils/api'
+import {
+  isPushNotificationSupported,
+  getExistingSubscription,
+  askNotificationPermission,
+  subscribeUserToPush
+} from '../utils/pushNotificationHelper'
 
 interface User {
   id: number
@@ -158,6 +164,62 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     }
   }
 
+  const checkAndOfferPushNotifications = async (authToken: string, userProfile: any) => {
+    if (!isPushNotificationSupported()) return
+
+    try {
+      const existing = await getExistingSubscription()
+      if (existing) return
+
+      const promptShown = localStorage.getItem('push_notification_prompt_shown')
+      if (promptShown) return
+
+      localStorage.setItem('push_notification_prompt_shown', 'true')
+
+      // Berikan jeda 3 detik sebelum menawarkan agar transisi mulus
+      setTimeout(() => {
+        Swal.fire({
+          title: 'Aktifkan Pengingat Absensi? 🔔',
+          text: 'Menerima notifikasi langsung di handphone Anda sebelum jam kerja (08:30) agar tidak terlambat absen.',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Aktifkan Sekarang',
+          cancelButtonText: 'Lain Kali',
+          confirmButtonColor: '#4f46e5',
+          cancelButtonColor: '#64748b',
+          background: '#fffdfb',
+          color: '#3c1105'
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            try {
+              const permission = await askNotificationPermission()
+              if (permission === 'granted') {
+                if (!userProfile.vapid_public_key) {
+                  console.error('Kunci VAPID tidak tersedia di data profil.')
+                  return
+                }
+                await subscribeUserToPush(authToken, userProfile.vapid_public_key)
+                Swal.fire({
+                  title: 'Berhasil! 🎉',
+                  text: 'Notifikasi push HP aktif. Anda akan menerima pengingat absensi otomatis setiap pagi.',
+                  icon: 'success',
+                  confirmButtonColor: '#4f46e5',
+                  background: '#fffdfb',
+                  color: '#3c1105'
+                })
+              }
+            } catch (err: any) {
+              console.error('Gagal melakukan pendaftaran push:', err)
+            }
+          }
+        })
+      }, 3500)
+
+    } catch (err) {
+      console.error('Gagal mengecek status push notification:', err)
+    }
+  }
+
   const fetchProfile = async () => {
     try {
       const response = await axios.get('http://localhost:8000/api/user/profile', {
@@ -166,6 +228,8 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       if (response.data.status === 'success') {
         setCompany(response.data.data.company || '')
         setProfile(response.data.data)
+        // Tawarkan push notifications secara cerdas
+        checkAndOfferPushNotifications(token, response.data.data)
       }
     } catch (err) {
       console.error('Gagal mengambil data profil karyawan:', err)
@@ -188,7 +252,19 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   // Determine current step
   const getAttendanceState = () => {
     if (loading) return 'loading' as const
-    if (!todayAttendance || !todayAttendance.clock_in) return 'needs_checkin' as const
+
+    // Evaluasi hari libur kerja mingguan
+    const dayOfWeek = time.getDay() // 0 = Minggu, 6 = Sabtu
+    const isSatOff = profile ? !!profile.saturday_off : false
+    const isSunOff = profile ? profile.sunday_off !== false : true
+    const isOffDay = (dayOfWeek === 6 && isSatOff) || (dayOfWeek === 0 && isSunOff)
+
+    if (!todayAttendance || !todayAttendance.clock_in) {
+      if (isOffDay) {
+        return 'day_off' as const
+      }
+      return 'needs_checkin' as const
+    }
     if (!todayAttendance.clock_out) return 'needs_checkout' as const
     return 'completed' as const
   }

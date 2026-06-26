@@ -1,5 +1,5 @@
 interface RobotMascotProps {
-  state: 'loading' | 'needs_checkin' | 'needs_checkout' | 'completed'
+  state: 'loading' | 'needs_checkin' | 'needs_checkout' | 'completed' | 'day_off'
 }
 
 export default function RobotMascot({ state }: RobotMascotProps) {
@@ -74,6 +74,13 @@ export default function RobotMascot({ state }: RobotMascotProps) {
         </div>
       )}
 
+      {/* Speech Bubble (only for day_off) */}
+      {state === 'day_off' && (
+        <div className="absolute -top-3 bg-indigo-600 text-white text-[9px] font-black py-1 px-2.5 rounded-full shadow-md tracking-wide border border-indigo-500 after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-indigo-600 z-30">
+          SELAMAT LIBUR! ☕
+        </div>
+      )}
+
       <svg viewBox="0 0 200 200" className="w-full h-full">
         <defs>
           {/* Gradients */}
@@ -105,8 +112,8 @@ export default function RobotMascot({ state }: RobotMascotProps) {
           </filter>
         </defs>
 
-        {/* Decorative Sparkles (completed state) */}
-        {state === 'completed' && (
+        {/* Decorative Sparkles (completed or day_off state) */}
+        {(state === 'completed' || state === 'day_off') && (
           <>
             <path className="animate-sparkle-1" d="M 40 45 L 42 40 L 40 35 L 38 40 Z" fill="#eab308" filter="url(#glow)" />
             <path className="animate-sparkle-1" d="M 35 40 L 40 40 L 45 40 Z" stroke="#eab308" strokeWidth="1" />
@@ -117,7 +124,7 @@ export default function RobotMascot({ state }: RobotMascotProps) {
         )}
 
         {/* Main Floating Group */}
-        <g className={state === 'completed' ? 'animate-float animate-dance' : 'animate-float'}>
+        <g className={(state === 'completed' || state === 'day_off') ? 'animate-float animate-dance' : 'animate-float'}>
 
           {/* Antennas / Gear */}
           {state === 'needs_checkout' ? (
@@ -131,10 +138,10 @@ export default function RobotMascot({ state }: RobotMascotProps) {
             <>
               {/* Left Antenna */}
               <line x1="75" y1="45" x2="65" y2="28" stroke="#cbd5e1" strokeWidth="3" strokeLinecap="round" />
-              <circle cx="65" cy="28" r="4" fill={state === 'completed' ? '#f43f5e' : '#ea580c'} />
+              <circle cx="65" cy="28" r="4" fill={state === 'completed' ? '#f43f5e' : state === 'day_off' ? '#6366f1' : '#ea580c'} />
               {/* Right Antenna */}
               <line x1="125" y1="45" x2="135" y2="28" stroke="#cbd5e1" strokeWidth="3" strokeLinecap="round" />
-              <circle cx="135" cy="28" r="4" fill={state === 'completed' ? '#f43f5e' : '#ea580c'} />
+              <circle cx="135" cy="28" r="4" fill={state === 'completed' ? '#f43f5e' : state === 'day_off' ? '#6366f1' : '#ea580c'} />
             </>
           )}
 
@@ -149,11 +156,11 @@ export default function RobotMascot({ state }: RobotMascotProps) {
           <rect x="68" y="53" width="64" height="42" rx="16" fill="url(#screen-grad)" />
 
           {/* Eyes based on State */}
-          {state === 'needs_checkin' && (
-            /* Waving eyes (happy Senyum arcs) */
+          {(state === 'needs_checkin' || state === 'day_off') && (
+            /* Waving/Calm eyes (happy Senyum arcs) */
             <g filter="url(#glow)">
-              <path d="M 78 74 Q 85 64 92 74" fill="none" stroke="url(#eyes-glow)" strokeWidth="3.5" strokeLinecap="round" />
-              <path d="M 108 74 Q 115 64 122 74" fill="none" stroke="url(#eyes-glow)" strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M 78 74 Q 85 64 92 74" fill="none" stroke={state === 'day_off' ? '#818cf8' : 'url(#eyes-glow)'} strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M 108 74 Q 115 64 122 74" fill="none" stroke={state === 'day_off' ? '#818cf8' : 'url(#eyes-glow)'} strokeWidth="3.5" strokeLinecap="round" />
             </g>
           )}
 
@@ -186,7 +193,7 @@ export default function RobotMascot({ state }: RobotMascotProps) {
           )}
 
           {/* Loading / Fallback State */}
-          {(state === 'loading' || !state) && (
+          {state === 'loading' && (
             <g filter="url(#glow)">
               <circle cx="85" cy="74" r="4.5" fill="url(#eyes-glow)" />
               <circle cx="115" cy="74" r="4.5" fill="url(#eyes-glow)" />
@@ -199,7 +206,7 @@ export default function RobotMascot({ state }: RobotMascotProps) {
           {/* BODY */}
           <path d="M 80 110 L 120 110 Q 135 110 130 140 L 70 140 Q 65 110 80 110 Z" fill="url(#body-grad)" stroke="#cbd5e1" strokeWidth="1.5" />
           {/* Logo on Body */}
-          <circle cx="100" cy="123" r="7.5" fill={state === 'completed' ? '#059669' : '#ea580c'} />
+          <circle cx="100" cy="123" r="7.5" fill={state === 'completed' ? '#059669' : state === 'day_off' ? '#4f46e5' : '#ea580c'} />
           <path d="M 100 118.5 L 100 127.5 M 95.5 123 L 104.5 123" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
 
           {/* Hologram Projector & Laptop (only for needs_checkout) */}
@@ -242,14 +249,14 @@ export default function RobotMascot({ state }: RobotMascotProps) {
             </>
           )}
 
-          {/* Completed State: Relaxed Arm + Cup Straw */}
-          {state === 'completed' && (
+          {/* Completed / Day Off State: Relaxed Arm + Cup Straw */}
+          {(state === 'completed' || state === 'day_off') && (
             <>
               {/* Left Arm holding a drink */}
               <g transform="rotate(35, 57, 112)">
                 <rect x="52" y="112" width="10" height="24" rx="5" fill="url(#body-dark-grad)" stroke="#cbd5e1" strokeWidth="1" />
                 {/* Cocktail Drink / Coffee Cup */}
-                <path d="M 46 132 L 58 132 L 56 142 Q 52 145 48 142 Z" fill="#f43f5e" />
+                <path d="M 46 132 L 58 132 L 56 142 Q 52 145 48 142 Z" fill={state === 'day_off' ? '#4f46e5' : '#f43f5e'} />
                 <line x1="52" y1="132" x2="48" y2="122" stroke="#ea580c" strokeWidth="2.5" strokeLinecap="round" />
               </g>
               {/* Right Arm Waving Santai */}

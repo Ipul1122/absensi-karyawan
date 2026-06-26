@@ -139,5 +139,13 @@ class User extends Authenticatable
     {
         return $this->hasMany(SalesVisit::class);
     }
+
+    /**
+     * Get the push subscriptions for the user.
+     */
+    public function pushSubscriptions()
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
 }
 

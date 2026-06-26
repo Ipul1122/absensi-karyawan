@@ -17,6 +17,8 @@ use App\Http\Controllers\SalesVisitController;
 use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DirectorController;
+use App\Http\Controllers\PushNotificationController;
+
 
 Route::get('/health-check', function () {
     try {
@@ -257,4 +259,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Sidebar Notification routes
     Route::get('/sidebar/notification-counts', [NotificationController::class, 'getCounts']);
+
+    // Push Notification routes
+    Route::post('/push-subscriptions', [PushNotificationController::class, 'subscribe']);
+    Route::post('/push-subscriptions/unsubscribe', [PushNotificationController::class, 'unsubscribe']);
+    Route::post('/push-subscriptions/test', [PushNotificationController::class, 'sendTestNotification']);
 });

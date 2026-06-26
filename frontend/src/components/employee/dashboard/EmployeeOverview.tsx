@@ -58,6 +58,8 @@ interface ProfileData {
   cv: string | null
   company?: string | null
   whatsapp?: string | null
+  saturday_off?: boolean | number
+  sunday_off?: boolean | number
 }
 
 interface PayrollRecord {
@@ -81,7 +83,7 @@ interface EmployeeOverviewProps {
   token: string
   time: Date
   todayAttendance: Attendance | null
-  attendanceState: 'loading' | 'needs_checkin' | 'needs_checkout' | 'completed'
+  attendanceState: 'loading' | 'needs_checkin' | 'needs_checkout' | 'completed' | 'day_off'
   getLiveCheckInStatus: () => { text: string; colorClass: string }
   getLiveCheckOutStatus: () => { text: string; colorClass: string }
   formatDate: (date: Date) => string
@@ -390,6 +392,8 @@ export default function EmployeeOverview({
                     ? 'Semangat bekerja hari ini. Jangan lupa absen masuk ya!' 
                     : attendanceState === 'needs_checkout'
                     ? 'Kerja bagus hari ini! Jangan lupa absen pulang nanti ya.'
+                    : attendanceState === 'day_off'
+                    ? 'Hari ini adalah jadwal libur mingguan Anda. Selamat beristirahat bersama keluarga!'
                     : 'Luar biasa! Anda telah menyelesaikan presensi hari ini. Selamat beristirahat!'
                 )}
               </p>
@@ -401,7 +405,11 @@ export default function EmployeeOverview({
                 className="bg-white text-orange-600 hover:bg-orange-50 font-black text-xs px-6 py-3.5 rounded-2xl flex items-center gap-2 hover:-translate-y-0.5 active:scale-95 transition-all shadow-md shadow-red-950/10 cursor-pointer"
               >
                 <Fingerprint className="w-4 h-4" />
-                {attendanceState === 'needs_checkout' ? 'Absen Pulang' : 'Absen Sekarang'}
+                {attendanceState === 'needs_checkout' 
+                  ? 'Absen Pulang' 
+                  : attendanceState === 'day_off'
+                  ? 'Absen Lembur (Opsional)'
+                  : 'Absen Sekarang'}
               </button>
               <button
                 onClick={() => navigate('/employee/riwayat')}
@@ -838,10 +846,14 @@ export default function EmployeeOverview({
               ? 'bg-amber-50/50 border border-amber-200 text-amber-800'
               : attendanceState === 'needs_checkout'
               ? 'bg-orange-50/50 border border-orange-200 text-orange-800'
+              : attendanceState === 'day_off'
+              ? 'bg-indigo-50/50 border border-indigo-200 text-indigo-800'
               : 'bg-emerald-50/50 border border-emerald-200 text-emerald-800'
           }`}>
             {todayHoliday ? (
               <Calendar className="w-5 h-5 shrink-0 animate-pulse text-rose-600" />
+            ) : attendanceState === 'day_off' ? (
+              <CalendarCheck className="w-5 h-5 shrink-0 animate-pulse text-indigo-600" />
             ) : (
               <Clock className="w-5 h-5 shrink-0 animate-pulse" />
             )}
@@ -852,6 +864,8 @@ export default function EmployeeOverview({
                 ? 'Jangan lupa melakukan absen masuk hari ini!'
                 : attendanceState === 'needs_checkout'
                 ? 'Jangan lupa absen pulang pukul 17:30'
+                : attendanceState === 'day_off'
+                ? 'Hari ini jadwal libur mingguan Anda. Presensi tidak wajib dilakukan. Selamat beristirahat!'
                 : 'Presensi hari ini telah lengkap. Terima kasih!'}
             </p>
           </div>

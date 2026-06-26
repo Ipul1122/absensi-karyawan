@@ -411,12 +411,12 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                 className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs"
               />
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start flex-wrap">
               {onRefresh && (
                 <button
                   onClick={onRefresh}
                   disabled={loading}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand disabled:opacity-50 shrink-0"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand disabled:opacity-50 shrink-0 whitespace-nowrap"
                 >
                   <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                   Segarkan
@@ -424,7 +424,7 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
               )}
               <button
                 onClick={() => setShowModal(true)}
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand shrink-0"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand shrink-0 whitespace-nowrap"
               >
                 <UserPlus className="w-4 h-4" />
                 Tambah Karyawan
@@ -434,58 +434,58 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
         </div>
 
         {/* Panel Statistik Ringkasan */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Card 1: Total Karyawan */}
-          <div className="bg-white/95 border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-red-500">
-            <div className="w-12 h-12 rounded-xl bg-red-550/5 flex items-center justify-center text-red-600 group-hover:scale-110 transition-transform shadow-inner">
-              <Users className="w-6 h-6" />
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-red-500">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-red-550/5 flex items-center justify-center text-red-600 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block">Total Karyawan</span>
-              <h4 className="text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{totalEmployees}</h4>
-              <p className="text-[9px] text-slate-400 font-quicksand mt-1 font-medium">Pengguna terdaftar</p>
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block truncate" title="Total Karyawan">Total Karyawan</span>
+              <h4 className="text-lg sm:text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{totalEmployees}</h4>
+              <p className="text-[9px] text-slate-400 font-quicksand mt-1 font-medium truncate">Pengguna terdaftar</p>
             </div>
           </div>
           
           {/* Card 2: Karyawan Aktif */}
-          <div className="bg-white/95 border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-emerald-500">
-            <div className="w-12 h-12 rounded-xl bg-emerald-550/5 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shadow-inner">
-              <UserCheck className="w-6 h-6" />
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-emerald-500">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-550/5 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+              <UserCheck className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block">Karyawan Aktif</span>
-              <h4 className="text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{activeEmployees}</h4>
-              <p className="text-[9px] text-emerald-600 font-quicksand mt-1 font-semibold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-550 animate-pulse block"></span>
-                Siap presensi
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block truncate" title="Karyawan Aktif">Karyawan Aktif</span>
+              <h4 className="text-lg sm:text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{activeEmployees}</h4>
+              <p className="text-[9px] text-emerald-600 font-quicksand mt-1 font-semibold flex items-center gap-1 truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse block shrink-0"></span>
+                <span className="truncate">Siap presensi</span>
               </p>
             </div>
           </div>
 
           {/* Card 3: Pending Approval */}
-          <div className="bg-white/95 border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-amber-500">
-            <div className="w-12 h-12 rounded-xl bg-amber-550/5 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform shadow-inner">
-              <Clock className="w-6 h-6" />
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-amber-500">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-550/5 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block">Pending Approval</span>
-              <h4 className="text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{pendingEmployees}</h4>
-              <p className="text-[9px] text-amber-600 font-quicksand mt-1 font-semibold flex items-center gap-1">
-                {pendingEmployees > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping block"></span>}
-                Menunggu aktivasi
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block truncate" title="Pending Approval">Pending Approval</span>
+              <h4 className="text-lg sm:text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{pendingEmployees}</h4>
+              <p className="text-[9px] text-amber-600 font-quicksand mt-1 font-semibold flex items-center gap-1 truncate">
+                {pendingEmployees > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping block shrink-0"></span>}
+                <span className="truncate">Menunggu aktivasi</span>
               </p>
             </div>
           </div>
 
           {/* Card 4: Total Divisi */}
-          <div className="bg-white/95 border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-blue-500">
-            <div className="w-12 h-12 rounded-xl bg-blue-550/5 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shadow-inner">
-              <Building2 className="w-6 h-6" />
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-blue-500">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-550/5 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block">Departemen/Divisi</span>
-              <h4 className="text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{totalDivisions}</h4>
-              <p className="text-[9px] text-slate-400 font-quicksand mt-1 font-medium">Struktur operasional</p>
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block truncate" title="Departemen/Divisi">Departemen/Divisi</span>
+              <h4 className="text-lg sm:text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{totalDivisions}</h4>
+              <p className="text-[9px] text-slate-400 font-quicksand mt-1 font-medium truncate">Struktur operasional</p>
             </div>
           </div>
         </div>

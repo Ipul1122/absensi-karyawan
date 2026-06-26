@@ -775,7 +775,7 @@ ${window.location.origin}/director/karyawan`
       {/* Floating Toggle Button on Left Middle Edge */}
       <button
         onClick={() => setMobileSidebarOpen(true)}
-        className={`md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all duration-300 cursor-pointer flex items-center active:scale-95 active:translate-x-1 ${
+        className={`hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all duration-300 cursor-pointer flex items-center active:scale-95 active:translate-x-1 ${
           mobileSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
         title="Buka Menu"
@@ -822,7 +822,7 @@ ${window.location.origin}/director/karyawan`
         <AdminNavbar user={user} title={routeInfo.title} />
 
         {/* Main page content container */}
-        <main className="flex-grow p-6 md:p-8 overflow-y-auto">
+        <main className="flex-grow p-4 md:p-8 overflow-y-auto">
           {/* Nested Routing Views */}
           <Suspense fallback={
             <div className="flex flex-col items-center justify-center py-12 text-slate-500 font-sans text-xs">

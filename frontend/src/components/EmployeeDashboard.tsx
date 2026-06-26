@@ -429,7 +429,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       {/* Floating Toggle Button on Left Middle Edge */}
       <button
         onClick={() => setMobileSidebarOpen(true)}
-        className={`md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all duration-300 cursor-pointer flex items-center active:scale-95 active:translate-x-1 ${
+        className={`hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all duration-300 cursor-pointer flex items-center active:scale-95 active:translate-x-1 ${
           mobileSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
         title="Buka Menu"
@@ -470,7 +470,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
       </div>
 
       {/* Main Content Area */}
-      <main className="flex-grow p-6 md:p-10 min-h-screen overflow-y-auto min-w-0 bg-[#f8fafc] transition-colors duration-300">
+      <main className="flex-grow p-4 md:p-10 min-h-screen overflow-y-auto min-w-0 bg-[#f8fafc] transition-colors duration-300">
         
         {/* Dynamic header with page title & notifications/profile */}
         <div className="flex flex-row items-center justify-between border-b border-slate-200 pb-6 mb-8 gap-4">

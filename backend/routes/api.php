@@ -41,48 +41,7 @@ Route::get('/health-check', function () {
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::get('/temp-users-debug', function() {
-    return response()->json(\App\Models\User::select('id', 'name', 'email', 'photo')->get());
-});
-Route::get('/mail-debug-temp', function() {
-    try {
-        $mailConfig = config('mail');
-        if (isset($mailConfig['mailers']['smtp']['password'])) {
-            $mailConfig['mailers']['smtp']['password'] = '***' . substr($mailConfig['mailers']['smtp']['password'], -4);
-        }
-        $dbConfig = config('database.connections.mysql');
-        if (isset($dbConfig['password'])) {
-            $dbConfig['password'] = '***';
-        }
-        
-        return response()->json([
-            'status' => 'success',
-            'mail_config' => $mailConfig,
-            'db_config' => $dbConfig
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage()
-        ], 500);
-    }
-});
-Route::get('/mail-test-temp', function() {
-    try {
-        $otp = '123456';
-        \Illuminate\Support\Facades\Mail::to('sky@gmail.com')->send(new \App\Mail\ResetPasswordMail($otp));
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Email sent successfully!'
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
-});
+
 Route::get('/payroll/verify/{id}/{hash}', [PayrollController::class, 'verifySlip']);
 
 Route::middleware('auth:sanctum')->group(function () {

@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Environment files — jangan di-commit ke Git
+.env
+.env.production
+.env.local
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

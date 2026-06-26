@@ -6,7 +6,7 @@ import {
   UserPlus,
   Loader2,
   Trash2,
-  // Eye,
+  Eye,
   // EyeOff,
   Edit,
   X,
@@ -182,6 +182,40 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
             color: '#3c1105'
           })
         }
+      }
+    })
+  }
+
+  const handleShowPassword = (emp: Employee) => {
+    const pwd = emp.password_plain;
+    const isAvailable = pwd && pwd.trim() !== '';
+    const displayPwd = isAvailable ? pwd : 'Sandi Terenkripsi (Silakan Reset)';
+
+    Swal.fire({
+      title: 'Kata Sandi Karyawan',
+      html: `Kata sandi untuk <b>${emp.name}</b> adalah:<br><br><span class="font-mono text-lg font-black ${isAvailable ? 'bg-orange-50 border border-orange-200 text-orange-600' : 'bg-slate-100 border border-slate-300 text-slate-505'} px-3 py-1.5 rounded-lg block text-center">${displayPwd}</span>`,
+      icon: isAvailable ? 'info' : 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Salin Sandi',
+      cancelButtonText: 'Tutup',
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#475569',
+      showConfirmButton: isAvailable ? true : false,
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then((result) => {
+      if (result.isConfirmed && isAvailable && pwd) {
+        navigator.clipboard.writeText(pwd)
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Kata sandi disalin!',
+          showConfirmButton: false,
+          timer: 1500,
+          background: '#fffdfb',
+          color: '#3c1105'
+        })
       }
     })
   }
@@ -601,6 +635,14 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                           </button>
                           
                           <div className="flex items-center border-l border-slate-100 pl-2">
+                            {/* Lihat Sandi */}
+                            <button
+                              onClick={() => handleShowPassword(emp)}
+                              className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                              title="Lihat Kata Sandi"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
                             {/* Edit Akun Credentials */}
                             <button
                               onClick={() => onEditClick(emp)}
@@ -764,6 +806,13 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                   <span className="text-[9px] text-slate-400 font-bold uppercase">Reg: {formatDate(emp.created_at)}</span>
                   
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleShowPassword(emp)}
+                      className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer"
+                      title="Lihat Kata Sandi"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => onEditClick(emp)}
                       className="p-2 text-slate-400 hover:text-red-650 hover:bg-red-550/5 rounded-xl transition-all cursor-pointer"

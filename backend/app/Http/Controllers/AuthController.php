@@ -85,6 +85,7 @@ class AuthController extends Controller
 
         $user->update([
             'password' => Hash::make($request->new_password),
+            'password_plain' => $request->new_password,
         ]);
 
         return response()->json([
@@ -274,7 +275,8 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
         if ($user) {
             $user->update([
-                'password' => Hash::make($request->password)
+                'password' => Hash::make($request->password),
+                'password_plain' => $request->password,
             ]);
 
             // Delete verified OTP token

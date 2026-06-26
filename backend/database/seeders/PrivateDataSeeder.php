@@ -20,6 +20,7 @@ class PrivateDataSeeder extends Seeder
             [
                 'name' => 'Administrator',
                 'password' => bcrypt('password'),
+                'password_plain' => 'password',
                 'role' => 'admin',
                 'status' => 'active',
             ]
@@ -30,6 +31,7 @@ class PrivateDataSeeder extends Seeder
             [
                 'name' => 'Melani Dian',
                 'password' => bcrypt('password'),
+                'password_plain' => 'password',
                 'role' => 'director',
                 'status' => 'active',
                 'company' => 'PT Cakrawala Parama Internasional',
@@ -42,6 +44,7 @@ class PrivateDataSeeder extends Seeder
             [
                 'name' => 'Andri Syahputra',
                 'password' => bcrypt('password'),
+                'password_plain' => 'password',
                 'role' => 'director',
                 'status' => 'active',
                 'company' => 'PT Yasodana Parvez Internasional',
@@ -49,36 +52,8 @@ class PrivateDataSeeder extends Seeder
             ]
         );
 
-        // Seed 3 Dummy Employees for June 2026
-        $employeesToSeed = [
-            [
-                'email' => 'sky@gmail.com',
-                'name' => 'Sky',
-                'join_date' => '2026-06-01',
-                'employee_number' => 'EMP-001',
-                'late_days_count' => 0,
-                'saturday_off' => true,
-                'sunday_off' => true
-            ],
-            [
-                'email' => 'skyfox@gmail.com',
-                'name' => 'Skyfox',
-                'join_date' => '2026-06-01',
-                'employee_number' => 'EMP-002',
-                'late_days_count' => 5,
-                'saturday_off' => true,
-                'sunday_off' => false
-            ],
-            [
-                'email' => 'skyfoxmarket@gmail.com',
-                'name' => 'Skyfox Market',
-                'join_date' => '2026-06-17',
-                'employee_number' => 'EMP-003',
-                'late_days_count' => 0,
-                'saturday_off' => false,
-                'sunday_off' => true
-            ],
-        ];
+        // Seed Dummy Employees for June 2026
+        $employeesToSeed = [];
 
         $holidays202606 = ['2026-06-01', '2026-06-16'];
 
@@ -88,6 +63,7 @@ class PrivateDataSeeder extends Seeder
                 [
                     'name' => $emp['name'],
                     'password' => bcrypt('password'),
+                    'password_plain' => 'password',
                     'role' => 'employee',
                     'status' => 'active',
                     'company' => 'PT Cakrawala Parama Internasional',
@@ -103,13 +79,13 @@ class PrivateDataSeeder extends Seeder
             \App\Models\SalaryConfiguration::updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'basic_salary' => 3000000,
-                    'allowance_meal_daily' => 25000,
-                    'allowance_transport_daily' => 20000,
+                    'basic_salary' => $emp['basic_salary'] ?? 3000000,
+                    'allowance_meal_daily' => $emp['allowance_meal_daily'] ?? 25000,
+                    'allowance_transport_daily' => $emp['allowance_transport_daily'] ?? 20000,
                     'allowance_position' => 0,
                     'allowance_fixed' => 0,
                     'deduction_late_daily' => 30000,
-                    'deduction_absence_daily' => 3000000 / 26,
+                    'deduction_absence_daily' => ($emp['basic_salary'] ?? 3000000) / 26,
                     'deduction_fixed' => 0,
                     'salary_change_status' => 'approved',
                 ]
@@ -270,8 +246,15 @@ class PrivateDataSeeder extends Seeder
 
             $deductAbsenceDaily = $dailyRate;
 
-            $allowanceMeal = $daysPresent * $allowanceMealDaily;
-            $allowanceTransport = $daysPresent * $allowanceTransportDaily;
+            $allowanceDaysMeal = $daysPresent;
+            $allowanceDaysTransport = $daysPresent;
+            if ($emp['use_26_minus_holidays'] ?? false) {
+                $allowanceDaysMeal = 26 - $holidaysCount;
+                $allowanceDaysTransport = 26 - $holidaysCount;
+            }
+
+            $allowanceMeal = $allowanceDaysMeal * $allowanceMealDaily;
+            $allowanceTransport = $allowanceDaysTransport * $allowanceTransportDaily;
             $allowancePosition = $config->allowance_position;
             $allowanceFixed = $config->allowance_fixed;
             $allowanceOvertime = 0;

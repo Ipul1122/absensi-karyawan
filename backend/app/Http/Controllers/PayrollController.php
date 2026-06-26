@@ -40,83 +40,31 @@ class PayrollController extends Controller
     }
 
     /**
-     * Hitung dan simpan payroll untuk user tertentu pada periode tertentu.
+     * Hitung detail data payroll untuk user tertentu pada periode tertentu.
      */
-    private function calculateAndSavePayrollForUser(int $userId, string $period, bool $skipPendingApproval = false): bool
+    private function calculatePayrollData(User $employee, Carbon $startOfMonth, Carbon $endOfMonth, $holidays): array
     {
-        [$startOfMonth, $endOfMonth] = $this->getPayrollPeriodRange($period);
-
-        $employee = User::where('id', $userId)
-            ->with([
-                'salaryConfiguration',
-                'attendances' => function ($query) use ($startOfMonth, $endOfMonth) {
-                    $this->approvedAttendanceQuery($query)
-                        ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
-                },
-                'leaveRequests' => function ($query) use ($startOfMonth, $endOfMonth) {
-                    $query->where('status', 'approved')
-                          ->where(function ($q) use ($startOfMonth, $endOfMonth) {
-                              $q->whereBetween('start_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-                                ->orWhereBetween('end_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-                                ->orWhere(function ($sub) use ($startOfMonth, $endOfMonth) {
-                                    $sub->where('start_date', '<=', $startOfMonth->toDateString())
-                                        ->where('end_date', '>=', $endOfMonth->toDateString());
-                                });
-                          });
-                }
-            ])
-            ->first();
-
-        if (!$employee) {
-            return false;
-        }
-
         $isSatOff = (bool)$employee->saturday_off;
         $isSunOff = $employee->sunday_off !== false;
 
         // Ambil jumlah hari libur nasional pada periode ini yang bukan merupakan hari libur mingguan karyawan
-        $holidays = Holiday::whereBetween('holiday_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
-            ->get()
-            ->filter(function($h) use ($isSatOff, $isSunOff) {
-                $carbonDate = Carbon::parse($h->holiday_date);
-                if ($carbonDate->isSunday() && $isSunOff) {
-                    return false;
-                }
-                if ($carbonDate->isSaturday() && $isSatOff) {
-                    return false;
-                }
-                return true;
-            });
-        $holidaysCount = $holidays->count();
-
-        $existing = Payroll::where('user_id', $employee->id)
-            ->where('period_month', $period)
-            ->first();
-
-        // Jangan timpa payroll yang sudah lunas
-        if ($existing && $existing->status === 'paid') {
-            return false;
-        }
-
-        // Jika skipPendingApproval true, jangan timpa yang sedang menunggu persetujuan direktur
-        if ($skipPendingApproval && $existing && $existing->status === 'pending_approval') {
-            return false;
-        }
+        $holidaysList = $holidays->filter(function($h) use ($isSatOff, $isSunOff) {
+            $carbonDate = Carbon::parse($h->holiday_date);
+            if ($carbonDate->isSunday() && $isSunOff) {
+                return false;
+            }
+            if ($carbonDate->isSaturday() && $isSatOff) {
+                return false;
+            }
+            return true;
+        });
+        $holidaysCount = $holidaysList->count();
 
         // Tentukan tanggal mulai perhitungan gaji berdasarkan join_date
         $joinDate = $employee->join_date;
         $startOfPeriod = $startOfMonth->copy();
         if ($joinDate) {
             $joinCarbon = Carbon::parse($joinDate);
-            // Jika tanggal gabung setelah akhir bulan berjalan, maka karyawan belum aktif
-            if ($joinCarbon->greaterThan($endOfMonth)) {
-                // Hapus payroll lama jika ada dan berstatus draft
-                if ($existing && $existing->status !== 'paid' && $existing->status !== 'pending_approval') {
-                    $existing->delete();
-                }
-                return false;
-            }
-            // Jika bergabung di tengah bulan berjalan, ubah awal periode perhitungan
             if ($joinCarbon->greaterThan($startOfMonth)) {
                 $startOfPeriod = $joinCarbon;
             }
@@ -139,14 +87,8 @@ class PayrollController extends Controller
         }
 
         // Hitung total hari libur nasional yang jatuh di masa aktif karyawan
-        $holidaysInActivePeriod = $holidays->filter(function($h) use ($startOfPeriod, $endOfMonth, $isSatOff, $isSunOff) {
+        $holidaysInActivePeriod = $holidaysList->filter(function($h) use ($startOfPeriod, $endOfMonth) {
             $hDate = Carbon::parse($h->holiday_date);
-            if ($hDate->isSunday() && $isSunOff) {
-                return false;
-            }
-            if ($hDate->isSaturday() && $isSatOff) {
-                return false;
-            }
             return $hDate->between($startOfPeriod, $endOfMonth);
         })->count();
 
@@ -220,20 +162,26 @@ class PayrollController extends Controller
         $deductAbsenceDaily = $dailyRate;
 
         // 5. Hitung tunjangan & potongan (rumus per hari hadir / per hari mangkir)
-        $allowanceMeal = $daysPresent * $allowanceMealDaily;
-        $allowanceTransport = $daysPresent * $allowanceTransportDaily;
+        if ($isSatOff && $isSunOff) {
+            $allowanceDays = 26 - $holidaysCount;
+            $allowanceMeal = $allowanceDays * $allowanceMealDaily;
+            $allowanceTransport = $allowanceDays * $allowanceTransportDaily;
+        } else {
+            $allowanceMeal = $daysPresent * $allowanceMealDaily;
+            $allowanceTransport = $daysPresent * $allowanceTransportDaily;
+        }
         $allowancePosition = $config ? $config->allowance_position : 0;
         $allowanceFixed = $config ? $config->allowance_fixed : 0;
 
         // Hitung Lembur (Overtime) & Bonus yang disetujui Direktur
-        $approvedOvertimes = Overtime::where('user_id', $userId)
+        $approvedOvertimes = Overtime::where('user_id', $employee->id)
             ->whereBetween('date', [$startOfPeriod->toDateString(), $endOfMonth->toDateString()])
             ->where('status', 'approved')
             ->get();
         $overtimeHours = $approvedOvertimes->sum('duration');
         $allowanceOvertime = $overtimeHours * ($baseBasicSalary / 173);
 
-        $approvedBonuses = Bonus::where('user_id', $userId)
+        $approvedBonuses = Bonus::where('user_id', $employee->id)
             ->whereBetween('bonus_date', [$startOfPeriod->toDateString(), $endOfMonth->toDateString()])
             ->where('status', 'approved')
             ->get();
@@ -277,7 +225,7 @@ class PayrollController extends Controller
             $notes = "Periode: " . $startOfMonth->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja: $workingDaysInMonth ($scheduleText). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
         }
 
-        $payrollData = [
+        return [
             'days_present' => $daysPresent,
             'days_late' => $daysLate,
             'days_leave' => $daysLeave,
@@ -292,9 +240,75 @@ class PayrollController extends Controller
             'deduction_fixed' => $deductFixed,
             'deduction_absence' => $deductionAbsence,
             'net_salary' => $netSalary,
-            'status' => $existing ? $existing->status : 'draft',
             'notes' => $notes,
         ];
+    }
+
+    /**
+     * Hitung dan simpan payroll untuk user tertentu pada periode tertentu.
+     */
+    private function calculateAndSavePayrollForUser(int $userId, string $period, bool $skipPendingApproval = false): bool
+    {
+        [$startOfMonth, $endOfMonth] = $this->getPayrollPeriodRange($period);
+
+        $employee = User::where('id', $userId)
+            ->with([
+                'salaryConfiguration',
+                'attendances' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $this->approvedAttendanceQuery($query)
+                        ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+                },
+                'leaveRequests' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                              $q->whereBetween('start_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                                ->orWhereBetween('end_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                                ->orWhere(function ($sub) use ($startOfMonth, $endOfMonth) {
+                                    $sub->where('start_date', '<=', $startOfMonth->toDateString())
+                                        ->where('end_date', '>=', $endOfMonth->toDateString());
+                                });
+                          });
+                }
+            ])
+            ->first();
+
+        if (!$employee) {
+            return false;
+        }
+
+        $existing = Payroll::where('user_id', $employee->id)
+            ->where('period_month', $period)
+            ->first();
+
+        // Jangan timpa payroll yang sudah lunas
+        if ($existing && $existing->status === 'paid') {
+            return false;
+        }
+
+        // Jika skipPendingApproval true, jangan timpa yang sedang menunggu persetujuan direktur
+        if ($skipPendingApproval && $existing && $existing->status === 'pending_approval') {
+            return false;
+        }
+
+        // Tentukan tanggal mulai perhitungan gaji berdasarkan join_date
+        $joinDate = $employee->join_date;
+        if ($joinDate) {
+            $joinCarbon = Carbon::parse($joinDate);
+            // Jika tanggal gabung setelah akhir bulan berjalan, maka karyawan belum aktif
+            if ($joinCarbon->greaterThan($endOfMonth)) {
+                // Hapus payroll lama jika ada dan berstatus draft
+                if ($existing && $existing->status !== 'paid' && $existing->status !== 'pending_approval') {
+                    $existing->delete();
+                }
+                return false;
+            }
+        }
+
+        $holidays = Holiday::whereBetween('holiday_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+            ->get();
+
+        $payrollData = $this->calculatePayrollData($employee, $startOfMonth, $endOfMonth, $holidays);
+        $payrollData['status'] = $existing ? $existing->status : 'draft';
 
         Payroll::updateOrCreate(
             [
@@ -441,7 +455,30 @@ class PayrollController extends Controller
 
         $period = $request->period_month;
 
-        $employees = User::whereIn('role', ['employee', 'admin'])->get();
+        // Tentukan rentang bulan dari period_month (format YYYY-MM)
+        $startOfMonth = Carbon::createFromFormat('Y-m', $period)->startOfMonth()->startOfDay();
+        $endOfMonth   = Carbon::createFromFormat('Y-m', $period)->endOfMonth()->endOfDay();
+
+        $employees = User::whereIn('role', ['employee', 'admin'])
+            ->with([
+                'salaryConfiguration',
+                'attendances' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $this->approvedAttendanceQuery($query)
+                        ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+                },
+                'leaveRequests' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                              $q->whereBetween('start_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                                ->orWhereBetween('end_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                                ->orWhere(function ($sub) use ($startOfMonth, $endOfMonth) {
+                                    $sub->where('start_date', '<=', $startOfMonth->toDateString())
+                                        ->where('end_date', '>=', $endOfMonth->toDateString());
+                                });
+                          });
+                }
+            ])
+            ->get();
 
         if ($employees->isEmpty()) {
             return response()->json([
@@ -450,10 +487,6 @@ class PayrollController extends Controller
             ], 404);
         }
         $generatedCount = 0;
-
-        // Tentukan rentang bulan dari period_month (format YYYY-MM)
-        $startOfMonth = Carbon::createFromFormat('Y-m', $period)->startOfMonth()->startOfDay();
-        $endOfMonth   = Carbon::createFromFormat('Y-m', $period)->endOfMonth()->endOfDay();
 
         // Ambil semua hari libur nasional yang jatuh di bulan ini
         $holidays = Holiday::whereBetween('holiday_date', [
@@ -465,218 +498,27 @@ class PayrollController extends Controller
             DB::beginTransaction();
 
             foreach ($employees as $employee) {
-                $isSatOff = (bool)$employee->saturday_off;
-                $isSunOff = $employee->sunday_off !== false;
-
-                // Hitung total hari libur nasional di bulan ini untuk catatan karyawan
-                $holidaysCount = $holidays->filter(function($h) use ($isSatOff, $isSunOff) {
-                    $hDate = Carbon::parse($h->holiday_date);
-                    if ($hDate->isSunday() && $isSunOff) {
-                        return false;
-                    }
-                    if ($hDate->isSaturday() && $isSatOff) {
-                        return false;
-                    }
-                    return true;
-                })->count();
-
                 // Tentukan tanggal mulai perhitungan gaji berdasarkan join_date
                 $joinDate = $employee->join_date;
-                $startOfPeriod = $startOfMonth->copy();
                 if ($joinDate) {
                     $joinCarbon = Carbon::parse($joinDate);
                     // Jika tanggal gabung setelah akhir bulan berjalan, maka karyawan belum aktif
                     if ($joinCarbon->greaterThan($endOfMonth)) {
                         continue;
                     }
-                    // Jika bergabung di tengah bulan berjalan, ubah awal periode perhitungan
-                    if ($joinCarbon->greaterThan($startOfMonth)) {
-                        $startOfPeriod = $joinCarbon;
-                    }
                 }
 
-                // Hitung hari kerja aktif karyawan di masa aktifnya dalam bulan ini (mempertimbangkan hari libur perorangan)
-                $activeWorkingDays = 0;
-                $tempDate = $startOfPeriod->copy();
-                while ($tempDate->lte($endOfMonth)) {
-                    $isOff = false;
-                    if ($tempDate->isSunday() && $isSunOff) {
-                        $isOff = true;
-                    } elseif ($tempDate->isSaturday() && $isSatOff) {
-                        $isOff = true;
-                    }
-                    if (!$isOff) {
-                        $activeWorkingDays++;
-                    }
-                    $tempDate->addDay();
-                }
-
-                // Hitung total hari libur nasional yang jatuh di masa aktif karyawan
-                $holidaysInActivePeriod = $holidays->filter(function($h) use ($startOfPeriod, $endOfMonth, $isSatOff, $isSunOff) {
-                    $hDate = Carbon::parse($h->holiday_date);
-                    if ($hDate->isSunday() && $isSunOff) {
-                        return false;
-                    }
-                    if ($hDate->isSaturday() && $isSatOff) {
-                        return false;
-                    }
-                    return $hDate->between($startOfPeriod, $endOfMonth);
-                })->count();
-
-                // 1. Hitung total kehadiran (clock_in tidak null) di dalam masa aktif karyawan
-                $daysPresent = $employee->attendances
-                    ->filter(function ($att) use ($startOfPeriod, $endOfMonth) {
-                        $attDate = Carbon::parse($att->date);
-                        return !is_null($att->clock_in) && $attDate->between($startOfPeriod, $endOfMonth);
-                    })
-                    ->count();
-
-                // 2. Hitung total keterlambatan (status_in = 'late')
-                $daysLate = $employee->attendances
-                    ->filter(function ($att) use ($startOfPeriod, $endOfMonth) {
-                        $attDate = Carbon::parse($att->date);
-                        return $att->status_in === 'late' && $attDate->between($startOfPeriod, $endOfMonth);
-                    })
-                    ->count();
-
-                // 3. Hitung total hari cuti yang disetujui di dalam masa aktif karyawan (skip hari libur mingguan karyawan)
-                $leaves = $employee->leaveRequests;
-                $daysLeave = 0;
-                foreach ($leaves as $leave) {
-                    $leaveStart = Carbon::parse($leave->start_date);
-                    $leaveEnd = Carbon::parse($leave->end_date);
-                    
-                    // Batasi start & end date pada rentang aktif karyawan
-                    $overlapStart = $leaveStart->max($startOfPeriod);
-                    $overlapEnd = $leaveEnd->min($endOfMonth);
-                    
-                    if ($overlapStart <= $overlapEnd) {
-                        $tempLeaveDate = $overlapStart->copy();
-                        while ($tempLeaveDate->lte($overlapEnd)) {
-                            $isOff = false;
-                            if ($tempLeaveDate->isSunday() && $isSunOff) {
-                                $isOff = true;
-                            } elseif ($tempLeaveDate->isSaturday() && $isSatOff) {
-                                $isOff = true;
-                            }
-                            if (!$isOff) {
-                                $daysLeave++;
-                            }
-                            $tempLeaveDate->addDay();
-                        }
-                    }
-                }
-
-                // 4. Ambil konfigurasi gaji karyawan
-                $config = $employee->salaryConfiguration;
-                
-                // Jika setelan gaji belum diatur, gunakan nilai default
-                $baseBasicSalary = $config ? $config->basic_salary : 4500000;
-                $allowanceMealDaily = $config ? $config->allowance_meal_daily : 20000;
-                $allowanceTransportDaily = $config ? $config->allowance_transport_daily : 15000;
-                $deductDailyLate = $config ? $config->deduction_late_daily : 25000;
-                $deductFixed = $config ? $config->deduction_fixed : 0;
-
-                // Hitung pembagi/gaji harian standar (tetap 26 hari kerja standar)
-                $dailyRate = $baseBasicSalary / 26;
-
-                // Gaji Pokok untuk periode ini disesuaikan prorata jika bergabung tengah bulan
-                $isProrated = $startOfPeriod->greaterThan($startOfMonth);
-                if ($isProrated) {
-                    $baseBasicSalaryForPeriod = min($baseBasicSalary, $activeWorkingDays * $dailyRate);
-                } else {
-                    $baseBasicSalaryForPeriod = $baseBasicSalary;
-                }
-
-                // Potongan mangkir per hari dihitung berdasarkan dailyRate (Gaji Pokok / 26)
-                $deductAbsenceDaily = $dailyRate;
-
-                // 5. Hitung tunjangan & potongan (rumus per hari hadir / per hari mangkir)
-                $allowanceMeal = $daysPresent * $allowanceMealDaily;
-                $allowanceTransport = $daysPresent * $allowanceTransportDaily;
-                $allowancePosition = $config ? $config->allowance_position : 0;
-                $allowanceFixed = $config ? $config->allowance_fixed : 0;
-
-                // Hitung Lembur (Overtime) & Bonus yang disetujui Direktur
-                $approvedOvertimes = Overtime::where('user_id', $employee->id)
-                    ->whereBetween('date', [$startOfPeriod->toDateString(), $endOfMonth->toDateString()])
-                    ->where('status', 'approved')
-                    ->get();
-                $overtimeHours = $approvedOvertimes->sum('duration');
-                $allowanceOvertime = $overtimeHours * ($baseBasicSalary / 173);
-
-                $approvedBonuses = Bonus::where('user_id', $employee->id)
-                    ->whereBetween('bonus_date', [$startOfPeriod->toDateString(), $endOfMonth->toDateString()])
-                    ->where('status', 'approved')
-                    ->get();
-                $allowanceBonus = $approvedBonuses->sum('bonus_amount');
-
-                $deductionLate = $daysLate * $deductDailyLate;
-
-                // Mangkir = hari kerja aktif − hadir − cuti disetujui − libur nasional aktif
-                $daysAbsent = max(0, $activeWorkingDays - $daysPresent - $daysLeave - $holidaysInActivePeriod);
-                $deductionAbsence = $daysAbsent * $deductAbsenceDaily;
-
-                // Gaji bersih = semua penerimaan − semua potongan
-                $totalAllowance = $baseBasicSalaryForPeriod + $allowanceMeal + $allowanceTransport + $allowancePosition + $allowanceFixed + $allowanceOvertime + $allowanceBonus;
-                $totalDeduction = $deductionLate + $deductFixed + $deductionAbsence;
-                $netSalary = $totalAllowance - $totalDeduction;
-                if ($netSalary < 0) {
-                    $netSalary = 0; // Gaji tidak boleh negatif
-                }
-
-                // Hitung total hari kerja efektif di rentang cut-off tersebut untuk catatan
-                $workingDaysInMonth = 0;
-                $tempDate = $startOfMonth->copy();
-                while ($tempDate->lte($endOfMonth)) {
-                    $isOff = false;
-                    if ($tempDate->isSunday() && $isSunOff) {
-                        $isOff = true;
-                    } elseif ($tempDate->isSaturday() && $isSatOff) {
-                        $isOff = true;
-                    }
-                    if (!$isOff) {
-                        $workingDaysInMonth++;
-                    }
-                    $tempDate->addDay();
-                }
-
-                // Susun catatan payroll yang mendetail dan transparan
-                $scheduleText = ($isSatOff && $isSunOff) ? "Sen–Jum" : ((!$isSatOff && !$isSunOff) ? "Sen–Min" : ($isSatOff ? "Sen–Jum & Min" : "Sen–Sab"));
-                if ($isProrated) {
-                    $notes = "Periode aktif (bergabung " . Carbon::parse($joinDate)->format('d-m-Y') . "): " . $startOfPeriod->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja aktif: $activeWorkingDays ($scheduleText). Gaji Pokok Prorata: Rp" . number_format($baseBasicSalaryForPeriod, 0, ',', '.') . " ($activeWorkingDays/26 hari). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional aktif: $holidaysInActivePeriod. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
-                } else {
-                    $notes = "Periode: " . $startOfMonth->format('d-m-Y') . " s.d " . $endOfMonth->format('d-m-Y') . ". Hari kerja: $workingDaysInMonth ($scheduleText). Hadir: $daysPresent | Telat: $daysLate | Cuti: $daysLeave | Mangkir: $daysAbsent | Libur nasional: $holidaysCount. Lembur: $overtimeHours jam (Rp" . number_format($allowanceOvertime, 0, ',', '.') . ") | Bonus: Rp" . number_format($allowanceBonus, 0, ',', '.') . ".";
-                }
-
-                // 6. Buat atau perbarui transaksi payroll
+                // Jangan timpa payroll yang sudah lunas atau sedang menunggu persetujuan direktur
                 $existing = Payroll::where('user_id', $employee->id)
                     ->where('period_month', $period)
                     ->first();
 
-                // Jangan timpa payroll yang sudah lunas atau sedang menunggu persetujuan direktur
                 if ($existing && in_array($existing->status, ['paid', 'pending_approval'], true)) {
                     continue;
                 }
 
-                $payrollData = [
-                    'days_present' => $daysPresent,
-                    'days_late' => $daysLate,
-                    'days_leave' => $daysLeave,
-                    'basic_salary' => $baseBasicSalaryForPeriod,
-                    'allowance_meal' => $allowanceMeal,
-                    'allowance_transport' => $allowanceTransport,
-                    'allowance_fixed' => $allowanceFixed,
-                    'allowance_position' => $allowancePosition,
-                    'allowance_overtime' => $allowanceOvertime,
-                    'allowance_bonus' => $allowanceBonus,
-                    'deduction_late' => $deductionLate,
-                    'deduction_fixed' => $deductFixed,
-                    'deduction_absence' => $deductionAbsence,
-                    'net_salary' => $netSalary,
-                    'status' => 'draft',
-                    'notes' => $notes,
-                ];
+                $payrollData = $this->calculatePayrollData($employee, $startOfMonth, $endOfMonth, $holidays);
+                $payrollData['status'] = 'draft';
 
                 Payroll::updateOrCreate(
                     [

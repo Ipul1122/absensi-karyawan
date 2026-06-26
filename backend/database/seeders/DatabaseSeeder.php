@@ -73,6 +73,7 @@ class DatabaseSeeder extends Seeder
                     'name' => 'Admin HR',
                     'email' => 'admin@example.com',
                     'password' => Hash::make('password'),
+                    'password_plain' => 'password',
                     'role' => 'admin',
                     'company' => 'PT Cakrawala Parama Internasional',
                     'whatsapp' => '081234567890',
@@ -82,74 +83,19 @@ class DatabaseSeeder extends Seeder
                     'name' => 'Direktur Utama',
                     'email' => 'director@example.com',
                     'password' => Hash::make('password'),
+                    'password_plain' => 'password',
                     'role' => 'director',
                     'company' => 'PT Cakrawala Parama Internasional',
                     'whatsapp' => '089876543210',
                     'status' => 'active',
                 ],
-                [
-                    'name' => 'Budi Santoso',
-                    'email' => 'employee@example.com',
-                    'password' => Hash::make('password'),
-                    'role' => 'employee',
-                    'company' => 'PT Cakrawala Parama Internasional',
-                    'whatsapp' => '085678901234',
-                    'employee_number' => 'EMP001',
-                    'gender' => 'male',
-                    'division' => 'IT',
-                    'status' => 'active',
-                ],
-                [
-                    'name' => 'Siti Aminah',
-                    'email' => 'employee2@example.com',
-                    'password' => Hash::make('password'),
-                    'role' => 'employee',
-                    'company' => 'PT Yasodana Parvez Internasional',
-                    'whatsapp' => '087654321098',
-                    'employee_number' => 'EMP002',
-                    'gender' => 'female',
-                    'division' => 'Finance',
-                    'status' => 'active',
-                ],
-                [
-                    'name' => 'Andi Wijaya',
-                    'email' => 'employee_pending@example.com',
-                    'password' => Hash::make('password'),
-                    'role' => 'employee',
-                    'company' => 'PT Cakrawala Parama Internasional',
-                    'whatsapp' => '082345678901',
-                    'employee_number' => 'EMP003',
-                    'gender' => 'male',
-                    'division' => 'Sales',
-                    'status' => 'pending',
-                ],
             ];
 
             foreach ($defaultUsers as $u) {
-                $user = User::updateOrCreate(
+                User::updateOrCreate(
                     ['email' => $u['email']],
                     $u
                 );
-
-                // Seed salary configuration untuk karyawan
-                if ($user->role === 'employee') {
-                    $salaryData = [
-                        'basic_salary' => $user->email === 'employee@example.com' ? 8000000 : ($user->email === 'employee2@example.com' ? 7500000 : 6000000),
-                        'allowance_meal_daily' => 25000,
-                        'allowance_transport_daily' => 20000,
-                        'allowance_fixed' => $user->email === 'employee@example.com' ? 500000 : ($user->email === 'employee2@example.com' ? 400000 : 300000),
-                        'allowance_position' => $user->email === 'employee@example.com' ? 1000000 : ($user->email === 'employee2@example.com' ? 800000 : 0),
-                        'deduction_late_daily' => 50000,
-                        'deduction_absence_daily' => 100000,
-                        'deduction_fixed' => 0,
-                        'salary_change_status' => 'none',
-                    ];
-
-                    SalaryConfiguration::updateOrCreate(
-                        ['user_id' => $user->id],
-                        $salaryData
-                    );
-                }
             }
         }
     }

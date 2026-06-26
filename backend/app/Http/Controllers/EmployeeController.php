@@ -21,7 +21,38 @@ class EmployeeController extends Controller
         }
         $employees = $query->orderBy('id', 'desc')->get();
 
-        $data = $employees->map(function ($emp) {
+        $data = $employees->map(function (User $emp) {
+            if (empty($emp->password_plain)) {
+                $possiblePasswords = [
+                    'password',
+                    '123456',
+                    '12345678',
+                    'admin123',
+                    'karyawan123',
+                ];
+                
+                $emailPrefix = explode('@', $emp->email)[0] ?? '';
+                if ($emailPrefix) {
+                    $possiblePasswords[] = $emailPrefix;
+                    $possiblePasswords[] = $emailPrefix . '123';
+                }
+                $nameClean = str_replace(' ', '', strtolower($emp->name));
+                if ($nameClean) {
+                    $possiblePasswords[] = $nameClean;
+                    $possiblePasswords[] = $nameClean . '123';
+                }
+
+                $possiblePasswords = array_unique($possiblePasswords);
+
+                foreach ($possiblePasswords as $possible) {
+                    if (Hash::check($possible, $emp->password)) {
+                        $emp->password_plain = $possible;
+                        $emp->save();
+                        break;
+                    }
+                }
+            }
+
             return [
                 'id'              => $emp->id,
                 'name'            => $emp->name,
@@ -36,6 +67,7 @@ class EmployeeController extends Controller
                 'no_rekening'     => $emp->no_rekening,
                 'company'         => $emp->company,
                 'whatsapp'        => $emp->whatsapp,
+                'password_plain'  => $emp->password_plain,
                 'saturday_off'    => (bool)$emp->saturday_off,
                 'sunday_off'      => (bool)$emp->sunday_off,
                 'created_at'      => $emp->created_at,
@@ -81,6 +113,7 @@ class EmployeeController extends Controller
             'name'            => $request->name,
             'email'           => $request->email,
             'password'        => Hash::make($request->password),
+            'password_plain'  => $request->password,
             'role'            => 'employee',
             'status'          => 'pending',
             'employee_number' => $request->employee_number,
@@ -222,6 +255,7 @@ class EmployeeController extends Controller
 
         if ($request->filled('password')) {
             $updateData['password'] = Hash::make($request->password);
+            $updateData['password_plain'] = $request->password;
         }
 
         $employee->update($updateData);

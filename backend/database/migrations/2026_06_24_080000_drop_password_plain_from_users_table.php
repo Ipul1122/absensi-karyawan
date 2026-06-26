@@ -12,9 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            if (Schema::hasColumn('users', 'password_plain')) {
-                $table->dropColumn('password_plain');
-            }
+            // Keep password_plain column for viewing password functionality
+            // if (Schema::hasColumn('users', 'password_plain')) {
+            //     $table->dropColumn('password_plain');
+            // }
         });
     }
 

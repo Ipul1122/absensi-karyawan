@@ -15,10 +15,7 @@ class EmployeeController extends Controller
     public function index()
     {
         $user = auth('sanctum')->user();
-        $query = User::where('role', 'employee');
-        if ($user && $user->company && $user->role !== 'director') {
-            $query->where('company', $user->company);
-        }
+        $query = User::whereIn('role', ['employee', 'admin']);
         $employees = $query->orderBy('id', 'desc')->get();
 
         $data = $employees->map(function (User $emp) {
@@ -406,11 +403,7 @@ class EmployeeController extends Controller
 
     private function getEmployeeById($id)
     {
-        $user = auth('sanctum')->user();
-        $query = User::where('id', $id)->where('role', 'employee');
-        if ($user && $user->company && $user->role !== 'director') {
-            $query->where('company', $user->company);
-        }
+        $query = User::where('id', $id)->whereIn('role', ['employee', 'admin']);
         return $query->first();
     }
 

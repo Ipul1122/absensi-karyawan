@@ -24,7 +24,7 @@ class DirectorController extends Controller
         $currentMonthStr = now()->format('Y-m');
 
         // 1. Fetch data for metrics
-        $activeEmployees = User::whereIn('role', ['employee', 'admin'])
+        $activeEmployees = User::where('role', 'employee')
             ->where('status', 'active')
             ->select('id', 'name', 'email')
             ->get();
@@ -51,11 +51,11 @@ class DirectorController extends Controller
             });
 
         // 2. Fetch pending items for counting and unified listing
-        $pendingEmployees = User::whereIn('role', ['employee', 'admin'])
+        $pendingEmployees = User::where('role', 'employee')
             ->whereIn('status', ['pending', 'pending_delete'])
             ->get();
 
-        $pendingSalaryConfigs = User::whereIn('role', ['employee', 'admin'])
+        $pendingSalaryConfigs = User::where('role', 'employee')
             ->whereHas('salaryConfiguration', function ($query) {
                 $query->where('salary_change_status', 'pending');
             })
@@ -292,7 +292,7 @@ class DirectorController extends Controller
         });
 
         // Calculate total overall tasks for mockup progress bar
-        $totalOverallTasksCount = User::whereIn('role', ['employee', 'admin'])->count() +
+        $totalOverallTasksCount = User::where('role', 'employee')->count() +
             SalaryConfiguration::count() +
             Payroll::count() +
             LeaveRequest::count() +

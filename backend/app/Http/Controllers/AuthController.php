@@ -119,6 +119,7 @@ class AuthController extends Controller
                 'whatsapp'        => $user->whatsapp,
                 'saturday_off'    => (bool)$user->saturday_off,
                 'sunday_off'      => (bool)$user->sunday_off,
+                'password_plain'  => $user->password_plain,
                 'vapid_public_key' => env('VAPID_PUBLIC_KEY'),
             ]
         ]);

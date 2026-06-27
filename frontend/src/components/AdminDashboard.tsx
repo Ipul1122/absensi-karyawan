@@ -30,6 +30,7 @@ const AdminInventaris = lazy(() => import('./admin/operasional/AdminInventaris')
 const AdminReimbursement = lazy(() => import('./admin/operasional/AdminReimbursement'))
 const AdminBonus = lazy(() => import('./admin/payroll/AdminBonus'))
 const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
+const KelolaShift = lazy(() => import('./admin/pengaturan/KelolaShift'))
 
 import AddEmployeeModal from './admin/dataKaryawan/AddEmployeeModal'
 import EditEmployeeModal from './admin/dataKaryawan/EditEmployeeModal'
@@ -53,6 +54,7 @@ interface Employee {
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
+  office_location?: string
 }
 
 interface Attendance {
@@ -139,6 +141,9 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const [officeLatitude, setOfficeLatitude] = useState('-6.2088')
   const [officeLongitude, setOfficeLongitude] = useState('106.8456')
   const [officeRadius, setOfficeRadius] = useState(100)
+  const [bogorLatitude, setBogorLatitude] = useState('-6.5971')
+  const [bogorLongitude, setBogorLongitude] = useState('106.7973')
+  const [bogorRadius, setBogorRadius] = useState(100)
   const [savingOffice, setSavingOffice] = useState(false)
 
   // New Employee Form States
@@ -161,6 +166,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const [editSaturdayOff, setEditSaturdayOff] = useState(false)
   const [editSundayOff, setEditSundayOff] = useState(true)
   const [submittingEdit, setSubmittingEdit] = useState(false)
+  const [editOfficeLocation, setEditOfficeLocation] = useState('jakarta')
 
   useEffect(() => {
     const clock = setInterval(() => {
@@ -251,6 +257,11 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
         setOfficeLatitude(response.data.data.latitude)
         setOfficeLongitude(response.data.data.longitude)
         setOfficeRadius(response.data.data.radius)
+        if (response.data.data.bogor_latitude) {
+          setBogorLatitude(response.data.data.bogor_latitude)
+          setBogorLongitude(response.data.data.bogor_longitude)
+          setBogorRadius(response.data.data.bogor_radius)
+        }
       }
     } catch (err) {
       console.error('Gagal memuat lokasi kantor:', err)
@@ -477,6 +488,7 @@ ${window.location.origin}/director/karyawan`
     setEditNoRekening(employee.no_rekening || '')
     setEditCompany(employee.company || '')
     setEditWhatsapp(employee.whatsapp || '')
+    setEditOfficeLocation(employee.office_location || 'jakarta')
 
     setEditSaturdayOff(!!employee.saturday_off)
     setEditSundayOff(employee.sunday_off !== false)
@@ -522,7 +534,8 @@ ${window.location.origin}/director/karyawan`
           company: editCompany || null,
           whatsapp: editWhatsapp || null,
           saturday_off: editSaturdayOff ? '1' : '0',
-          sunday_off: editSundayOff ? '1' : '0'
+          sunday_off: editSundayOff ? '1' : '0',
+          office_location: editOfficeLocation
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -633,7 +646,10 @@ ${window.location.origin}/director/karyawan`
         {
           latitude: officeLatitude,
           longitude: officeLongitude,
-          radius: officeRadius
+          radius: officeRadius,
+          bogor_latitude: bogorLatitude,
+          bogor_longitude: bogorLongitude,
+          bogor_radius: bogorRadius
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -735,6 +751,9 @@ ${window.location.origin}/director/karyawan`
     }
     if (path.includes('lokasiKantor')) {
       return { title: 'Konfigurasi Lokasi & Radius', subtitle: 'Location Configuration' }
+    }
+    if (path.includes('shifts')) {
+      return { title: 'Kelola Shift Kerja', subtitle: 'Shift Profiles Configuration' }
     }
     if (path.includes('keamanan')) {
       return { title: 'Akun & Keamanan Admin', subtitle: 'Account Security' }
@@ -908,6 +927,12 @@ ${window.location.origin}/director/karyawan`
                   setOfficeLongitude={setOfficeLongitude}
                   officeRadius={officeRadius}
                   setOfficeRadius={setOfficeRadius}
+                  bogorLatitude={bogorLatitude}
+                  setBogorLatitude={setBogorLatitude}
+                  bogorLongitude={bogorLongitude}
+                  setBogorLongitude={setBogorLongitude}
+                  bogorRadius={bogorRadius}
+                  setBogorRadius={setBogorRadius}
                   savingOffice={savingOffice}
                   handleOfficeSettingSubmit={handleOfficeSettingSubmit}
                   user={user}
@@ -927,6 +952,12 @@ ${window.location.origin}/director/karyawan`
                   setOfficeLongitude={setOfficeLongitude}
                   officeRadius={officeRadius}
                   setOfficeRadius={setOfficeRadius}
+                  bogorLatitude={bogorLatitude}
+                  setBogorLatitude={setBogorLatitude}
+                  bogorLongitude={bogorLongitude}
+                  setBogorLongitude={setBogorLongitude}
+                  bogorRadius={bogorRadius}
+                  setBogorRadius={setBogorRadius}
                   savingOffice={savingOffice}
                   handleOfficeSettingSubmit={handleOfficeSettingSubmit}
                   user={user}
@@ -946,6 +977,12 @@ ${window.location.origin}/director/karyawan`
                   setOfficeLongitude={setOfficeLongitude}
                   officeRadius={officeRadius}
                   setOfficeRadius={setOfficeRadius}
+                  bogorLatitude={bogorLatitude}
+                  setBogorLatitude={setBogorLatitude}
+                  bogorLongitude={bogorLongitude}
+                  setBogorLongitude={setBogorLongitude}
+                  bogorRadius={bogorRadius}
+                  setBogorRadius={setBogorRadius}
                   savingOffice={savingOffice}
                   handleOfficeSettingSubmit={handleOfficeSettingSubmit}
                   user={user}
@@ -959,6 +996,14 @@ ${window.location.origin}/director/karyawan`
               path="hariLibur" 
               element={
                 <AdminKelolaHariLibur
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="shifts" 
+              element={
+                <KelolaShift
                   token={token}
                 />
               } 
@@ -1058,6 +1103,8 @@ ${window.location.origin}/director/karyawan`
         setSundayOff={setEditSundayOff}
         submitting={submittingEdit}
         onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
+        officeLocation={editOfficeLocation}
+        setOfficeLocation={setEditOfficeLocation}
       />
 
       {/* View Biodata Modal (Admin) */}

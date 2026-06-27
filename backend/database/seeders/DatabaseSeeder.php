@@ -23,6 +23,9 @@ class DatabaseSeeder extends Seeder
                 'latitude' => '-6.1942189',
                 'longitude' => '106.815998',
                 'radius' => 100,
+                'bogor_latitude' => '-6.5971',
+                'bogor_longitude' => '106.7973',
+                'bogor_radius' => 100,
             ]
         );
 

@@ -67,6 +67,7 @@ class EmployeeController extends Controller
                 'password_plain'  => $emp->password_plain,
                 'saturday_off'    => (bool)$emp->saturday_off,
                 'sunday_off'      => (bool)$emp->sunday_off,
+                'office_location' => $emp->office_location,
                 'created_at'      => $emp->created_at,
                 'updated_at'      => $emp->updated_at,
             ];
@@ -97,6 +98,7 @@ class EmployeeController extends Controller
             'whatsapp'        => 'nullable|string|max:30',
             'saturday_off'    => 'nullable',
             'sunday_off'      => 'nullable',
+            'office_location' => 'nullable|in:jakarta,bogor',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -124,6 +126,7 @@ class EmployeeController extends Controller
             'whatsapp'        => $request->whatsapp,
             'saturday_off'    => $request->has('saturday_off') ? filter_var($request->saturday_off, FILTER_VALIDATE_BOOLEAN) : false,
             'sunday_off'      => $request->has('sunday_off') ? filter_var($request->sunday_off, FILTER_VALIDATE_BOOLEAN) : true,
+            'office_location' => $request->office_location ?: 'jakarta',
         ];
 
         if ($request->hasFile('photo')) {
@@ -230,6 +233,7 @@ class EmployeeController extends Controller
             'whatsapp' => 'nullable|string|max:30',
             'saturday_off' => 'nullable',
             'sunday_off' => 'nullable',
+            'office_location' => 'nullable|in:jakarta,bogor',
         ];
 
         if ($request->filled('password')) {
@@ -248,6 +252,7 @@ class EmployeeController extends Controller
             'whatsapp'    => $request->whatsapp ?: null,
             'saturday_off' => $request->has('saturday_off') ? filter_var($request->saturday_off, FILTER_VALIDATE_BOOLEAN) : false,
             'sunday_off' => $request->has('sunday_off') ? filter_var($request->sunday_off, FILTER_VALIDATE_BOOLEAN) : true,
+            'office_location' => $request->office_location ?: 'jakarta',
         ];
 
         if ($request->filled('password')) {
@@ -297,6 +302,7 @@ class EmployeeController extends Controller
                 'whatsapp'        => $employee->whatsapp,
                 'saturday_off'    => (bool)$employee->saturday_off,
                 'sunday_off'      => (bool)$employee->sunday_off,
+                'office_location' => $employee->office_location,
                 'created_at'      => $employee->created_at,
             ]
         ]);
@@ -332,6 +338,7 @@ class EmployeeController extends Controller
             'whatsapp'        => 'nullable|string|max:30',
             'saturday_off'    => 'nullable',
             'sunday_off'      => 'nullable',
+            'office_location' => 'nullable|in:jakarta,bogor',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -355,6 +362,7 @@ class EmployeeController extends Controller
             'whatsapp'        => $request->whatsapp ?: null,
             'saturday_off'    => $request->has('saturday_off') ? filter_var($request->saturday_off, FILTER_VALIDATE_BOOLEAN) : false,
             'sunday_off'      => $request->has('sunday_off') ? filter_var($request->sunday_off, FILTER_VALIDATE_BOOLEAN) : true,
+            'office_location' => $request->office_location ?: 'jakarta',
         ];
 
         $employee->update($data);
@@ -397,6 +405,7 @@ class EmployeeController extends Controller
                 'whatsapp'        => $employee->whatsapp,
                 'saturday_off'    => (bool)$employee->saturday_off,
                 'sunday_off'      => (bool)$employee->sunday_off,
+                'office_location' => $employee->office_location,
             ]
         ]);
     }

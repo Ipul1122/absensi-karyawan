@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 #[Fillable([
     'latitude',
     'longitude',
-    'radius'
+    'radius',
+    'bogor_latitude',
+    'bogor_longitude',
+    'bogor_radius'
 ])]
 class OfficeSetting extends Model
 {

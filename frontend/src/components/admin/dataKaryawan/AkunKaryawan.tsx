@@ -47,6 +47,7 @@ interface Employee {
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
+  office_location?: string
 }
 
 interface EmployeeProfile {
@@ -592,9 +593,20 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                       {/* Column 3: Penempatan */}
                       <td className="py-4 px-5">
                         <div className="space-y-1">
-                          <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${getDivisionBadgeStyle(emp.division)}`}>
-                            {emp.division || 'Umum'}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${getDivisionBadgeStyle(emp.division)}`}>
+                              {emp.division || 'Umum'}
+                            </span>
+                            {emp.office_location && (
+                              <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${
+                                emp.office_location === 'bogor' 
+                                  ? 'bg-blue-550/5 text-blue-600 border-blue-100' 
+                                  : 'bg-red-550/5 text-red-600 border-red-100'
+                              }`}>
+                                {emp.office_location === 'bogor' ? 'Bogor' : 'Jakarta'}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-500 font-medium block truncate max-w-[180px]" title={emp.company || ''}>
                             {emp.company || 'Tanpa Perusahaan'}
                           </span>
@@ -769,9 +781,20 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                 <div className="grid grid-cols-2 gap-2 text-xs border-y border-slate-50 py-3 font-quicksand">
                   <div>
                     <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block">Penempatan</span>
-                    <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border mt-1 ${getDivisionBadgeStyle(emp.division)}`}>
-                      {emp.division || 'Umum'}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${getDivisionBadgeStyle(emp.division)}`}>
+                        {emp.division || 'Umum'}
+                      </span>
+                      {emp.office_location && (
+                        <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${
+                          emp.office_location === 'bogor' 
+                            ? 'bg-blue-550/5 text-blue-600 border-blue-100' 
+                            : 'bg-red-550/5 text-red-600 border-red-100'
+                        }`}>
+                          {emp.office_location === 'bogor' ? 'Bogor' : 'Jakarta'}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-500 font-medium block mt-1 truncate">
                       {emp.company ? emp.company.replace('PT ', '') : 'Tanpa Perusahaan'}
                     </span>

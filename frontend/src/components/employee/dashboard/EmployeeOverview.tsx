@@ -552,7 +552,7 @@ export default function EmployeeOverview({
           </div>
         </div>
 
-        {/* Card 2: Total Ketidakhadiran */}
+        {/* Card 2: Total Keterlambatan */}
         <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[130px] group relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-orange-50/50 rounded-full blur-xl pointer-events-none"></div>
           <div className="flex items-center justify-between mb-4 z-10">
@@ -561,7 +561,7 @@ export default function EmployeeOverview({
             </div>
           </div>
           <div className="z-10">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Ketidakhadiran</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Keterlambatan</p>
             <p className="text-xl md:text-2xl font-black text-slate-800 font-sans mt-0.5">
               {lateDays} <span className="text-xs text-slate-400 font-bold">Hari</span>
             </p>

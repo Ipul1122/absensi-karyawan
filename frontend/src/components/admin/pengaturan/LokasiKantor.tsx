@@ -58,6 +58,12 @@ interface LokasiKantorProps {
   setOfficeLongitude: (v: string) => void
   officeRadius: number
   setOfficeRadius: (v: number) => void
+  bogorLatitude: string
+  setBogorLatitude: (v: string) => void
+  bogorLongitude: string
+  setBogorLongitude: (v: string) => void
+  bogorRadius: number
+  setBogorRadius: (v: number) => void
   savingOffice: boolean
   handleOfficeSettingSubmit: (e: React.FormEvent) => void
   user: UserProp
@@ -73,6 +79,12 @@ export default function LokasiKantor({
   setOfficeLongitude,
   officeRadius,
   setOfficeRadius,
+  bogorLatitude,
+  setBogorLatitude,
+  bogorLongitude,
+  setBogorLongitude,
+  bogorRadius,
+  setBogorRadius,
   savingOffice,
   handleOfficeSettingSubmit,
   user,
@@ -116,6 +128,11 @@ export default function LokasiKantor({
   const configMapInstance = useRef<L.Map | null>(null)
   const configMarkerRef = useRef<L.Marker | null>(null)
   const configCircleRef = useRef<L.Circle | null>(null)
+
+  const bogorMapRef = useRef<HTMLDivElement | null>(null)
+  const bogorMapInstance = useRef<L.Map | null>(null)
+  const bogorMarkerRef = useRef<L.Marker | null>(null)
+  const bogorCircleRef = useRef<L.Circle | null>(null)
 
   useEffect(() => {
     fetchProfile()
@@ -237,6 +254,83 @@ export default function LokasiKantor({
     }
   }, [officeLatitude, officeLongitude, officeRadius, initialTab])
 
+  // Initialize and update Bogor Settings Map
+  useEffect(() => {
+    if (initialTab !== 'lokasi') {
+      if (bogorMapInstance.current) {
+        bogorMapInstance.current.remove()
+        bogorMapInstance.current = null
+        bogorMarkerRef.current = null
+        bogorCircleRef.current = null
+      }
+      return
+    }
+
+    if (!bogorMapRef.current) return
+
+    const lat = parseFloat(bogorLatitude)
+    const lng = parseFloat(bogorLongitude)
+    if (isNaN(lat) || isNaN(lng)) return
+
+    // Setup map instance if not exists
+    if (!bogorMapInstance.current) {
+      const map = L.map(bogorMapRef.current).setView([lat, lng], 16)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map)
+
+      bogorMapInstance.current = map
+
+      // Map click handler to relocate office
+      map.on('click', (e) => {
+        setBogorLatitude(e.latlng.lat.toFixed(6))
+        setBogorLongitude(e.latlng.lng.toFixed(6))
+      })
+    }
+
+    const map = bogorMapInstance.current
+
+    // Update/Create config marker
+    if (bogorMarkerRef.current) {
+      bogorMarkerRef.current.setLatLng([lat, lng])
+    } else {
+      bogorMarkerRef.current = L.marker([lat, lng], { draggable: true })
+        .addTo(map)
+        .bindPopup('Lokasi Kantor Bogor (Seret pin atau klik peta untuk memindahkan)')
+        .openPopup()
+
+      bogorMarkerRef.current.on('dragend', (e) => {
+        const latLng = e.target.getLatLng()
+        setBogorLatitude(latLng.lat.toFixed(6))
+        setBogorLongitude(latLng.lng.toFixed(6))
+      })
+    }
+
+    // Update/Create config radius circle
+    if (bogorCircleRef.current) {
+      bogorCircleRef.current.setLatLng([lat, lng])
+      bogorCircleRef.current.setRadius(bogorRadius)
+    } else {
+      bogorCircleRef.current = L.circle([lat, lng], {
+        color: '#3b82f6', // blue color for Bogor
+        fillColor: '#60a5fa',
+        fillOpacity: 0.15,
+        radius: bogorRadius
+      }).addTo(map)
+    }
+
+    map.setView([lat, lng])
+
+    // Workaround to draw Leaflet correctly on render
+    const timer = setTimeout(() => {
+      map.invalidateSize()
+    }, 200)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [bogorLatitude, bogorLongitude, bogorRadius, initialTab])
+
   // Cleanup config map on unmount
   useEffect(() => {
     return () => {
@@ -245,6 +339,12 @@ export default function LokasiKantor({
         configMapInstance.current = null
         configMarkerRef.current = null
         configCircleRef.current = null
+      }
+      if (bogorMapInstance.current) {
+        bogorMapInstance.current.remove()
+        bogorMapInstance.current = null
+        bogorMarkerRef.current = null
+        bogorCircleRef.current = null
       }
     }
   }, [])
@@ -445,98 +545,176 @@ export default function LokasiKantor({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Form Config */}
-            <div className="lg:col-span-4 space-y-4">
-              <form onSubmit={handleOfficeSettingSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Latitude Kantor
+          <form onSubmit={handleOfficeSettingSubmit} className="space-y-8">
+            {/* KANTOR JAKARTA */}
+            <div className="border-b border-orange-100/60 pb-8">
+              <h4 className="text-sm font-extrabold text-red-650 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span> Kantor Jakarta (Pusat)
+              </h4>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Form Config */}
+                <div className="lg:col-span-4 space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Latitude Kantor
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="-6.2088"
+                      value={officeLatitude}
+                      onChange={(e) => setOfficeLatitude(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Longitude Kantor
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="106.8456"
+                      value={officeLongitude}
+                      onChange={(e) => setOfficeLongitude(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Radius Jangkauan (Meter)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="5"
+                      max="1000000"
+                      placeholder="100"
+                      value={officeRadius}
+                      onChange={(e) => setOfficeRadius(parseInt(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+                </div>
+
+                {/* Map Config View */}
+                <div className="lg:col-span-8 space-y-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
+                    Visualisasi Peta Kantor Jakarta & Radius Batas Absen
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="-6.2088"
-                    value={officeLatitude}
-                    onChange={(e) => setOfficeLatitude(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
-                  />
+                  <div className="relative w-full h-[320px] rounded-3xl bg-white border border-orange-100 overflow-hidden shadow-inner">
+                    <div
+                      ref={configMapRef}
+                      id="office-map-config"
+                      className="w-full h-full z-10"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* KANTOR BOGOR */}
+            <div className="pb-4">
+              <h4 className="text-sm font-extrabold text-blue-650 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span> Kantor Bogor (Cabang)
+              </h4>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Form Config */}
+                <div className="lg:col-span-4 space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Latitude Kantor Bogor
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="-6.5971"
+                      value={bogorLatitude}
+                      onChange={(e) => setBogorLatitude(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Longitude Kantor Bogor
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="106.7973"
+                      value={bogorLongitude}
+                      onChange={(e) => setBogorLongitude(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Radius Jangkauan Bogor (Meter)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="5"
+                      max="1000000"
+                      placeholder="100"
+                      value={bogorRadius}
+                      onChange={(e) => setBogorRadius(parseInt(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Longitude Kantor
+                {/* Map Config View */}
+                <div className="lg:col-span-8 space-y-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
+                    Visualisasi Peta Kantor Bogor & Radius Batas Absen
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="106.8456"
-                    value={officeLongitude}
-                    onChange={(e) => setOfficeLongitude(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
-                  />
+                  <div className="relative w-full h-[320px] rounded-3xl bg-white border border-orange-100 overflow-hidden shadow-inner">
+                    <div
+                      ref={bogorMapRef}
+                      id="bogor-map-config"
+                      className="w-full h-full z-10"
+                    />
+                  </div>
                 </div>
+              </div>
+            </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Radius Jangkauan (Meter)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="5"
-                    max="1000000"
-                    placeholder="100"
-                    value={officeRadius}
-                    onChange={(e) => setOfficeRadius(parseInt(e.target.value) || 0)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
-                  />
-                </div>
+            {/* Submit Button & Guide */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6 border-t border-orange-100">
+              <div className="lg:col-span-4">
+                <button
+                  type="submit"
+                  disabled={savingOffice}
+                  className="w-full px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand font-semibold"
+                >
+                  {savingOffice ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan Lokasi & Radius'
+                  )}
+                </button>
+              </div>
 
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={savingOffice}
-                    className="w-full px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {savingOffice ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Menyimpan...
-                      </>
-                    ) : (
-                      'Simpan Lokasi & Radius'
-                    )}
-                  </button>
-                </div>
-              </form>
-
-              <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl space-y-2 text-[11px] text-slate-600 leading-normal">
-                <p className="font-bold text-red-600 flex items-center gap-1.5">
+              <div className="lg:col-span-8 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl space-y-2 text-[11px] text-slate-600 leading-normal font-quicksand font-semibold">
+                <p className="font-bold text-red-650 flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-red-500 shrink-0" /> Petunjuk Penggunaan Peta:
                 </p>
-                <ul className="list-disc pl-4 space-y-1 font-medium">
-                  <li>Klik di bagian mana pun pada peta untuk memindahkan lokasi pin kantor secara instan.</li>
+                <ul className="list-disc pl-4 space-y-1 font-medium text-slate-550">
+                  <li>Klik di bagian mana pun pada peta untuk memindahkan lokasi pin kantor Jakarta atau Bogor secara instan.</li>
                   <li>Atau, seret (drag) pin untuk menyempurnakan posisi koordinat.</li>
                   <li>Sesuaikan jangkauan radius dengan memasukkan nilai meter (misal: 100).</li>
                 </ul>
               </div>
             </div>
-
-            {/* Map Config View */}
-            <div className="lg:col-span-8 space-y-2">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Visualisasi Peta Lokasi Kantor & Radius Batas Absen
-              </label>
-              <div className="relative w-full h-[400px] rounded-3xl bg-white border border-orange-100 overflow-hidden shadow-inner">
-                <div
-                  ref={configMapRef}
-                  id="office-map-config"
-                  className="w-full h-full z-10"
-                />
-              </div>
-            </div>
-          </div>
+          </form>
         </section>
       )}
 

@@ -13,7 +13,11 @@ import {
   Camera,
   FileText,
   FileUp,
+<<<<<<< HEAD
   Building2
+=======
+  Building2,
+>>>>>>> df165e7ffaa96d8600d99a884548954fff74e2cd
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 
@@ -44,6 +48,7 @@ export default function AddEmployeeModal({
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [cvFile, setCvFile] = useState<File | null>(null)
+  const [officeLocation, setOfficeLocation] = useState('jakarta')
 
   const photoInputRef = useRef<HTMLInputElement>(null)
   const cvInputRef = useRef<HTMLInputElement>(null)
@@ -64,6 +69,7 @@ export default function AddEmployeeModal({
       setPhotoFile(null)
       setPhotoPreview(null)
       setCvFile(null)
+      setOfficeLocation('jakarta')
     }
   }, [show])
 
@@ -157,6 +163,7 @@ export default function AddEmployeeModal({
     if (finalDivision) formData.append('division', finalDivision)
     if (photoFile) formData.append('photo', photoFile)
     if (cvFile) formData.append('cv', cvFile)
+    formData.append('office_location', officeLocation)
 
     onSubmit(formData)
   }
@@ -360,6 +367,21 @@ export default function AddEmployeeModal({
                   />
                 </div>
               )}
+            </div>
+
+            <div className="col-span-1 sm:col-span-2">
+              <label className={labelClass}>Lokasi Kantor Penempatan</label>
+              <div className="relative">
+                <Building2 className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
+                <select
+                  value={officeLocation}
+                  onChange={(e) => setOfficeLocation(e.target.value)}
+                  className={`${inputClass} appearance-none cursor-pointer`}
+                >
+                  <option value="jakarta">Jakarta (Pusat)</option>
+                  <option value="bogor">Bogor (Cabang)</option>
+                </select>
+              </div>
             </div>
 
             <div className="col-span-1 sm:col-span-2">

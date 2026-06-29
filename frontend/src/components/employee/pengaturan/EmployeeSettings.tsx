@@ -18,6 +18,7 @@ import {
   unsubscribeUserFromPush,
   getExistingSubscription
 } from '../../../utils/pushNotificationHelper'
+import { API_BASE_URL } from '../../../utils/api'
 
 
 interface UserProp {
@@ -32,6 +33,7 @@ interface ProfileData {
   email: string
   photo: string | null
   vapid_public_key?: string | null
+  password_plain?: string | null
 }
 
 interface EmployeeSettingsProps {
@@ -44,7 +46,8 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
     name: user.name,
     email: user.email,
     photo: null,
-    vapid_public_key: null
+    vapid_public_key: null,
+    password_plain: null
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
@@ -76,7 +79,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
   const fetchProfile = async () => {
     setLoadingProfile(true)
     try {
-      const res = await axios.get('http://localhost:8000/api/user/profile', {
+      const res = await axios.get(`${API_BASE_URL}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.data.status === 'success') {
@@ -85,7 +88,8 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
           name: d.name ?? '',
           email: d.email ?? '',
           photo: d.photo ?? null,
-          vapid_public_key: d.vapid_public_key ?? null
+          vapid_public_key: d.vapid_public_key ?? null,
+          password_plain: d.password_plain ?? null
         })
         if (d.photo) setPhotoPreview(d.photo)
       }
@@ -145,15 +149,34 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
       }
     } catch (err: any) {
       console.error('Gagal mengatur notifikasi push:', err)
-      Swal.fire({
-        title: 'Kesalahan Sistem',
-        text: err.response?.data?.message || err.message || 'Terjadi kegagalan saat menghubungi server.',
-        icon: 'error',
-        confirmButtonText: 'Tutup',
-        background: '#fffdfb',
-        color: '#3c1105',
-        confirmButtonColor: '#ea580c'
-      })
+      const errMsg = err.message || '';
+      const errName = err.name || '';
+      const isPermissionDenied = errMsg.includes('permission denied') || 
+                                 errMsg.includes('denied') || 
+                                 errName === 'AbortError' || 
+                                 errName === 'NotAllowedError';
+
+      if (isPermissionDenied) {
+        Swal.fire({
+          title: 'Izin Notifikasi Ditolak / Dibatasi 🚫',
+          text: 'Browser Anda memblokir notifikasi push. Ini biasanya terjadi jika Anda menggunakan Mode Penyamaran (Incognito), memblokir izin notifikasi di setelan browser, atau browser tidak mendukung fitur ini.',
+          icon: 'warning',
+          confirmButtonText: 'Mengerti',
+          background: '#fffdfb',
+          color: '#3c1105',
+          confirmButtonColor: '#ea580c'
+        })
+      } else {
+        Swal.fire({
+          title: 'Kesalahan Sistem',
+          text: err.response?.data?.message || err.message || 'Terjadi kegagalan saat menghubungi server.',
+          icon: 'error',
+          confirmButtonText: 'Tutup',
+          background: '#fffdfb',
+          color: '#3c1105',
+          confirmButtonColor: '#ea580c'
+        })
+      }
     } finally {
       setLoadingNotification(false)
     }
@@ -162,7 +185,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
   const handleTestNotification = async () => {
     try {
       const res = await axios.post(
-        'http://localhost:8000/api/push-subscriptions/test',
+        `${API_BASE_URL}/api/push-subscriptions/test`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -278,7 +301,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
                 <input
                   type={showPassword ? "text" : "password"}
                   readOnly
-                  value="goodpeople123"
+                  value={profile.password_plain || ''}
                   className="w-full bg-slate-100 border border-slate-200 text-slate-550 rounded-xl py-2.5 pl-10 pr-10 text-xs font-semibold font-quicksand cursor-not-allowed"
                 />
                 <button

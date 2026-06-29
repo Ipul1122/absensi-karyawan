@@ -511,7 +511,9 @@ export default function EmployeeOverview({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Shift</p>
-                <p className="text-sm font-black text-slate-700 font-mono mt-0.5">08:30 — 17:30</p>
+                <p className="text-sm font-black text-slate-700 font-mono mt-0.5">
+                  {time.getDay() === 6 ? '08:30 — 14:00' : '08:30 — 17:30'}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</p>
@@ -550,7 +552,7 @@ export default function EmployeeOverview({
           </div>
         </div>
 
-        {/* Card 2: Total Ketidakhadiran */}
+        {/* Card 2: Total Keterlambatan */}
         <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[130px] group relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-orange-50/50 rounded-full blur-xl pointer-events-none"></div>
           <div className="flex items-center justify-between mb-4 z-10">
@@ -559,7 +561,7 @@ export default function EmployeeOverview({
             </div>
           </div>
           <div className="z-10">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Ketidakhadiran</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Keterlambatan</p>
             <p className="text-xl md:text-2xl font-black text-slate-800 font-sans mt-0.5">
               {lateDays} <span className="text-xs text-slate-400 font-bold">Hari</span>
             </p>
@@ -764,48 +766,52 @@ export default function EmployeeOverview({
               </div>
 
               {/* Step 2: Istirahat */}
-              <div className="relative flex items-center justify-between">
-                <div className={`absolute -left-[23px] w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
-                  todayAttendance?.clock_in && time.getHours() >= 12 ? 'bg-blue-500' : 'bg-slate-300'
-                }`}></div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-slate-400 font-mono">12:01</span>
-                  <span className="text-xs font-black text-slate-700 font-sans">Istirahat</span>
+              {time.getDay() !== 6 && (
+                <div className="relative flex items-center justify-between">
+                  <div className={`absolute -left-[23px] w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                    todayAttendance?.clock_in && time.getHours() >= 12 ? 'bg-blue-500' : 'bg-slate-300'
+                  }`}></div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 font-mono">12:01</span>
+                    <span className="text-xs font-black text-slate-700 font-sans">Istirahat</span>
+                  </div>
+                  <div>
+                    {todayAttendance?.clock_in && time.getHours() >= 12 ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-blue-700 bg-blue-50/70 border-blue-200">
+                        Selesai
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-slate-500 bg-slate-50 border-slate-200">
+                        Menunggu
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  {todayAttendance?.clock_in && time.getHours() >= 12 ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-blue-700 bg-blue-50/70 border-blue-200">
-                      Selesai
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-slate-500 bg-slate-50 border-slate-200">
-                      Menunggu
-                    </span>
-                  )}
-                </div>
-              </div>
+              )}
 
               {/* Step 3: Kembali Kerja */}
-              <div className="relative flex items-center justify-between">
-                <div className={`absolute -left-[23px] w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
-                  todayAttendance?.clock_in && time.getHours() >= 13 ? 'bg-emerald-500' : 'bg-slate-300'
-                }`}></div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-slate-400 font-mono">13:05</span>
-                  <span className="text-xs font-black text-slate-700 font-sans">Kembali Kerja</span>
+              {time.getDay() !== 6 && (
+                <div className="relative flex items-center justify-between">
+                  <div className={`absolute -left-[23px] w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                    todayAttendance?.clock_in && time.getHours() >= 13 ? 'bg-emerald-500' : 'bg-slate-300'
+                  }`}></div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 font-mono">13:05</span>
+                    <span className="text-xs font-black text-slate-700 font-sans">Kembali Kerja</span>
+                  </div>
+                  <div>
+                    {todayAttendance?.clock_in && time.getHours() >= 13 ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-emerald-700 bg-emerald-50/70 border-emerald-200">
+                        Tepat Waktu
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-slate-500 bg-slate-50 border-slate-200">
+                        Menunggu
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  {todayAttendance?.clock_in && time.getHours() >= 13 ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-emerald-700 bg-emerald-50/70 border-emerald-200">
-                      Tepat Waktu
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black border text-slate-500 bg-slate-50 border-slate-200">
-                      Menunggu
-                    </span>
-                  )}
-                </div>
-              </div>
+              )}
 
               {/* Step 4: Absen Pulang */}
               <div className="relative flex items-center justify-between">
@@ -814,7 +820,9 @@ export default function EmployeeOverview({
                 }`}></div>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold text-slate-400 font-mono">
-                    {todayAttendance?.clock_out ? todayAttendance.clock_out.substring(0, 5) : '17:30'}
+                    {todayAttendance?.clock_out 
+                      ? todayAttendance.clock_out.substring(0, 5) 
+                      : (time.getDay() === 6 ? '14:00' : '17:30')}
                   </span>
                   <span className="text-xs font-black text-slate-700 font-sans">Absen Pulang</span>
                 </div>
@@ -863,7 +871,7 @@ export default function EmployeeOverview({
                 : attendanceState === 'needs_checkin'
                 ? 'Jangan lupa melakukan absen masuk hari ini!'
                 : attendanceState === 'needs_checkout'
-                ? 'Jangan lupa absen pulang pukul 17:30'
+                ? (time.getDay() === 6 ? 'Jangan lupa absen pulang pukul 14:00' : 'Jangan lupa absen pulang pukul 17:30')
                 : attendanceState === 'day_off'
                 ? 'Hari ini jadwal libur mingguan Anda. Presensi tidak wajib dilakukan. Selamat beristirahat!'
                 : 'Presensi hari ini telah lengkap. Terima kasih!'}

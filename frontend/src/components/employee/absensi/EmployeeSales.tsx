@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef,  } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { getAssetUrl } from '../../../utils/api'
@@ -12,7 +12,9 @@ import {
   Upload,
   Plus,
   X,
-  FlipHorizontal2
+  SwitchCamera,
+  Circle,
+  CheckCircle2
 } from 'lucide-react'
 
 interface Attendance {
@@ -89,14 +91,20 @@ export default function EmployeeSales({
   const [visitLocationLoading, setVisitLocationLoading] = useState(false)
   const [visitLocationError, setVisitLocationError] = useState<string | null>(null)
   const [visitCapturedPhoto, setVisitCapturedPhoto] = useState<string | null>(null)
-  const [visitStream, setVisitStream] = useState<MediaStream | null>(null)
-  const [visitCameraError, setVisitCameraError] = useState<string | null>(null)
   const [showVisitModal, setShowVisitModal] = useState(false)
   const [isCameraActive, setIsCameraActive] = useState(false)
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
   const visitVideoRef = useRef<HTMLVideoElement | null>(null)
-  const visitCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const visitStreamRef = useRef<MediaStream | null>(null)
+
+  // Fullscreen camera modal
+  const [showCameraModal, setShowCameraModal] = useState(false)
+  const [modalFacingMode, setModalFacingMode] = useState<'user' | 'environment'>('user')
+  const [modalCameraError, setModalCameraError] = useState<string | null>(null)
+  const [isCapturing, setIsCapturing] = useState(false)
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null)
+  const modalVideoRef = useRef<HTMLVideoElement | null>(null)
+  const modalCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const modalStreamRef = useRef<MediaStream | null>(null)
 
   const fetchVisitLocation = () => {
     setVisitLocationLoading(true)
@@ -123,31 +131,21 @@ export default function EmployeeSales({
     )
   }
 
-  const startVisitCamera = async (mode?: 'user' | 'environment') => {
-    const currentMode = mode ?? facingMode
-    setVisitCameraError(null)
+  const startVisitCamera = async () => {
     try {
       if (visitStreamRef.current) {
         visitStreamRef.current.getTracks().forEach((track) => track.stop())
       }
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: { ideal: currentMode } }
+        video: { width: 640, height: 480, facingMode: { ideal: 'user' } }
       })
       visitStreamRef.current = mediaStream
-      setVisitStream(mediaStream)
       if (visitVideoRef.current) {
         visitVideoRef.current.srcObject = mediaStream
       }
     } catch (err: any) {
       console.error('Visit camera access error:', err)
-      setVisitCameraError('Gagal mengakses kamera. Mohon berikan izin kamera.')
     }
-  }
-
-  const flipVisitCamera = async () => {
-    const newMode = facingMode === 'user' ? 'environment' : 'user'
-    setFacingMode(newMode)
-    await startVisitCamera(newMode)
   }
 
   const stopVisitCamera = () => {
@@ -155,22 +153,8 @@ export default function EmployeeSales({
       visitStreamRef.current.getTracks().forEach((track) => track.stop())
       visitStreamRef.current = null
     }
-    setVisitStream(null)
-  }
-
-  const captureVisitPhoto = () => {
-    if (visitVideoRef.current && visitCanvasRef.current) {
-      const video = visitVideoRef.current
-      const canvas = visitCanvasRef.current
-      canvas.width = video.videoWidth || 640
-      canvas.height = video.videoHeight || 480
-      const ctx = canvas.getContext('2d')
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        const dataUrl = canvas.toDataURL('image/jpeg')
-        setVisitCapturedPhoto(dataUrl)
-        stopVisitCamera()
-      }
+    if (visitVideoRef.current) {
+      visitVideoRef.current.srcObject = null
     }
   }
 
@@ -199,10 +183,85 @@ export default function EmployeeSales({
     reader.readAsDataURL(file)
   }
 
-  const retakeVisitPhoto = () => {
-    setVisitCapturedPhoto(null)
-    setIsCameraActive(true)
+  // ---- FULLSCREEN CAMERA MODAL HANDLERS ----
+  const startModalCamera = async (mode?: 'user' | 'environment') => {
+    const currentMode = mode ?? modalFacingMode
+    setModalCameraError(null)
+    try {
+      if (modalStreamRef.current) {
+        modalStreamRef.current.getTracks().forEach(t => t.stop())
+      }
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: { ideal: currentMode } },
+        audio: false,
+      })
+      modalStreamRef.current = mediaStream
+      if (modalVideoRef.current) modalVideoRef.current.srcObject = mediaStream
+    } catch (err: any) {
+      setModalCameraError('Gagal mengakses kamera. Pastikan izin kamera telah diberikan di browser.')
+    }
   }
+
+  const stopModalCamera = () => {
+    if (modalStreamRef.current) {
+      modalStreamRef.current.getTracks().forEach(t => t.stop())
+      modalStreamRef.current = null
+    }
+    if (modalVideoRef.current) modalVideoRef.current.srcObject = null
+  }
+
+  const openCameraModal = () => {
+    setShowCameraModal(true)
+    document.body.style.overflow = 'hidden'
+    setTimeout(() => startModalCamera(), 150)
+  }
+
+  const closeCameraModal = () => {
+    stopModalCamera()
+    setShowCameraModal(false)
+    document.body.style.overflow = ''
+  }
+
+  const flipModalCamera = async () => {
+    const newMode = modalFacingMode === 'user' ? 'environment' : 'user'
+    setModalFacingMode(newMode)
+    await startModalCamera(newMode)
+  }
+
+  const captureModalPhoto = () => {
+    if (!modalVideoRef.current || !modalCanvasRef.current) return
+    setIsCapturing(true)
+    const video = modalVideoRef.current
+    const canvas = modalCanvasRef.current
+    canvas.width = video.videoWidth || 1280
+    canvas.height = video.videoHeight || 720
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      if (modalFacingMode === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1) }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      // Stop camera and show preview — don't close modal yet
+      stopModalCamera()
+      setPreviewPhoto(canvas.toDataURL('image/jpeg', 0.92))
+    }
+    setTimeout(() => setIsCapturing(false), 200)
+  }
+
+  const confirmModalPhoto = () => {
+    if (!previewPhoto) return
+    setVisitCapturedPhoto(previewPhoto)
+    setPreviewPhoto(null)
+    setShowCameraModal(false)
+    document.body.style.overflow = ''
+  }
+
+  const retakeModalPhoto = () => {
+    setPreviewPhoto(null)
+    setTimeout(() => startModalCamera(), 150)
+  }
+
+  useEffect(() => {
+    return () => { stopModalCamera(); document.body.style.overflow = '' }
+  }, [])
 
   const fetchTodayVisits = async () => {
     setVisitsLoading(true)
@@ -246,16 +305,10 @@ export default function EmployeeSales({
       setVisitNotes('')
       setVisitLatitude(null)
       setVisitLongitude(null)
-      setVisitCameraError(null)
       setVisitLocationError(null)
     }
   }, [showVisitModal])
 
-  useEffect(() => {
-    if (visitVideoRef.current && visitStream && visitVideoRef.current.srcObject !== visitStream) {
-      visitVideoRef.current.srcObject = visitStream;
-    }
-  }, [visitStream]);
 
   const handleVisitSubmit = async () => {
     if (!visitClientName) {
@@ -347,6 +400,7 @@ export default function EmployeeSales({
   const salesVisits = visitsList.filter(v => (v.visit_type || 'sales') === 'sales')
 
   return (
+    <>
     <div className="space-y-6">
       {/* Sales Visit Section */}
       <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6">
@@ -491,102 +545,50 @@ export default function EmployeeSales({
                 )}
               </div>
 
-              {/* Photo Input (Webcam / Upload) */}
+              {/* Photo Input — Fullscreen Camera Launcher */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Ambil Foto Bukti Kunjungan *
                 </label>
-                <div className="relative aspect-video w-full rounded-2xl bg-slate-100 border border-orange-100/60 overflow-hidden flex items-center justify-center shadow-inner">
-                  {visitCapturedPhoto ? (
-                    <img src={visitCapturedPhoto} alt="Foto Bukti Kunjungan" className="w-full h-full object-cover" />
-                  ) : isCameraActive ? (
-                    <>
-                      <video 
-                        ref={visitVideoRef}
-                        autoPlay 
-                        playsInline 
-                        muted 
-                        className={`w-full h-full object-cover ${facingMode === 'user' ? 'transform -scale-x-100' : ''}`}
-                      />
-                      {/* Flip Camera Button */}
-                      {!visitCameraError && (
-                        <button
-                          type="button"
-                          onClick={flipVisitCamera}
-                          title={facingMode === 'user' ? 'Ganti ke Kamera Belakang' : 'Ganti ke Kamera Depan'}
-                          className="absolute top-2 right-2 z-10 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl transition-all cursor-pointer backdrop-blur-sm"
-                        >
-                          <FlipHorizontal2 className="w-4 h-4" />
-                        </button>
-                      )}
-                      {visitCameraError && (
-                        <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-6 text-center text-rose-700 gap-2 font-quicksand">
-                          <AlertCircle className="w-8 h-8 text-rose-500" />
-                          <p className="text-xs font-semibold leading-relaxed">{visitCameraError}</p>
-                          <div className="flex flex-wrap gap-2 justify-center mt-2">
-                            <button onClick={() => startVisitCamera()} className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
-                              Coba Lagi
-                            </button>
-                            <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm">
-                              <Upload className="w-3.5 h-3.5" /> Pilih dari Galeri
-                              <input 
-                                type="file" 
-                                accept="image/*" 
-                                className="hidden" 
-                                onChange={handleVisitImageUpload} 
-                              />
-                            </label>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="absolute inset-0 bg-slate-50/50 flex flex-col items-center justify-center p-6 text-center text-slate-500 gap-3 font-quicksand">
-                      <div className="p-3 bg-orange-50 rounded-full border border-orange-100 text-orange-600">
-                        <Camera className="w-6 h-6 animate-pulse" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-700">Kamera Belum Aktif</p>
-                        <p className="text-[10px] text-slate-400 mt-1 max-w-[220px] mx-auto">Klik tombol "Aktifkan Kamera" untuk mengambil foto bukti kunjungan.</p>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => setIsCameraActive(true)} 
-                        className="px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer hover:brightness-110 shadow-sm"
-                      >
-                        Aktifkan Kamera
-                      </button>
-                    </div>
-                  )}
-                  <canvas ref={visitCanvasRef} className="hidden" />
-                </div>
 
-                <div className="flex gap-3 justify-center mt-3">
-                  {visitCapturedPhoto ? (
-                    <button onClick={retakeVisitPhoto} className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
-                      <RefreshCw className="w-3.5 h-3.5" /> Ambil Ulang Foto
-                    </button>
-                  ) : isCameraActive ? (
-                    <>
-                      <button onClick={captureVisitPhoto} disabled={!!visitCameraError} className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-md shadow-red-500/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
-                        <Camera className="w-4 h-4" /> Tangkap Foto Bukti
+                {visitCapturedPhoto ? (
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-emerald-400 shadow-md">
+                    <img src={visitCapturedPhoto} alt="Foto Bukti Kunjungan" className="w-full aspect-video object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex items-end justify-between p-3">
+                      <span className="inline-flex items-center gap-1 text-white text-[10px] font-bold bg-emerald-500/80 backdrop-blur-sm px-2 py-1 rounded-lg">
+                        <CheckCircle2 className="w-3 h-3" /> Foto Berhasil
+                      </span>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={openCameraModal} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer">
+                          <RefreshCw className="w-3.5 h-3.5" /> Ulangi
+                        </button>
+                        <label className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer">
+                          <Upload className="w-3 h-3" /> Galeri
+                          <input type="file" accept="image/*" className="hidden" onChange={handleVisitImageUpload} />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/30 aspect-video flex flex-col items-center justify-center gap-4 p-6 text-center">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
+                      <Camera className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-700 font-quicksand">Ambil Foto Bukti Kunjungan</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Kamera akan terbuka penuh di perangkat Anda</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs">
+                      <button type="button" onClick={openCameraModal} className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md shadow-orange-500/25 active:scale-95">
+                        <Camera className="w-4 h-4" /> Buka Kamera
                       </button>
-                      <button onClick={() => setIsCameraActive(false)} className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
-                        Matikan Kamera
-                      </button>
-                    </>
-                  ) : (
-                    <label className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm">
-                      <Upload className="w-4 h-4 text-red-500" /> Pilih dari Galeri
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={handleVisitImageUpload} 
-                      />
-                    </label>
-                  )}
-                </div>
+                      <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95">
+                        <Upload className="w-4 h-4 text-slate-500" /> Galeri
+                        <input type="file" accept="image/*" className="hidden" onChange={handleVisitImageUpload} />
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Location Tracker */}
@@ -664,5 +666,168 @@ export default function EmployeeSales({
         </div>
       )}
     </div>
+
+    {/* ================================================================
+        FULLSCREEN CAMERA MODAL — Sales Visit
+        After capture, shows a fullscreen preview before confirming.
+    ================================================================ */}
+    {showCameraModal && (
+      <div
+        className="fixed inset-0 z-[9999] bg-black flex flex-col"
+        style={{ touchAction: 'none' }}
+      >
+        {/* ---- PREVIEW MODE ---- */}
+        {previewPhoto ? (
+          <>
+            {/* Preview image — object-contain ensures full photo visible on any screen */}
+            <img
+              src={previewPhoto}
+              alt="Preview Foto"
+              className="absolute inset-0 w-full h-full object-contain"
+            />
+
+            {/* Top bar */}
+            <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-4 pt-safe-top pt-4">
+              <button
+                type="button"
+                onClick={closeCameraModal}
+                className="p-2.5 bg-black/50 backdrop-blur-sm text-white rounded-full transition-all active:scale-90 cursor-pointer"
+                title="Batal"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <span className="text-white text-sm font-bold font-quicksand tracking-wide drop-shadow px-3 py-1 bg-black/40 rounded-full backdrop-blur-sm">
+                Pratinjau Foto
+              </span>
+              <div className="w-10" />
+            </div>
+
+            {/* Bottom action bar */}
+            <div className="absolute bottom-0 inset-x-0 z-10 pb-safe-bottom pb-8 px-6 flex items-center justify-between gap-4">
+              {/* Retake */}
+              <button
+                type="button"
+                onClick={retakeModalPhoto}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-black/50 backdrop-blur-md border border-white/20 text-white font-bold rounded-2xl text-sm transition-all active:scale-95 cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Ambil Ulang
+              </button>
+
+              {/* Confirm */}
+              <button
+                type="button"
+                onClick={confirmModalPhoto}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-extrabold rounded-2xl text-sm shadow-lg shadow-emerald-500/30 transition-all active:scale-95 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Gunakan Foto
+              </button>
+            </div>
+          </>
+        ) : (
+          /* ---- VIEWFINDER MODE ---- */
+          <>
+            {/* Top Controls */}
+            <div className="absolute top-0 inset-x-0 z-10 flex items-center justify-between px-4 pt-safe-top pt-4">
+              <button
+                type="button"
+                onClick={closeCameraModal}
+                className="p-2.5 bg-black/50 backdrop-blur-sm text-white rounded-full transition-all active:scale-90 cursor-pointer"
+                title="Tutup Kamera"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <span className="text-white text-sm font-bold font-quicksand tracking-wide drop-shadow">
+                Foto Bukti Kunjungan
+              </span>
+
+              <button
+                type="button"
+                onClick={flipModalCamera}
+                className="p-2.5 bg-black/50 backdrop-blur-sm text-white rounded-full transition-all active:scale-90 cursor-pointer"
+                title={modalFacingMode === 'user' ? 'Ganti ke Kamera Belakang' : 'Ganti ke Kamera Depan'}
+              >
+                <SwitchCamera className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Camera Viewfinder */}
+            {modalCameraError ? (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+                <AlertCircle className="w-12 h-12 text-rose-400" />
+                <p className="text-white text-sm font-semibold leading-relaxed">{modalCameraError}</p>
+                <div className="flex flex-col gap-3 w-full max-w-xs">
+                  <button
+                    onClick={() => startModalCamera()}
+                    className="px-6 py-3 bg-white text-slate-800 font-bold rounded-2xl text-sm transition-all cursor-pointer active:scale-95"
+                  >
+                    Coba Lagi
+                  </button>
+                  <label className="px-6 py-3 bg-white/20 text-white font-bold rounded-2xl text-sm transition-all cursor-pointer active:scale-95 text-center">
+                    <Upload className="w-4 h-4 inline mr-2" /> Pilih dari Galeri
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { handleVisitImageUpload(e); closeCameraModal() }} />
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <video
+                ref={modalVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`absolute inset-0 w-full h-full object-cover ${
+                  modalFacingMode === 'user' ? 'scale-x-[-1]' : ''
+                }`}
+              />
+            )}
+
+            {/* Face guide overlay */}
+            {!modalCameraError && (
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div
+                  className="rounded-full border-4 border-white/60"
+                  style={{ width: '60vw', height: '60vw', maxWidth: 280, maxHeight: 280 }}
+                />
+              </div>
+            )}
+
+            {/* Bottom Controls — Shutter + Gallery */}
+            <div className="absolute bottom-0 inset-x-0 z-10 pb-safe-bottom pb-8 flex flex-col items-center gap-4">
+              <label className="inline-flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-sm text-white rounded-full text-xs font-bold cursor-pointer active:scale-95 transition-all">
+                <Upload className="w-4 h-4" />
+                Pilih dari Galeri
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { handleVisitImageUpload(e); closeCameraModal() }}
+                />
+              </label>
+
+              {/* Shutter Button */}
+              <button
+                type="button"
+                onClick={captureModalPhoto}
+                disabled={!!modalCameraError || isCapturing}
+                className="relative w-20 h-20 rounded-full bg-white border-4 border-white/30 shadow-2xl flex items-center justify-center transition-all active:scale-90 cursor-pointer disabled:opacity-40"
+                title="Ambil Foto"
+              >
+                <div className={`w-14 h-14 rounded-full bg-white border-4 border-slate-200 flex items-center justify-center shadow-inner ${
+                  isCapturing ? 'scale-75 bg-slate-200' : ''
+                } transition-all`}>
+                  <Circle className="w-6 h-6 text-orange-500 fill-orange-500" />
+                </div>
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Hidden canvas for capture */}
+        <canvas ref={modalCanvasRef} className="hidden" />
+      </div>
+    )}
+    </>
   )
 }

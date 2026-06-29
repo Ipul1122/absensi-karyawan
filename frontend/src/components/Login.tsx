@@ -27,7 +27,7 @@ interface User {
 }
 
 interface LoginProps {
-  onLoginSuccess: (token: string, user: User) => void
+  onLoginSuccess: (token: string, user: User, rememberMe: boolean) => void
   isOnline: boolean
 }
 
@@ -182,7 +182,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
       if (response.data.status === 'success') {
         const { token, user } = response.data
         Swal.fire({ title: 'Login Berhasil!', text: `Selamat datang, ${user.name}!`, icon: 'success', timer: 1500, showConfirmButton: false, background: '#fff7f5', color: '#3c1105' })
-        onLoginSuccess(token, user)
+        onLoginSuccess(token, user, rememberMe)
       }
     } catch (err: any) {
       let msg = 'Terjadi kesalahan saat menghubungi server.'

@@ -489,7 +489,7 @@ export default function LokasiKantor({
                     type="number"
                     required
                     min="5"
-                    max="10000"
+                    max="500000"
                     placeholder="100"
                     value={officeRadius}
                     onChange={(e) => setOfficeRadius(parseInt(e.target.value) || 0)}

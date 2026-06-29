@@ -615,57 +615,20 @@ export default function LokasiKantor({
               </div>
             </div>
 
-            {/* KANTOR BOGOR */}
-            <div className="pb-4">
-              <h4 className="text-sm font-extrabold text-blue-650 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span> Kantor Bogor (Cabang)
-              </h4>
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Form Config */}
-                <div className="lg:col-span-4 space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
-                      Latitude Kantor Bogor
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="-6.5971"
-                      value={bogorLatitude}
-                      onChange={(e) => setBogorLatitude(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
-                      Longitude Kantor Bogor
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="106.7973"
-                      value={bogorLongitude}
-                      onChange={(e) => setBogorLongitude(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
-                      Radius Jangkauan Bogor (Meter)
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="5"
-                      max="1000000"
-                      placeholder="100"
-                      value={bogorRadius}
-                      onChange={(e) => setBogorRadius(parseInt(e.target.value) || 0)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Radius Jangkauan (Meter)
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="5"
+                    max="500000"
+                    placeholder="100"
+                    value={officeRadius}
+                    onChange={(e) => setOfficeRadius(parseInt(e.target.value) || 0)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                  />
                 </div>
 
                 {/* Map Config View */}

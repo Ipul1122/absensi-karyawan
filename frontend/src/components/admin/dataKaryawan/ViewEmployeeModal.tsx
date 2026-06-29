@@ -18,11 +18,7 @@ import {
   Save,
   Camera,
   FileUp,
-<<<<<<< HEAD
   Building2
-=======
-  Building2,
->>>>>>> df165e7ffaa96d8600d99a884548954fff74e2cd
 } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
 

@@ -26,6 +26,8 @@ interface Attendance {
     email: string
     photo?: string | null
   }
+  shift_start_time?: string | null
+  shift_end_time?: string | null
 }
 
 interface DetailAttendanceModalProps {
@@ -155,6 +157,14 @@ export default function DetailAttendanceModal({
               }`}>
                 Tipe: {attendance.attendance_type || 'kantor'}
               </span>
+              {attendance.shift_start_time && attendance.shift_end_time && (
+                <>
+                  <span>&bull;</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border text-blue-700 bg-blue-50 border-blue-200">
+                    Shift Kustom: {attendance.shift_start_time.substring(0, 5)} - {attendance.shift_end_time.substring(0, 5)}
+                  </span>
+                </>
+              )}
             </p>
           </div>
           <button

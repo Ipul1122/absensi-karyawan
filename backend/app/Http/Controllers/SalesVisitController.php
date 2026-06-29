@@ -31,12 +31,13 @@ class SalesVisitController extends Controller
         try {
             // Save photo
             $photoPath = $this->saveBase64Image($request->photo, 'visit_' . $user->id);
+            $visitTime = Carbon::now()->format('H:i:s');
 
             // Create record
             $visit = SalesVisit::create([
                 'user_id' => $user->id,
                 'date' => $today,
-                'visit_time' => Carbon::now()->format('H:i:s'),
+                'visit_time' => $visitTime,
                 'client_name' => $request->client_name,
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
@@ -44,6 +45,27 @@ class SalesVisitController extends Controller
                 'notes' => $request->notes,
                 'visit_type' => $visitType,
             ]);
+
+            // Sync with attendance log: if this is the first visit of the day, create a Check-In record.
+            $existingAttendance = Attendance::where('user_id', $user->id)
+                ->where('date', $today)
+                ->first();
+
+            if (!$existingAttendance) {
+                $attType = ($visitType === 'sales') ? 'kunjungan' : 'client';
+                Attendance::create([
+                    'user_id' => $user->id,
+                    'date' => $today,
+                    'attendance_type' => $attType,
+                    'clock_in' => $visitTime,
+                    'latitude_in' => $request->latitude,
+                    'longitude_in' => $request->longitude,
+                    'photo_in' => $photoPath,
+                    'notes_in' => $request->notes ?: 'Absen Masuk via Kunjungan: ' . $request->client_name,
+                    'status_in' => 'normal',
+                    'approval_status' => 'approved',
+                ]);
+            }
 
             return response()->json([
                 'status' => 'success',

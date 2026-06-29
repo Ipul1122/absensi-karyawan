@@ -47,6 +47,7 @@ interface Employee {
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
+  office_location?: string
 }
 
 interface EmployeeProfile {
@@ -93,6 +94,7 @@ export default function AkunKaryawan({
   onRefresh,
 }: AkunKaryawanProps) {
   const [] = useState<Record<number, boolean>>({})
+  const [selectedCompany, setSelectedCompany] = useState<string>('all')
 
 
 
@@ -382,11 +384,16 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
   //   })
   // }
 
+  const displayedEmployees = filteredEmployees.filter(emp => {
+    if (selectedCompany === 'all') return true
+    return emp.company === selectedCompany
+  })
+
   // Stats calculations based on current employees
-  const totalEmployees = filteredEmployees.length
-  const activeEmployees = filteredEmployees.filter(emp => !emp.status || emp.status === 'active').length
-  const pendingEmployees = filteredEmployees.filter(emp => emp.status === 'pending').length
-  const totalDivisions = new Set(filteredEmployees.map(emp => emp.division).filter(Boolean)).size
+  const totalEmployees = displayedEmployees.length
+  const activeEmployees = displayedEmployees.filter(emp => !emp.status || emp.status === 'active').length
+  const pendingEmployees = displayedEmployees.filter(emp => emp.status === 'pending').length
+  const totalDivisions = new Set(displayedEmployees.map(emp => emp.division).filter(Boolean)).size
 
   const inputClass = "w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-3 outline-none transition-all text-xs font-medium font-quicksand focus:ring-2 focus:ring-red-100"
   const labelClass = "block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1 font-quicksand"
@@ -401,7 +408,7 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full sm:w-60">
               <Search className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
               <input
                 type="text"
@@ -410,6 +417,18 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs"
               />
+            </div>
+            <div className="relative w-full sm:w-56">
+              <Building2 className="absolute inset-y-0 left-0 pl-3.5 w-4 h-4 my-auto text-slate-400 pointer-events-none" />
+              <select
+                value={selectedCompany}
+                onChange={(e) => setSelectedCompany(e.target.value)}
+                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-700 placeholder-slate-400 rounded-xl py-2 pl-9 pr-8 outline-none transition-all text-xs font-semibold cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2523475569%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%25205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_10px] bg-[right_12px_center] bg-no-repeat font-quicksand"
+              >
+                <option value="all">Semua Perusahaan</option>
+                <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama</option>
+                <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez</option>
+              </select>
             </div>
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start flex-wrap">
               {onRefresh && (
@@ -514,14 +533,14 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                       </div>
                     </td>
                   </tr>
-                ) : filteredEmployees.length === 0 ? (
+                ) : displayedEmployees.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold font-quicksand">
-                      {searchQuery ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
+                      {searchQuery || selectedCompany !== 'all' ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
                     </td>
                   </tr>
                 ) : (
-                  filteredEmployees.map((emp) => (
+                  displayedEmployees.map((emp) => (
                     <tr key={emp.id} className="hover:bg-slate-50/60 hover:shadow-[inset_4px_0_0_0_#dc2626] transition-all duration-200">
                       {/* Column 1: Karyawan (Name, Avatar, NIK) */}
                       <td className="py-4 px-5 font-semibold text-slate-800">
@@ -574,9 +593,20 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                       {/* Column 3: Penempatan */}
                       <td className="py-4 px-5">
                         <div className="space-y-1">
-                          <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${getDivisionBadgeStyle(emp.division)}`}>
-                            {emp.division || 'Umum'}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${getDivisionBadgeStyle(emp.division)}`}>
+                              {emp.division || 'Umum'}
+                            </span>
+                            {emp.office_location && (
+                              <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${
+                                emp.office_location === 'bogor' 
+                                  ? 'bg-blue-550/5 text-blue-600 border-blue-100' 
+                                  : 'bg-red-550/5 text-red-600 border-red-100'
+                              }`}>
+                                {emp.office_location === 'bogor' ? 'Bogor' : 'Jakarta'}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-500 font-medium block truncate max-w-[180px]" title={emp.company || ''}>
                             {emp.company || 'Tanpa Perusahaan'}
                           </span>
@@ -687,12 +717,12 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                 <span className="text-xs font-quicksand font-bold">Memuat data karyawan...</span>
               </div>
             </div>
-          ) : filteredEmployees.length === 0 ? (
+          ) : displayedEmployees.length === 0 ? (
             <div className="py-12 text-center text-slate-400 font-bold bg-white border border-orange-100 rounded-2xl font-quicksand text-xs">
-              {searchQuery ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
+              {searchQuery || selectedCompany !== 'all' ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
             </div>
           ) : (
-            filteredEmployees.map((emp) => (
+            displayedEmployees.map((emp) => (
               <div key={emp.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-red-200 transition-all duration-300 space-y-3.5 relative overflow-hidden">
                 {/* Accent Top Bar */}
                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
@@ -751,9 +781,20 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                 <div className="grid grid-cols-2 gap-2 text-xs border-y border-slate-50 py-3 font-quicksand">
                   <div>
                     <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block">Penempatan</span>
-                    <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border mt-1 ${getDivisionBadgeStyle(emp.division)}`}>
-                      {emp.division || 'Umum'}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${getDivisionBadgeStyle(emp.division)}`}>
+                        {emp.division || 'Umum'}
+                      </span>
+                      {emp.office_location && (
+                        <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${
+                          emp.office_location === 'bogor' 
+                            ? 'bg-blue-550/5 text-blue-600 border-blue-100' 
+                            : 'bg-red-550/5 text-red-600 border-red-100'
+                        }`}>
+                          {emp.office_location === 'bogor' ? 'Bogor' : 'Jakarta'}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-500 font-medium block mt-1 truncate">
                       {emp.company ? emp.company.replace('PT ', '') : 'Tanpa Perusahaan'}
                     </span>

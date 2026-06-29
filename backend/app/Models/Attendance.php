@@ -22,7 +22,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'photo_out',
     'notes_out',
     'status_out',
-    'approval_status'
+    'approval_status',
+    'shift_start_time',
+    'shift_end_time',
+    'shift_id'
 ])]
 class Attendance extends Model
 {
@@ -32,5 +35,13 @@ class Attendance extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the shift associated with the attendance record.
+     */
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 }

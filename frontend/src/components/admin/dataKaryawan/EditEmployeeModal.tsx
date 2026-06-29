@@ -21,6 +21,8 @@ interface EditEmployeeModalProps {
   setSundayOff: (v: boolean) => void
   submitting: boolean
   onViewBiodata?: () => void
+  officeLocation: string
+  setOfficeLocation: (v: string) => void
 }
 
 export default function EditEmployeeModal({
@@ -44,6 +46,8 @@ export default function EditEmployeeModal({
   setSundayOff,
   submitting,
   onViewBiodata,
+  officeLocation,
+  setOfficeLocation,
 }: EditEmployeeModalProps) {
   if (!show) return null
 
@@ -164,6 +168,23 @@ export default function EditEmployeeModal({
                 <option value="">-- Pilih Perusahaan --</option>
                 <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
                 <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+              Lokasi Kantor
+            </label>
+            <div className="relative">
+              <Building2 className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
+              <select
+                value={officeLocation}
+                onChange={(e) => setOfficeLocation(e.target.value)}
+                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs appearance-none cursor-pointer"
+              >
+                <option value="jakarta">Jakarta (Pusat)</option>
+                <option value="bogor">Bogor (Cabang)</option>
               </select>
             </div>
           </div>

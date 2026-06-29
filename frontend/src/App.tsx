@@ -31,7 +31,7 @@ interface User {
 // Capture requested path for redirect after login synchronously before React Router redirects to "/"
 const initialPath = window.location.pathname
 if (initialPath && initialPath !== '/' && !initialPath.startsWith('/verify-slip')) {
-  if (!sessionStorage.getItem('auth_token')) {
+  if (!sessionStorage.getItem('auth_token') && !localStorage.getItem('auth_token')) {
     sessionStorage.setItem('redirect_to', initialPath)
   }
 }
@@ -40,9 +40,11 @@ function App() {
   const [backendStatus, setBackendStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle')
   
   // Auth state
-  const [token, setToken] = useState<string | null>(sessionStorage.getItem('auth_token'))
+  const [token, setToken] = useState<string | null>(() => {
+    return sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')
+  })
   const [user, setUser] = useState<User | null>(() => {
-    const saved = sessionStorage.getItem('auth_user')
+    const saved = sessionStorage.getItem('auth_user') || localStorage.getItem('auth_user')
     if (saved) {
       try {
         return JSON.parse(saved)
@@ -86,7 +88,9 @@ function App() {
               photo: d.photo,
               company: d.company
             }
-            sessionStorage.setItem('auth_user', JSON.stringify(updatedUser))
+            const isLocal = !!localStorage.getItem('auth_user')
+            const storage = isLocal ? localStorage : sessionStorage
+            storage.setItem('auth_user', JSON.stringify(updatedUser))
             return updatedUser
           })
         }
@@ -127,9 +131,19 @@ function App() {
     }
   }, [user])
 
-  const handleLoginSuccess = (newToken: string, newUser: User) => {
-    sessionStorage.setItem('auth_token', newToken)
-    sessionStorage.setItem('auth_user', JSON.stringify(newUser))
+  const handleLoginSuccess = (newToken: string, newUser: User, remember: boolean) => {
+    const storage = remember ? localStorage : sessionStorage
+    
+    if (remember) {
+      sessionStorage.removeItem('auth_token')
+      sessionStorage.removeItem('auth_user')
+    } else {
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_user')
+    }
+    
+    storage.setItem('auth_token', newToken)
+    storage.setItem('auth_user', JSON.stringify(newUser))
     setToken(newToken)
     setUser(newUser)
 
@@ -143,6 +157,8 @@ function App() {
   const handleLogout = () => {
     sessionStorage.removeItem('auth_token')
     sessionStorage.removeItem('auth_user')
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_user')
     setToken(null)
     setUser(null)
   }
@@ -151,7 +167,9 @@ function App() {
     setUser(prevUser => {
       if (!prevUser) return null
       const updatedUser = { ...prevUser, ...updatedFields }
-      sessionStorage.setItem('auth_user', JSON.stringify(updatedUser))
+      const isLocal = !!localStorage.getItem('auth_user')
+      const storage = isLocal ? localStorage : sessionStorage
+      storage.setItem('auth_user', JSON.stringify(updatedUser))
       return updatedUser
     })
   }

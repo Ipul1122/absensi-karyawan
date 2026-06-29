@@ -20,6 +20,13 @@ interface Attendance {
   notes_out: string | null
   status_in: string | null
   status_out: string | null
+  shift_start_time?: string | null
+  shift_end_time?: string | null
+  shift?: {
+    name: string
+    start_time: string
+    end_time: string
+  } | null
 }
 
 interface EmployeeHistoryProps {
@@ -238,11 +245,27 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
                   history.map((record) => (
                     <tr key={record.id} className="hover:bg-orange-50/10 transition-colors">
                       <td className="py-4 px-6 font-extrabold text-slate-800 font-quicksand">
-                        {new Date(record.date).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
+                        <div>
+                          {new Date(record.date).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </div>
+                        {record.shift?.name && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5">
+                              {record.shift.name}
+                            </span>
+                          </div>
+                        )}
+                        {!record.shift?.name && record.shift_start_time && record.shift_end_time && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 font-mono">
+                              Shift: {record.shift_start_time.substring(0, 5)} - {record.shift_end_time.substring(0, 5)}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize ${

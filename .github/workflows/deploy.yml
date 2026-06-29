@@ -1,0 +1,91 @@
+name: Deploy Absensi Karyawan to cPanel
+
+on:
+  push:
+    branches:
+      # Jalankan deployment otomatis ketika Anda push ke branch 'main'
+      - main
+  # Memungkinkan deployment dijalankan manual dari tab "Actions" di GitHub
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    name: 🚀 Deploy Frontend (React)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: 📦 Install dependencies & Build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: 📂 Sync Frontend to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./frontend/dist/
+          # =========================================================================
+          # UBAH server-dir DI BAWAH INI SESUAI PATH DI CPANEL ANDA
+          # Contoh: public_html/ (jika React berada di domain utama)
+          # Atau: public_html/absensi/ (jika React berada di subfolder/subdomain)
+          # =========================================================================
+          server-dir: public_html/
+          state-name: .ftp-deploy-frontend-sync-state.json
+
+  deploy-backend:
+    name: 🚀 Deploy Backend (Laravel)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, iconv, mysql, zip
+          coverage: none
+
+      - name: 📦 Install Composer dependencies
+        run: |
+          cd backend
+          composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+      - name: 📂 Sync Backend to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./backend/
+          # =========================================================================
+          # UBAH server-dir DI BAWAH INI SESUAI PATH DI CPANEL ANDA
+          # Rekomendasi: Letakkan di luar public_html untuk keamanan Laravel (misal: /laravel-backend/)
+          # Dan hubungkan folder 'public'-nya saja ke public_html/api/
+          # =========================================================================
+          server-dir: laravel-backend/
+          state-name: .ftp-deploy-backend-sync-state.json
+          # Kecualikan file-file berikut agar tidak menimpa konfigurasi di server cPanel
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.env
+            **/tests/**
+            **/storage/framework/cache/data/*
+            **/storage/framework/sessions/*
+            **/storage/framework/views/*.php
+            **/storage/logs/*.log
+            **/database/database.sqlite

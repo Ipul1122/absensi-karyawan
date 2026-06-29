@@ -76,7 +76,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       '/admin/lokasiKantor',
       '/admin/keamanan',
       '/admin/biodata',
-      '/admin/hariLibur'
+      '/admin/hariLibur',
+      '/admin/shifts'
     ].includes(location.pathname)
   })
 
@@ -107,15 +108,16 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       setIsGajiOpen(true)
     }
     if (
-      [
-        '/admin/lokasiKantor',
-        '/admin/keamanan',
-        '/admin/biodata',
-        '/admin/hariLibur'
-      ].includes(location.pathname)
-    ) {
-      setIsPengaturanOpen(true)
-    }
+        [
+          '/admin/lokasiKantor',
+          '/admin/keamanan',
+          '/admin/biodata',
+          '/admin/hariLibur',
+          '/admin/shifts'
+        ].includes(location.pathname)
+      ) {
+        setIsPengaturanOpen(true)
+      }
   }, [location.pathname])
 
   const menuItems = [
@@ -154,6 +156,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       children: [
         { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin },
         { to: '/admin/hariLibur', label: 'Kelola Hari Libur', icon: CalendarDays },
+        { to: '/admin/shifts', label: 'Shift Kerja', icon: Clock },
         { to: '/admin/keamanan', label: 'Akun & Keamanan', icon: KeyRound },
         { to: '/admin/biodata', label: 'Biodata Pribadi', icon: UserCircle2 },
       ]

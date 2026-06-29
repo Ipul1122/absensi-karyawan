@@ -29,6 +29,8 @@ interface Attendance {
     division?: string | null
     company?: string | null
   }
+  shift_start_time?: string | null
+  shift_end_time?: string | null
 }
 
 interface Employee {
@@ -36,6 +38,7 @@ interface Employee {
   name: string
   email: string
   photo?: string | null
+  join_date?: string | null
   employee_number?: string | null
   division?: string | null
   company?: string | null
@@ -95,8 +98,21 @@ export default function RekapAbsensi({
     const isSatOff = !!emp.saturday_off
     const isSunOff = emp.sunday_off !== false
 
+    let startDay = 1
+    if (emp.join_date) {
+      const [joinYear, joinMonth, joinDay] = emp.join_date.split('-').map(Number)
+      if (joinYear > year || (joinYear === year && joinMonth > month)) {
+        // Employee has not joined yet during this month
+        return 0
+      }
+      if (joinYear === year && joinMonth === month) {
+        // Joined this month, start counting from join date day
+        startDay = joinDay
+      }
+    }
+
     let workingDays = 0
-    for (let d = 1; d <= endDay; d++) {
+    for (let d = startDay; d <= endDay; d++) {
       const dayOfWeek = new Date(year, month - 1, d).getDay()
       
       let isOff = false
@@ -143,7 +159,17 @@ export default function RekapAbsensi({
         const [year, month] = reportMonth.split('-').map(Number)
         const daysInMonth = new Date(year, month, 0).getDate()
         
-        for (let d = 1; d <= daysInMonth; d++) {
+        let startDay = 1
+        if (emp.join_date) {
+          const [joinYear, joinMonth, joinDay] = emp.join_date.split('-').map(Number)
+          if (joinYear > year || (joinYear === year && joinMonth > month)) {
+            startDay = daysInMonth + 1
+          } else if (joinYear === year && joinMonth === month) {
+            startDay = joinDay
+          }
+        }
+
+        for (let d = startDay; d <= daysInMonth; d++) {
           const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
           const dayOfWeek = new Date(year, month - 1, d).getDay()
           
@@ -186,14 +212,26 @@ export default function RekapAbsensi({
     })
   }
 
+  // Date helper functions
+  const getTodayStr = () => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  }
+
+  const getYesterdayStr = () => {
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
   // Filter States
   const [search, setSearch] = useState('')
   const [reportMonth, setReportMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}` // Default to current month-year
   })
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
+  const [startDate, setStartDate] = useState(getTodayStr)
+  const [endDate, setEndDate] = useState(getTodayStr)
   const [statusIn, setStatusIn] = useState('all')
   const [statusOut, setStatusOut] = useState('all')
   
@@ -742,89 +780,93 @@ export default function RekapAbsensi({
         <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
       
       {/* Header Panel */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 font-quicksand">
-        <div className="space-y-3">
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 font-quicksand">
-              {viewMode === 'daily' ? 'Log Seluruh Absensi' : 'Ringkasan Absensi Bulanan'}
-            </h3>
-            <p className="text-xs text-slate-500 font-quicksand font-medium">
-              {viewMode === 'daily' 
-                ? 'Monitoring waktu, lokasi, foto, dan status absensi seluruh karyawan.'
-                : 'Akumulasi total kehadiran, keterlambatan, cuti, alpa, dan persentase kehadiran bulanan.'}
-            </p>
-          </div>
-          
-          {/* View Mode Toggle */}
-          <div className="flex bg-slate-100/80 border border-slate-200/55 p-0.5 rounded-xl w-fit select-none">
-            <button
-              onClick={() => setViewMode('daily')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
-                viewMode === 'daily'
-                  ? 'bg-white text-orange-600 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Log Harian
-            </button>
-            <button
-              onClick={() => setViewMode('monthly')}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
-                viewMode === 'monthly'
-                  ? 'bg-white text-orange-600 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Ringkasan Bulanan
-            </button>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 font-quicksand">
+        <div className="space-y-3 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 font-quicksand">
+                {viewMode === 'daily' ? 'Log Seluruh Absensi' : 'Ringkasan Absensi Bulanan'}
+              </h3>
+              <p className="text-xs text-slate-500 font-quicksand font-medium hidden sm:block mt-1">
+                {viewMode === 'daily' 
+                  ? 'Monitoring waktu, lokasi, foto, dan status absensi seluruh karyawan.'
+                  : 'Akumulasi total kehadiran, keterlambatan, cuti, alpa, dan persentase kehadiran bulanan.'}
+              </p>
+            </div>
+            
+            {/* View Mode Toggle */}
+            <div className="flex bg-slate-100/80 border border-slate-200/55 p-0.5 rounded-xl w-fit select-none shrink-0 shadow-xs">
+              <button
+                onClick={() => setViewMode('daily')}
+                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
+                  viewMode === 'daily'
+                    ? 'bg-white text-orange-600 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Log Harian
+              </button>
+              <button
+                onClick={() => setViewMode('monthly')}
+                className={`px-3.5 py-1.5 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
+                  viewMode === 'monthly'
+                    ? 'bg-white text-orange-600 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Ringkasan Bulanan
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        {/* Action Buttons: 2x2 Grid on Mobile, Flex on Desktop */}
+        <div className="grid grid-cols-2 gap-2 w-full lg:flex lg:flex-wrap lg:items-center lg:gap-2 lg:w-auto">
           {/* Absensi Manual Button */}
           <button
             onClick={() => setShowManualModal(true)}
             disabled={attendanceLoading}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-600 hover:text-orange-600 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-orange-500 text-slate-650 hover:text-orange-650 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand w-full lg:w-auto hover:scale-[1.02] active:scale-[0.98] h-[38px]"
             title="Absensikan Karyawan (Manual)"
           >
-            <Clock className="w-4 h-4 text-orange-500" />
-            Absensi Manual
+            <Clock className="w-4 h-4 text-orange-500 shrink-0" />
+            <span>Absensi Manual</span>
           </button>
 
           {/* Export PDF Button */}
           <button
             onClick={handleExportPDF}
             disabled={attendanceLoading}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand w-full lg:w-auto hover:scale-[1.02] active:scale-[0.98] h-[38px]"
             title="Ekspor PDF"
           >
-            <FileDown className="w-4 h-4" />
-            Ekspor PDF
+            <FileDown className="w-4 h-4 shrink-0" />
+            <span>Ekspor PDF</span>
           </button>
 
           {/* Export Excel Button */}
           <button
             onClick={handleExportExcel}
             disabled={attendanceLoading}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand flex-1 sm:flex-initial hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-emerald-500/10 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed font-quicksand w-full lg:w-auto hover:scale-[1.02] active:scale-[0.98] h-[38px]"
             title="Ekspor Excel"
           >
-            <FileDown className="w-4 h-4" />
-            Ekspor Excel
+            <FileDown className="w-4 h-4 shrink-0" />
+            <span>Ekspor Excel</span>
           </button>
 
+          {/* Refresh Button */}
           <button
             onClick={fetchAttendances}
             disabled={attendanceLoading}
-            className="p-2.5 bg-white border border-slate-200 hover:border-red-500 text-slate-500 hover:text-red-500 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center shrink-0 disabled:opacity-50 shadow-sm hover:scale-[1.02] active:scale-[0.98] h-[38px] w-[38px]"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-red-500 text-slate-650 hover:text-red-500 rounded-xl transition-all cursor-pointer disabled:opacity-50 shadow-sm hover:scale-[1.02] active:scale-[0.98] h-[38px] w-full lg:w-[38px]"
             title="Segarkan Log"
           >
-            <RefreshCw className={`w-4 h-4 ${attendanceLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 shrink-0 ${attendanceLoading ? 'animate-spin' : ''}`} />
+            <span className="lg:hidden">Segarkan</span>
           </button>
         </div>
       </div>
-
       {/* Mobile Toggle Filters Button */}
       <div className="block md:hidden">
         <button
@@ -843,7 +885,7 @@ export default function RekapAbsensi({
 
       {/* Modern Filters Panel */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${
-        viewMode === 'daily' ? 'lg:grid-cols-4 xl:grid-cols-7' : 'lg:grid-cols-3'
+        viewMode === 'daily' ? 'lg:grid-cols-4 xl:grid-cols-8' : 'lg:grid-cols-3'
       } gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl font-quicksand ${
         showFilters ? 'grid' : 'hidden md:grid'
       }`}>
@@ -905,6 +947,37 @@ export default function RekapAbsensi({
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
               />
+            </div>
+
+            {/* Quick Date Shortcuts */}
+            <div className="space-y-1 flex flex-col justify-end">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pintasan Tanggal</label>
+              <div className="flex gap-1 h-[38px] items-center">
+                <button
+                  type="button"
+                  onClick={() => { setStartDate(getTodayStr()); setEndDate(getTodayStr()); }}
+                  className="flex-1 py-2 text-center text-[9px] font-extrabold text-orange-600 bg-orange-50/50 hover:bg-orange-100 border border-orange-200/50 rounded-xl transition-all cursor-pointer active:scale-95"
+                  title="Filter Hari Ini"
+                >
+                  Hari Ini
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setStartDate(getYesterdayStr()); setEndDate(getYesterdayStr()); }}
+                  className="flex-1 py-2 text-center text-[9px] font-extrabold text-orange-600 bg-orange-50/50 hover:bg-orange-100 border border-orange-200/50 rounded-xl transition-all cursor-pointer active:scale-95"
+                  title="Filter Kemarin"
+                >
+                  Kemarin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setStartDate(''); setEndDate(''); }}
+                  className="flex-1 py-2 text-center text-[9px] font-extrabold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl transition-all cursor-pointer active:scale-95"
+                  title="Semua Tanggal"
+                >
+                  Semua
+                </button>
+              </div>
             </div>
 
             {/* Status Masuk Filter */}
@@ -1012,7 +1085,14 @@ export default function RekapAbsensi({
                         </div>
                       </td>
                       <td className="py-4 px-6 font-extrabold text-slate-700 text-xs">
-                        {formatDate(att.date)}
+                        <div>{formatDate(att.date)}</div>
+                        {att.shift_start_time && att.shift_end_time && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5">
+                              <Clock className="w-2.5 h-2.5 text-blue-500" /> {att.shift_start_time.substring(0, 5)} - {att.shift_end_time.substring(0, 5)}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize ${
@@ -1212,6 +1292,11 @@ export default function RekapAbsensi({
                     <span className="text-[10px] font-extrabold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
                       {formatDate(att.date)}
                     </span>
+                    {att.shift_start_time && att.shift_end_time && (
+                      <span className="text-[9px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 mt-1 font-mono">
+                        Shift: {att.shift_start_time.substring(0, 5)} - {att.shift_end_time.substring(0, 5)}
+                      </span>
+                    )}
                   </div>
                 </div>
 

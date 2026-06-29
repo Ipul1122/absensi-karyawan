@@ -38,6 +38,15 @@ interface Attendance {
   notes_out: string | null
   status_in: string | null
   status_out: string | null
+  shift_start_time?: string | null
+  shift_end_time?: string | null
+  shift_id?: number | null
+  shift?: {
+    id: number
+    name: string
+    start_time: string
+    end_time: string
+  } | null
 }
 
 interface OfficeSetting {
@@ -54,6 +63,17 @@ interface EmployeeAbsenProps {
   fetchTodayAttendance: () => Promise<void>
   fetchHistory: () => Promise<void>
   getStatusBadge: (status: string | null) => React.ReactNode
+}
+
+const getShiftLabelForAttendance = (att: Attendance | null | undefined) => {
+  if (!att) return null
+  if (att.shift?.name) {
+    return `${att.shift.name} (${att.shift.start_time.substring(0, 5)} - ${att.shift.end_time.substring(0, 5)})`
+  }
+  if (att.shift_start_time && att.shift_end_time) {
+    return `${att.shift_start_time.substring(0, 5)} - ${att.shift_end_time.substring(0, 5)}`
+  }
+  return 'Shift Reguler (08:30 - 17:30)'
 }
 
 export default function EmployeeAbsen({
@@ -76,6 +96,8 @@ export default function EmployeeAbsen({
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [isCameraActive, setIsCameraActive] = useState(false)
+  const [shifts, setShifts] = useState<any[]>([])
+  const [selectedShiftId, setSelectedShiftId] = useState<string>('')
 
   // Fullscreen camera modal state
   const [showCameraModal, setShowCameraModal] = useState(false)
@@ -163,6 +185,23 @@ export default function EmployeeAbsen({
     setNotes('')
     setIsCameraActive(false)
   }, [selectedTab])
+
+  // Fetch shifts list on mount
+  useEffect(() => {
+    const fetchShifts = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/shifts', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.data.status === 'success') {
+          setShifts(response.data.data)
+        }
+      } catch (err) {
+        console.error('Gagal mengambil daftar shift kerja:', err)
+      }
+    }
+    fetchShifts()
+  }, [token])
 
   // Geolocation Handler
   const fetchLocation = () => {
@@ -564,15 +603,21 @@ export default function EmployeeAbsen({
     setSubmitting(true)
     try {
       const url = `http://localhost:8000/api/attendance/${type}`
+      const payload: any = {
+        latitude: String(latitude),
+        longitude: String(longitude),
+        photo: capturedPhoto,
+        notes: notes,
+      }
+      if (type === 'check-in') {
+        payload.attendance_type = 'kantor';
+        if (selectedShiftId) {
+          payload.shift_id = parseInt(selectedShiftId, 10);
+        }
+      }
       const response = await axios.post(
         url,
-        {
-          latitude: String(latitude),
-          longitude: String(longitude),
-          photo: capturedPhoto,
-          notes: notes,
-          attendance_type: type === 'check-in' ? 'kantor' : undefined
-        },
+        payload,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -788,12 +833,35 @@ export default function EmployeeAbsen({
                   )}
                 </div>
               </div>
+            </div>            {/* Shift Profile Selection */}
+            <div className="space-y-2 pt-3 border-t border-orange-100 font-quicksand">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-red-500" />
+                Shift Kerja Hari Ini
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedShiftId}
+                  onChange={(e) => setSelectedShiftId(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none text-xs font-semibold appearance-none cursor-pointer"
+                >
+                  <option value="">Shift Reguler (08:30 - 17:30)</option>
+                  {shifts.map((shift) => (
+                    <option key={shift.id} value={shift.id}>
+                      {shift.name} ({shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)})
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-orange-100">
+            <div className="space-y-2 pt-3 border-t border-orange-100">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 font-quicksand">
                 <FileText className="w-3.5 h-3.5 text-red-500" />
-                3. Catatan Presensi (Opsional)
+                Catatan Presensi (Opsional)
               </label>
               <textarea placeholder="Tambahkan pesan atau keterangan jika diperlukan..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 px-4 outline-none transition-all text-xs resize-none font-medium font-quicksand" />
             </div>
@@ -850,6 +918,14 @@ export default function EmployeeAbsen({
                     <div className="pt-2 border-t border-slate-200">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Catatan Anda</span>
                       <p className="text-xs text-slate-600 mt-1 font-medium font-quicksand">{todayAttendance.notes_in}</p>
+                    </div>
+                  )}
+                  {todayAttendance && (
+                    <div className="pt-2 border-t border-slate-200 font-quicksand">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Jadwal Shift Kerja Anda</span>
+                      <span className="text-xs text-slate-700 font-bold">
+                        {getShiftLabelForAttendance(todayAttendance)}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1084,6 +1160,14 @@ export default function EmployeeAbsen({
                     <div className="pt-2 border-t border-slate-200">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Catatan Anda</span>
                       <p className="text-xs text-slate-600 mt-1 font-medium font-quicksand">{todayAttendance.notes_out}</p>
+                    </div>
+                  )}
+                  {todayAttendance && (
+                    <div className="pt-2 border-t border-slate-200 font-quicksand">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Jadwal Shift Kerja Anda</span>
+                      <span className="text-xs text-slate-700 font-bold">
+                        {getShiftLabelForAttendance(todayAttendance)}
+                      </span>
                     </div>
                   )}
                 </div>

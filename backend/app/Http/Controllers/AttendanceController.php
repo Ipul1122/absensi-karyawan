@@ -18,7 +18,7 @@ class AttendanceController extends Controller
         $userId = $request->user()->id;
         $today = Carbon::today()->toDateString();
 
-        $attendance = Attendance::where('user_id', $userId)
+        $attendance = Attendance::with('shift')->where('user_id', $userId)
             ->where('date', $today)
             ->first();
 
@@ -39,6 +39,7 @@ class AttendanceController extends Controller
             'photo' => 'required|string', // base64 string
             'notes' => 'nullable|string',
             'attendance_type' => 'nullable|string|in:kantor,kunjungan,client',
+            'shift_id' => 'nullable|integer',
         ]);
 
         $user = $request->user();
@@ -48,17 +49,27 @@ class AttendanceController extends Controller
         // Check office setting radius limit
         $office = \App\Models\OfficeSetting::first();
         if ($office && $attendanceType === 'kantor') {
+            $officeLat = $office->latitude;
+            $officeLng = $office->longitude;
+            $officeRad = $office->radius;
+            
+            if ($user->office_location === 'bogor') {
+                $officeLat = $office->bogor_latitude ?? $office->latitude;
+                $officeLng = $office->bogor_longitude ?? $office->longitude;
+                $officeRad = $office->bogor_radius ?? $office->radius;
+            }
+            
             $distance = $this->getDistance(
                 floatval($request->latitude),
                 floatval($request->longitude),
-                floatval($office->latitude),
-                floatval($office->longitude)
+                floatval($officeLat),
+                floatval($officeLng)
             );
             
-            if ($distance > $office->radius) {
+            if ($distance > $officeRad) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Gagal melakukan absen masuk! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $office->radius . ' meter).'
+                    'message' => 'Gagal melakukan absen masuk! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $officeRad . ' meter).'
                 ], 422);
             }
         }
@@ -86,8 +97,21 @@ class AttendanceController extends Controller
             // Rules:
             // - Before or equal to 09:00: normal (Normal)
             // - After 09:00: late (Terlambat)
+            $shiftId = $request->shift_id;
+            $shift = $shiftId ? \App\Models\Shift::find($shiftId) : null;
+
             $status = 'normal';
-            if ($timeStr > '09:00:00') {
+            $limitIn = '08:30:00';
+            $shiftStart = null;
+            $shiftEnd = null;
+
+            if ($shift) {
+                $shiftStart = $shift->start_time;
+                $shiftEnd = $shift->end_time;
+                $limitIn = Carbon::parse($shift->start_time)->addMinutes($shift->grace_period)->format('H:i:s');
+            }
+
+            if ($timeStr > $limitIn) {
                 $status = ($attendanceType === 'kantor') ? 'late' : 'normal';
             }
 
@@ -102,6 +126,9 @@ class AttendanceController extends Controller
                     'notes_in' => $request->notes,
                     'status_in' => $status,
                     'approval_status' => 'approved',
+                    'shift_id' => $shiftId,
+                    'shift_start_time' => $shiftStart,
+                    'shift_end_time' => $shiftEnd,
                 ]);
                 $attendance = $existing;
             } else {
@@ -116,6 +143,9 @@ class AttendanceController extends Controller
                     'notes_in' => $request->notes,
                     'status_in' => $status,
                     'approval_status' => 'approved',
+                    'shift_id' => $shiftId,
+                    'shift_start_time' => $shiftStart,
+                    'shift_end_time' => $shiftEnd,
                 ]);
             }
 
@@ -188,17 +218,27 @@ class AttendanceController extends Controller
         // Check office setting radius limit (only if attendance was kantor type)
         $office = \App\Models\OfficeSetting::first();
         if ($office && $attendance->attendance_type === 'kantor') {
+            $officeLat = $office->latitude;
+            $officeLng = $office->longitude;
+            $officeRad = $office->radius;
+            
+            if ($user->office_location === 'bogor') {
+                $officeLat = $office->bogor_latitude ?? $office->latitude;
+                $officeLng = $office->bogor_longitude ?? $office->longitude;
+                $officeRad = $office->bogor_radius ?? $office->radius;
+            }
+            
             $distance = $this->getDistance(
                 floatval($request->latitude),
                 floatval($request->longitude),
-                floatval($office->latitude),
-                floatval($office->longitude)
+                floatval($officeLat),
+                floatval($officeLng)
             );
             
-            if ($distance > $office->radius) {
+            if ($distance > $officeRad) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Gagal melakukan absen keluar! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $office->radius . ' meter).'
+                    'message' => 'Gagal melakukan absen keluar! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $officeRad . ' meter).'
                 ], 422);
             }
         }
@@ -218,13 +258,21 @@ class AttendanceController extends Controller
             //   - 14:00 - 15:00: normal (Normal)
             //   - After 15:00: overtime (Lembur)
             // - Other days:
-            //   - Before 17:00: early_departure (Pulang Cepat)
-            //   - 17:00 - 18:00: normal (Normal)
-            //   - After 18:00: overtime (Lembur)
-            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-            $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+            //   - Before 17:30: early_departure (Pulang Cepat)
+            //   - 17:30 - 18:30: normal (Normal)
+            //   - After 18:30: overtime (Lembur)
+            $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
 
             $status = 'normal';
+            if ($attendance->shift_end_time) {
+                $limitEarly = $attendance->shift_end_time;
+                $limitOvertime = Carbon::parse($attendance->shift_end_time)->addHour()->format('H:i:s');
+            } else {
+                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+            }
+
             if ($timeStr < $limitEarly) {
                 $status = 'early_departure';
             } elseif ($timeStr > $limitOvertime) {
@@ -292,7 +340,7 @@ class AttendanceController extends Controller
         }
 
         // Default: return recent 30 records for dashboard stats compatibility
-        $history = $query->limit(30)->get();
+        $history = $query->with('shift')->limit(30)->get();
 
         return response()->json([
             'status' => 'success',
@@ -306,12 +354,14 @@ class AttendanceController extends Controller
     public function getAllAttendances(Request $request)
     {
         $user = auth('sanctum')->user();
-        $query = Attendance::with('user:id,name,email,photo,role,join_date,employee_number,division,company');
+        $query = Attendance::with(['user:id,name,email,photo,role,join_date,employee_number,division,company', 'shift']);
+        
         if ($user && $user->company && $user->role !== 'director') {
             $query->whereHas('user', function ($q) use ($user) {
                 $q->where('company', $user->company);
             });
         }
+        
         $attendances = $query->orderBy('date', 'desc')
             ->orderBy('clock_in', 'desc')
             ->get();
@@ -359,7 +409,7 @@ class AttendanceController extends Controller
         // Calculate status_in
         $clockIn = Carbon::parse($request->clock_in)->format('H:i:s');
         $statusIn = 'normal';
-        if ($clockIn > '09:00:00') {
+        if ($clockIn > '08:30:00') {
             $statusIn = ($request->attendance_type === 'kantor') ? 'late' : 'normal';
         }
 
@@ -369,8 +419,8 @@ class AttendanceController extends Controller
         if ($request->clock_out) {
             $clockOut = Carbon::parse($request->clock_out)->format('H:i:s');
             $isSaturday = Carbon::parse($date)->isSaturday();
-            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-            $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+            $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
 
             $statusOut = 'normal';
             if ($clockOut < $limitEarly) {
@@ -486,7 +536,8 @@ class AttendanceController extends Controller
         if ($clockIn) {
             $clockIn = Carbon::parse($clockIn)->format('H:i:s');
             $statusIn = 'normal';
-            if ($clockIn > '09:00:00') {
+            $limitIn = $attendance->shift_start_time ?: '09:00:00';
+            if ($clockIn > $limitIn) {
                 $statusIn = ($attendance->attendance_type === 'kantor') ? 'late' : 'normal';
             }
             $attendance->clock_in = $clockIn;
@@ -498,9 +549,14 @@ class AttendanceController extends Controller
 
         if ($clockOut) {
             $clockOut = Carbon::parse($clockOut)->format('H:i:s');
-            $isSaturday = Carbon::parse($attendance->date)->isSaturday();
-            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-            $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+            if ($attendance->shift_end_time) {
+                $limitEarly = $attendance->shift_end_time;
+                $limitOvertime = Carbon::parse($attendance->shift_end_time)->addHour()->format('H:i:s');
+            } else {
+                $isSaturday = Carbon::parse($attendance->date)->isSaturday();
+                $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+            }
 
             $statusOut = 'normal';
             if ($clockOut < $limitEarly) {
@@ -531,6 +587,23 @@ class AttendanceController extends Controller
     public function getOfficeSetting(Request $request)
     {
         $office = \App\Models\OfficeSetting::first();
+        $user = $request->user();
+        
+        if ($office && $user && $user->role === 'employee' && $user->office_location === 'bogor') {
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'id' => $office->id,
+                    'latitude' => $office->bogor_latitude ?? $office->latitude,
+                    'longitude' => $office->bogor_longitude ?? $office->longitude,
+                    'radius' => $office->bogor_radius ?? $office->radius,
+                    'bogor_latitude' => $office->bogor_latitude,
+                    'bogor_longitude' => $office->bogor_longitude,
+                    'bogor_radius' => $office->bogor_radius,
+                ]
+            ]);
+        }
+        
         return response()->json([
             'status' => 'success',
             'data' => $office
@@ -546,6 +619,9 @@ class AttendanceController extends Controller
             'latitude' => 'required|string',
             'longitude' => 'required|string',
             'radius' => 'required|integer|min:1',
+            'bogor_latitude' => 'required|string',
+            'bogor_longitude' => 'required|string',
+            'bogor_radius' => 'required|integer|min:1',
         ]);
 
         $office = \App\Models\OfficeSetting::first();
@@ -556,6 +632,9 @@ class AttendanceController extends Controller
         $office->latitude = $request->latitude;
         $office->longitude = $request->longitude;
         $office->radius = $request->radius;
+        $office->bogor_latitude = $request->bogor_latitude;
+        $office->bogor_longitude = $request->bogor_longitude;
+        $office->bogor_radius = $request->bogor_radius;
         $office->save();
 
         Cache::forget('office_setting');
@@ -691,5 +770,85 @@ class AttendanceController extends Controller
         Storage::disk('public')->put($filePath, $imageBytes);
 
         return '/storage/' . $filePath;
+    }
+
+    /**
+     * Get list of all shifts.
+     */
+    public function getShifts()
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => \App\Models\Shift::orderBy('start_time', 'asc')->get()
+        ]);
+    }
+
+    /**
+     * Store a new shift (Admin only).
+     */
+    public function storeShift(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string',
+            'start_time' => 'required|string',
+            'end_time' => 'required|string',
+            'grace_period' => 'required|integer|min:0'
+        ]);
+
+        $shift = \App\Models\Shift::create([
+            'name' => $request->name,
+            'start_time' => Carbon::parse($request->start_time)->format('H:i:s'),
+            'end_time' => Carbon::parse($request->end_time)->format('H:i:s'),
+            'grace_period' => $request->grace_period
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Shift berhasil dibuat',
+            'data' => $shift
+        ]);
+    }
+
+    /**
+     * Update an existing shift (Admin only).
+     */
+    public function updateShift(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string',
+            'start_time' => 'required|string',
+            'end_time' => 'required|string',
+            'grace_period' => 'required|integer|min:0'
+        ]);
+
+        $shift = \App\Models\Shift::findOrFail($id);
+        $shift->update([
+            'name' => $request->name,
+            'start_time' => Carbon::parse($request->start_time)->format('H:i:s'),
+            'end_time' => Carbon::parse($request->end_time)->format('H:i:s'),
+            'grace_period' => $request->grace_period
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Shift berhasil diubah',
+            'data' => $shift
+        ]);
+    }
+
+    /**
+     * Delete a shift (Admin only).
+     */
+    public function deleteShift($id)
+    {
+        $shift = \App\Models\Shift::findOrFail($id);
+        
+        // Prevent deletion if in use? Better to just set onDelete cascade/set null, which we did.
+        $shift->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Shift berhasil dihapus'
+        ]);
     }
 }

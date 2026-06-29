@@ -68,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/attendance/history', [AttendanceController::class, 'getHistory']);
     Route::get('/office-setting', [AttendanceController::class, 'getOfficeSetting']);
     Route::get('/holidays/upcoming', [PayrollController::class, 'getUpcomingHolidays']);
+    Route::get('/shifts', [AttendanceController::class, 'getShifts']);
 
     // Public contact info (admin WhatsApp) - accessible by all roles
     Route::get('/admin-contact', function (Request $request) {
@@ -165,6 +166,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Admin Overtime routes
         Route::put('/admin/overtimes/{id}/approve', [OvertimeController::class, 'approve']);
         Route::put('/admin/overtimes/{id}/reject', [OvertimeController::class, 'reject']);
+
+        // Admin Shift routes
+        Route::post('/admin/shifts', [AttendanceController::class, 'storeShift']);
+        Route::put('/admin/shifts/{id}', [AttendanceController::class, 'updateShift']);
+        Route::delete('/admin/shifts/{id}', [AttendanceController::class, 'deleteShift']);
     });
 
     // Director only approval routes

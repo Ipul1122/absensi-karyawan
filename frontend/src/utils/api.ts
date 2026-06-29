@@ -68,7 +68,7 @@ export const apiClient = axios.create({
 // Automatically inject Authorization header if token is present
 apiClient.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('auth_token');
+    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

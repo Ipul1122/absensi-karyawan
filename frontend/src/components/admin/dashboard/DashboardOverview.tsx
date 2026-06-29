@@ -36,6 +36,8 @@ interface Attendance {
   notes_out: string | null
   status_in: string | null
   status_out: string | null
+  shift_start_time?: string | null
+  shift_end_time?: string | null
   user: {
     id: number
     name: string

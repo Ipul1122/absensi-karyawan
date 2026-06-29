@@ -19,7 +19,8 @@ import {
   MapPin,
   KeyRound,
   UserCircle2,
-  UserCheck
+  UserCheck,
+  Database
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -77,7 +78,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       '/admin/keamanan',
       '/admin/biodata',
       '/admin/hariLibur',
-      '/admin/shifts'
+      '/admin/shifts',
+      '/admin/backup'
     ].includes(location.pathname)
   })
 
@@ -113,7 +115,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
           '/admin/keamanan',
           '/admin/biodata',
           '/admin/hariLibur',
-          '/admin/shifts'
+          '/admin/shifts',
+          '/admin/backup'
         ].includes(location.pathname)
       ) {
         setIsPengaturanOpen(true)
@@ -159,6 +162,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
         { to: '/admin/shifts', label: 'Shift Kerja', icon: Clock },
         { to: '/admin/keamanan', label: 'Akun & Keamanan', icon: KeyRound },
         { to: '/admin/biodata', label: 'Biodata Pribadi', icon: UserCircle2 },
+        { to: '/admin/backup', label: 'Backup & Restore', icon: Database },
       ]
     },
   ]

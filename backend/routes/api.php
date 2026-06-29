@@ -18,6 +18,8 @@ use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DirectorController;
 use App\Http\Controllers\PushNotificationController;
+use App\Http\Controllers\BackupController;
+
 
 
 Route::get('/health-check', function () {
@@ -171,6 +173,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/shifts', [AttendanceController::class, 'storeShift']);
         Route::put('/admin/shifts/{id}', [AttendanceController::class, 'updateShift']);
         Route::delete('/admin/shifts/{id}', [AttendanceController::class, 'deleteShift']);
+
+        // Admin Backup routes
+        Route::get('/admin/backup/export', [BackupController::class, 'exportDatabase']);
+        Route::post('/admin/backup/import', [BackupController::class, 'importDatabase']);
     });
 
     // Director only approval routes

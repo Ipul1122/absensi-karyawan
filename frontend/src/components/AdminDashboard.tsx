@@ -761,6 +761,9 @@ ${window.location.origin}/director/karyawan`
     if (path.includes('biodata')) {
       return { title: 'Biodata Pribadi Admin', subtitle: 'Admin Profile' }
     }
+    if (path.includes('backup')) {
+      return { title: 'Backup & Restore Database', subtitle: 'Database Management' }
+    }
     if (path.includes('hariLibur')) {
       return { title: 'Kelola Hari Libur', subtitle: 'Holiday Settings' }
     }
@@ -989,6 +992,31 @@ ${window.location.origin}/director/karyawan`
                   token={token}
                   onProfileUpdate={onProfileUpdate}
                   initialTab="biodata"
+                />
+              } 
+            />
+            <Route 
+              path="backup" 
+              element={
+                <LokasiKantor
+                  officeLatitude={officeLatitude}
+                  setOfficeLatitude={setOfficeLatitude}
+                  officeLongitude={officeLongitude}
+                  setOfficeLongitude={setOfficeLongitude}
+                  officeRadius={officeRadius}
+                  setOfficeRadius={setOfficeRadius}
+                  bogorLatitude={bogorLatitude}
+                  setBogorLatitude={setBogorLatitude}
+                  bogorLongitude={bogorLongitude}
+                  setBogorLongitude={setBogorLongitude}
+                  bogorRadius={bogorRadius}
+                  setBogorRadius={setBogorRadius}
+                  savingOffice={savingOffice}
+                  handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                  user={user}
+                  token={token}
+                  onProfileUpdate={onProfileUpdate}
+                  initialTab="backup"
                 />
               } 
             />

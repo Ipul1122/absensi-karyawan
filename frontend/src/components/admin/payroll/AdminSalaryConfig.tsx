@@ -6,7 +6,10 @@ import {
   Loader2, 
   Edit3,
   MessageSquare,
-  Send
+  Send,
+  Search,
+  Building2,
+  Filter
 } from 'lucide-react'
 
 interface User {
@@ -46,6 +49,31 @@ export default function AdminSalaryConfig({ token }: AdminSalaryConfigProps) {
   const [employees, setEmployees] = useState<User[]>([])
   const [loadingEmployees, setLoadingEmployees] = useState(false)
   const [submittingConfig, setSubmittingConfig] = useState(false)
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCompany, setSelectedCompany] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
+
+  const filteredEmployees = employees.filter((emp) => {
+    const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          emp.email.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCompany = selectedCompany === 'all' || emp.company === selectedCompany
+    
+    const cfg = emp.salary_configuration
+    let matchesStatus = true
+    if (selectedStatus === 'not_set') {
+      matchesStatus = !cfg
+    } else if (selectedStatus === 'pending') {
+      matchesStatus = !!cfg && cfg.salary_change_status === 'pending'
+    } else if (selectedStatus === 'approved') {
+      matchesStatus = !!cfg && (cfg.salary_change_status === 'approved' || cfg.salary_change_status === 'none')
+    } else if (selectedStatus === 'rejected') {
+      matchesStatus = !!cfg && cfg.salary_change_status === 'rejected'
+    }
+
+    return matchesSearch && matchesCompany && matchesStatus
+  })
   
   // Modals state
   const [showConfigModal, setShowConfigModal] = useState(false)
@@ -355,6 +383,51 @@ Terima kasih.`
         <p className="text-[11px] text-slate-500 font-medium">Tentukan gaji pokok, tunjangan harian, serta potongan tetap, potongan tidak masuk & terlambat untuk masing-masing karyawan.</p>
       </div>
 
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+        {/* Search Input */}
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute inset-y-0 left-0 pl-3 w-4.5 h-4.5 my-auto text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Cari karyawan..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-9 pr-4 outline-none transition-all text-xs font-semibold"
+          />
+        </div>
+
+        {/* Company Filter Dropdown */}
+        <div className="flex items-center gap-2 bg-orange-50/30 border border-orange-100 rounded-xl px-3 py-2 shadow-sm w-full sm:w-auto shrink-0">
+          <Building2 className="w-4 h-4 text-orange-500" />
+          <select
+            value={selectedCompany}
+            onChange={(e) => setSelectedCompany(e.target.value)}
+            className="bg-transparent border-none text-xs font-bold text-slate-700 outline-none w-full sm:w-[185px] font-quicksand cursor-pointer"
+          >
+            <option value="all">Semua Perusahaan</option>
+            <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama</option>
+            <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez</option>
+          </select>
+        </div>
+
+        {/* Status Filter Dropdown */}
+        <div className="flex items-center gap-2 bg-orange-50/30 border border-orange-100 rounded-xl px-3 py-2 shadow-sm w-full sm:w-auto shrink-0">
+          <Filter className="w-4 h-4 text-orange-500" />
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="bg-transparent border-none text-xs font-bold text-slate-700 outline-none w-full sm:w-[185px] font-quicksand cursor-pointer"
+          >
+            <option value="all">Semua Status</option>
+            <option value="not_set">Belum Diset</option>
+            <option value="pending">Proses (Menunggu Direktur)</option>
+            <option value="approved">Disetujui (Aktif)</option>
+            <option value="rejected">Ditolak</option>
+          </select>
+        </div>
+      </div>
+
       {/* Mobile / Tablet View: Card-based Layout */}
       <div className="block lg:hidden space-y-4">
         {loadingEmployees ? (
@@ -364,12 +437,12 @@ Terima kasih.`
               <p className="text-xs font-semibold">Memuat data karyawan...</p>
             </div>
           </div>
-        ) : employees.length === 0 ? (
+        ) : filteredEmployees.length === 0 ? (
           <div className="py-12 text-center text-slate-400 font-semibold bg-orange-50/5 border border-orange-100 rounded-2xl">
             Tidak ada data karyawan ditemukan.
           </div>
         ) : (
-          employees.map((emp) => {
+          filteredEmployees.map((emp) => {
             const cfg = emp.salary_configuration
             return (
               <div 
@@ -508,14 +581,14 @@ Terima kasih.`
                     </div>
                   </td>
                 </tr>
-              ) : employees.length === 0 ? (
+              ) : filteredEmployees.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-slate-400 font-semibold">
                     Tidak ada data karyawan ditemukan.
                   </td>
                 </tr>
               ) : (
-                employees.map((emp) => {
+                filteredEmployees.map((emp) => {
                   const cfg = emp.salary_configuration
                   return (
                     <tr key={emp.id} className="hover:bg-orange-50/10 transition-colors">

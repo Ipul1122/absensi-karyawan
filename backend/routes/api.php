@@ -19,6 +19,10 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DirectorController;
 use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\BackupController;
+<<<<<<< HEAD
+=======
+
+>>>>>>> 113526ce25a77d19568d88a7b259473fd6e1cdc6
 
 
 Route::get('/health-check', function () {
@@ -45,7 +49,7 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 Route::get('/payroll/verify/{id}/{hash}', [PayrollController::class, 'verifySlip']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('/user/change-password', [AuthController::class, 'changePassword']);
     Route::get('/user/profile', [AuthController::class, 'getProfile']);
@@ -173,6 +177,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/shifts', [AttendanceController::class, 'storeShift']);
         Route::put('/admin/shifts/{id}', [AttendanceController::class, 'updateShift']);
         Route::delete('/admin/shifts/{id}', [AttendanceController::class, 'deleteShift']);
+
+        // Admin Backup routes
+        Route::get('/admin/backup/export', [BackupController::class, 'exportDatabase']);
+        Route::post('/admin/backup/import', [BackupController::class, 'importDatabase']);
     });
 
     // Director only approval routes

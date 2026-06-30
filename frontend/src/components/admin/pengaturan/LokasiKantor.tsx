@@ -22,7 +22,11 @@ import {
   ShieldAlert,
   CheckCircle2,
   CreditCard,
-  Phone
+  Phone,
+  Database,
+  UploadCloud,
+  DownloadCloud,
+  Info
 } from 'lucide-react'
 
 interface UserProp {
@@ -49,7 +53,7 @@ interface ProfileData {
   whatsapp: string
 }
 
-type ActiveTab = 'lokasi' | 'akun' | 'biodata'
+type ActiveTab = 'lokasi' | 'akun' | 'biodata' | 'backup'
 
 interface LokasiKantorProps {
   officeLatitude: string
@@ -121,6 +125,181 @@ export default function LokasiKantor({
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
+
+  // ---------- Backup & Restore States ----------
+  const [importing, setImporting] = useState(false)
+  const [backupFile, setBackupFile] = useState<File | null>(null)
+  const fileInputBackupRef = useRef<HTMLInputElement>(null)
+
+  const handleExportBackup = async () => {
+    Swal.fire({
+      title: 'Unduh Backup Database?',
+      text: 'Proses ini akan mengunduh semua data tabel saat ini ke dalam file .sql.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Unduh',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#64748b',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        Swal.fire({
+          title: 'Memproses...',
+          text: 'Sedang menyiapkan berkas backup...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading()
+          }
+        })
+        
+        try {
+          const response = await axios.get('http://localhost:8000/api/admin/backup/export', {
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: 'blob'
+          })
+          
+          const url = window.URL.createObjectURL(new Blob([response.data]))
+          const link = document.createElement('a')
+          link.href = url
+          
+          const filename = `backup_goodpeople_hcms_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}_${Math.floor(Date.now() / 1000)}.sql`
+          link.setAttribute('download', filename)
+          document.body.appendChild(link)
+          link.click()
+          
+          link.parentNode?.removeChild(link)
+          window.URL.revokeObjectURL(url)
+          
+          Swal.fire({
+            title: 'Berhasil!',
+            text: 'File backup basis data berhasil diunduh.',
+            icon: 'success',
+            background: '#fffdfb',
+            color: '#3c1105',
+            confirmButtonColor: '#ea580c'
+          })
+        } catch (err: any) {
+          console.error(err)
+          Swal.fire({
+            title: 'Ekspor Gagal',
+            text: 'Gagal mengunduh file backup basis data.',
+            icon: 'error',
+            background: '#fffdfb',
+            color: '#3c1105',
+            confirmButtonColor: '#ef4444'
+          })
+        }
+      }
+    })
+  }
+
+  const handleImportBackup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!backupFile) {
+      Swal.fire({
+        title: 'File Belum Dipilih',
+        text: 'Silakan pilih file backup .sql terlebih dahulu.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105',
+        confirmButtonColor: '#ea580c'
+      })
+      return
+    }
+
+    Swal.fire({
+      title: 'Pulihkan Basis Data?',
+      text: 'PERINGATAN: Tindakan ini akan menghapus semua data tabel saat ini dan menggantinya dengan data dari file backup. Tindakan ini tidak dapat dibatalkan!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Pulihkan!',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#475569',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setImporting(true)
+        Swal.fire({
+          title: 'Memulihkan Data...',
+          text: 'Harap tunggu, jangan menutup halaman ini.',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading()
+          }
+        })
+
+        const formData = new FormData()
+        formData.append('backup_file', backupFile)
+
+        try {
+          const res = await axios.post('http://localhost:8000/api/admin/backup/import', formData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          })
+
+          if (res.data.status === 'success') {
+            setBackupFile(null)
+            if (fileInputBackupRef.current) {
+              fileInputBackupRef.current.value = ''
+            }
+            
+            Swal.fire({
+              title: 'Pemulihan Berhasil!',
+              text: 'Basis data berhasil dipulihkan ke kondisi backup.',
+              icon: 'success',
+              background: '#fffdfb',
+              color: '#3c1105',
+              confirmButtonColor: '#ea580c'
+            }).then(() => {
+              window.location.reload()
+            })
+          }
+        } catch (err: any) {
+          console.error(err)
+          const msg = err.response?.data?.message || 'Gagal memulihkan basis data dari file SQL.'
+          Swal.fire({
+            title: 'Pemulihan Gagal',
+            text: msg,
+            icon: 'error',
+            background: '#fffdfb',
+            color: '#3c1105',
+            confirmButtonColor: '#ef4444'
+          })
+        } finally {
+          setImporting(false)
+        }
+      }
+    })
+  }
+
+  const handleBackupFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (ext !== 'sql') {
+      Swal.fire({
+        title: 'Format File Salah',
+        text: 'Hanya file dengan ekstensi .sql yang diperbolehkan.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105',
+        confirmButtonColor: '#ea580c'
+      })
+      if (fileInputBackupRef.current) {
+        fileInputBackupRef.current.value = ''
+      }
+      return
+    }
+
+    setBackupFile(file)
+  }
 
 
   // Leaflet Map Refs
@@ -496,7 +675,7 @@ export default function LokasiKantor({
     <div className="space-y-6">
 
       {/* ===== SETTINGS TAB SWITCHER ===== */}
-      <div className="grid grid-cols-3 gap-2 bg-orange-50/20 border border-orange-100 p-2 rounded-2xl font-quicksand shadow-xs shrink-0 max-w-2xl mx-auto">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-orange-50/20 border border-orange-100 p-2 rounded-2xl font-quicksand shadow-xs shrink-0 max-w-3xl mx-auto">
         <Link
           to="/admin/lokasiKantor"
           className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl text-center text-[10px] sm:text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.98] ${activeTab === 'lokasi'
@@ -532,6 +711,16 @@ export default function LokasiKantor({
               {percent}%
             </span>
           )}
+        </Link>
+        <Link
+          to="/admin/backup"
+          className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl text-center text-[10px] sm:text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.98] ${activeTab === 'backup'
+              ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-md shadow-orange-500/15'
+              : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 bg-white/70 border border-orange-100/40'
+            }`}
+        >
+          <Database className="w-4 h-4 shrink-0" />
+          <span className="truncate">Backup Data</span>
         </Link>
       </div>
 
@@ -614,10 +803,9 @@ export default function LokasiKantor({
                 </div>
               </div>
             </div>
-
             {/* KANTOR BOGOR */}
-            <div className="pb-4">
-              <h4 className="text-sm font-extrabold text-blue-650 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <div className="border-b border-orange-100/60 pb-8">
+              <h4 className="text-sm font-extrabold text-blue-600 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span> Kantor Bogor (Cabang)
               </h4>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -625,7 +813,7 @@ export default function LokasiKantor({
                 <div className="lg:col-span-4 space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
-                      Latitude Kantor Bogor
+                      Latitude Kantor
                     </label>
                     <input
                       type="text"
@@ -639,7 +827,7 @@ export default function LokasiKantor({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
-                      Longitude Kantor Bogor
+                      Longitude Kantor
                     </label>
                     <input
                       type="text"
@@ -652,14 +840,14 @@ export default function LokasiKantor({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
-                      Radius Jangkauan Bogor (Meter)
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Radius Jangkauan (Meter)
                     </label>
                     <input
                       type="number"
                       required
                       min="5"
-                      max="1000000"
+                      max="500000"
                       placeholder="100"
                       value={bogorRadius}
                       onChange={(e) => setBogorRadius(parseInt(e.target.value) || 0)}
@@ -1123,6 +1311,101 @@ export default function LokasiKantor({
               </div>
             </form>
           )}
+        </section>
+      )}
+
+      {/* ===== TAB: BACKUP & RESTORE DATA ===== */}
+      {activeTab === 'backup' && (
+        <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
+          <div className="border-b border-orange-100 pb-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-md shadow-red-200">
+              <Database className="w-4 h-4 text-white animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-800 font-quicksand">Backup & Restore Basis Data</h2>
+              <p className="text-[11px] text-slate-500">Ekspor basis data Anda untuk pengamanan, atau pulihkan data dari berkas cadangan (.sql).</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Export Section */}
+            <div className="border border-orange-100/70 rounded-2xl p-5 space-y-4 bg-orange-50/5 flex flex-col justify-between">
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                  <DownloadCloud className="w-4 h-4 text-orange-600" /> Ekspor Data (Backup)
+                </h3>
+                <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                  Buat cadangan data lengkap dari sistem HCMS GoodPeople. Sistem akan mengumpulkan data seluruh tabel dan mengunduh berkas berupa SQL file.
+                </p>
+                <div className="p-3 bg-orange-50/40 rounded-xl border border-orange-100/50 text-[10px] text-slate-550 font-medium space-y-1">
+                  <div className="flex justify-between"><span>Sistem Database:</span> <span className="font-bold text-slate-700">MySQL</span></div>
+                  <div className="flex justify-between"><span>Format File:</span> <span className="font-bold text-slate-700">.sql</span></div>
+                  <div className="flex justify-between"><span>Kompresi:</span> <span className="font-bold text-slate-700">Tidak ada (Raw SQL)</span></div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportBackup}
+                className="w-full mt-3 py-2.5 px-4 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-orange-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5"
+              >
+                <DownloadCloud className="w-4 h-4" /> Unduh Backup Database (.sql)
+              </button>
+            </div>
+
+            {/* Import Section */}
+            <div className="border border-orange-100/70 rounded-2xl p-5 space-y-4 bg-orange-50/5 flex flex-col justify-between">
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                  <UploadCloud className="w-4 h-4 text-red-650" /> Pulihkan Data (Restore)
+                </h3>
+                <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                  Unggah file cadangan `.sql` yang telah diunduh sebelumnya untuk mengembalikan basis data ke keadaan semula.
+                </p>
+                <div className="flex items-start gap-2.5 p-3.5 bg-rose-50/30 border border-rose-100/50 rounded-xl">
+                  <Info className="w-4.5 h-4.5 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-[9.5px] text-red-700 font-semibold leading-normal">
+                    <strong>PERHATIAN:</strong> Tindakan ini bersifat destruktif. Data saat ini akan diganti seluruhnya oleh isi berkas backup. Pastikan berkas SQL valid dan tidak korup.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleImportBackup} className="space-y-3">
+                <div className="relative">
+                  <input
+                    ref={fileInputBackupRef}
+                    type="file"
+                    accept=".sql"
+                    onChange={handleBackupFileChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputBackupRef.current?.click()}
+                    className="w-full py-2 bg-slate-50 border border-dashed border-slate-350 hover:border-orange-300 rounded-xl text-[11px] font-bold text-slate-600 cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <UploadCloud className="w-3.5 h-3.5" />
+                    {backupFile ? 'Ganti File Backup' : 'Pilih File Backup (.sql)'}
+                  </button>
+                </div>
+                {backupFile && (
+                  <p className="text-[10px] text-emerald-600 font-bold text-center bg-emerald-50 border border-emerald-100 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1">
+                    <span>✓</span> Terpilih: {backupFile.name} ({Math.round(backupFile.size / 1024)} KB)
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={importing || !backupFile}
+                  className="w-full py-2.5 px-4 bg-gradient-to-r from-red-650 to-orange-700 hover:from-red-700 hover:to-orange-850 text-white font-bold rounded-xl transition-all shadow-md shadow-orange-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {importing ? (
+                    <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" /> Memulihkan...</>
+                  ) : (
+                    <><UploadCloud className="w-4 h-4" /> Pulihkan Database sekarang</>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
         </section>
       )}
     </div>

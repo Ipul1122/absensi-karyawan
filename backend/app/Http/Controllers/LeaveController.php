@@ -126,7 +126,7 @@ class LeaveController extends Controller
         $user = auth('sanctum')->user();
         $query = LeaveRequest::with('user:id,name,email,company');
         
-        if ($user && $user->company && $user->role !== 'director') {
+        if ($user && $user->role !== 'director' && $user->role !== 'admin' && $user->company) {
             $query->whereHas('user', function ($q) use ($user) {
                 $q->where('company', $user->company);
             });

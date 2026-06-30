@@ -226,6 +226,7 @@ export default function RekapAbsensi({
 
   // Filter States
   const [search, setSearch] = useState('')
+  const [selectedCompany, setSelectedCompany] = useState('all')
   const [reportMonth, setReportMonth] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}` // Default to current month-year
@@ -248,7 +249,7 @@ export default function RekapAbsensi({
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, reportMonth, startDate, endDate, statusIn, statusOut, itemsPerPage])
+  }, [search, selectedCompany, reportMonth, startDate, endDate, statusIn, statusOut, itemsPerPage])
 
   // Filter Logic (For Web UI Display)
   const filteredAttendances = attendances.filter((att) => {
@@ -275,12 +276,16 @@ export default function RekapAbsensi({
     // 4. Status Keluar Filter
     const matchesStatusOut = statusOut === 'all' || att.status_out === statusOut
 
-    return matchesSearch && matchesDate && matchesStatusIn && matchesStatusOut
+    // 5. Company Filter
+    const matchesCompany = selectedCompany === 'all' || att.user.company === selectedCompany
+
+    return matchesSearch && matchesDate && matchesStatusIn && matchesStatusOut && matchesCompany
   })
 
   // Count active filters (excluding reportMonth as it defaults to current month)
   const activeFilterCount =
     (search ? 1 : 0) +
+    (selectedCompany !== 'all' ? 1 : 0) +
     (startDate ? 1 : 0) +
     (endDate ? 1 : 0) +
     (statusIn !== 'all' ? 1 : 0) +
@@ -288,10 +293,15 @@ export default function RekapAbsensi({
 
   // Monthly Summary Stats Filter & Pagination
   const monthlyStats = getEmployeeMonthlyStats()
-  const filteredMonthlyStats = monthlyStats.filter(({ employee }) => 
-    employee.name.toLowerCase().includes(search.toLowerCase()) ||
-    employee.email.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredMonthlyStats = monthlyStats.filter(({ employee }) => {
+    const matchesSearch = 
+      employee.name.toLowerCase().includes(search.toLowerCase()) ||
+      employee.email.toLowerCase().includes(search.toLowerCase())
+    
+    const matchesCompany = selectedCompany === 'all' || employee.company === selectedCompany
+
+    return matchesSearch && matchesCompany
+  })
 
   // Pagination Logic
   const totalItems = viewMode === 'daily' ? filteredAttendances.length : filteredMonthlyStats.length
@@ -448,14 +458,18 @@ export default function RekapAbsensi({
               <tr>
                 <td class="label">Pencarian Karyawan:</td>
                 <td>${search || 'Semua Karyawan'}</td>
-                <td class="label">Rentang Tanggal:</td>
-                <td>${startDate && endDate ? `${formatDate(startDate)} s/d ${formatDate(endDate)}` : startDate ? `Sejak ${formatDate(startDate)}` : endDate ? `Hingga ${formatDate(endDate)}` : 'Semua Tanggal'}</td>
+                <td class="label">Perusahaan:</td>
+                <td>${selectedCompany === 'all' ? 'Semua Perusahaan' : selectedCompany}</td>
               </tr>
               <tr>
+                <td class="label">Rentang Tanggal:</td>
+                <td>${startDate && endDate ? `${formatDate(startDate)} s/d ${formatDate(endDate)}` : startDate ? `Sejak ${formatDate(startDate)}` : endDate ? `Hingga ${formatDate(endDate)}` : 'Semua Tanggal'}</td>
                 <td class="label">Status Masuk:</td>
                 <td>${statusIn === 'all' ? 'Semua Status' : statusIn === 'early' ? 'Lebih Awal' : statusIn === 'normal' ? 'Normal' : 'Terlambat'}</td>
+              </tr>
+              <tr>
                 <td class="label">Status Keluar:</td>
-                <td>${statusOut === 'all' ? 'Semua Status' : statusOut === 'normal' ? 'Normal' : statusOut === 'early_departure' ? 'Pulang Cepat' : 'Lembur'}</td>
+                <td colspan="3">${statusOut === 'all' ? 'Semua Status' : statusOut === 'normal' ? 'Normal' : statusOut === 'early_departure' ? 'Pulang Cepat' : 'Lembur'}</td>
               </tr>
             </table>
           </div>
@@ -867,8 +881,9 @@ export default function RekapAbsensi({
           </button>
         </div>
       </div>
+
       {/* Mobile Toggle Filters Button */}
-      <div className="block md:hidden">
+      <div className="block md:hidden mb-4">
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="w-full flex items-center justify-center gap-2 py-3 bg-white border border-orange-100 hover:border-orange-200 text-slate-700 font-bold rounded-2xl text-xs transition-all cursor-pointer shadow-sm hover:shadow active:scale-[0.98]"
@@ -884,14 +899,12 @@ export default function RekapAbsensi({
       </div>
 
       {/* Modern Filters Panel */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${
-        viewMode === 'daily' ? 'lg:grid-cols-4 xl:grid-cols-8' : 'lg:grid-cols-3'
-      } gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl font-quicksand ${
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl font-quicksand ${
         showFilters ? 'grid' : 'hidden md:grid'
       }`}>
         
         {/* Search Filter */}
-        <div className="space-y-1">
+        <div className="space-y-1 col-span-1 sm:col-span-2 lg:col-span-2">
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cari Karyawan</label>
           <div className="relative">
             <Search className="absolute inset-y-0 left-0 pl-3 w-4.5 h-4.5 my-auto text-slate-400" />
@@ -905,8 +918,22 @@ export default function RekapAbsensi({
           </div>
         </div>
 
+        {/* Perusahaan Filter */}
+        <div className="space-y-1 col-span-1">
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Perusahaan</label>
+          <select
+            value={selectedCompany}
+            onChange={(e) => setSelectedCompany(e.target.value)}
+            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
+          >
+            <option value="all">Semua Perusahaan</option>
+            <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
+            <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
+          </select>
+        </div>
+
         {/* Report Month Filter (Month Picker) */}
-        <div className="space-y-1">
+        <div className="space-y-1 col-span-1">
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5 text-red-500" />
             Bulan Laporan
@@ -915,14 +942,14 @@ export default function RekapAbsensi({
             type="month"
             value={reportMonth}
             onChange={(e) => setReportMonth(e.target.value)}
-            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
           />
         </div>
 
         {viewMode === 'daily' && (
           <>
             {/* Date / Calendar Filter - Start Date */}
-            <div className="space-y-1">
+            <div className="space-y-1 col-span-1">
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-red-500" />
                 Dari Tanggal
@@ -931,12 +958,12 @@ export default function RekapAbsensi({
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+                className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
               />
             </div>
 
             {/* Date / Calendar Filter - End Date */}
-            <div className="space-y-1">
+            <div className="space-y-1 col-span-1">
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-red-500" />
                 Sampai Tanggal
@@ -945,12 +972,12 @@ export default function RekapAbsensi({
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+                className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
               />
             </div>
 
             {/* Quick Date Shortcuts */}
-            <div className="space-y-1 flex flex-col justify-end">
+            <div className="space-y-1 flex flex-col justify-end col-span-1">
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pintasan Tanggal</label>
               <div className="flex gap-1 h-[38px] items-center">
                 <button
@@ -981,14 +1008,14 @@ export default function RekapAbsensi({
             </div>
 
             {/* Status Masuk Filter */}
-            <div className="space-y-1">
+            <div className="space-y-1 col-span-1">
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status Masuk</label>
               <select
                 value={statusIn}
                 onChange={(e) => setStatusIn(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+                className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
               >
-                <option value="all">Semua Status Masuk</option>
+                <option value="all">Semua Status</option>
                 <option value="early">Datang Lebih Awal</option>
                 <option value="normal">Normal</option>
                 <option value="late">Terlambat</option>
@@ -996,14 +1023,14 @@ export default function RekapAbsensi({
             </div>
 
             {/* Status Keluar Filter */}
-            <div className="space-y-1">
+            <div className="space-y-1 col-span-1">
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status Keluar</label>
               <select
                 value={statusOut}
                 onChange={(e) => setStatusOut(e.target.value)}
-                className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+                className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
               >
-                <option value="all">Semua Status Keluar</option>
+                <option value="all">Semua Status</option>
                 <option value="normal">Normal</option>
                 <option value="early_departure">Pulang Cepat</option>
                 <option value="overtime">Lembur</option>
@@ -1013,10 +1040,11 @@ export default function RekapAbsensi({
         )}
 
         {/* Reset Filter Button */}
-        <div className="flex items-end">
+        <div className="flex items-end col-span-1">
           <button
             onClick={() => {
               setSearch('')
+              setSelectedCompany('all')
               const now = new Date()
               setReportMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
               setStartDate('')
@@ -1026,8 +1054,8 @@ export default function RekapAbsensi({
             }}
             disabled={
               viewMode === 'daily'
-                ? !search && !startDate && !endDate && statusIn === 'all' && statusOut === 'all'
-                : !search && reportMonth === `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+                ? !search && selectedCompany === 'all' && !startDate && !endDate && statusIn === 'all' && statusOut === 'all'
+                : !search && selectedCompany === 'all' && reportMonth === `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
             }
             className="w-full py-2.5 bg-white border border-slate-250 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 font-bold rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow"
           >
@@ -1075,13 +1103,22 @@ export default function RekapAbsensi({
                         <div>
                           <p className="font-extrabold text-slate-800 font-quicksand">{att.user.name}</p>
                           <p className="text-[11px] text-slate-400 font-medium mt-0.5">{att.user.email}</p>
-                          {att.user.join_date && (
-                            <div className="mt-1">
+                          <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                            {att.user.join_date && (
                               <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit">
                                 Masuk: {formatDate(att.user.join_date)}
                               </span>
-                            </div>
-                          )}
+                            )}
+                            {att.user.company && (
+                              <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                                att.user.company.includes('Cakrawala') 
+                                  ? 'text-red-750 bg-red-50 border-red-200' 
+                                  : 'text-blue-750 bg-blue-50 border-blue-200'
+                              }`}>
+                                {att.user.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="py-4 px-6 font-extrabold text-slate-700 text-xs">
@@ -1192,11 +1229,22 @@ export default function RekapAbsensi({
                             <div>
                               <p className="font-extrabold text-slate-800 font-quicksand">{employee.name}</p>
                               <p className="text-[11px] text-slate-400 font-medium mt-0.5">{employee.email}</p>
-                              {employee.division && (
-                                <span className="inline-flex items-center text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 mt-1 font-quicksand">
-                                  {employee.division}
-                                </span>
-                              )}
+                              <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                                {employee.division && (
+                                  <span className="inline-flex items-center text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 font-quicksand">
+                                    {employee.division}
+                                  </span>
+                                )}
+                                {employee.company && (
+                                  <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                                    employee.company.includes('Cakrawala') 
+                                      ? 'text-red-750 bg-red-50 border-red-200' 
+                                      : 'text-blue-750 bg-blue-50 border-blue-200'
+                                  }`}>
+                                    {employee.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -1270,13 +1318,22 @@ export default function RekapAbsensi({
                     <div>
                       <h4 className="font-extrabold text-slate-800 text-sm">{att.user.name}</h4>
                       <p className="text-[11px] text-slate-400 font-medium">{att.user.email}</p>
-                      {att.user.join_date && (
-                        <div className="mt-1">
-                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit font-quicksand font-quicksand">
+                      <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                        {att.user.join_date && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit font-quicksand">
                             Masuk: {formatDate(att.user.join_date)}
                           </span>
-                        </div>
-                      )}
+                        )}
+                        {att.user.company && (
+                          <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                            att.user.company.includes('Cakrawala') 
+                              ? 'text-red-755 bg-red-50 border-red-200' 
+                              : 'text-blue-755 bg-blue-50 border-blue-200'
+                          }`}>
+                            {att.user.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end gap-1.5">
@@ -1382,11 +1439,22 @@ export default function RekapAbsensi({
                     <div className="min-w-0">
                       <h4 className="font-extrabold text-slate-800 text-sm truncate">{employee.name}</h4>
                       <p className="text-[11px] text-slate-450 font-medium truncate">{employee.email}</p>
-                      {employee.division && (
-                        <span className="inline-flex items-center text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 mt-1">
-                          {employee.division}
-                        </span>
-                      )}
+                      <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                        {employee.division && (
+                          <span className="inline-flex items-center text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
+                            {employee.division}
+                          </span>
+                        )}
+                        {employee.company && (
+                          <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                            employee.company.includes('Cakrawala') 
+                              ? 'text-red-755 bg-red-50 border-red-200' 
+                              : 'text-blue-755 bg-blue-50 border-blue-200'
+                          }`}>
+                            {employee.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 

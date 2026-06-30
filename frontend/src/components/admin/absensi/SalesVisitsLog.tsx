@@ -9,6 +9,7 @@ interface User {
   name: string
   email: string
   photo?: string | null
+  company?: string | null
 }
 
 interface Visit {
@@ -44,6 +45,7 @@ export default function SalesVisitsLog({
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [selectedCompany, setSelectedCompany] = useState('all')
   const [filterDate, setFilterDate] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(15) // Default to 15 (> 10)
@@ -84,7 +86,7 @@ export default function SalesVisitsLog({
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, filterDate, itemsPerPage])
+  }, [search, selectedCompany, filterDate, itemsPerPage])
 
   const isClient = visitType === 'client'
   const titleText = isClient ? 'Kunjungan Klien' : 'Kunjungan Lapangan / Sales'
@@ -105,11 +107,13 @@ export default function SalesVisitsLog({
 
     const matchesDate = !filterDate || visit.date === filterDate
 
-    return matchesType && matchesSearch && matchesDate
+    const matchesCompany = selectedCompany === 'all' || visit.user.company === selectedCompany
+
+    return matchesType && matchesSearch && matchesDate && matchesCompany
   })
 
   // Count active filters
-  const activeFilterCount = (search ? 1 : 0) + (filterDate ? 1 : 0)
+  const activeFilterCount = (search ? 1 : 0) + (filterDate ? 1 : 0) + (selectedCompany !== 'all' ? 1 : 0)
 
   // Pagination Logic
   const totalItems = filteredVisits.length
@@ -471,7 +475,7 @@ export default function SalesVisitsLog({
       </div>
 
       {/* Filters Panel */}
-      <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl ${
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl ${
         showFilters ? 'grid' : 'hidden md:grid'
       }`}>
         {/* Search */}
@@ -489,6 +493,20 @@ export default function SalesVisitsLog({
           </div>
         </div>
 
+        {/* Perusahaan Filter */}
+        <div className="space-y-1">
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Perusahaan</label>
+          <select
+            value={selectedCompany}
+            onChange={(e) => setSelectedCompany(e.target.value)}
+            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
+          >
+            <option value="all">Semua Perusahaan</option>
+            <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
+            <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
+          </select>
+        </div>
+
         {/* Date Filter */}
         <div className="space-y-1">
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
@@ -499,7 +517,7 @@ export default function SalesVisitsLog({
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
-            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
           />
         </div>
 
@@ -509,9 +527,10 @@ export default function SalesVisitsLog({
             onClick={() => {
               setSearch('')
               setFilterDate('')
+              setSelectedCompany('all')
             }}
-            disabled={!search && !filterDate}
-            className="w-full py-2.5 bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 font-bold rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow"
+            disabled={!search && !filterDate && selectedCompany === 'all'}
+            className="w-full py-2.5 bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-650 font-bold rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow h-[38px]"
           >
             Bersihkan Filter
           </button>
@@ -593,6 +612,17 @@ export default function SalesVisitsLog({
                       <div>
                         <p className="font-extrabold text-slate-800">{visit.user.name}</p>
                         <p className="text-[11px] text-slate-400 font-medium mt-0.5">{visit.user.email}</p>
+                        {visit.user.company && (
+                          <div className="mt-1">
+                            <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                              visit.user.company.includes('Cakrawala') 
+                                ? 'text-red-750 bg-red-50 border-red-200' 
+                                : 'text-blue-755 bg-blue-50 border-blue-200'
+                            }`}>
+                              {visit.user.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </td>
 
@@ -691,6 +721,15 @@ export default function SalesVisitsLog({
                   <div>
                     <h4 className="font-extrabold text-slate-805 text-sm">{visit.user.name}</h4>
                     <p className="text-[11px] text-slate-400 font-medium">{visit.user.email}</p>
+                    {visit.user.company && (
+                      <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border mt-1 ${
+                        visit.user.company.includes('Cakrawala') 
+                          ? 'text-red-750 bg-red-50 border-red-200' 
+                          : 'text-blue-755 bg-blue-50 border-blue-200'
+                      }`}>
+                        {visit.user.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end gap-1.5 shrink-0">

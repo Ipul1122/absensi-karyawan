@@ -90,7 +90,7 @@ class SalesVisitController extends Controller
         $today = Carbon::today()->toDateString();
 
         $query = SalesVisit::where('user_id', $userId)
-            ->whereDate('date', $today);
+            ->where('date', $today);
 
         // Filter berdasarkan visit_type jika diberikan (sales atau client)
         if ($request->has('visit_type') && in_array($request->visit_type, ['sales', 'client'])) {
@@ -110,14 +110,14 @@ class SalesVisitController extends Controller
      */
     public function getAllVisits(Request $request)
     {
-        $query = SalesVisit::with('user:id,name,email,photo');
+        $query = SalesVisit::with('user:id,name,email,photo,company');
 
         if ($request->has('user_id')) {
             $query->where('user_id', $request->user_id);
         }
 
         if ($request->has('date')) {
-            $query->whereDate('date', $request->date);
+            $query->where('date', $request->date);
         }
 
         $visits = $query->orderBy('date', 'desc')
@@ -191,16 +191,12 @@ class SalesVisitController extends Controller
                         ob_start();
                         imagewebp($dstImage, null, 75); // kualitas 75%
                         $webpData = ob_get_clean();
-
-                        imagedestroy($dstImage);
                     } else {
                         // Tidak perlu resize, langsung kompres ke WebP
                         ob_start();
                         imagewebp($srcImage, null, 75);
                         $webpData = ob_get_clean();
                     }
-
-                    imagedestroy($srcImage);
 
                     if ($webpData !== false) {
                         $imageBytes = $webpData;

@@ -418,7 +418,7 @@ class EmployeeController extends Controller
 
     public function getDirectorsList()
     {
-        $directors = User::where('role', 'director')->get(['id', 'name', 'email', 'company', 'whatsapp']);
+        $directors = User::where('role', 'director')->get(['id', 'name', 'email', 'company', 'whatsapp', 'last_seen_at']);
         return response()->json([
             'status' => 'success',
             'data' => $directors

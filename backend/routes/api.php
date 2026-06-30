@@ -46,7 +46,7 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 Route::get('/payroll/verify/{id}/{hash}', [PayrollController::class, 'verifySlip']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('/user/change-password', [AuthController::class, 'changePassword']);
     Route::get('/user/profile', [AuthController::class, 'getProfile']);

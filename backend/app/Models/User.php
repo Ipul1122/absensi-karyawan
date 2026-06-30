@@ -30,6 +30,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'saturday_off' => 'boolean',
             'sunday_off' => 'boolean',
+            'last_seen_at' => 'datetime',
         ];
     }
 

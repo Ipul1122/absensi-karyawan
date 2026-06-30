@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'director' => \App\Http\Middleware\DirectorMiddleware::class,
             'admin_or_director' => \App\Http\Middleware\AdminOrDirectorMiddleware::class,
+            'last_seen' => \App\Http\Middleware\UpdateLastSeenMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

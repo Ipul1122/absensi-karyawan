@@ -19,7 +19,10 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DirectorController;
 use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\BackupController;
+<<<<<<< HEAD
+=======
 
+>>>>>>> 113526ce25a77d19568d88a7b259473fd6e1cdc6
 
 
 Route::get('/health-check', function () {
@@ -108,6 +111,7 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
 
     // Admin or Director routes (Read only for Director)
     Route::middleware('admin_or_director')->group(function () {
+        Route::get('/admin/employees/backup', [BackupController::class, 'backup']);
         Route::get('/employees', [EmployeeController::class, 'index']);
         Route::get('/employees/{id}/profile', [EmployeeController::class, 'getEmployeeProfile']);
         Route::get('/admin/attendances', [AttendanceController::class, 'getAllAttendances']);

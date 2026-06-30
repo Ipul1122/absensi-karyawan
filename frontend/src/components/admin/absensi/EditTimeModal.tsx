@@ -1,5 +1,6 @@
 import React from 'react'
 import { X, Clock, Loader2, ShieldCheck } from 'lucide-react'
+import { apiClient } from '../../../utils/api'
 
 interface Attendance {
   id: number
@@ -13,6 +14,7 @@ interface Attendance {
     name: string
     email: string
     photo?: string | null
+    company?: string | null
   }
 }
 
@@ -41,6 +43,52 @@ export default function EditTimeModal({
   updating,
   formatDate,
 }: EditTimeModalProps) {
+  const [directors, setDirectors] = React.useState<any[]>([])
+  const [, setLoadingDirector] = React.useState(false)
+
+  React.useEffect(() => {
+    if (show && attendance) {
+      const fetchDirectors = async () => {
+        setLoadingDirector(true)
+        try {
+          const res = await apiClient.get('/admin/directors')
+          if (res.data.status === 'success') {
+            setDirectors(res.data.data)
+          }
+        } catch (err) {
+          console.error('Gagal mengambil data direktur:', err)
+        } finally {
+          setLoadingDirector(false)
+        }
+      }
+      fetchDirectors()
+    }
+  }, [show, attendance])
+
+  const getDirectorStatus = (lastSeenAt: string | null) => {
+    if (!lastSeenAt) return { isOnline: false, text: 'Offline (Belum pernah aktif)' }
+    const date = new Date(lastSeenAt)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    if (diffMins < 5) {
+      return { isOnline: true, text: 'Sedang Aktif/Online' }
+    }
+    if (diffMins < 60) {
+      return { isOnline: false, text: `Aktif ${diffMins} menit yang lalu` }
+    }
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) {
+      return { isOnline: false, text: `Aktif ${diffHours} jam yang lalu` }
+    }
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays === 1) {
+      return { isOnline: false, text: 'Aktif kemarin' }
+    }
+    return { isOnline: false, text: `Aktif ${diffDays} hari yang lalu` }
+  }
+
   if (!show || !attendance) return null
 
   return (
@@ -63,11 +111,41 @@ export default function EditTimeModal({
 
         {/* Form */}
         <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <span className="block text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-1 font-mono">Nama Karyawan</span>
-            <p className="text-sm font-bold text-slate-800">{attendance.user.name}</p>
-            <p className="text-xs text-slate-500 font-mono mt-0.5">{attendance.user.email} &bull; Tanggal: {formatDate(attendance.date)}</p>
+          <div className="flex justify-between items-start gap-4">
+            <div>
+              <span className="block text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-1 font-mono">Nama Karyawan</span>
+              <p className="text-sm font-bold text-slate-800">{attendance.user.name}</p>
+              <p className="text-xs text-slate-500 font-mono mt-0.5">{attendance.user.email} &bull; Tanggal: {formatDate(attendance.date)}</p>
+            </div>
           </div>
+
+          {/* Director Status */}
+          {directors.length > 0 && (
+            <div className="space-y-2">
+              <span className="block text-[10px] uppercase text-slate-500 font-bold tracking-wider mb-1 font-mono">Status Direksi</span>
+              {directors.map((dir) => (
+                <div key={dir.id} className="p-3 bg-gradient-to-br from-orange-50/50 to-red-50/20 border border-orange-100/50 rounded-2xl flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <div className="relative">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-red-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                        {dir.name.charAt(0)}
+                      </div>
+                      <span className={`absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full ring-2 ring-white ${getDirectorStatus(dir.last_seen_at).isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-700">{dir.name}</p>
+                      <p className="text-[9px] text-slate-500 font-mono mt-0.5 font-bold">Direktur &bull; {dir.company || 'Perusahaan'}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${getDirectorStatus(dir.last_seen_at).isOnline ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-600 bg-slate-50 border-slate-200'}`}>
+                      {getDirectorStatus(dir.last_seen_at).text}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">

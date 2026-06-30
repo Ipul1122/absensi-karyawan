@@ -18,6 +18,7 @@ use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DirectorController;
 use App\Http\Controllers\PushNotificationController;
+use App\Http\Controllers\BackupController;
 
 
 Route::get('/health-check', function () {
@@ -106,6 +107,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin or Director routes (Read only for Director)
     Route::middleware('admin_or_director')->group(function () {
+        Route::get('/admin/employees/backup', [BackupController::class, 'backup']);
         Route::get('/employees', [EmployeeController::class, 'index']);
         Route::get('/employees/{id}/profile', [EmployeeController::class, 'getEmployeeProfile']);
         Route::get('/admin/attendances', [AttendanceController::class, 'getAllAttendances']);

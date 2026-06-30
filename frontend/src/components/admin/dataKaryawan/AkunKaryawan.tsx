@@ -5,6 +5,7 @@ import {
   Search,
   UserPlus,
   Loader2,
+  Download,
   Trash2,
   Eye,
   // EyeOff,
@@ -109,6 +110,85 @@ export default function AkunKaryawan({
   const [savingBio, setSavingBio] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cvInputRef = useRef<HTMLInputElement>(null)
+
+  const [backingUp, setBackingUp] = useState(false)
+
+  const handleBackupData = async () => {
+    setBackingUp(true)
+    Swal.fire({
+      title: 'Menyiapkan Backup...',
+      html: 'Sistem sedang mengompilasi data dan berkas karyawan menjadi arsip ZIP.<br>Proses ini mungkin memakan waktu beberapa detik.',
+      allowOutsideClick: false,
+      background: '#fffdfb',
+      color: '#3c1105',
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/employees/backup', {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      })
+
+      Swal.close()
+
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      
+      const contentDisposition = response.headers['content-disposition']
+      let filename = `Backup_Karyawan_${new Date().toISOString().slice(0,10)}.zip`
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1]
+        }
+      }
+      
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      link.parentNode?.removeChild(link)
+
+      Swal.fire({
+        title: 'Berhasil!',
+        text: 'Arsip backup data karyawan berhasil diunduh.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+    } catch (err: any) {
+      console.error(err)
+      Swal.close()
+      
+      let errMsg = 'Gagal melakukan backup data karyawan.'
+      if (err.response && err.response.data) {
+        try {
+          const text = await err.response.data.text()
+          const parsed = JSON.parse(text)
+          if (parsed && parsed.message) {
+            errMsg = parsed.message
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      Swal.fire({
+        title: 'Gagal Backup',
+        text: errMsg,
+        icon: 'error',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+    } finally {
+      setBackingUp(false)
+    }
+  }
 
   // const togglePassword = (id: number) => {
   //   setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
@@ -441,6 +521,18 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                   Segarkan
                 </button>
               )}
+              <button
+                onClick={handleBackupData}
+                disabled={backingUp || loading}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand shrink-0 whitespace-nowrap"
+              >
+                {backingUp ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Backup Data (ZIP)
+              </button>
               <button
                 onClick={() => setShowModal(true)}
                 className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand shrink-0 whitespace-nowrap"

@@ -19,10 +19,6 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DirectorController;
 use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\BackupController;
-<<<<<<< HEAD
-=======
-
->>>>>>> 113526ce25a77d19568d88a7b259473fd6e1cdc6
 
 
 Route::get('/health-check', function () {
@@ -103,6 +99,7 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     // Employee Sales Visit routes
     Route::post('/sales-visits', [SalesVisitController::class, 'store']);
     Route::get('/sales-visits/today', [SalesVisitController::class, 'getTodayVisits']);
+    Route::put('/sales-visits/{id}/checkout', [SalesVisitController::class, 'checkout']);
 
     // Employee Overtime routes
     Route::get('/overtimes', [OvertimeController::class, 'index']);

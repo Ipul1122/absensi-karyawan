@@ -25,6 +25,11 @@ interface Visit {
   visit_type?: string | null
   created_at: string
   user: User
+  visit_time_out?: string | null
+  latitude_out?: string | null
+  longitude_out?: string | null
+  photo_path_out?: string | null
+  notes_out?: string | null
 }
 
 interface SalesVisitsLogProps {
@@ -53,7 +58,7 @@ export default function SalesVisitsLog({
   // Mobile Filters Collapsible State
   const [showFilters, setShowFilters] = useState(false)
   
-  const [resolvedAddresses, setResolvedAddresses] = useState<Record<number, string>>({})
+  const [resolvedAddresses, setResolvedAddresses] = useState<Record<string, string>>({})
 
   const fetchVisits = async () => {
     setLoading(true)
@@ -121,58 +126,65 @@ export default function SalesVisitsLog({
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedVisits = filteredVisits.slice(startIndex, startIndex + itemsPerPage)
 
-  // Address Resolver Function (Nominatim Reverse Geocoding)
-  const resolveAddress = async (id: number, lat: string, lng: string) => {
-    if (resolvedAddresses[id]) return
-    
-    // Check presets first
+  const fetchSingleAddress = async (lat: string, lng: string) => {
     const latitude = parseFloat(lat)
     const longitude = parseFloat(lng)
+    
     if (Math.abs(latitude - (-6.1942189)) < 0.0001 && Math.abs(longitude - 106.815998) < 0.0001) {
-      setResolvedAddresses(prev => ({ ...prev, [id]: 'Mall Thamrin City' }))
-      return
+      return 'Mall Thamrin City'
     }
+    
     const officeLat = parseFloat(officeLatitude)
     const officeLng = parseFloat(officeLongitude)
-    if (!isNaN(officeLat) && !isNaN(officeLng)) {
-      if (Math.abs(latitude - officeLat) < 0.0005 && Math.abs(longitude - officeLng) < 0.0005) {
-        setResolvedAddresses(prev => ({ ...prev, [id]: 'Kantor Pusat' }))
-        return
-      }
+    if (!isNaN(officeLat) && !isNaN(officeLng) && Math.abs(latitude - officeLat) < 0.0005 && Math.abs(longitude - officeLng) < 0.0005) {
+      return 'Kantor Pusat'
     }
-
-    // Call Nominatim API for reverse geocoding
+    
     try {
       const response = await axios.get(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`,
         { headers: { 'Accept-Language': 'id-ID' } }
       )
       if (response.data && response.data.display_name) {
-        const addressObj = response.data.address;
-        const street = addressObj.road || addressObj.suburb || addressObj.village || '';
-        const city = addressObj.city || addressObj.town || addressObj.municipality || addressObj.county || '';
-        const displayName = street && city ? `${street}, ${city}` : response.data.display_name.split(',').slice(0, 3).join(',');
-        setResolvedAddresses(prev => ({ ...prev, [id]: displayName }))
-      } else {
-        setResolvedAddresses(prev => ({ ...prev, [id]: `Luar Kantor` }))
+        const addressObj = response.data.address
+        const street = addressObj.road || addressObj.suburb || addressObj.village || ''
+        const city = addressObj.city || addressObj.town || addressObj.municipality || addressObj.county || ''
+        return street && city ? `${street}, ${city}` : response.data.display_name.split(',').slice(0, 3).join(',')
       }
     } catch (err) {
-      setResolvedAddresses(prev => ({ ...prev, [id]: `Luar Kantor` }))
+      // Ignored
     }
+    return 'Luar Kantor'
+  }
+
+  // Address Resolver Function (Nominatim Reverse Geocoding)
+  const resolveAddress = async (id: number, lat: string, lng: string, type: 'in' | 'out') => {
+    const cacheKey = `${id}_${type}`
+    if (resolvedAddresses[cacheKey]) return
+    
+    const address = await fetchSingleAddress(lat, lng)
+    setResolvedAddresses(prev => ({ ...prev, [cacheKey]: address }))
   }
 
   // Fetch addresses only for paginated visible visits to optimize API limits
   useEffect(() => {
     paginatedVisits.forEach(visit => {
-      resolveAddress(visit.id, visit.latitude, visit.longitude)
+      resolveAddress(visit.id, visit.latitude, visit.longitude, 'in')
+      if (visit.latitude_out && visit.longitude_out) {
+        resolveAddress(visit.id, visit.latitude_out, visit.longitude_out, 'out')
+      }
     })
   }, [paginatedVisits])
 
-  const showPhoto = (visit: Visit) => {
+  const showPhoto = (visit: Visit, isCheckout = false) => {
+    const photoPath = isCheckout ? visit.photo_path_out : visit.photo_path
+    const timeStr = isCheckout ? visit.visit_time_out : visit.visit_time
+    const label = isCheckout ? 'Absen Keluar' : 'Absen Masuk'
+    if (!photoPath) return
     Swal.fire({
-      title: visit.client_name,
-      text: `Dilaporkan oleh: ${visit.user.name} pada ${formatDate(visit.date)} pukul ${visit.visit_time.substring(0, 5)}`,
-      imageUrl: getAssetUrl(visit.photo_path),
+      title: `${visit.client_name} (${label})`,
+      text: `Dilaporkan oleh: ${visit.user.name} pada ${formatDate(visit.date)} pukul ${timeStr ? timeStr.substring(0, 5) : '-'}`,
+      imageUrl: getAssetUrl(photoPath),
       imageAlt: 'Bukti Kunjungan',
       background: '#1e293b',
       color: '#f8fafc',
@@ -185,7 +197,9 @@ export default function SalesVisitsLog({
   // Address Resolver Helper to ensure all addresses are resolved before exporting
   const ensureAllAddressesResolved = async (visitsToExport: Visit[]) => {
     // Check if we even need to geocode anything
-    const needsGeocoding = visitsToExport.some(v => !resolvedAddresses[v.id])
+    const needsGeocoding = visitsToExport.some(v => 
+      !resolvedAddresses[`${v.id}_in`] || (v.latitude_out && !resolvedAddresses[`${v.id}_out`])
+    )
     
     if (!needsGeocoding) {
       return resolvedAddresses
@@ -216,50 +230,25 @@ export default function SalesVisitsLog({
           progressEl.innerText = String(i + 1)
         }
 
-        if (currentAddresses[visit.id]) {
-          continue
+        const keyIn = `${visit.id}_in`
+        if (!currentAddresses[keyIn]) {
+          const lat = visit.latitude
+          const lng = visit.longitude
+          const address = await fetchSingleAddress(lat, lng)
+          currentAddresses[keyIn] = address
+          updated = true
         }
 
-        const lat = visit.latitude
-        const lng = visit.longitude
-        const latitude = parseFloat(lat)
-        const longitude = parseFloat(lng)
-
-        let address = 'Luar Kantor'
-
-        // Check presets first
-        if (Math.abs(latitude - (-6.1942189)) < 0.0001 && Math.abs(longitude - 106.815998) < 0.0001) {
-          address = 'Mall Thamrin City'
-        } else {
-          const officeLat = parseFloat(officeLatitude)
-          const officeLng = parseFloat(officeLongitude)
-          if (!isNaN(officeLat) && !isNaN(officeLng) && Math.abs(latitude - officeLat) < 0.0005 && Math.abs(longitude - officeLng) < 0.0005) {
-            address = 'Kantor Pusat'
-          } else {
-            // Fetch from Nominatim reverse geocoding API
-            try {
-              const response = await axios.get(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`,
-                { headers: { 'Accept-Language': 'id-ID' } }
-              )
-              if (response.data && response.data.display_name) {
-                const addressObj = response.data.address
-                const street = addressObj.road || addressObj.suburb || addressObj.village || ''
-                const city = addressObj.city || addressObj.town || addressObj.municipality || addressObj.county || ''
-                address = street && city ? `${street}, ${city}` : response.data.display_name.split(',').slice(0, 3).join(',')
-              }
-            } catch (err) {
-              console.error(`Failed reverse geocoding for visit ID ${visit.id}:`, err)
-            }
-            
-            // Rate limit delay: Nominatim API asks for 1s limit, but let's wait 300ms to be safe and fast.
-            // Only sleep if we actually made an API request.
-            await new Promise(resolve => setTimeout(resolve, 300))
+        if (visit.latitude_out && visit.longitude_out) {
+          const keyOut = `${visit.id}_out`
+          if (!currentAddresses[keyOut]) {
+            const lat = visit.latitude_out
+            const lng = visit.longitude_out
+            const address = await fetchSingleAddress(lat, lng)
+            currentAddresses[keyOut] = address
+            updated = true
           }
         }
-
-        currentAddresses[visit.id] = address
-        updated = true
       }
     } catch (error) {
       console.error('Error during batch geocoding:', error)
@@ -306,17 +295,20 @@ export default function SalesVisitsLog({
               <tr>
                 <th style="width: 5%; text-align: center;">No</th>
                 <th>Karyawan</th>
-                <th>Tanggal & Waktu</th>
+                <th>Waktu Masuk</th>
+                <th>Waktu Keluar</th>
                 <th>Nama Klien / Tujuan</th>
-                <th>Lokasi Kunjungan</th>
-                <th>Catatan Lapangan</th>
+                <th>Lokasi Masuk</th>
+                <th>Lokasi Keluar</th>
+                <th>Catatan Masuk</th>
+                <th>Catatan Keluar</th>
               </tr>
             </thead>
             <tbody>
               ${filteredVisits.length === 0 ? `
                 <tr>
-                  <td colspan="6" style="text-align: center; padding: 20px; color: #64748b;">
-                    Tidak ada data kunjungan sales yang tersedia.
+                  <td colspan="9" style="text-align: center; padding: 20px; color: #64748b;">
+                    Tidak ada data kunjungan yang tersedia.
                   </td>
                 </tr>
               ` : filteredVisits.map((visit, idx) => `
@@ -324,9 +316,12 @@ export default function SalesVisitsLog({
                   <td style="text-align: center;">${idx + 1}</td>
                   <td><strong>${visit.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${visit.user.email}</span></td>
                   <td>${formatDate(visit.date)} - ${visit.visit_time.substring(0, 5)} WIB</td>
+                  <td>${visit.visit_time_out ? `${visit.visit_time_out.substring(0, 5)} WIB` : '-'}</td>
                   <td><strong>${visit.client_name}</strong></td>
-                  <td>${addresses[visit.id] || 'Luar Kantor'}</td>
+                  <td>${addresses[`${visit.id}_in`] || 'Luar Kantor'}</td>
+                  <td>${visit.latitude_out ? (addresses[`${visit.id}_out`] || 'Luar Kantor') : '-'}</td>
                   <td>${visit.notes || '-'}</td>
+                  <td>${visit.notes_out || '-'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -366,10 +361,13 @@ export default function SalesVisitsLog({
               <th>Nama Karyawan</th>
               <th>Email</th>
               <th>Tanggal Kunjungan</th>
-              <th>Jam Kunjungan</th>
+              <th>Jam Masuk</th>
+              <th>Jam Keluar</th>
               <th>Nama Klien / Tujuan</th>
-              <th>Lokasi Kunjungan</th>
-              <th>Catatan Lapangan</th>
+              <th>Lokasi Masuk</th>
+              <th>Lokasi Keluar</th>
+              <th>Catatan Masuk</th>
+              <th>Catatan Keluar</th>
             </tr>
           </thead>
           <tbody>
@@ -383,9 +381,12 @@ export default function SalesVisitsLog({
           <td>${visit.user.email}</td>
           <td>${formatDate(visit.date)}</td>
           <td>${visit.visit_time.substring(0, 5)}</td>
+          <td>${visit.visit_time_out ? visit.visit_time_out.substring(0, 5) : '-'}</td>
           <td>${visit.client_name}</td>
-          <td>${addresses[visit.id] || 'Luar Kantor'}</td>
+          <td>${addresses[`${visit.id}_in`] || 'Luar Kantor'}</td>
+          <td>${visit.latitude_out ? (addresses[`${visit.id}_out`] || 'Luar Kantor') : '-'}</td>
           <td>${visit.notes || '-'}</td>
+          <td>${visit.notes_out || '-'}</td>
         </tr>
       `
     })
@@ -393,7 +394,7 @@ export default function SalesVisitsLog({
     if (filteredVisits.length === 0) {
       excelContent += `
         <tr>
-          <td colspan="8" style="text-align: center; padding: 20px;">Tidak ada data kunjungan.</td>
+          <td colspan="11" style="text-align: center; padding: 20px;">Tidak ada data kunjungan.</td>
         </tr>
       `
     }
@@ -629,9 +630,18 @@ export default function SalesVisitsLog({
                     {/* Date Time */}
                     <td className="py-4 px-6">
                       <p className="font-extrabold text-slate-700 text-xs">{formatDate(visit.date)}</p>
-                      <p className="font-mono text-[11px] text-orange-600 font-bold mt-1">
-                        {visit.visit_time.substring(0, 5)} WIB
-                      </p>
+                      <div className="space-y-1 mt-1 text-[11px] font-medium">
+                        <p className="flex items-center gap-1">
+                          <span className="text-orange-500 font-bold font-mono">Masuk:</span>
+                          <span className="font-mono text-slate-650">{visit.visit_time.substring(0, 5)} WIB</span>
+                        </p>
+                        <p className="flex items-center gap-1">
+                          <span className="text-emerald-505 font-bold font-mono">Keluar:</span>
+                          <span className="font-mono text-slate-650">
+                            {visit.visit_time_out ? `${visit.visit_time_out.substring(0, 5)} WIB` : '-'}
+                          </span>
+                        </p>
+                      </div>
                     </td>
 
                     {/* Client Name */}
@@ -641,52 +651,106 @@ export default function SalesVisitsLog({
 
                     {/* Photo Bukti */}
                     <td className="py-4 px-6 text-center">
-                      <div className="flex justify-center">
+                      <div className="flex flex-col gap-2 justify-center items-center">
                         <button
-                          onClick={() => showPhoto(visit)}
-                          className="p-2 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl transition-all cursor-pointer"
-                          title="Lihat Foto Bukti"
+                          onClick={() => showPhoto(visit, false)}
+                          className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                          title="Lihat Foto Masuk"
                         >
-                          <Image className="w-4 h-4" />
+                          <Image className="w-3.5 h-3.5" />
+                          <span>Masuk</span>
                         </button>
+                        {visit.photo_path_out ? (
+                          <button
+                            onClick={() => showPhoto(visit, true)}
+                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-600 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                            title="Lihat Foto Keluar"
+                          >
+                            <Image className="w-3.5 h-3.5" />
+                            <span>Keluar</span>
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic font-medium">Belum Keluar</span>
+                        )}
                       </div>
                     </td>
 
                     {/* GPS Location (Resolved Location Name) */}
                     <td className="py-4 px-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-bold text-slate-800 text-xs leading-tight">
-                          {resolvedAddresses[visit.id] ? (
-                            resolvedAddresses[visit.id]
-                          ) : (
-                            <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
-                              Mencari nama lokasi...
+                      <div className="space-y-3">
+                        {/* Location In */}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Lokasi Masuk</span>
+                          <span className="font-bold text-slate-800 text-xs leading-tight">
+                            {resolvedAddresses[`${visit.id}_in`] ? (
+                              resolvedAddresses[`${visit.id}_in`]
+                            ) : (
+                              <span className="text-slate-400 italic text-[10px] font-medium flex items-center gap-1">
+                                <RefreshCw className="w-3 animate-spin text-orange-500" />
+                                Mencari...
+                              </span>
+                            )}
+                          </span>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 font-semibold w-fit"
+                            title="Buka di Google Maps"
+                          >
+                            <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                            <span>Peta</span>
+                          </a>
+                        </div>
+
+                        {/* Location Out */}
+                        {visit.latitude_out && (
+                          <div className="flex flex-col gap-0.5 border-t border-slate-100 pt-1.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Lokasi Keluar</span>
+                            <span className="font-bold text-slate-800 text-xs leading-tight">
+                              {resolvedAddresses[`${visit.id}_out`] ? (
+                                resolvedAddresses[`${visit.id}_out`]
+                              ) : (
+                                <span className="text-slate-400 italic text-[10px] font-medium flex items-center gap-1">
+                                  <RefreshCw className="w-3 animate-spin text-orange-500" />
+                                  Mencari...
+                                </span>
+                              )}
                             </span>
-                          )}
-                        </span>
-                        <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-semibold"
-                          title="Buka di Google Maps"
-                        >
-                          <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                          <span>Buka Peta</span>
-                        </a>
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude_out},${visit.longitude_out}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 font-semibold w-fit"
+                              title="Buka di Google Maps"
+                            >
+                              <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
+                              <span>Peta</span>
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </td>
 
                     {/* Notes */}
-                    <td className="py-4 px-6">
-                      {visit.notes ? (
-                        <p className="text-xs text-slate-600 font-medium max-w-xs leading-relaxed truncate hover:text-clip hover:whitespace-normal" title={visit.notes}>
-                          {visit.notes}
-                        </p>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">-</span>
-                      )}
+                    <td className="py-4 px-6 text-xs">
+                      <div className="space-y-2">
+                        {visit.notes && (
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block">Catatan Masuk</span>
+                            <p className="text-slate-650 font-medium leading-relaxed max-w-xs">{visit.notes}</p>
+                          </div>
+                        )}
+                        {visit.notes_out && (
+                          <div className="border-t border-slate-100 pt-1.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block">Catatan Keluar</span>
+                            <p className="text-slate-650 font-medium leading-relaxed max-w-xs">{visit.notes_out}</p>
+                          </div>
+                        )}
+                        {!visit.notes && !visit.notes_out && (
+                          <span className="text-slate-400 italic">-</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -743,60 +807,112 @@ export default function SalesVisitsLog({
               </div>
 
               {/* Card Body: Client details & Maps */}
-              <div className="bg-orange-50/10 p-3 border border-orange-100/50 rounded-xl space-y-2">
+              <div className="bg-orange-50/10 p-3 border border-orange-100/50 rounded-xl space-y-3">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Klien / Tujuan</span>
-                  <span className="text-xs font-bold text-slate-800 block">{visit.client_name}</span>
+                  <span className="text-xs font-bold text-slate-805 block">{visit.client_name}</span>
                 </div>
                 
-                <div className="border-t border-orange-100/30 pt-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lokasi Kunjungan</span>
-                  <div className="flex flex-col gap-1 mt-0.5">
-                    <span className="text-xs font-semibold text-slate-700 leading-tight">
-                      {resolvedAddresses[visit.id] ? (
-                        resolvedAddresses[visit.id]
-                      ) : (
-                        <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
-                          Mencari nama lokasi...
-                        </span>
-                      )}
-                    </span>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-bold w-fit"
-                      title="Buka di Google Maps"
-                    >
-                      <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                      <span>Buka Peta</span>
-                    </a>
+                <div className="border-t border-orange-100/30 pt-2 grid grid-cols-1 gap-3">
+                  {/* Location In */}
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lokasi Masuk</span>
+                    <div className="flex flex-col gap-1 mt-0.5">
+                      <span className="text-xs font-semibold text-slate-700 leading-tight">
+                        {resolvedAddresses[`${visit.id}_in`] ? (
+                          resolvedAddresses[`${visit.id}_in`]
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
+                            Mencari...
+                          </span>
+                        )}
+                      </span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-bold w-fit"
+                        title="Buka di Google Maps"
+                      >
+                        <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                        <span>Buka Peta</span>
+                      </a>
+                    </div>
                   </div>
+
+                  {/* Location Out */}
+                  {visit.latitude_out && (
+                    <div className="border-t border-orange-50 pt-2">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lokasi Keluar</span>
+                      <div className="flex flex-col gap-1 mt-0.5">
+                        <span className="text-xs font-semibold text-slate-700 leading-tight">
+                          {resolvedAddresses[`${visit.id}_out`] ? (
+                            resolvedAddresses[`${visit.id}_out`]
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
+                              Mencari...
+                            </span>
+                          )}
+                        </span>
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude_out},${visit.longitude_out}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-bold w-fit"
+                          title="Buka di Google Maps"
+                        >
+                          <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
+                          <span>Buka Peta</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Notes */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Catatan Lapangan</span>
-                {visit.notes ? (
-                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                    {visit.notes}
-                  </p>
-                ) : (
+              <div className="space-y-2 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                {visit.notes && (
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Catatan Masuk</span>
+                    <p className="text-xs text-slate-650 font-medium leading-relaxed">{visit.notes}</p>
+                  </div>
+                )}
+                {visit.notes_out && (
+                  <div className="space-y-0.5 border-t border-slate-200/60 pt-2 mt-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Catatan Keluar</span>
+                    <p className="text-xs text-slate-650 font-medium leading-relaxed">{visit.notes_out}</p>
+                  </div>
+                )}
+                {!visit.notes && !visit.notes_out && (
                   <span className="text-xs text-slate-400 italic block">-</span>
                 )}
               </div>
 
               {/* Actions Footer */}
-              <div className="pt-2 border-t border-orange-50">
+              <div className="pt-2 border-t border-orange-50 flex gap-2">
                 <button
-                  onClick={() => showPhoto(visit)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                  onClick={() => showPhoto(visit, false)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
                 >
                   <Image className="w-4 h-4 text-orange-500" />
-                  <span>Lihat Foto Bukti</span>
+                  <span>Foto Masuk</span>
                 </button>
+                {visit.photo_path_out ? (
+                  <button
+                    onClick={() => showPhoto(visit, true)}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                  >
+                    <Image className="w-4 h-4 text-emerald-500" />
+                    <span>Foto Keluar</span>
+                  </button>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center py-2.5 border border-dashed border-slate-250 text-slate-400 rounded-xl text-xs font-bold select-none bg-slate-50/50">
+                    Belum Keluar
+                  </div>
+                )}
               </div>
             </div>
           ))

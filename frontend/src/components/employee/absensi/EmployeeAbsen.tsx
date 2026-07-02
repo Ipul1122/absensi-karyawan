@@ -170,7 +170,7 @@ export default function EmployeeAbsen({
           </div>
           <NavLink
             to={todayAttendance.attendance_type === 'kunjungan' ? '/employee/sales' : '/employee/client'}
-            className="mt-2 px-5 py-2.5 bg-gradient-to-r from-orange-50 to-red-500 hover:from-orange-600 hover:to-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer font-quicksand font-semibold"
+            className="mt-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer font-quicksand font-semibold"
           >
             Buka Absen {todayAttendance.attendance_type === 'kunjungan' ? 'Kunjungan Kerja' : 'Kunjungan Klien'}
           </NavLink>

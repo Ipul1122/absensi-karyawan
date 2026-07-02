@@ -495,17 +495,40 @@ class AttendanceController extends Controller
             if ($request->notes) {
                 $clientName = $request->notes;
             }
-            \App\Models\SalesVisit::create([
-                'user_id' => $userId,
-                'date' => $date,
+            
+            $visitType = $request->attendance_type === 'client' ? 'client' : 'sales';
+            
+            // Check if there is already a visit log for this date, user, and type
+            $existingVisit = \App\Models\SalesVisit::where('user_id', $userId)
+                ->where('date', $date)
+                ->where('visit_type', $visitType)
+                ->first();
+
+            $visitData = [
                 'visit_time' => $clockIn,
                 'client_name' => $clientName,
                 'latitude' => $latitude,
                 'longitude' => $longitude,
-                'photo_path' => $photoPath ?: '',
-                'notes' => 'Absen Masuk Manual oleh Admin',
-                'visit_type' => $request->attendance_type === 'client' ? 'client' : 'sales',
-            ]);
+                'photo_path' => $photoPath ?: ($existingVisit ? $existingVisit->photo_path : ''),
+                'notes' => $notesText ?: 'Absen Masuk Manual oleh Admin',
+                'visit_type' => $visitType,
+            ];
+
+            if ($clockOut) {
+                $visitData['visit_time_out'] = $clockOut;
+                $visitData['latitude_out'] = $latitude;
+                $visitData['longitude_out'] = $longitude;
+                $visitData['photo_path_out'] = $photoPath ?: ($existingVisit ? $existingVisit->photo_path_out : null);
+                $visitData['notes_out'] = $notesText ?: 'Absen Keluar Manual oleh Admin';
+            }
+
+            if ($existingVisit) {
+                $existingVisit->update($visitData);
+            } else {
+                $visitData['user_id'] = $userId;
+                $visitData['date'] = $date;
+                \App\Models\SalesVisit::create($visitData);
+            }
         }
 
         // Load the relationship for response format consistency

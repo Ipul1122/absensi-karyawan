@@ -131,6 +131,105 @@ class SalesVisitController extends Controller
     }
 
     /**
+     * Process checkout for a sales/client visit.
+     */
+    public function checkout(Request $request, $id)
+    {
+        $request->validate([
+            'latitude' => 'required|string',
+            'longitude' => 'required|string',
+            'photo' => 'required|string', // base64 string
+            'notes' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $visit = SalesVisit::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$visit) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Laporan kunjungan tidak ditemukan.'
+                ], 404);
+            }
+
+            if ($visit->visit_time_out) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Anda sudah melakukan absen keluar dari kunjungan ini.'
+                ], 422);
+            }
+
+            // Save photo
+            $photoPath = $this->saveBase64Image($request->photo, 'visit_out_' . $user->id);
+            $visitTimeOut = Carbon::now()->format('H:i:s');
+
+            // Update record
+            $visit->update([
+                'visit_time_out' => $visitTimeOut,
+                'latitude_out' => $request->latitude,
+                'longitude_out' => $request->longitude,
+                'photo_path_out' => $photoPath,
+                'notes_out' => $request->notes,
+            ]);
+
+            // Sync with main attendance log: update check-out for today
+            $attendance = Attendance::where('user_id', $user->id)
+                ->where('date', $today)
+                ->first();
+
+            if ($attendance) {
+                // Determine checkout status (early departure vs normal vs overtime)
+                $now = Carbon::now();
+                $isSaturday = $now->isSaturday();
+                
+                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+
+                $status = 'normal';
+                if ($attendance->shift_end_time) {
+                    $limitEarly = $attendance->shift_end_time;
+                    $limitOvertime = Carbon::parse($attendance->shift_end_time)->addHour()->format('H:i:s');
+                } else {
+                    $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                    $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+                }
+
+                if ($visitTimeOut < $limitEarly) {
+                    $status = 'early_departure';
+                } elseif ($visitTimeOut > $limitOvertime) {
+                    $status = 'overtime';
+                }
+
+                $attendance->update([
+                    'clock_out' => $visitTimeOut,
+                    'latitude_out' => $request->latitude,
+                    'longitude_out' => $request->longitude,
+                    'photo_out' => $photoPath,
+                    'notes_out' => $request->notes ?: 'Absen Keluar via Kunjungan: ' . $visit->client_name,
+                    'status_out' => $status,
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Absen keluar kunjungan berhasil dicatat!',
+                'data' => $visit
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memproses absen keluar kunjungan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper to decode and save base64 image.
      */
     private function saveBase64Image($base64String, $prefix)

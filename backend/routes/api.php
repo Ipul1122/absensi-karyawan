@@ -136,6 +136,7 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::post('/admin/attendances', [AttendanceController::class, 'storeManualAttendance']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);
         Route::put('/admin/office-setting', [AttendanceController::class, 'updateOfficeSetting']);
+        Route::put('/admin/sales-visits/{id}', [SalesVisitController::class, 'updateVisit']);
         
         // Admin Leave routes
         Route::put('/admin/leaves/{id}/approve', [LeaveController::class, 'approve']);

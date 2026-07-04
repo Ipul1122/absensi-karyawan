@@ -67,13 +67,17 @@ interface EmployeeAbsenProps {
 
 const getShiftLabelForAttendance = (att: Attendance | null | undefined) => {
   if (!att) return null
+  const isSat = att.date ? new Date(att.date).getDay() === 6 : new Date().getDay() === 6
+  
   if (att.shift?.name) {
-    return `${att.shift.name} (${att.shift.start_time.substring(0, 5)} - ${att.shift.end_time.substring(0, 5)})`
+    const isRegulerSat = att.shift.name === 'Shift Reguler' && isSat
+    const endTime = isRegulerSat ? '14:00' : att.shift.end_time.substring(0, 5)
+    return `${att.shift.name} (${att.shift.start_time.substring(0, 5)} - ${endTime})`
   }
   if (att.shift_start_time && att.shift_end_time) {
     return `${att.shift_start_time.substring(0, 5)} - ${att.shift_end_time.substring(0, 5)}`
   }
-  return 'Shift Reguler (08:30 - 17:30)'
+  return isSat ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:30)'
 }
 
 export default function EmployeeAbsen({
@@ -845,12 +849,18 @@ export default function EmployeeAbsen({
                   onChange={(e) => setSelectedShiftId(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none text-xs font-semibold appearance-none cursor-pointer"
                 >
-                  <option value="">Shift Reguler (08:30 - 17:30)</option>
-                  {shifts.map((shift) => (
-                    <option key={shift.id} value={shift.id}>
-                      {shift.name} ({shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)})
-                    </option>
-                  ))}
+                  <option value="">
+                    {new Date().getDay() === 6 ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:30)'}
+                  </option>
+                  {shifts.map((shift) => {
+                    const isRegulerSat = shift.name === 'Shift Reguler' && new Date().getDay() === 6;
+                    const displayEndTime = isRegulerSat ? '14:00' : shift.end_time.substring(0, 5);
+                    return (
+                      <option key={shift.id} value={shift.id}>
+                        {shift.name} ({shift.start_time.substring(0, 5)} - {displayEndTime})
+                      </option>
+                    );
+                  })}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
                   <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>

@@ -108,6 +108,12 @@ class AttendanceController extends Controller
             if ($shift) {
                 $shiftStart = $shift->start_time;
                 $shiftEnd = $shift->end_time;
+                
+                // Override jam pulang untuk Shift Reguler di hari Sabtu menjadi 14:00:00
+                if (Carbon::now()->isSaturday() && $shift->name === 'Shift Reguler') {
+                    $shiftEnd = '14:00:00';
+                }
+                
                 $limitIn = Carbon::parse($shift->start_time)->addMinutes($shift->grace_period)->format('H:i:s');
             }
 

@@ -163,7 +163,12 @@ class PayrollController extends Controller
 
         // 5. Hitung tunjangan & potongan (rumus per hari hadir / per hari mangkir)
         if ($isSatOff && $isSunOff) {
-            $allowanceDays = 26 - $holidaysCount;
+            if ($isProrated) {
+                // Prorata hari tunjangan berdasarkan hari aktif kerja dikurangi libur nasional periode aktif
+                $allowanceDays = max(0, $activeWorkingDays - $holidaysInActivePeriod);
+            } else {
+                $allowanceDays = 26 - $holidaysCount;
+            }
             $allowanceMeal = $allowanceDays * $allowanceMealDaily;
             $allowanceTransport = $allowanceDays * $allowanceTransportDaily;
         } else {
@@ -593,6 +598,8 @@ class PayrollController extends Controller
             'allowance_transport' => 'nullable|numeric|min:0',
             'allowance_position' => 'nullable|numeric|min:0',
             'allowance_fixed' => 'nullable|numeric|min:0',
+            'allowance_overtime' => 'nullable|numeric|min:0',
+            'allowance_bonus' => 'nullable|numeric|min:0',
             'deduction_late' => 'required|numeric|min:0',
             'deduction_fixed' => 'required|numeric|min:0',
             'deduction_absence' => 'nullable|numeric|min:0',
@@ -613,11 +620,13 @@ class PayrollController extends Controller
         $transport = $request->input('allowance_transport', 0);
         $position = $request->input('allowance_position', 0);
         $fixedAllow = $request->input('allowance_fixed', 0);
+        $overtime = $request->input('allowance_overtime', $payroll->allowance_overtime ?? 0);
+        $bonus = $request->input('allowance_bonus', $payroll->allowance_bonus ?? 0);
         $lateDeduct = $request->deduction_late;
         $fixedDeduct = $request->deduction_fixed;
         $absenceDeduct = $request->input('deduction_absence', 0);
 
-        $net = ($basic + $meal + $transport + $position + $fixedAllow) - ($lateDeduct + $fixedDeduct + $absenceDeduct);
+        $net = ($basic + $meal + $transport + $position + $fixedAllow + $overtime + $bonus) - ($lateDeduct + $fixedDeduct + $absenceDeduct);
         if ($net < 0) {
             $net = 0;
         }
@@ -628,6 +637,8 @@ class PayrollController extends Controller
             'allowance_transport' => $transport,
             'allowance_position' => $position,
             'allowance_fixed' => $fixedAllow,
+            'allowance_overtime' => $overtime,
+            'allowance_bonus' => $bonus,
             'deduction_late' => $lateDeduct,
             'deduction_fixed' => $fixedDeduct,
             'deduction_absence' => $absenceDeduct,

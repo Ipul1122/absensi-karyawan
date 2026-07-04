@@ -230,6 +230,74 @@ class SalesVisitController extends Controller
     }
 
     /**
+     * Update a sales/client visit (for admin).
+     */
+    public function updateVisit(Request $request, $id)
+    {
+        $request->validate([
+            'client_name' => 'required|string|max:255',
+            'date' => 'required|date',
+            'visit_time' => 'required|string',
+            'visit_time_out' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'notes_out' => 'nullable|string',
+        ]);
+
+        try {
+            $visit = SalesVisit::findOrFail($id);
+            $oldVisitTime = $visit->visit_time;
+            $oldVisitTimeOut = $visit->visit_time_out;
+
+            $visitTime = Carbon::parse($request->visit_time)->format('H:i:s');
+            $visitTimeOut = null;
+            if ($request->visit_time_out) {
+                $visitTimeOut = Carbon::parse($request->visit_time_out)->format('H:i:s');
+            }
+
+            $visit->update([
+                'client_name' => $request->client_name,
+                'date' => Carbon::parse($request->date)->toDateString(),
+                'visit_time' => $visitTime,
+                'visit_time_out' => $visitTimeOut,
+                'notes' => $request->notes,
+                'notes_out' => $request->notes_out,
+            ]);
+
+            // Sync with attendance log: if there is an attendance record for this user and date
+            $attendance = Attendance::where('user_id', $visit->user_id)
+                ->where('date', $visit->date)
+                ->first();
+
+            if ($attendance) {
+                $attUpdate = [];
+                // If the old visit_time matches clock_in, update it
+                if ($attendance->clock_in === $oldVisitTime) {
+                    $attUpdate['clock_in'] = $visitTime;
+                }
+                // If the old visit_time_out matches clock_out, update it
+                if ($oldVisitTimeOut && $attendance->clock_out === $oldVisitTimeOut) {
+                    $attUpdate['clock_out'] = $visitTimeOut;
+                }
+                if (!empty($attUpdate)) {
+                    $attendance->update($attUpdate);
+                }
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Laporan kunjungan berhasil diperbarui!',
+                'data' => $visit
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memperbarui laporan kunjungan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper to decode and save base64 image.
      */
     private function saveBase64Image($base64String, $prefix)

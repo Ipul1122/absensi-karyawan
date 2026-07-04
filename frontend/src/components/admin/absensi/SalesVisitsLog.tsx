@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
-import { Search, Calendar, RefreshCw, MapPin, Image, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
+import { Search, Calendar, RefreshCw, MapPin, Image, FileDown, Compass, SlidersHorizontal, Edit2 } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
+import EditVisitModal from './EditVisitModal'
 
 interface User {
   id: number
@@ -59,6 +60,15 @@ export default function SalesVisitsLog({
   const [showFilters, setShowFilters] = useState(false)
   
   const [resolvedAddresses, setResolvedAddresses] = useState<Record<string, string>>({})
+
+  // Edit Visit states
+  const [selectedVisitForEdit, setSelectedVisitForEdit] = useState<Visit | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  const handleEditClick = (visit: Visit) => {
+    setSelectedVisitForEdit(visit)
+    setIsEditModalOpen(true)
+  }
 
   const fetchVisits = async () => {
     setLoading(true)
@@ -587,12 +597,13 @@ export default function SalesVisitsLog({
                 <th className="py-4 px-6 text-center">Foto Bukti</th>
                 <th className="py-4 px-6">Lokasi Kunjungan</th>
                 <th className="py-4 px-6">Catatan Lapangan</th>
+                <th className="py-4 px-6 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="w-5 h-5 animate-spin text-orange-500" />
                       Memuat data kunjungan...
@@ -601,7 +612,7 @@ export default function SalesVisitsLog({
                 </tr>
               ) : paginatedVisits.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-semibold">
                     Tidak ada log kunjungan sales yang ditemukan.
                   </td>
                 </tr>
@@ -752,6 +763,15 @@ export default function SalesVisitsLog({
                         )}
                       </div>
                     </td>
+                    <td className="py-4 px-6 text-center">
+                      <button
+                        onClick={() => handleEditClick(visit)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-205 text-orange-700 rounded-xl transition-all cursor-pointer text-xs font-bold shadow-sm active:scale-[0.98]"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-orange-600" />
+                        <span>Edit</span>
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -892,27 +912,36 @@ export default function SalesVisitsLog({
               </div>
 
               {/* Actions Footer */}
-              <div className="pt-2 border-t border-orange-50 flex gap-2">
-                <button
-                  onClick={() => showPhoto(visit, false)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
-                >
-                  <Image className="w-4 h-4 text-orange-500" />
-                  <span>Foto Masuk</span>
-                </button>
-                {visit.photo_path_out ? (
+              <div className="pt-2 border-t border-orange-50 space-y-2">
+                <div className="flex gap-2">
                   <button
-                    onClick={() => showPhoto(visit, true)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                    onClick={() => showPhoto(visit, false)}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
                   >
-                    <Image className="w-4 h-4 text-emerald-500" />
-                    <span>Foto Keluar</span>
+                    <Image className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Foto Masuk</span>
                   </button>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center py-2.5 border border-dashed border-slate-250 text-slate-400 rounded-xl text-xs font-bold select-none bg-slate-50/50">
-                    Belum Keluar
-                  </div>
-                )}
+                  {visit.photo_path_out ? (
+                    <button
+                      onClick={() => showPhoto(visit, true)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                    >
+                      <Image className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Foto Keluar</span>
+                    </button>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center py-2 border border-dashed border-slate-250 text-slate-400 rounded-xl text-xs font-bold select-none bg-slate-50/50">
+                      Belum Keluar
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleEditClick(visit)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer active:scale-[0.98]"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-white" />
+                  <span>Edit Kunjungan</span>
+                </button>
               </div>
             </div>
           ))
@@ -990,6 +1019,18 @@ export default function SalesVisitsLog({
           )}
         </div>
       )}
+      {/* Edit Visit Modal */}
+      <EditVisitModal
+        show={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setSelectedVisitForEdit(null)
+        }}
+        onSuccess={fetchVisits}
+        visit={selectedVisitForEdit}
+        token={token}
+        formatDate={formatDate}
+      />
     </div>
   )
 }

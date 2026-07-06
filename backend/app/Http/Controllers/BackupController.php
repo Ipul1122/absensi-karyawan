@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-<<<<<<< HEAD
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
@@ -11,17 +10,10 @@ use App\Models\LeaveRequest;
 use App\Models\Payroll;
 use App\Models\Reimbursement;
 use Illuminate\Support\Facades\Storage;
-=======
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use Symfony\Component\HttpFoundation\StreamedResponse;
->>>>>>> 113526ce25a77d19568d88a7b259473fd6e1cdc6
 
 class BackupController extends Controller
 {
     /**
-<<<<<<< HEAD
      * Backup employee data and download as a ZIP file.
      * Accessible by Admin or Director.
      */
@@ -44,8 +36,8 @@ class BackupController extends Controller
             ], 404);
         }
 
-        // 2. Instantiate custom Pure PHP Zip Writer
-        $zip = new PureZip();
+        // 2. Instantiate custom BackupZip (uses ZipArchive if available, falls back to PureZip)
+        $zip = new BackupZip();
 
         // 3. Write Master CSV: daftar_karyawan.csv
         $masterCsvStream = fopen('php://temp', 'r+');
@@ -95,9 +87,10 @@ class BackupController extends Controller
         $masterCsvContent = stream_get_contents($masterCsvStream);
         fclose($masterCsvStream);
         
-        $zip->addFile('daftar_karyawan.csv', $masterCsvContent);
+        $zip->addFileFromString('daftar_karyawan.csv', $masterCsvContent);
 
         // 4. Process each employee folders
+        /** @var \App\Models\User $emp */
         foreach ($employees as $emp) {
             // Folder name prefix
             $empFolderCleanName = str_replace([' ', '/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_', $emp->name);
@@ -138,14 +131,14 @@ class BackupController extends Controller
             $bioText .= "Potongan Mangkir / Hari   : Rp " . ($sc ? number_format($sc->deduction_absence_daily, 0, ',', '.') : '0') . "\n";
             $bioText .= "Potongan Tetap Bulanan    : Rp " . ($sc ? number_format($sc->deduction_fixed, 0, ',', '.') : '0') . "\n\n";
 
-            $zip->addFile($folderName . 'biodata_lengkap.txt', $bioText);
+            $zip->addFileFromString($folderName . 'biodata_lengkap.txt', $bioText);
 
             // Add profile photo from storage if exists
             if ($emp->photo) {
                 $cleanPhotoPath = str_replace(['/storage/', 'storage/'], '', $emp->photo);
                 if (Storage::disk('public')->exists($cleanPhotoPath)) {
                     $ext = pathinfo($cleanPhotoPath, PATHINFO_EXTENSION);
-                    $zip->addFile($folderName . 'foto_profil.' . ($ext ?: 'webp'), Storage::disk('public')->get($cleanPhotoPath));
+                    $zip->addFileFromPath($folderName . 'foto_profil.' . ($ext ?: 'webp'), Storage::disk('public')->path($cleanPhotoPath));
                 }
             }
 
@@ -154,7 +147,7 @@ class BackupController extends Controller
                 $cleanCvPath = str_replace(['/storage/', 'storage/'], '', $emp->cv);
                 if (Storage::disk('public')->exists($cleanCvPath)) {
                     $ext = pathinfo($cleanCvPath, PATHINFO_EXTENSION);
-                    $zip->addFile($folderName . 'cv_karyawan.' . ($ext ?: 'pdf'), Storage::disk('public')->get($cleanCvPath));
+                    $zip->addFileFromPath($folderName . 'cv_karyawan.' . ($ext ?: 'pdf'), Storage::disk('public')->path($cleanCvPath));
                 }
             }
 
@@ -178,7 +171,7 @@ class BackupController extends Controller
                     ]);
                 }
                 rewind($stream);
-                $zip->addFile($folderName . 'riwayat_absensi.csv', stream_get_contents($stream));
+                $zip->addFileFromString($folderName . 'riwayat_absensi.csv', stream_get_contents($stream));
                 fclose($stream);
             }
 
@@ -200,7 +193,7 @@ class BackupController extends Controller
                     ]);
                 }
                 rewind($stream);
-                $zip->addFile($folderName . 'riwayat_cuti.csv', stream_get_contents($stream));
+                $zip->addFileFromString($folderName . 'riwayat_cuti.csv', stream_get_contents($stream));
                 fclose($stream);
             }
 
@@ -227,7 +220,7 @@ class BackupController extends Controller
                     ]);
                 }
                 rewind($stream);
-                $zip->addFile($folderName . 'riwayat_payroll.csv', stream_get_contents($stream));
+                $zip->addFileFromString($folderName . 'riwayat_payroll.csv', stream_get_contents($stream));
                 fclose($stream);
             }
 
@@ -249,19 +242,72 @@ class BackupController extends Controller
                     ]);
                 }
                 rewind($stream);
-                $zip->addFile($folderName . 'riwayat_reimbursement.csv', stream_get_contents($stream));
+                $zip->addFileFromString($folderName . 'riwayat_reimbursement.csv', stream_get_contents($stream));
                 fclose($stream);
             }
         }
 
         // 5. Download the file stream
         $filename = 'Backup_Karyawan_' . date('d_M_Y_H_i') . '.zip';
-        return response($zip->getZip(), 200, [
-            'Content-Type' => 'application/zip',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ]);
+        return $zip->getResponse($filename);
+    }
+}
+
+/**
+ * Adapter wrapper to handle disk-based ZipArchive or fall back to PureZip memory buffer.
+ */
+class BackupZip
+{
+    private ?\ZipArchive $nativeZip = null;
+    private ?PureZip $pureZip = null;
+    private ?string $tempPath = null;
+
+    public function __construct()
+    {
+        if (class_exists('\ZipArchive')) {
+            $this->tempPath = tempnam(sys_get_temp_dir(), 'laravel_backup_');
+            $this->nativeZip = new \ZipArchive();
+            if ($this->nativeZip->open($this->tempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+                $this->nativeZip = null;
+            }
+        }
+        if (!$this->nativeZip) {
+            $this->pureZip = new PureZip();
+        }
+    }
+
+    public function addFileFromString(string $name, string $content): void
+    {
+        if ($this->nativeZip) {
+            $this->nativeZip->addFromString($name, $content);
+        } else {
+            $this->pureZip->addFile($name, $content);
+        }
+    }
+
+    public function addFileFromPath(string $name, string $absolutePath): void
+    {
+        if ($this->nativeZip) {
+            $this->nativeZip->addFile($absolutePath, $name);
+        } else {
+            $content = file_get_contents($absolutePath);
+            $this->pureZip->addFile($name, $content);
+        }
+    }
+
+    public function getResponse(string $filename)
+    {
+        if ($this->nativeZip) {
+            $this->nativeZip->close();
+            return response()->download($this->tempPath, $filename)->deleteFileAfterSend(true);
+        } else {
+            return response($this->pureZip->getZip(), 200, [
+                'Content-Type' => 'application/zip',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
+        }
     }
 }
 
@@ -364,121 +410,5 @@ class PureZip
         $eocd .= "\x00\x00"; // comment length
 
         return $this->zipContent . $ctrlDir . $eocd;
-=======
-     * Export the database as a SQL dump download.
-     */
-    public function exportDatabase()
-    {
-        $tables = Schema::getTableListing();
-
-        $response = new StreamedResponse(function () use ($tables) {
-            $handle = fopen('php://output', 'w');
-
-            // Write database SQL headers
-            fwrite($handle, "-- GoodPeople HCMS Database Backup\n");
-            fwrite($handle, "-- Generated at: " . date('Y-m-d H:i:s') . "\n");
-            fwrite($handle, "-- Laravel Version: " . app()->version() . "\n\n");
-            fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
-
-            foreach ($tables as $table) {
-                // Skip migrations if they are not needed, but generally keeping all is best
-                fwrite($handle, "-- --------------------------------------------------------\n");
-                fwrite($handle, "-- Table structure for table `$table`\n");
-                fwrite($handle, "-- --------------------------------------------------------\n");
-                fwrite($handle, "DROP TABLE IF EXISTS `$table`;\n");
-
-                try {
-                    $createTableResult = DB::select("SHOW CREATE TABLE `$table`");
-                    if (!empty($createTableResult)) {
-                        $createTableSql = ((array)$createTableResult[0])['Create Table'] ?? '';
-                        fwrite($handle, $createTableSql . ";\n\n");
-                    }
-                } catch (\Exception $e) {
-                    fwrite($handle, "-- Failed to get structure for `$table`: " . $e->getMessage() . "\n\n");
-                    continue;
-                }
-
-                // Dump data
-                fwrite($handle, "-- Dumping data for table `$table`\n");
-                
-                // Chunk records to prevent PHP out of memory errors
-                DB::table($table)->orderBy(DB::raw('1'))->chunk(100, function ($rows) use ($handle, $table) {
-                    foreach ($rows as $row) {
-                        $rowArray = (array)$row;
-                        $columns = array_keys($rowArray);
-                        $escapedColumns = array_map(function ($col) {
-                            return "`" . str_replace("`", "``", $col) . "`";
-                        }, $columns);
-
-                        $escapedValues = array_map(function ($val) {
-                            if ($val === null) {
-                                return 'NULL';
-                            }
-                            // Escape quotes and backslashes for SQL
-                            return "'" . str_replace(["\\", "'"], ["\\\\", "\\'"], $val) . "'";
-                        }, array_values($rowArray));
-
-                        $sql = "INSERT INTO `$table` (" . implode(', ', $escapedColumns) . ") VALUES (" . implode(', ', $escapedValues) . ");\n";
-                        fwrite($handle, $sql);
-                    }
-                });
-
-                fwrite($handle, "\n");
-            }
-
-            fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
-            fclose($handle);
-        });
-
-        $filename = 'backup_goodpeople_hcms_' . date('Ymd_His') . '.sql';
-
-        $response->headers->set('Content-Type', 'application/sql');
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-        $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
-        $response->headers->set('Pragma', 'no-cache');
-        $response->headers->set('Expires', '0');
-
-        return $response;
-    }
-
-    /**
-     * Import a SQL file to restore the database.
-     */
-    public function importDatabase(Request $request)
-    {
-        $request->validate([
-            'backup_file' => 'required|file'
-        ]);
-
-        $file = $request->file('backup_file');
-        $sql = file_get_contents($file->getRealPath());
-
-        if (empty($sql)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'File backup kosong.'
-            ], 400);
-        }
-
-        try {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-            // Execute the raw SQL backup file
-            DB::unprepared($sql);
-
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Basis data berhasil dipulihkan dari file backup.'
-            ]);
-        } catch (\Exception $e) {
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal memulihkan basis data: ' . $e->getMessage()
-            ], 500);
-        }
->>>>>>> 113526ce25a77d19568d88a7b259473fd6e1cdc6
     }
 }

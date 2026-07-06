@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { API_BASE_URL } from '../../../utils/api'
-import ManualAttendanceModal from '../absensi/ManualAttendanceModal'
+const ManualAttendanceModal = lazy(() => import('../absensi/ManualAttendanceModal'))
 import { 
   Users, 
   CheckCircle2, 
@@ -772,15 +772,19 @@ export default function DashboardOverview({
       </div>
 
       {/* Manual Attendance Modal */}
-      <ManualAttendanceModal
-        isOpen={showManualModal}
-        onClose={() => setShowManualModal(false)}
-        token={token}
-        employees={employees}
-        fetchAttendances={fetchAttendances}
-        officeLatitude={officeSetting?.latitude}
-        officeLongitude={officeSetting?.longitude}
-      />
+      {showManualModal && (
+        <Suspense fallback={null}>
+          <ManualAttendanceModal
+            isOpen={showManualModal}
+            onClose={() => setShowManualModal(false)}
+            token={token}
+            employees={employees}
+            fetchAttendances={fetchAttendances}
+            officeLatitude={officeSetting?.latitude}
+            officeLongitude={officeSetting?.longitude}
+          />
+        </Suspense>
+      )}
 
     </div>
   )

@@ -179,6 +179,11 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         // Admin Backup routes
         Route::get('/admin/backup/export', [BackupController::class, 'exportDatabase']);
         Route::post('/admin/backup/import', [BackupController::class, 'importDatabase']);
+
+        // Admin Recycle Bin routes
+        Route::get('/admin/recycle-bin', [\App\Http\Controllers\RecycleBinController::class, 'index']);
+        Route::post('/admin/recycle-bin/{id}/restore', [\App\Http\Controllers\RecycleBinController::class, 'restore']);
+        Route::delete('/admin/recycle-bin/{id}', [\App\Http\Controllers\RecycleBinController::class, 'destroy']);
     });
 
     // Director only approval routes

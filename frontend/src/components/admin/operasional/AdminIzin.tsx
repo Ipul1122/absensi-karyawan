@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
-import { getAssetUrl } from '../../../utils/api'
+import { getAssetUrl, API_BASE_URL } from '../../../utils/api'
 import { 
   Check, 
   X, 
@@ -48,6 +48,7 @@ interface AdminIzinProps {
 }
 
 export default function AdminIzin({ token }: AdminIzinProps) {
+  const baseUrl = API_BASE_URL || 'http://localhost:8000'
   const [permits, setPermits] = useState<PermitRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -157,7 +158,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/api/permits', formData, {
+      const response = await axios.post(`${baseUrl}/api/permits`, formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -193,7 +194,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
   const fetchPermits = async () => {
     setLoading(true)
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/permits', {
+      const response = await axios.get(`${baseUrl}/api/admin/permits`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -236,7 +237,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
         const adminNotes = result.value || ''
         try {
           const response = await axios.put(
-            `http://localhost:8000/api/admin/permits/${id}/approve`,
+            `${baseUrl}/api/admin/permits/${id}/approve`,
             { admin_notes: adminNotes },
             { headers: { Authorization: `Bearer ${token}` } }
           )
@@ -306,7 +307,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
         const adminNotes = result.value || ''
         try {
           const response = await axios.put(
-            `http://localhost:8000/api/admin/permits/${id}/reject`,
+            `${baseUrl}/api/admin/permits/${id}/reject`,
             { admin_notes: adminNotes },
             { headers: { Authorization: `Bearer ${token}` } }
           )
@@ -354,7 +355,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
 
     if (result.isConfirmed) {
       try {
-        const response = await axios.delete(`http://localhost:8000/api/permits/${id}`, {
+        const response = await axios.delete(`${baseUrl}/api/permits/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (response.data.status === 'success') {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
-import { getAssetUrl } from '../../../utils/api'
+import { getAssetUrl, API_BASE_URL } from '../../../utils/api'
 import { 
   Check, 
   X, 
@@ -48,6 +48,7 @@ interface AdminCutiProps {
 }
 
 export default function AdminCuti({ token }: AdminCutiProps) {
+  const baseUrl = API_BASE_URL || 'http://localhost:8000'
   const [leaves, setLeaves] = useState<LeaveRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -158,7 +159,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/api/leaves', formData, {
+      const response = await axios.post(`${baseUrl}/api/leaves`, formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -194,7 +195,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
   const fetchLeaves = async () => {
     setLoading(true)
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/leaves', {
+      const response = await axios.get(`${baseUrl}/api/admin/leaves`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -237,7 +238,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
         const adminNotes = result.value || ''
         try {
           const response = await axios.put(
-            `http://localhost:8000/api/admin/leaves/${id}/approve`,
+            `${baseUrl}/api/admin/leaves/${id}/approve`,
             { admin_notes: adminNotes },
             { headers: { Authorization: `Bearer ${token}` } }
           )
@@ -307,7 +308,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
         const adminNotes = result.value || ''
         try {
           const response = await axios.put(
-            `http://localhost:8000/api/admin/leaves/${id}/reject`,
+            `${baseUrl}/api/admin/leaves/${id}/reject`,
             { admin_notes: adminNotes },
             { headers: { Authorization: `Bearer ${token}` } }
           )
@@ -355,7 +356,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
     if (result.isConfirmed) {
       try {
-        const response = await axios.delete(`http://localhost:8000/api/leaves/${id}`, {
+        const response = await axios.delete(`${baseUrl}/api/leaves/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (response.data.status === 'success') {

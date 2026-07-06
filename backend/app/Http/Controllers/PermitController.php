@@ -3,30 +3,30 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\LeaveRequest;
+use App\Models\PermitRequest;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
-class LeaveController extends Controller
+class PermitController extends Controller
 {
     /**
-     * Get all leave requests for the logged-in employee.
+     * Get all permit requests for the logged-in employee.
      */
     public function index(Request $request)
     {
         $userId = $request->user()->id;
-        $leaves = LeaveRequest::where('user_id', $userId)
+        $permits = PermitRequest::where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json([
             'status' => 'success',
-            'data' => $leaves
+            'data' => $permits
         ]);
     }
 
     /**
-     * Store a new leave request.
+     * Store a new permit request.
      */
     public function store(Request $request)
     {
@@ -45,9 +45,9 @@ class LeaveController extends Controller
         if ($request->hasFile('image')) {
             try {
                 $file = $request->file('image');
-                $filename = 'leave_' . $user->id . '_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('leaves', $filename, 'public');
-                $imagePath = '/storage/leaves/' . $filename;
+                $filename = 'permit_' . $user->id . '_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('permits', $filename, 'public');
+                $imagePath = '/storage/permits/' . $filename;
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => 'error',
@@ -59,10 +59,10 @@ class LeaveController extends Controller
         try {
             $status = ($user->role === 'admin') ? 'pending_director' : 'pending';
             $message = ($user->role === 'admin') 
-                ? 'Pengajuan cuti pribadi Admin berhasil dikirim dan diteruskan ke Direktur.' 
-                : 'Pengajuan cuti berhasil dikirim dan menunggu persetujuan Admin.';
+                ? 'Pengajuan izin pribadi Admin berhasil dikirim dan diteruskan ke Direktur.' 
+                : 'Pengajuan izin berhasil dikirim dan menunggu persetujuan Admin.';
 
-            $leave = LeaveRequest::create([
+            $permit = PermitRequest::create([
                 'user_id' => $user->id,
                 'category' => $request->category,
                 'custom_category' => $request->category === 'LAINNYA' ? $request->custom_category : null,
@@ -77,62 +77,56 @@ class LeaveController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => $message,
-                'data' => $leave
+                'data' => $permit
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal menyimpan pengajuan cuti: ' . $e->getMessage()
+                'message' => 'Gagal menyimpan pengajuan izin: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Delete/Cancel a pending leave request.
+     * Delete/Cancel a pending permit request.
      */
     public function destroy(Request $request, $id)
     {
         $user = $request->user();
         if ($user->role === 'admin' || $user->role === 'director') {
-            $leave = LeaveRequest::findOrFail($id);
+            $permit = PermitRequest::findOrFail($id);
         } else {
-            $leave = LeaveRequest::where('user_id', $user->id)->where('id', $id)->firstOrFail();
-            if ($leave->status !== 'pending') {
+            $permit = PermitRequest::where('user_id', $user->id)->where('id', $id)->firstOrFail();
+            if ($permit->status !== 'pending') {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Pengajuan cuti yang sudah diproses tidak dapat dibatalkan.'
+                    'message' => 'Pengajuan izin yang sudah diproses tidak dapat dibatalkan.'
                 ], 422);
             }
         }
 
         try {
-            // Physical file deletion is now handled by model forceDeleted event
-            // if ($leave->image) {
-            //     $storagePath = str_replace('/storage/', '', $leave->image);
-            //     Storage::disk('public')->delete($storagePath);
-            // }
-
-            $leave->delete();
+            $permit->delete();
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan cuti berhasil dibatalkan.'
+                'message' => 'Pengajuan izin berhasil dibatalkan.'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal membatalkan pengajuan cuti: ' . $e->getMessage()
+                'message' => 'Gagal membatalkan pengajuan izin: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Get all leave requests for admin.
+     * Get all permit requests for admin.
      */
     public function getAllRequests(Request $request)
     {
         $user = auth('sanctum')->user();
-        $query = LeaveRequest::with('user:id,name,email,company');
+        $query = PermitRequest::with('user:id,name,email,company');
         
         if ($user && $user->role !== 'director' && $user->role !== 'admin' && $user->company) {
             $query->whereHas('user', function ($q) use ($user) {
@@ -140,16 +134,16 @@ class LeaveController extends Controller
             });
         }
         
-        $leaves = $query->orderBy('created_at', 'desc')->get();
+        $permits = $query->orderBy('created_at', 'desc')->get();
 
         return response()->json([
             'status' => 'success',
-            'data' => $leaves
+            'data' => $permits
         ]);
     }
 
     /**
-     * Verify a leave request (Admin).
+     * Verify a permit request (Admin).
      */
     public function approve(Request $request, $id)
     {
@@ -157,29 +151,29 @@ class LeaveController extends Controller
             'admin_notes' => 'nullable|string',
         ]);
 
-        $leave = LeaveRequest::findOrFail($id);
+        $permit = PermitRequest::findOrFail($id);
 
         try {
-            $leave->update([
+            $permit->update([
                 'status' => 'pending_director',
                 'admin_notes' => $request->admin_notes,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan cuti berhasil diverifikasi Admin. Menunggu persetujuan akhir Direktur.',
-                'data' => $leave
+                'message' => 'Pengajuan izin berhasil diverifikasi Admin. Menunggu persetujuan akhir Direktur.',
+                'data' => $permit
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal memverifikasi pengajuan cuti: ' . $e->getMessage()
+                'message' => 'Gagal memverifikasi pengajuan izin: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Reject a leave request (Admin).
+     * Reject a permit request (Admin).
      */
     public function reject(Request $request, $id)
     {
@@ -187,29 +181,29 @@ class LeaveController extends Controller
             'admin_notes' => 'nullable|string',
         ]);
 
-        $leave = LeaveRequest::findOrFail($id);
+        $permit = PermitRequest::findOrFail($id);
 
         try {
-            $leave->update([
+            $permit->update([
                 'status' => 'rejected',
                 'admin_notes' => $request->admin_notes,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan cuti berhasil ditolak oleh Admin.',
-                'data' => $leave
+                'message' => 'Pengajuan izin berhasil ditolak oleh Admin.',
+                'data' => $permit
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal menolak pengajuan cuti: ' . $e->getMessage()
+                'message' => 'Gagal menolak pengajuan izin: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Approve a leave request (Director).
+     * Approve a permit request (Director).
      */
     public function directorApprove(Request $request, $id)
     {
@@ -217,29 +211,29 @@ class LeaveController extends Controller
             'admin_notes' => 'nullable|string',
         ]);
 
-        $leave = LeaveRequest::findOrFail($id);
+        $permit = PermitRequest::findOrFail($id);
 
         try {
-            $leave->update([
+            $permit->update([
                 'status' => 'approved',
-                'admin_notes' => $request->admin_notes ?: $leave->admin_notes,
+                'admin_notes' => $request->admin_notes ?: $permit->admin_notes,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan cuti berhasil disetujui oleh Direktur.',
-                'data' => $leave
+                'message' => 'Pengajuan izin berhasil disetujui oleh Direktur.',
+                'data' => $permit
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal menyetujui pengajuan cuti: ' . $e->getMessage()
+                'message' => 'Gagal menyetujui pengajuan izin: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Reject a leave request (Director).
+     * Reject a permit request (Director).
      */
     public function directorReject(Request $request, $id)
     {
@@ -247,23 +241,23 @@ class LeaveController extends Controller
             'admin_notes' => 'nullable|string',
         ]);
 
-        $leave = LeaveRequest::findOrFail($id);
+        $permit = PermitRequest::findOrFail($id);
 
         try {
-            $leave->update([
+            $permit->update([
                 'status' => 'rejected',
-                'admin_notes' => $request->admin_notes ?: $leave->admin_notes,
+                'admin_notes' => $request->admin_notes ?: $permit->admin_notes,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan cuti berhasil ditolak oleh Direktur.',
-                'data' => $leave
+                'message' => 'Pengajuan izin berhasil ditolak oleh Direktur.',
+                'data' => $permit
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Gagal menolak pengajuan cuti: ' . $e->getMessage()
+                'message' => 'Gagal menolak pengajuan izin: ' . $e->getMessage()
             ], 500);
         }
     }

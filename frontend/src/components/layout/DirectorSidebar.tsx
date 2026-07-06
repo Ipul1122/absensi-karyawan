@@ -36,7 +36,7 @@ const menuItems = [
   { to: '/director/karyawan', label: 'Kelola Karyawan', icon: Users, description: 'Daftar & persetujuan staf' },
   { to: '/director/gaji', label: 'Informasi Gaji', icon: Wallet, description: 'Penyesuaian kompensasi' },
   { to: '/director/payroll', label: 'Bayar Gaji', icon: Coins, description: 'Rollout gaji bulanan' },
-  { to: '/director/operasional', label: 'Biaya Operasional', icon: FileCheck, description: 'Cuti, lembur & klaim' },
+  { to: '/director/operasional', label: 'Operasional', icon: FileCheck, description: 'Cuti, lembur & klaim' },
   { to: '/director/log-kehadiran', label: 'Log Kehadiran', icon: Clock, description: 'Aktivitas absensi staf' },
   { to: '/director/pengaturan', label: 'Pengaturan', icon: Settings, description: 'Profil & kata sandi' },
 ]

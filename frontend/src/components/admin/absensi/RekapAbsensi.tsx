@@ -61,6 +61,7 @@ interface RekapAbsensiProps {
   officeLatitude?: string
   officeLongitude?: string
   leaves?: any[]
+  permits?: any[]
 }
 
 export default function RekapAbsensi({
@@ -75,6 +76,7 @@ export default function RekapAbsensi({
   officeLatitude = '-6.2088',
   officeLongitude = '106.8456',
   leaves = [],
+  permits = [],
 }: RekapAbsensiProps) {
   const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'sales_visits' | 'client_visits'>('attendance')
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily')
@@ -152,6 +154,11 @@ export default function RekapAbsensi({
         (l) => l.user_id === emp.id && l.status === 'approved'
       )
 
+      // Filter user approved permits for this month
+      const userPermits = permits.filter(
+        (p) => p.user_id === emp.id && p.status === 'approved'
+      )
+
       const isSatOff = !!emp.saturday_off
       const isSunOff = emp.sunday_off !== false
 
@@ -187,7 +194,11 @@ export default function RekapAbsensi({
             const isOnLeave = userLeaves.some(
               (l) => dateStr >= l.start_date && dateStr <= l.end_date
             )
-            if (isOnLeave) {
+            // Check if dateStr is within any of the user permits range
+            const isOnPermit = userPermits.some(
+              (p) => dateStr >= p.start_date && dateStr <= p.end_date
+            )
+            if (isOnLeave || isOnPermit) {
               leaveDaysCount++
             }
           }
@@ -647,7 +658,7 @@ export default function RekapAbsensi({
       employeeNumber: string
       division: string
       company: string
-      type: 'Kantor' | 'Sales' | 'Klien' | 'Cuti'
+      type: 'Kantor' | 'Sales' | 'Klien' | 'Cuti' | 'Izin'
       timeIn: string
       timeOut: string
       locationDetail: string
@@ -788,12 +799,51 @@ export default function RekapAbsensi({
       })
     })
 
+    // 5. Izin (Permits)
+    const permitsData: ExportRow[] = []
+    permits.forEach(p => {
+      if (p.status !== 'approved') return
+
+      const userId = p.user_id || p.user?.id
+      const emp = employees.find(e => e.id === userId)
+      if (!emp) return
+
+      const matchesSearch = !search ||
+        emp.name.toLowerCase().includes(search.toLowerCase()) ||
+        emp.email.toLowerCase().includes(search.toLowerCase())
+      
+      const matchesCompany = selectedCompany === 'all' || emp.company === selectedCompany
+      if (!matchesSearch || !matchesCompany) return
+
+      const dates = getDatesInRange(p.start_date, p.end_date)
+      dates.forEach(dateStr => {
+        if (!isDateInFilter(dateStr)) return
+
+        permitsData.push({
+          employeeId: emp.id,
+          date: dateStr,
+          dayName: getDayName(dateStr),
+          employeeName: emp.name,
+          employeeNumber: emp.employee_number || '-',
+          division: emp.division || '-',
+          company: emp.company || '-',
+          type: 'Izin',
+          timeIn: '-',
+          timeOut: '-',
+          locationDetail: p.category === 'LAINNYA' ? p.custom_category || 'Lainnya' : p.category,
+          notes: p.reason || '-',
+          styleId: 'sLeave'
+        })
+      })
+    })
+
     // Combine and Sort
     const mergedRows: ExportRow[] = [
       ...officeData,
       ...salesData,
       ...clientData,
-      ...leavesData
+      ...leavesData,
+      ...permitsData
     ]
 
     mergedRows.sort((a, b) => {

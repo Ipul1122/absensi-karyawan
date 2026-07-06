@@ -102,15 +102,19 @@ class ReimbursementController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        $reimbursement = Reimbursement::where('id', $id)
-                                      ->where('user_id', $user->id)
-                                      ->firstOrFail();
+        if ($user->role === 'admin' || $user->role === 'director') {
+            $reimbursement = Reimbursement::findOrFail($id);
+        } else {
+            $reimbursement = Reimbursement::where('id', $id)
+                                          ->where('user_id', $user->id)
+                                          ->firstOrFail();
 
-        if ($reimbursement->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Pengajuan yang sudah diproses oleh Admin tidak dapat dibatalkan.'
-            ], 400);
+            if ($reimbursement->status !== 'pending') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Pengajuan yang sudah diproses oleh Admin tidak dapat dibatalkan.'
+                ], 400);
+            }
         }
 
         try {
@@ -170,13 +174,6 @@ class ReimbursementController extends Controller
     {
         $reimbursement = Reimbursement::findOrFail($id);
 
-        if ($reimbursement->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Pengajuan ini sudah selesai diproses sebelumnya.'
-            ], 400);
-        }
-
         try {
             $reimbursement->update([
                 'status' => 'pending_director',
@@ -201,13 +198,6 @@ class ReimbursementController extends Controller
     public function reject(Request $request, $id)
     {
         $reimbursement = Reimbursement::findOrFail($id);
-
-        if ($reimbursement->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Pengajuan ini sudah selesai diproses sebelumnya.'
-            ], 400);
-        }
 
         $request->validate([
             'admin_notes' => 'required|string|max:1000'
@@ -240,13 +230,6 @@ class ReimbursementController extends Controller
     {
         $reimbursement = Reimbursement::findOrFail($id);
 
-        if ($reimbursement->status !== 'pending_director') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Klaim ini belum diverifikasi oleh Admin atau sudah diproses sebelumnya.'
-            ], 422);
-        }
-
         try {
             $reimbursement->update([
                 'status' => 'approved',
@@ -271,13 +254,6 @@ class ReimbursementController extends Controller
     public function directorReject(Request $request, $id)
     {
         $reimbursement = Reimbursement::findOrFail($id);
-
-        if ($reimbursement->status !== 'pending_director') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Klaim ini belum diverifikasi oleh Admin atau sudah diproses sebelumnya.'
-            ], 422);
-        }
 
         $request->validate([
             'admin_notes' => 'required|string|max:1000'

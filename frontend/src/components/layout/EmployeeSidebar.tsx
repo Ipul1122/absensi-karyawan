@@ -49,6 +49,7 @@ interface EmployeeSidebarProps {
   onClose?: () => void
   counts?: {
     pendingCutiCount: number
+    pendingIzinCount: number
     pendingLemburCount: number
     pendingReimburseCount: number
     unpaidPayrollCount: number
@@ -67,6 +68,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
   })
   const [isOperasionalDropdownOpen, setIsOperasionalDropdownOpen] = useState(() => {
     return location.pathname.startsWith('/employee/cuti') || 
+           location.pathname.startsWith('/employee/izin') || 
            location.pathname.startsWith('/employee/reimbursement') || 
            location.pathname.startsWith('/employee/bonus') || 
            location.pathname.startsWith('/employee/lembur')
@@ -89,6 +91,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
   useEffect(() => {
     if (
       location.pathname.startsWith('/employee/cuti') || 
+      location.pathname.startsWith('/employee/izin') || 
       location.pathname.startsWith('/employee/reimbursement') || 
       location.pathname.startsWith('/employee/bonus') || 
       location.pathname.startsWith('/employee/lembur')
@@ -123,6 +126,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
       icon: Briefcase,
       subItems: [
         { to: '/employee/cuti', label: 'Pengajuan Cuti', icon: CalendarDays },
+        { to: '/employee/izin', label: 'Pengajuan Izin', icon: ClipboardList },
         { to: '/employee/lembur', label: 'Pengajuan Lembur', icon: Clock },
         { to: '/employee/reimbursement', label: 'Reimbursement', icon: ReceiptText },
         { to: '/employee/bonus', label: 'Bonus Saya', icon: Gift }
@@ -219,6 +223,8 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
                           let childBadge = 0
                           if (subItem.to === '/employee/cuti') {
                             childBadge = counts?.pendingCutiCount || 0
+                          } else if (subItem.to === '/employee/izin') {
+                            childBadge = counts?.pendingIzinCount || 0
                           } else if (subItem.to === '/employee/lembur') {
                             childBadge = counts?.pendingLemburCount || 0
                           } else if (subItem.to === '/employee/reimbursement') {

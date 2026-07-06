@@ -898,25 +898,6 @@ Terima kasih.`;
                       {/* Actions */}
                       <td className="py-4 px-5 text-right">
                         <div className="flex justify-end gap-1.5 items-center">
-                          {item.status === 'approved' ? (
-                            <>
-                              <button
-                                disabled
-                                className="p-1.5 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg opacity-60 cursor-not-allowed"
-                                title="Barang telah disetujui Direktur (terkunci)"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                disabled
-                                className="p-1.5 bg-slate-100 border border-slate-200 text-slate-400 rounded-lg opacity-60 cursor-not-allowed"
-                                title="Barang telah disetujui Direktur (terkunci)"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
                               <button
                                 onClick={() => handleOpenEditModal(item)}
                                 className="p-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-600 hover:text-indigo-800 rounded-lg transition-all cursor-pointer shadow-sm"
@@ -931,8 +912,6 @@ Terima kasih.`;
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
-                            </>
-                          )}
                           <button
                             onClick={() => handleWhatsAppShare(item)}
                             className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-600 hover:text-green-700 rounded-lg transition-all cursor-pointer shadow-sm flex items-center justify-center"

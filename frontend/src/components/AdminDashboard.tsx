@@ -23,6 +23,7 @@ const AbsenMandiriAdmin = lazy(() => import('./admin/absensi/AbsenMandiriAdmin')
 const AkunKaryawan = lazy(() => import('./admin/dataKaryawan/AkunKaryawan'))
 const LokasiKantor = lazy(() => import('./admin/pengaturan/LokasiKantor'))
 const AdminCuti = lazy(() => import('./admin/operasional/AdminCuti'))
+const AdminIzin = lazy(() => import('./admin/operasional/AdminIzin'))
 const AdminPayroll = lazy(() => import('./admin/payroll/AdminPayroll'))
 const AdminKelolaHariLibur = lazy(() => import('./admin/pengaturan/AdminKelolaHariLibur'))
 const AdminSalaryConfig = lazy(() => import('./admin/payroll/AdminSalaryConfig'))
@@ -102,6 +103,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const [sidebarCounts, setSidebarCounts] = useState({
     pendingKaryawanCount: 0,
     pendingCutiCount: 0,
+    pendingIzinCount: 0,
     pendingLemburCount: 0,
     pendingReimburseCount: 0,
     unpaidPayrollCount: 0,
@@ -116,6 +118,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
 
   // Admin's own attendance & leaves states
   const [leaves, setLeaves] = useState<any[]>([])
+  const [permits, setPermits] = useState<any[]>([])
 
   const fetchProfile = async () => {
     try {
@@ -185,6 +188,19 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
       }
     } catch (err) {
       console.error('Gagal mengambil data cuti:', err)
+    }
+  }
+
+  const fetchPermits = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/permits', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setPermits(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data izin:', err)
     }
   }
 
@@ -273,6 +289,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     fetchAttendances()
     fetchOfficeSetting()
     fetchLeaves()
+    fetchPermits()
     fetchProfile()
   }, [])
 
@@ -743,6 +760,9 @@ ${window.location.origin}/director/karyawan`
     if (path.includes('cuti')) {
       return { title: 'Persetujuan Cuti', subtitle: 'Leave Requests' }
     }
+    if (path.includes('izin')) {
+      return { title: 'Persetujuan Izin', subtitle: 'Permit Requests' }
+    }
     if (path.includes('akunKaryawan')) {
       return { title: 'Kelola Akun Karyawan', subtitle: 'Accounts Management' }
     }
@@ -900,6 +920,7 @@ ${window.location.origin}/director/karyawan`
                   officeLatitude={officeLatitude}
                   officeLongitude={officeLongitude}
                   leaves={leaves}
+                  permits={permits}
                 />
               } 
             />
@@ -1040,6 +1061,14 @@ ${window.location.origin}/director/karyawan`
               path="cuti" 
               element={
                 <AdminCuti
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="izin" 
+              element={
+                <AdminIzin
                   token={token}
                 />
               } 

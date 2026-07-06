@@ -19,6 +19,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DirectorController;
 use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\BackupController;
+use App\Http\Controllers\PermitController;
 
 
 Route::get('/health-check', function () {
@@ -88,6 +89,11 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     Route::post('/leaves', [LeaveController::class, 'store']);
     Route::delete('/leaves/{id}', [LeaveController::class, 'destroy']);
 
+    // Permit routes for employee
+    Route::get('/permits', [PermitController::class, 'index']);
+    Route::post('/permits', [PermitController::class, 'store']);
+    Route::delete('/permits/{id}', [PermitController::class, 'destroy']);
+
     // Employee Reimbursement routes
     Route::get('/reimbursements', [ReimbursementController::class, 'index']);
     Route::post('/reimbursements', [ReimbursementController::class, 'store']);
@@ -114,6 +120,7 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::get('/admin/attendances', [AttendanceController::class, 'getAllAttendances']);
         Route::get('/admin/sales-visits', [SalesVisitController::class, 'getAllVisits']);
         Route::get('/admin/leaves', [LeaveController::class, 'getAllRequests']);
+        Route::get('/admin/permits', [PermitController::class, 'getAllRequests']);
         Route::get('/admin/payroll/configurations', [PayrollController::class, 'indexConfigurations']);
         Route::get('/admin/directors', [EmployeeController::class, 'getDirectorsList']);
         Route::get('/admin/payroll', [PayrollController::class, 'indexPayrolls']);
@@ -125,6 +132,8 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::get('/admin/overtimes', [OvertimeController::class, 'indexAdmin']);
         Route::get('/admin/overtimes/recap', [OvertimeController::class, 'recapAdmin']);
         Route::get('/admin/holidays', [PayrollController::class, 'indexHolidays']);
+        Route::delete('/admin/bonuses/{id}', [BonusController::class, 'destroy']);
+        Route::delete('/admin/inventories/{id}', [InventoryController::class, 'destroy']);
     });
 
     // Admin only modifying routes
@@ -142,6 +151,10 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::put('/admin/leaves/{id}/approve', [LeaveController::class, 'approve']);
         Route::put('/admin/leaves/{id}/reject', [LeaveController::class, 'reject']);
 
+        // Admin Permit routes
+        Route::put('/admin/permits/{id}/approve', [PermitController::class, 'approve']);
+        Route::put('/admin/permits/{id}/reject', [PermitController::class, 'reject']);
+
         // Admin Payroll routes
         Route::post('/admin/payroll/configurations', [PayrollController::class, 'updateConfiguration']);
         Route::post('/admin/payroll/generate', [PayrollController::class, 'generatePayroll']);
@@ -156,7 +169,6 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         // Admin Inventory routes
         Route::post('/admin/inventories', [InventoryController::class, 'store']);
         Route::post('/admin/inventories/{id}/update', [InventoryController::class, 'update']);
-        Route::delete('/admin/inventories/{id}', [InventoryController::class, 'destroy']);
 
         // Admin Reimbursement routes
         Route::put('/admin/reimbursements/{id}/approve', [ReimbursementController::class, 'approve']);
@@ -165,7 +177,6 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         // Admin Bonus routes
         Route::post('/admin/bonuses', [BonusController::class, 'store']);
         Route::put('/admin/bonuses/{id}', [BonusController::class, 'update']);
-        Route::delete('/admin/bonuses/{id}', [BonusController::class, 'destroy']);
 
         // Admin Overtime routes
         Route::put('/admin/overtimes/{id}/approve', [OvertimeController::class, 'approve']);
@@ -210,6 +221,10 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         // Leave approvals
         Route::put('/director/leaves/{id}/approve', [LeaveController::class, 'directorApprove']);
         Route::put('/director/leaves/{id}/reject', [LeaveController::class, 'directorReject']);
+
+        // Permit approvals
+        Route::put('/director/permits/{id}/approve', [PermitController::class, 'directorApprove']);
+        Route::put('/director/permits/{id}/reject', [PermitController::class, 'directorReject']);
 
         // Overtime approvals
         Route::put('/director/overtimes/{id}/approve', [OvertimeController::class, 'directorApprove']);

@@ -139,13 +139,6 @@ class InventoryController extends Controller
     {
         $inventory = Inventory::findOrFail($id);
 
-        if ($inventory->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Data inventaris yang sudah diproses (disetujui/ditolak) tidak dapat diubah lagi.'
-            ], 422);
-        }
-
         $request->validate([
             'nama_barang' => 'required|string|max:255',
             'tanggal_pembelian' => 'required|date',
@@ -226,13 +219,6 @@ class InventoryController extends Controller
     public function destroy($id)
     {
         $inventory = Inventory::findOrFail($id);
-
-        if ($inventory->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Data inventaris yang sudah diproses (disetujui/ditolak) tidak dapat dihapus.'
-            ], 422);
-        }
 
         try {
             // Physical file deletion is now handled by model forceDeleted event

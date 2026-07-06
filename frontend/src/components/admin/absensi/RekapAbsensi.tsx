@@ -664,6 +664,8 @@ export default function RekapAbsensi({
       locationDetail: string
       notes: string
       styleId: string
+      statusIn?: string
+      statusOut?: string
     }
 
     const activeStatusIn = viewMode === 'daily' ? statusIn : 'all'
@@ -714,7 +716,9 @@ export default function RekapAbsensi({
           timeOut: att.clock_out || '-',
           locationDetail: getLokasiLabel(att),
           notes: notesText,
-          styleId
+          styleId,
+          statusIn: att.status_in || undefined,
+          statusOut: att.status_out || undefined
         }
       })
 
@@ -853,11 +857,12 @@ export default function RekapAbsensi({
     })
 
     // Group records by employee to generate a sheet for each
-    const empMap = new Map<number, { name: string; rows: ExportRow[] }>()
+    const empMap = new Map<number, { employee: Employee; name: string; rows: ExportRow[] }>()
     mergedRows.forEach(row => {
       const uid = row.employeeId
       if (!empMap.has(uid)) {
-        empMap.set(uid, { name: row.employeeName, rows: [] })
+        const emp = employees.find(e => e.id === uid)
+        empMap.set(uid, { employee: emp!, name: row.employeeName, rows: [] })
       }
       empMap.get(uid)!.rows.push(row)
     })
@@ -891,7 +896,64 @@ export default function RekapAbsensi({
       </Row>`
     }
 
-    const buildWorksheetXML = (sheetName: string, rows: ExportRow[]) => {
+    const buildWorksheetXML = (sheetName: string, rows: ExportRow[], employee?: Employee) => {
+      let summaryRowsXML = ''
+      if (employee) {
+        const workingDays = getWorkingDaysCount(activeMonth, employee)
+        
+        const presentCount = rows.filter(r => 
+          (r.type === 'Kantor' || r.type === 'Sales' || r.type === 'Klien') && 
+          r.timeIn !== '-'
+        ).length
+
+        const lateCount = rows.filter(r => r.statusIn === 'late').length
+        const overtimeCount = rows.filter(r => r.statusOut === 'overtime').length
+        const earlyDepartureCount = rows.filter(r => r.statusOut === 'early_departure').length
+        const sickCount = rows.filter(r => 
+          (r.type === 'Cuti' || r.type === 'Izin') && 
+          r.locationDetail.toLowerCase().includes('sakit')
+        ).length
+        const cutiCount = rows.filter(r => 
+          r.type === 'Cuti' && 
+          !r.locationDetail.toLowerCase().includes('sakit')
+        ).length
+        const izinCount = rows.filter(r => 
+          r.type === 'Izin' && 
+          !r.locationDetail.toLowerCase().includes('sakit')
+        ).length
+
+        const totalLeavePermit = sickCount + cutiCount + izinCount
+        const absentCount = Math.max(0, workingDays - presentCount - totalLeavePermit)
+
+        summaryRowsXML = `
+        <Row ss:Height="15"></Row>
+        <Row ss:Height="22">
+          <Cell ss:StyleID="sSummaryHeader" ss:MergeAcross="8"><Data ss:Type="String">TOTAL KESELURUHAN (SUMMARY)</Data></Cell>
+        </Row>
+        <Row ss:Height="20">
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Hari Kerja</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Hadir (Masuk)</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Terlambat</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Lembur</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Pulang Cepat</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Izin (Non-Sakit)</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Cuti (Non-Sakit)</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Sakit</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Alpa</Data></Cell>
+        </Row>
+        <Row ss:Height="20">
+          <Cell ss:StyleID="sSummaryVal"><Data ss:Type="Number">${workingDays}</Data></Cell>
+          <Cell ss:StyleID="sSummaryValGreen"><Data ss:Type="Number">${presentCount}</Data></Cell>
+          <Cell ss:StyleID="sSummaryValOrange"><Data ss:Type="Number">${lateCount}</Data></Cell>
+          <Cell ss:StyleID="sSummaryValYellow"><Data ss:Type="Number">${overtimeCount}</Data></Cell>
+          <Cell ss:StyleID="sSummaryValRed"><Data ss:Type="Number">${earlyDepartureCount}</Data></Cell>
+          <Cell ss:StyleID="sSummaryVal"><Data ss:Type="Number">${izinCount}</Data></Cell>
+          <Cell ss:StyleID="sSummaryVal"><Data ss:Type="Number">${cutiCount}</Data></Cell>
+          <Cell ss:StyleID="sSummaryValYellow"><Data ss:Type="Number">${sickCount}</Data></Cell>
+          <Cell ss:StyleID="sSummaryValRed"><Data ss:Type="Number">${absentCount}</Data></Cell>
+        </Row>`
+      }
+
       return `
       <Worksheet ss:Name="${escXml(sheetName.substring(0, 31))}">
         <Table>
@@ -900,6 +962,83 @@ export default function RekapAbsensi({
             ${HEADERS.map(h => `<Cell ss:StyleID="sHeader"><Data ss:Type="String">${escXml(h)}</Data></Cell>`).join('')}
           </Row>
           ${rows.map((row, idx) => buildRowXML(row, idx)).join('\n')}
+          ${summaryRowsXML}
+        </Table>
+        <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+          <FreezePanes/>
+          <FrozenNoSplit/>
+          <SplitHorizontal>1</SplitHorizontal>
+          <TopRowBottomPane>1</TopRowBottomPane>
+        </WorksheetOptions>
+      </Worksheet>`
+    }
+
+    const buildSummarySheetXML = () => {
+      const COL_WIDTHS_SUM = [35, 160, 100, 100, 150, 80, 85, 80, 80, 80, 100, 100, 80, 80, 120]
+      const HEADERS_SUM = [
+        'No', 'Nama Karyawan', 'Nomor Induk', 'Divisi', 'Perusahaan',
+        'Hari Kerja', 'Hadir (Masuk)', 'Terlambat', 'Lembur', 'Pulang Cepat',
+        'Izin (Non-Sakit)', 'Cuti (Non-Sakit)', 'Sakit', 'Alpa', 'Rasio Kehadiran (%)'
+      ]
+
+      const rowsXML = Array.from(empMap.values()).map(({ employee, name, rows }, idx) => {
+        const workingDays = getWorkingDaysCount(activeMonth, employee)
+        const presentCount = rows.filter(r => 
+          (r.type === 'Kantor' || r.type === 'Sales' || r.type === 'Klien') && 
+          r.timeIn !== '-'
+        ).length
+        const lateCount = rows.filter(r => r.statusIn === 'late').length
+        const overtimeCount = rows.filter(r => r.statusOut === 'overtime').length
+        const earlyDepartureCount = rows.filter(r => r.statusOut === 'early_departure').length
+        const sickCount = rows.filter(r => 
+          (r.type === 'Cuti' || r.type === 'Izin') && 
+          r.locationDetail.toLowerCase().includes('sakit')
+        ).length
+        const cutiCount = rows.filter(r => 
+          r.type === 'Cuti' && 
+          !r.locationDetail.toLowerCase().includes('sakit')
+        ).length
+        const izinCount = rows.filter(r => 
+          r.type === 'Izin' && 
+          !r.locationDetail.toLowerCase().includes('sakit')
+        ).length
+
+        const totalLeavePermit = sickCount + cutiCount + izinCount
+        const absentCount = Math.max(0, workingDays - presentCount - totalLeavePermit)
+        const presenceRate = workingDays > 0 
+          ? Math.min(100, Math.round((presentCount / workingDays) * 100))
+          : 0
+
+        const cell = (val: string, type: 'String' | 'Number' = 'String', style: string = 'sSummaryVal') =>
+          `<Cell ss:StyleID="${style}"><Data ss:Type="${type}">${escXml(val)}</Data></Cell>`
+
+        return `<Row ss:Height="20">
+          ${cell(String(idx + 1), 'Number', 'sSummaryVal')}
+          <Cell ss:StyleID="sNormal"><Data ss:Type="String">${escXml(name)}</Data></Cell>
+          <Cell ss:StyleID="sNormal"><Data ss:Type="String">${escXml(employee.employee_number || '-')}</Data></Cell>
+          <Cell ss:StyleID="sNormal"><Data ss:Type="String">${escXml(employee.division || '-')}</Data></Cell>
+          <Cell ss:StyleID="sNormal"><Data ss:Type="String">${escXml(employee.company || '-')}</Data></Cell>
+          ${cell(String(workingDays), 'Number', 'sSummaryVal')}
+          ${cell(String(presentCount), 'Number', 'sSummaryValGreen')}
+          ${cell(String(lateCount), 'Number', 'sSummaryValOrange')}
+          ${cell(String(overtimeCount), 'Number', 'sSummaryValYellow')}
+          ${cell(String(earlyDepartureCount), 'Number', 'sSummaryValRed')}
+          ${cell(String(izinCount), 'Number', 'sSummaryVal')}
+          ${cell(String(cutiCount), 'Number', 'sSummaryVal')}
+          ${cell(String(sickCount), 'Number', 'sSummaryValYellow')}
+          ${cell(String(absentCount), 'Number', 'sSummaryValRed')}
+          ${cell(String(presenceRate) + '%', 'String', presenceRate >= 90 ? 'sSummaryValGreen' : presenceRate >= 75 ? 'sSummaryValYellow' : 'sSummaryValRed')}
+        </Row>`
+      }).join('\n')
+
+      return `
+      <Worksheet ss:Name="RINGKASAN BULANAN">
+        <Table>
+          ${COL_WIDTHS_SUM.map(w => `<Column ss:Width="${w}"/>`).join('')}
+          <Row ss:Height="28">
+            ${HEADERS_SUM.map(h => `<Cell ss:StyleID="sHeader"><Data ss:Type="String">${escXml(h)}</Data></Cell>`).join('')}
+          </Row>
+          ${rowsXML}
         </Table>
         <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
           <FreezePanes/>
@@ -912,10 +1051,11 @@ export default function RekapAbsensi({
 
     const worksheetsXML: string[] = []
     worksheetsXML.push(buildWorksheetXML('REKAP ABSENSI GABUNGAN', mergedRows))
+    worksheetsXML.push(buildSummarySheetXML())
 
-    empMap.forEach(({ name, rows }) => {
+    empMap.forEach(({ employee, name, rows }) => {
       const sortedRows = [...rows].sort((a, b) => a.date.localeCompare(b.date))
-      worksheetsXML.push(buildWorksheetXML(name.toUpperCase(), sortedRows))
+      worksheetsXML.push(buildWorksheetXML(name.toUpperCase(), sortedRows, employee))
     })
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -1002,6 +1142,82 @@ export default function RekapAbsensi({
         <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
         <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
         <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sSummaryHeader">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+      <Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="10"/>
+      <Interior ss:Color="#334155" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#475569"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#475569"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#475569"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#475569"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sSummaryCol">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+      <Font ss:Bold="1" ss:Size="9" ss:Color="#1E293B"/>
+      <Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sSummaryVal">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+      <Font ss:Size="9"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sSummaryValGreen">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+      <Font ss:Bold="1" ss:Size="9" ss:Color="#15803D"/>
+      <Interior ss:Color="#DCFCE7" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sSummaryValOrange">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+      <Font ss:Bold="1" ss:Size="9" ss:Color="#C2410C"/>
+      <Interior ss:Color="#FFEDD5" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sSummaryValRed">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+      <Font ss:Bold="1" ss:Size="9" ss:Color="#B91C1C"/>
+      <Interior ss:Color="#FEE2E2" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sSummaryValYellow">
+      <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+      <Font ss:Bold="1" ss:Size="9" ss:Color="#A16207"/>
+      <Interior ss:Color="#FEF9C3" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
       </Borders>
     </Style>
   </Styles>

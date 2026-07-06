@@ -40,7 +40,6 @@ export default function EditVisitModal({
   onSuccess,
   visit,
   token,
-  formatDate,
 }: EditVisitModalProps) {
   const [clientName, setClientName] = useState('')
   const [date, setDate] = useState('')

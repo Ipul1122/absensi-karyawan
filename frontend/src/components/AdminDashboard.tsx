@@ -32,11 +32,11 @@ const AdminBonus = lazy(() => import('./admin/payroll/AdminBonus'))
 const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
 const KelolaShift = lazy(() => import('./admin/pengaturan/KelolaShift'))
 
-import AddEmployeeModal from './admin/dataKaryawan/AddEmployeeModal'
-import EditEmployeeModal from './admin/dataKaryawan/EditEmployeeModal'
-import ViewEmployeeModal from './admin/dataKaryawan/ViewEmployeeModal'
-import DetailAttendanceModal from './admin/absensi/DetailAttendanceModal'
-import EditTimeModal from './admin/absensi/EditTimeModal'
+const AddEmployeeModal = lazy(() => import('./admin/dataKaryawan/AddEmployeeModal'))
+const EditEmployeeModal = lazy(() => import('./admin/dataKaryawan/EditEmployeeModal'))
+const ViewEmployeeModal = lazy(() => import('./admin/dataKaryawan/ViewEmployeeModal'))
+const DetailAttendanceModal = lazy(() => import('./admin/absensi/DetailAttendanceModal'))
+const EditTimeModal = lazy(() => import('./admin/absensi/EditTimeModal'))
 
 interface Employee {
   id: number
@@ -1100,87 +1100,99 @@ ${window.location.origin}/director/karyawan`
       </div>
 
       {/* Add Employee Modal */}
-      <Suspense fallback={null}>
-        <AddEmployeeModal
-          show={showModal}
-          onClose={() => setShowModal(false)}
-          onSubmit={handleAddEmployee}
-          submitting={submitting}
-        />
-      </Suspense>
+      {showModal && (
+        <Suspense fallback={null}>
+          <AddEmployeeModal
+            show={showModal}
+            onClose={() => setShowModal(false)}
+            onSubmit={handleAddEmployee}
+            submitting={submitting}
+          />
+        </Suspense>
+      )}
 
       {/* Edit Employee Modal */}
-      <EditEmployeeModal
-        show={showEditEmployeeModal}
-        onClose={() => setShowEditEmployeeModal(false)}
-        onSubmit={handleEditEmployee}
-        name={editName}
-        setName={setEditName}
-        email={editEmail}
-        password={editPassword}
-        setPassword={setEditPassword}
-        noRekening={editNoRekening}
-        setNoRekening={setEditNoRekening}
-        company={editCompany}
-        setCompany={setEditCompany}
-        whatsapp={editWhatsapp}
-        setWhatsapp={setEditWhatsapp}
-        saturdayOff={editSaturdayOff}
-        setSaturdayOff={setEditSaturdayOff}
-        sundayOff={editSundayOff}
-        setSundayOff={setEditSundayOff}
-        submitting={submittingEdit}
-        onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
-        officeLocation={editOfficeLocation}
-        setOfficeLocation={setEditOfficeLocation}
-      />
+      {showEditEmployeeModal && (
+        <Suspense fallback={null}>
+          <EditEmployeeModal
+            show={showEditEmployeeModal}
+            onClose={() => setShowEditEmployeeModal(false)}
+            onSubmit={handleEditEmployee}
+            name={editName}
+            setName={setEditName}
+            email={editEmail}
+            password={editPassword}
+            setPassword={setEditPassword}
+            noRekening={editNoRekening}
+            setNoRekening={setEditNoRekening}
+            company={editCompany}
+            setCompany={setEditCompany}
+            whatsapp={editWhatsapp}
+            setWhatsapp={setEditWhatsapp}
+            saturdayOff={editSaturdayOff}
+            setSaturdayOff={setEditSaturdayOff}
+            sundayOff={editSundayOff}
+            setSundayOff={setEditSundayOff}
+            submitting={submittingEdit}
+            onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
+            officeLocation={editOfficeLocation}
+            setOfficeLocation={setEditOfficeLocation}
+          />
+        </Suspense>
+      )}
 
       {/* View Biodata Modal (Admin) */}
-      <Suspense fallback={null}>
-        <ViewEmployeeModal
-          show={showViewModal}
-          onClose={() => setShowViewModal(false)}
-          profile={viewProfile}
-          onRefresh={() => {
-            fetchEmployees()
-            setShowEditEmployeeModal(false)
-          }}
-          token={token}
-        />
-      </Suspense>
+      {showViewModal && (
+        <Suspense fallback={null}>
+          <ViewEmployeeModal
+            show={showViewModal}
+            onClose={() => setShowViewModal(false)}
+            profile={viewProfile}
+            onRefresh={() => {
+              fetchEmployees()
+              setShowEditEmployeeModal(false)
+            }}
+            token={token}
+          />
+        </Suspense>
+      )}
 
       {/* Detail Attendance Modal */}
-      <Suspense fallback={null}>
-        <DetailAttendanceModal
-          attendance={selectedAttendance}
-          onClose={() => setSelectedAttendance(null)}
-          formatDate={formatDate}
-          getStatusBadge={getStatusBadge}
-          token={token}
-          officeLatitude={officeLatitude}
-          officeLongitude={officeLongitude}
-          onEditClick={selectedAttendance ? () => {
-            handleOpenEditModal(selectedAttendance)
-            setSelectedAttendance(null)
-          } : undefined}
-        />
-      </Suspense>
+      {selectedAttendance && (
+        <Suspense fallback={null}>
+          <DetailAttendanceModal
+            attendance={selectedAttendance}
+            onClose={() => setSelectedAttendance(null)}
+            formatDate={formatDate}
+            getStatusBadge={getStatusBadge}
+            token={token}
+            officeLatitude={officeLatitude}
+            officeLongitude={officeLongitude}
+            onEditClick={selectedAttendance ? () => {
+              handleOpenEditModal(selectedAttendance)
+              setSelectedAttendance(null)
+            } : undefined}
+          />
+        </Suspense>
+      )}
 
       {/* Edit Time Modal */}
-      <Suspense fallback={null}>
-        <EditTimeModal
-          show={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          onSubmit={handleEditTimeSubmit}
-          attendance={editingAttendance}
-          editClockIn={editClockIn}
-          setEditClockIn={setEditClockIn}
-          editClockOut={editClockOut}
-          setEditClockOut={setEditClockOut}
-          updating={updating}
-          formatDate={formatDate}
-        />
-      </Suspense>
+      {showEditModal && (
+        <Suspense fallback={null}>
+          <EditTimeModal
+            show={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            onSubmit={handleEditTimeSubmit}
+            attendance={editingAttendance}
+            editClockIn={editClockIn}
+            setEditClockIn={setEditClockIn}
+            editClockOut={editClockOut}
+            setEditClockOut={setEditClockOut}
+            updating={updating}
+            formatDate={formatDate}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

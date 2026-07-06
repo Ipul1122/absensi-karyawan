@@ -114,10 +114,10 @@ class ReimbursementController extends Controller
         }
 
         try {
-            // Hapus file nota dari storage
-            if ($reimbursement->receipt_path) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $reimbursement->receipt_path));
-            }
+            // Physical file deletion is now handled by model forceDeleted event
+            // if ($reimbursement->receipt_path) {
+            //     Storage::disk('public')->delete(str_replace('/storage/', '', $reimbursement->receipt_path));
+            // }
 
             $reimbursement->delete();
 

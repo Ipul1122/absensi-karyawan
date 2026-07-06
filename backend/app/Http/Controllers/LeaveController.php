@@ -98,11 +98,11 @@ class LeaveController extends Controller
         }
 
         try {
-            // Delete image from storage if exists
-            if ($leave->image) {
-                $storagePath = str_replace('/storage/', '', $leave->image);
-                Storage::disk('public')->delete($storagePath);
-            }
+            // Physical file deletion is now handled by model forceDeleted event
+            // if ($leave->image) {
+            //     $storagePath = str_replace('/storage/', '', $leave->image);
+            //     Storage::disk('public')->delete($storagePath);
+            // }
 
             $leave->delete();
 

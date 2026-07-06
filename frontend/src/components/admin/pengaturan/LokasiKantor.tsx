@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import RecycleBin from './RecycleBin'
 import L from 'leaflet'
 import axios from 'axios'
 import Swal from 'sweetalert2'
@@ -127,6 +128,7 @@ export default function LokasiKantor({
   const [savingPassword, setSavingPassword] = useState(false)
 
   // ---------- Backup & Restore States ----------
+  const [backupSubTab, setBackupSubTab] = useState<'db' | 'recycle'>('db')
   const [importing, setImporting] = useState(false)
   const [backupFile, setBackupFile] = useState<File | null>(null)
   const fileInputBackupRef = useRef<HTMLInputElement>(null)
@@ -1316,97 +1318,131 @@ export default function LokasiKantor({
 
       {/* ===== TAB: BACKUP & RESTORE DATA ===== */}
       {activeTab === 'backup' && (
-        <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
-          <div className="border-b border-orange-100 pb-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-md shadow-red-200">
-              <Database className="w-4 h-4 text-white animate-pulse" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-800 font-quicksand">Backup & Restore Basis Data</h2>
-              <p className="text-[11px] text-slate-500">Ekspor basis data Anda untuk pengamanan, atau pulihkan data dari berkas cadangan (.sql).</p>
-            </div>
+        <div className="space-y-6 animate-fade-in font-quicksand">
+          {/* Sub-tab Selection */}
+          <div className="flex border-b border-orange-100 pb-px">
+            <button
+              type="button"
+              onClick={() => setBackupSubTab('db')}
+              className={`pb-2.5 px-4 font-bold text-sm cursor-pointer transition-all border-b-2 -mb-px ${
+                backupSubTab === 'db'
+                  ? 'border-orange-600 text-orange-600 font-extrabold'
+                  : 'border-transparent text-slate-500 hover:text-orange-600'
+              }`}
+            >
+              Backup & Restore Database
+            </button>
+            <button
+              type="button"
+              onClick={() => setBackupSubTab('recycle')}
+              className={`pb-2.5 px-4 font-bold text-sm cursor-pointer transition-all border-b-2 -mb-px ${
+                backupSubTab === 'recycle'
+                  ? 'border-orange-600 text-orange-600 font-extrabold'
+                  : 'border-transparent text-slate-500 hover:text-orange-600'
+              }`}
+            >
+              Tempat Sampah (Recycle Bin)
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Export Section */}
-            <div className="border border-orange-100/70 rounded-2xl p-5 space-y-4 bg-orange-50/5 flex flex-col justify-between">
-              <div className="space-y-2">
-                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                  <DownloadCloud className="w-4 h-4 text-orange-600" /> Ekspor Data (Backup)
-                </h3>
-                <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
-                  Buat cadangan data lengkap dari sistem HCMS GoodPeople. Sistem akan mengumpulkan data seluruh tabel dan mengunduh berkas berupa SQL file.
-                </p>
-                <div className="p-3 bg-orange-50/40 rounded-xl border border-orange-100/50 text-[10px] text-slate-550 font-medium space-y-1">
-                  <div className="flex justify-between"><span>Sistem Database:</span> <span className="font-bold text-slate-700">MySQL</span></div>
-                  <div className="flex justify-between"><span>Format File:</span> <span className="font-bold text-slate-700">.sql</span></div>
-                  <div className="flex justify-between"><span>Kompresi:</span> <span className="font-bold text-slate-700">Tidak ada (Raw SQL)</span></div>
+          {backupSubTab === 'db' && (
+            <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 font-quicksand">
+              <div className="border-b border-orange-100 pb-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-md shadow-red-200">
+                  <Database className="w-4 h-4 text-white animate-pulse" />
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleExportBackup}
-                className="w-full mt-3 py-2.5 px-4 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-orange-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5"
-              >
-                <DownloadCloud className="w-4 h-4" /> Unduh Backup Database (.sql)
-              </button>
-            </div>
-
-            {/* Import Section */}
-            <div className="border border-orange-100/70 rounded-2xl p-5 space-y-4 bg-orange-50/5 flex flex-col justify-between">
-              <div className="space-y-2">
-                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                  <UploadCloud className="w-4 h-4 text-red-650" /> Pulihkan Data (Restore)
-                </h3>
-                <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
-                  Unggah file cadangan `.sql` yang telah diunduh sebelumnya untuk mengembalikan basis data ke keadaan semula.
-                </p>
-                <div className="flex items-start gap-2.5 p-3.5 bg-rose-50/30 border border-rose-100/50 rounded-xl">
-                  <Info className="w-4.5 h-4.5 text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-[9.5px] text-red-700 font-semibold leading-normal">
-                    <strong>PERHATIAN:</strong> Tindakan ini bersifat destruktif. Data saat ini akan diganti seluruhnya oleh isi berkas backup. Pastikan berkas SQL valid dan tidak korup.
-                  </p>
+                <div>
+                  <h2 className="text-base font-bold text-slate-800 font-quicksand">Backup & Restore Basis Data</h2>
+                  <p className="text-[11px] text-slate-500">Ekspor basis data Anda untuk pengamanan, atau pulihkan data dari berkas cadangan (.sql).</p>
                 </div>
               </div>
 
-              <form onSubmit={handleImportBackup} className="space-y-3">
-                <div className="relative">
-                  <input
-                    ref={fileInputBackupRef}
-                    type="file"
-                    accept=".sql"
-                    onChange={handleBackupFileChange}
-                    className="hidden"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Export Section */}
+                <div className="border border-orange-100/70 rounded-2xl p-5 space-y-4 bg-orange-50/5 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                      <DownloadCloud className="w-4 h-4 text-orange-600" /> Ekspor Data (Backup)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                      Buat cadangan data lengkap dari sistem HCMS GoodPeople. Sistem akan mengumpulkan data seluruh tabel dan mengunduh berkas berupa SQL file.
+                    </p>
+                    <div className="p-3 bg-orange-50/40 rounded-xl border border-orange-100/50 text-[10px] text-slate-550 font-medium space-y-1">
+                      <div className="flex justify-between"><span>Sistem Database:</span> <span className="font-bold text-slate-700">MySQL</span></div>
+                      <div className="flex justify-between"><span>Format File:</span> <span className="font-bold text-slate-700">.sql</span></div>
+                      <div className="flex justify-between"><span>Kompresi:</span> <span className="font-bold text-slate-700">Tidak ada (Raw SQL)</span></div>
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => fileInputBackupRef.current?.click()}
-                    className="w-full py-2 bg-slate-50 border border-dashed border-slate-350 hover:border-orange-300 rounded-xl text-[11px] font-bold text-slate-600 cursor-pointer flex items-center justify-center gap-1.5"
+                    onClick={handleExportBackup}
+                    className="w-full mt-3 py-2.5 px-4 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-orange-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5"
                   >
-                    <UploadCloud className="w-3.5 h-3.5" />
-                    {backupFile ? 'Ganti File Backup' : 'Pilih File Backup (.sql)'}
+                    <DownloadCloud className="w-4 h-4" /> Unduh Backup Database (.sql)
                   </button>
                 </div>
-                {backupFile && (
-                  <p className="text-[10px] text-emerald-600 font-bold text-center bg-emerald-50 border border-emerald-100 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1">
-                    <span>✓</span> Terpilih: {backupFile.name} ({Math.round(backupFile.size / 1024)} KB)
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  disabled={importing || !backupFile}
-                  className="w-full py-2.5 px-4 bg-gradient-to-r from-red-650 to-orange-700 hover:from-red-700 hover:to-orange-850 text-white font-bold rounded-xl transition-all shadow-md shadow-orange-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {importing ? (
-                    <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" /> Memulihkan...</>
-                  ) : (
-                    <><UploadCloud className="w-4 h-4" /> Pulihkan Database sekarang</>
-                  )}
-                </button>
-              </form>
-            </div>
-          </div>
-        </section>
+
+                {/* Import Section */}
+                <div className="border border-orange-100/70 rounded-2xl p-5 space-y-4 bg-orange-50/5 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                      <UploadCloud className="w-4 h-4 text-red-650" /> Pulihkan Data (Restore)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                      Unggah file cadangan `.sql` yang telah diunduh sebelumnya untuk mengembalikan basis data ke keadaan semula.
+                    </p>
+                    <div className="flex items-start gap-2.5 p-3.5 bg-rose-50/30 border border-rose-100/50 rounded-xl">
+                      <Info className="w-4.5 h-4.5 text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-[9.5px] text-red-700 font-semibold leading-normal">
+                        <strong>PERHATIAN:</strong> Tindakan ini bersifat destruktif. Data saat ini akan diganti seluruhnya oleh isi berkas backup. Pastikan berkas SQL valid dan tidak korup.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleImportBackup} className="space-y-3">
+                    <div className="relative">
+                      <input
+                        ref={fileInputBackupRef}
+                        type="file"
+                        accept=".sql"
+                        onChange={handleBackupFileChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputBackupRef.current?.click()}
+                        className="w-full py-2 bg-slate-50 border border-dashed border-slate-350 hover:border-orange-300 rounded-xl text-[11px] font-bold text-slate-600 cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        {backupFile ? 'Ganti File Backup' : 'Pilih File Backup (.sql)'}
+                      </button>
+                    </div>
+                    {backupFile && (
+                      <p className="text-[10px] text-emerald-600 font-bold text-center bg-emerald-50 border border-emerald-100 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1">
+                        <span>✓</span> Terpilih: {backupFile.name} ({Math.round(backupFile.size / 1024)} KB)
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={importing || !backupFile}
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-red-650 to-orange-700 hover:from-red-700 hover:to-orange-850 text-white font-bold rounded-xl transition-all shadow-md shadow-orange-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {importing ? (
+                        <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" /> Memulihkan...</>
+                      ) : (
+                        <><UploadCloud className="w-4 h-4" /> Pulihkan Database sekarang</>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {backupSubTab === 'recycle' && (
+            <RecycleBin />
+          )}
+        </div>
       )}
     </div>
   )

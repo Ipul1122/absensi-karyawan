@@ -4,6 +4,7 @@ import Swal from 'sweetalert2'
 import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
 import ManualAttendanceModal from './ManualAttendanceModal'
 import SalesVisitsLog from './SalesVisitsLog'
+import { API_BASE_URL } from '../../../utils/api'
 
 interface Attendance {
   id: number
@@ -55,6 +56,8 @@ interface RekapAbsensiProps {
   attendanceLoading: boolean
   attendances: Attendance[]
   fetchAttendances: () => void
+  fetchLeaves?: () => void
+  fetchPermits?: () => void
   formatDate: (d: string) => string
   getStatusBadge: (s: string | null) => React.ReactNode
   setSelectedAttendance: (a: Attendance) => void
@@ -70,6 +73,8 @@ export default function RekapAbsensi({
   attendanceLoading,
   attendances,
   fetchAttendances,
+  fetchLeaves,
+  fetchPermits,
   formatDate,
   getStatusBadge,
   setSelectedAttendance,
@@ -140,7 +145,7 @@ export default function RekapAbsensi({
 
       // 1. Filter user attendances for this month
       const userMonthAtt = attendances.filter(
-        (att) => att.user.id === emp.id && att.date.startsWith(reportMonth)
+        (att) => Number(att.user.id) === Number(emp.id) && att.date.startsWith(reportMonth)
       )
 
       // Present: unique dates where clock_in is not null
@@ -151,12 +156,12 @@ export default function RekapAbsensi({
 
       // 2. Filter user approved leaves for this month
       const userLeaves = leaves.filter(
-        (l) => l.user_id === emp.id && l.status === 'approved'
+        (l) => Number(l.user_id) === Number(emp.id) && l.status === 'approved'
       )
 
       // Filter user approved permits for this month
       const userPermits = permits.filter(
-        (p) => p.user_id === emp.id && p.status === 'approved'
+        (p) => Number(p.user_id) === Number(emp.id) && p.status === 'approved'
       )
 
       const isSatOff = !!emp.saturday_off
@@ -263,6 +268,12 @@ export default function RekapAbsensi({
   useEffect(() => {
     setCurrentPage(1)
   }, [search, selectedCompany, reportMonth, startDate, endDate, statusIn, statusOut, itemsPerPage])
+
+  // Fetch leaves & permits on mount to ensure we have fresh data
+  useEffect(() => {
+    if (fetchLeaves) fetchLeaves()
+    if (fetchPermits) fetchPermits()
+  }, [])
 
   // Filter Logic (For Web UI Display)
   const filteredAttendances = attendances.filter((att) => {
@@ -583,6 +594,12 @@ export default function RekapAbsensi({
     }
     const indonesianMonthName = getIndonesianMonthName(parseInt(month, 10) - 1)
 
+    console.log("DEBUG EXPORT: reportMonth =", reportMonth);
+    console.log("DEBUG EXPORT: startDate =", startDate);
+    console.log("DEBUG EXPORT: endDate =", endDate);
+    console.log("DEBUG EXPORT: permits prop =", permits);
+    console.log("DEBUG EXPORT: leaves prop =", leaves);
+
     // ── Helpers ──────────────────────────────────────────────────────────────
     const escXml = (s: string | null | undefined) =>
       (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -628,9 +645,10 @@ export default function RekapAbsensi({
       }
     })
 
+    const baseUrl = API_BASE_URL || 'http://localhost:8000'
     let visits: any[] = []
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/sales-visits', {
+      const response = await axios.get(`${baseUrl}/api/admin/sales-visits`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -690,7 +708,7 @@ export default function RekapAbsensi({
         return matchesSearch && matchesDate && matchesCompany && matchesStatusIn && matchesStatusOut
       })
       .map((att) => {
-        const emp = employees.find(e => e.id === att.user.id)
+        const emp = employees.find(e => Number(e.id) === Number(att.user.id))
         
         let notesText = getKeteranganLocal(att)
         if (att.notes_in) notesText += ` (Masuk: ${att.notes_in})`
@@ -728,7 +746,7 @@ export default function RekapAbsensi({
 
     visits.forEach(v => {
       const type = (v.visit_type || 'sales') === 'client' ? 'Klien' : 'Sales'
-      const emp = employees.find(e => e.id === v.user.id)
+      const emp = employees.find(e => Number(e.id) === Number(v.user.id))
       
       const matchesSearch = !search ||
         v.user.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -771,7 +789,7 @@ export default function RekapAbsensi({
       if (l.status !== 'approved') return
 
       const userId = l.user_id || l.user?.id
-      const emp = employees.find(e => e.id === userId)
+      const emp = employees.find(e => Number(e.id) === Number(userId))
       if (!emp) return
 
       const matchesSearch = !search ||
@@ -809,7 +827,7 @@ export default function RekapAbsensi({
       if (p.status !== 'approved') return
 
       const userId = p.user_id || p.user?.id
-      const emp = employees.find(e => e.id === userId)
+      const emp = employees.find(e => Number(e.id) === Number(userId))
       if (!emp) return
 
       const matchesSearch = !search ||
@@ -1358,7 +1376,11 @@ export default function RekapAbsensi({
 
           {/* Refresh Button */}
           <button
-            onClick={fetchAttendances}
+            onClick={() => {
+              fetchAttendances()
+              if (fetchLeaves) fetchLeaves()
+              if (fetchPermits) fetchPermits()
+            }}
             disabled={attendanceLoading}
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-red-500 text-slate-650 hover:text-red-500 rounded-xl transition-all cursor-pointer disabled:opacity-50 shadow-sm hover:scale-[1.02] active:scale-[0.98] h-[38px] w-full lg:w-[38px]"
             title="Segarkan Log"

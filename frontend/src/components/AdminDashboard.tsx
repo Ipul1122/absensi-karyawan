@@ -15,6 +15,7 @@ import {
 // Import layout components
 import AdminSidebar from './layout/AdminSidebar'
 import AdminNavbar, { AdminMobileNavbar } from './layout/AdminNavbar'
+import { API_BASE_URL } from '../utils/api'
 
 // Import sub-components (Lazy loaded for optimal code splitting & chunk sizing)
 const DashboardOverview = lazy(() => import('./admin/dashboard/DashboardOverview'))
@@ -96,6 +97,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ user, token, onLogout, onProfileUpdate }: AdminDashboardProps) {
+  const baseUrl = API_BASE_URL || 'http://localhost:8000'
   const location = useLocation()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [attendances, setAttendances] = useState<Attendance[]>([])
@@ -122,7 +124,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
 
   const fetchProfile = async () => {
     try {
-      await axios.get('http://localhost:8000/api/user/profile', {
+      await axios.get(`${baseUrl}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       })
     } catch (err) {
@@ -180,7 +182,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
 
   const fetchLeaves = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/leaves', {
+      const response = await axios.get(`${baseUrl}/api/admin/leaves`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -193,7 +195,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
 
   const fetchPermits = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/permits', {
+      const response = await axios.get(`${baseUrl}/api/admin/permits`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -207,7 +209,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const fetchSidebarCounts = async () => {
     if (document.hidden) return
     try {
-      const response = await axios.get('http://localhost:8000/api/sidebar/notification-counts', {
+      const response = await axios.get(`${baseUrl}/api/sidebar/notification-counts`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -221,7 +223,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const fetchEmployees = async () => {
     setLoading(true)
     try {
-      const response = await axios.get('http://localhost:8000/api/employees', {
+      const response = await axios.get(`${baseUrl}/api/employees`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -244,7 +246,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const fetchAttendances = async () => {
     setAttendanceLoading(true)
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/attendances', {
+      const response = await axios.get(`${baseUrl}/api/admin/attendances`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -266,7 +268,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
 
   const fetchOfficeSetting = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/office-setting', {
+      const response = await axios.get(`${baseUrl}/api/office-setting`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success' && response.data.data) {
@@ -614,7 +616,7 @@ ${window.location.origin}/director/karyawan`
     setUpdating(true)
     try {
       const response = await axios.put(
-        `http://localhost:8000/api/admin/attendances/${editingAttendance.id}`,
+        `${baseUrl}/api/admin/attendances/${editingAttendance.id}`,
         {
           clock_in: editClockIn || null,
           clock_out: editClockOut || null
@@ -659,7 +661,7 @@ ${window.location.origin}/director/karyawan`
     setSavingOffice(true)
     try {
       const response = await axios.put(
-        'http://localhost:8000/api/admin/office-setting',
+        `${baseUrl}/api/admin/office-setting`,
         {
           latitude: officeLatitude,
           longitude: officeLongitude,
@@ -914,6 +916,8 @@ ${window.location.origin}/director/karyawan`
                   attendanceLoading={attendanceLoading}
                   attendances={attendances}
                   fetchAttendances={fetchAttendances}
+                  fetchLeaves={fetchLeaves}
+                  fetchPermits={fetchPermits}
                   formatDate={formatDate}
                   getStatusBadge={getStatusBadge}
                   setSelectedAttendance={setSelectedAttendance}

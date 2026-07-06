@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import axios from 'axios'
+import Swal from 'sweetalert2'
 import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
 import ManualAttendanceModal from './ManualAttendanceModal'
 import SalesVisitsLog from './SalesVisitsLog'
@@ -559,8 +561,8 @@ export default function RekapAbsensi({
     printWindow.document.close()
   }
 
-  // Export to Excel Multi-Sheet (per karyawan)
-  const handleExportExcel = () => {
+  // Export to Excel merged sheet
+  const handleExportExcel = async () => {
     const activeMonth = reportMonth || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
     const [year, month] = activeMonth.split('-')
 
@@ -577,98 +579,295 @@ export default function RekapAbsensi({
     const DAYS_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
     const getDayName = (dateStr: string) => DAYS_ID[new Date(dateStr + 'T00:00:00').getDay()]
 
-    const getShiftLabel = (att: Attendance) => {
-      const day = new Date(att.date + 'T00:00:00').getDay()
-      if (day === 6) return 'Senin - Sabtu'
-      return 'Senin - Jumat'
-    }
-
-    const getKeterangan = (att: Attendance) => {
+    const getKeteranganLocal = (att: Attendance) => {
       if (!att.clock_in) return 'Tidak Hadir'
       if (att.status_in === 'late') return 'Terlambat'
       if (att.status_in === 'early') return 'Hadir Lebih Awal'
       return 'Masuk Kerja'
     }
 
-    // ── Style IDs ────────────────────────────────────────────────────────────
-    const getStyleId = (att: Attendance) => {
-      const dayIdx = new Date(att.date + 'T00:00:00').getDay()
-      if (dayIdx === 6) return 'sSabtu'   // Sabtu → kuning
-      if (!att.clock_in) return 'sAbsent' // Tidak hadir → merah muda
-      if (att.status_in === 'late') return 'sLate'  // Terlambat → oranye muda
-      return 'sNormal'
+    const isDateInFilter = (dateStr: string) => {
+      return (!startDate || dateStr >= startDate) &&
+             (!endDate || dateStr <= endDate) &&
+             (!reportMonth || dateStr.startsWith(reportMonth))
     }
 
-    // ── Build one SS Row ─────────────────────────────────────────────────────
-    const buildRow = (att: Attendance, idx: number) => {
-      const sid = getStyleId(att)
+    const getDatesInRange = (startDateStr: string, endDateStr: string) => {
+      const dates = []
+      const start = new Date(startDateStr + 'T00:00:00')
+      const end = new Date(endDateStr + 'T00:00:00')
+      const current = new Date(start)
+      while (current <= end) {
+        const year = current.getFullYear()
+        const month = String(current.getMonth() + 1).padStart(2, '0')
+        const day = String(current.getDate()).padStart(2, '0')
+        dates.push(`${year}-${month}-${day}`)
+        current.setDate(current.getDate() + 1)
+      }
+      return dates
+    }
+
+    // ── Fetch Sales & Client Visits from API ─────────────────────────────────
+    Swal.fire({
+      title: 'Memproses...',
+      text: 'Sedang mengambil data kunjungan sales/klien...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    let visits: any[] = []
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/sales-visits', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        visits = response.data.data
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data kunjungan sales/klien:', err)
+      Swal.fire({
+        title: 'Gagal',
+        text: 'Tidak dapat mengambil data kunjungan sales/klien.',
+        icon: 'error',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#ef4444'
+      })
+      return
+    }
+
+    // ── Define Row Type and Collect Data ─────────────────────────────────────
+    interface ExportRow {
+      employeeId: number
+      date: string
+      dayName: string
+      employeeName: string
+      employeeNumber: string
+      division: string
+      company: string
+      type: 'Kantor' | 'Sales' | 'Klien' | 'Cuti'
+      timeIn: string
+      timeOut: string
+      locationDetail: string
+      notes: string
+      styleId: string
+    }
+
+    const activeStatusIn = viewMode === 'daily' ? statusIn : 'all'
+    const activeStatusOut = viewMode === 'daily' ? statusOut : 'all'
+
+    // 1. Office Attendance
+    const officeData: ExportRow[] = attendances
+      .filter((att) => {
+        if (att.attendance_type && att.attendance_type !== 'kantor') {
+          return false
+        }
+
+        const matchesSearch = !search ||
+          att.user.name.toLowerCase().includes(search.toLowerCase()) ||
+          att.user.email.toLowerCase().includes(search.toLowerCase())
+
+        const matchesDate = isDateInFilter(att.date)
+        const matchesCompany = selectedCompany === 'all' || att.user.company === selectedCompany
+        const matchesStatusIn = activeStatusIn === 'all' || att.status_in === activeStatusIn
+        const matchesStatusOut = activeStatusOut === 'all' || att.status_out === activeStatusOut
+
+        return matchesSearch && matchesDate && matchesCompany && matchesStatusIn && matchesStatusOut
+      })
+      .map((att) => {
+        const emp = employees.find(e => e.id === att.user.id)
+        
+        let notesText = getKeteranganLocal(att)
+        if (att.notes_in) notesText += ` (Masuk: ${att.notes_in})`
+        if (att.notes_out) notesText += ` (Keluar: ${att.notes_out})`
+
+        let styleId = 'sNormal'
+        if (!att.clock_in) {
+          styleId = 'sAbsent'
+        } else if (att.status_in === 'late') {
+          styleId = 'sLate'
+        }
+
+        return {
+          employeeId: att.user.id,
+          date: att.date,
+          dayName: getDayName(att.date),
+          employeeName: att.user.name,
+          employeeNumber: att.user.employee_number || emp?.employee_number || '-',
+          division: att.user.division || emp?.division || '-',
+          company: att.user.company || emp?.company || '-',
+          type: 'Kantor',
+          timeIn: att.clock_in || '-',
+          timeOut: att.clock_out || '-',
+          locationDetail: getLokasiLabel(att),
+          notes: notesText,
+          styleId
+        }
+      })
+
+    // 2 & 3. Sales & Client Visits
+    const salesData: ExportRow[] = []
+    const clientData: ExportRow[] = []
+
+    visits.forEach(v => {
+      const type = (v.visit_type || 'sales') === 'client' ? 'Klien' : 'Sales'
+      const emp = employees.find(e => e.id === v.user.id)
+      
+      const matchesSearch = !search ||
+        v.user.name.toLowerCase().includes(search.toLowerCase()) ||
+        v.user.email.toLowerCase().includes(search.toLowerCase()) ||
+        (v.client_name && v.client_name.toLowerCase().includes(search.toLowerCase()))
+
+      const matchesDate = isDateInFilter(v.date)
+      const matchesCompany = selectedCompany === 'all' || v.user.company === selectedCompany || emp?.company === selectedCompany
+
+      if (!matchesSearch || !matchesDate || !matchesCompany) return
+
+      const notesText = (v.notes ? `Masuk: ${v.notes}` : '') + (v.notes_out ? ` | Keluar: ${v.notes_out}` : '') || '-'
+
+      const mappedVisit: ExportRow = {
+        employeeId: v.user.id,
+        date: v.date,
+        dayName: getDayName(v.date),
+        employeeName: v.user.name,
+        employeeNumber: emp?.employee_number || '-',
+        division: emp?.division || '-',
+        company: v.user.company || emp?.company || '-',
+        type: type,
+        timeIn: v.visit_time || '-',
+        timeOut: v.visit_time_out || '-',
+        locationDetail: v.client_name || '-',
+        notes: notesText,
+        styleId: type === 'Klien' ? 'sClient' : 'sSales'
+      }
+
+      if (type === 'Klien') {
+        clientData.push(mappedVisit)
+      } else {
+        salesData.push(mappedVisit)
+      }
+    })
+
+    // 4. Cuti (Leaves)
+    const leavesData: ExportRow[] = []
+    leaves.forEach(l => {
+      if (l.status !== 'approved') return
+
+      const userId = l.user_id || l.user?.id
+      const emp = employees.find(e => e.id === userId)
+      if (!emp) return
+
+      const matchesSearch = !search ||
+        emp.name.toLowerCase().includes(search.toLowerCase()) ||
+        emp.email.toLowerCase().includes(search.toLowerCase())
+      
+      const matchesCompany = selectedCompany === 'all' || emp.company === selectedCompany
+      if (!matchesSearch || !matchesCompany) return
+
+      const dates = getDatesInRange(l.start_date, l.end_date)
+      dates.forEach(dateStr => {
+        if (!isDateInFilter(dateStr)) return
+
+        leavesData.push({
+          employeeId: emp.id,
+          date: dateStr,
+          dayName: getDayName(dateStr),
+          employeeName: emp.name,
+          employeeNumber: emp.employee_number || '-',
+          division: emp.division || '-',
+          company: emp.company || '-',
+          type: 'Cuti',
+          timeIn: '-',
+          timeOut: '-',
+          locationDetail: l.category === 'LAINNYA' ? l.custom_category || 'Lainnya' : l.category,
+          notes: l.reason || '-',
+          styleId: 'sLeave'
+        })
+      })
+    })
+
+    // Combine and Sort
+    const mergedRows: ExportRow[] = [
+      ...officeData,
+      ...salesData,
+      ...clientData,
+      ...leavesData
+    ]
+
+    mergedRows.sort((a, b) => {
+      const dateCompare = a.date.localeCompare(b.date)
+      if (dateCompare !== 0) return dateCompare
+      return a.employeeName.localeCompare(b.employeeName)
+    })
+
+    // Group records by employee to generate a sheet for each
+    const empMap = new Map<number, { name: string; rows: ExportRow[] }>()
+    mergedRows.forEach(row => {
+      const uid = row.employeeId
+      if (!empMap.has(uid)) {
+        empMap.set(uid, { name: row.employeeName, rows: [] })
+      }
+      empMap.get(uid)!.rows.push(row)
+    })
+
+    Swal.close()
+
+    // ── Build XML Worksheet ──────────────────────────────────────────────────
+    const COL_WIDTHS = [35, 90, 80, 145, 90, 100, 180, 80, 90, 90, 220, 220]
+    const HEADERS = [
+      'No', 'Tanggal', 'Hari', 'Nama Karyawan', 'Nomor Induk', 'Divisi',
+      'Perusahaan', 'Tipe', 'Jam Masuk', 'Jam Keluar', 'Lokasi / Detail', 'Keterangan'
+    ]
+
+    const buildRowXML = (row: ExportRow, idx: number) => {
       const cell = (val: string, type: 'String' | 'Number' = 'String') =>
-        `<Cell ss:StyleID="${sid}"><Data ss:Type="${type}">${escXml(val)}</Data></Cell>`
+        `<Cell ss:StyleID="${row.styleId}"><Data ss:Type="${type}">${escXml(val)}</Data></Cell>`
 
       return `<Row ss:Height="20">
         ${cell(String(idx + 1), 'Number')}
-        ${cell(att.date)}
-        ${cell(att.user.name)}
-        ${cell(att.user.employee_number || '-')}
-        ${cell(att.user.division || '-')}
-        ${cell(att.user.company || '-')}
-        ${cell(getShiftLabel(att))}
-        ${cell(getDayName(att.date))}
-        ${cell('08:30:00')}
-        ${cell('17:30:00')}
-        ${cell(att.clock_in || '-')}
-        ${cell(att.clock_out || '-')}
-        ${cell(getKeterangan(att))}
+        ${cell(row.date)}
+        ${cell(row.dayName)}
+        ${cell(row.employeeName)}
+        ${cell(row.employeeNumber)}
+        ${cell(row.division)}
+        ${cell(row.company)}
+        ${cell(row.type)}
+        ${cell(row.timeIn)}
+        ${cell(row.timeOut)}
+        ${cell(row.locationDetail)}
+        ${cell(row.notes)}
       </Row>`
     }
 
-    // ── Header row ───────────────────────────────────────────────────────────
-    const HEADERS = [
-      'No', 'Tanggal Absen', 'Karyawan', 'Nomor Induk', 'Divisi',
-      'Lokasi Absen', 'Shift', 'Hari Absen',
-      'Jam Masuk Kantor', 'Jam Pulang Kantor',
-      'Jam Masuk Absen', 'Jam Pulang Absen', 'Keterangan Absen'
-    ]
-    const COL_WIDTHS = [35, 90, 140, 90, 80, 180, 100, 80, 100, 100, 100, 100, 110]
-
-    const buildHeaderRow = () =>
-      `<Row ss:Height="28">${HEADERS.map(h =>
-        `<Cell ss:StyleID="sHeader"><Data ss:Type="String">${escXml(h)}</Data></Cell>`
-      ).join('')}</Row>`
-
-    const buildColDefs = () =>
-      COL_WIDTHS.map(w => `<Column ss:Width="${w}"/>`).join('')
-
-    // ── Build one worksheet ──────────────────────────────────────────────────
-    const buildWorksheet = (sheetName: string, atts: Attendance[]) => {
-      const sorted = [...atts].sort((a, b) => a.date.localeCompare(b.date))
-      const rows = sorted.map((att, i) => buildRow(att, i)).join('')
+    const buildWorksheetXML = (sheetName: string, rows: ExportRow[]) => {
       return `
-        <Worksheet ss:Name="${escXml(sheetName.substring(0, 31))}">
-          <Table>${buildColDefs()}${buildHeaderRow()}${rows}</Table>
-          <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
-            <FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal>
-            <TopRowBottomPane>1</TopRowBottomPane>
-          </WorksheetOptions>
-        </Worksheet>`
+      <Worksheet ss:Name="${escXml(sheetName.substring(0, 31))}">
+        <Table>
+          ${COL_WIDTHS.map(w => `<Column ss:Width="${w}"/>`).join('')}
+          <Row ss:Height="28">
+            ${HEADERS.map(h => `<Cell ss:StyleID="sHeader"><Data ss:Type="String">${escXml(h)}</Data></Cell>`).join('')}
+          </Row>
+          ${rows.map((row, idx) => buildRowXML(row, idx)).join('\n')}
+        </Table>
+        <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+          <FreezePanes/>
+          <FrozenNoSplit/>
+          <SplitHorizontal>1</SplitHorizontal>
+          <TopRowBottomPane>1</TopRowBottomPane>
+        </WorksheetOptions>
+      </Worksheet>`
     }
 
-    // ── Group attendances per employee ───────────────────────────────────────
-    const empMap = new Map<number, { name: string; atts: Attendance[] }>()
-    filteredAttendances.forEach(att => {
-      const uid = att.user.id
-      if (!empMap.has(uid)) empMap.set(uid, { name: att.user.name, atts: [] })
-      empMap.get(uid)!.atts.push(att)
+    const worksheetsXML: string[] = []
+    worksheetsXML.push(buildWorksheetXML('REKAP ABSENSI GABUNGAN', mergedRows))
+
+    empMap.forEach(({ name, rows }) => {
+      const sortedRows = [...rows].sort((a, b) => a.date.localeCompare(b.date))
+      worksheetsXML.push(buildWorksheetXML(name.toUpperCase(), sortedRows))
     })
 
-    // ── Build all worksheets ─────────────────────────────────────────────────
-    const allSheets: string[] = []
-    allSheets.push(buildWorksheet('FULL REKAP PRESENSI', filteredAttendances))
-    empMap.forEach(({ name, atts }) => {
-      allSheets.push(buildWorksheet(name.toUpperCase(), atts))
-    })
-
-    // ── XML Workbook ─────────────────────────────────────────────────────────
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
 <Workbook
@@ -682,28 +881,17 @@ export default function RekapAbsensi({
     <Style ss:ID="sHeader">
       <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>
       <Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="10"/>
-      <Interior ss:Color="#EA580C" ss:Pattern="Solid"/>
+      <Interior ss:Color="#1E3A8A" ss:Pattern="Solid"/>
       <Borders>
-        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#C2410C"/>
-        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#C2410C"/>
-        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#C2410C"/>
-        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#C2410C"/>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#1E40AF"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#1E40AF"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#1E40AF"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#1E40AF"/>
       </Borders>
     </Style>
     <Style ss:ID="sNormal">
       <Alignment ss:Vertical="Center"/>
       <Font ss:Size="9"/>
-      <Borders>
-        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
-        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
-        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
-        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
-      </Borders>
-    </Style>
-    <Style ss:ID="sSabtu">
-      <Alignment ss:Vertical="Center"/>
-      <Font ss:Size="9"/>
-      <Interior ss:Color="#FFF9C4" ss:Pattern="Solid"/>
       <Borders>
         <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
         <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
@@ -733,16 +921,49 @@ export default function RekapAbsensi({
         <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
       </Borders>
     </Style>
+    <Style ss:ID="sSales">
+      <Alignment ss:Vertical="Center"/>
+      <Font ss:Size="9"/>
+      <Interior ss:Color="#E0F2FE" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sClient">
+      <Alignment ss:Vertical="Center"/>
+      <Font ss:Size="9"/>
+      <Interior ss:Color="#F3E8FF" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sLeave">
+      <Alignment ss:Vertical="Center"/>
+      <Font ss:Size="9"/>
+      <Interior ss:Color="#FEF9C3" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
   </Styles>
 
-  ${allSheets.join('\n')}
+  ${worksheetsXML.join('\n')}
 </Workbook>`
 
     const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' })
     const url  = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href  = url
-    link.download = `Rekap_Absensi_${indonesianMonthName.replace(/\s+/g, '_')}_${year}.xls`
+    link.download = `Rekap_Absensi_Gabungan_${indonesianMonthName.replace(/\s+/g, '_')}_${year}.xls`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)

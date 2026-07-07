@@ -138,6 +138,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the overtime requests for the user.
+     */
+    public function overtimes()
+    {
+        return $this->hasMany(Overtime::class);
+    }
+
+    /**
      * Get the sales visits for the user.
      */
     public function salesVisits()

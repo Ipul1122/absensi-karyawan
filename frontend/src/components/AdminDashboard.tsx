@@ -1126,7 +1126,7 @@ ${window.location.origin}/director/karyawan`
               } 
             />
             {/* Default fallback route */}
-            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         </Suspense>
       </main>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
@@ -50,6 +50,57 @@ interface Employee {
   sunday_off?: boolean | number
 }
 
+interface Leave {
+  id: number
+  user_id: number
+  status: string
+  start_date: string
+  end_date: string
+  category?: string
+  custom_category?: string
+  reason?: string
+  user?: {
+    id: number
+    name: string
+    email: string
+    company?: string
+  }
+}
+
+interface Permit {
+  id: number
+  user_id: number
+  status: string
+  start_date: string
+  end_date: string
+  category?: string
+  custom_category?: string
+  reason?: string
+  user?: {
+    id: number
+    name: string
+    email: string
+    company?: string
+  }
+}
+
+interface SalesVisit {
+  id: number
+  date: string
+  visit_type?: string
+  client_name?: string
+  notes?: string | null
+  notes_out?: string | null
+  visit_time?: string | null
+  visit_time_out?: string | null
+  user: {
+    id: number
+    name: string
+    email: string
+    company?: string
+  }
+}
+
 interface RekapAbsensiProps {
   token: string
   employees: Employee[]
@@ -63,8 +114,8 @@ interface RekapAbsensiProps {
   setSelectedAttendance: (a: Attendance) => void
   officeLatitude?: string
   officeLongitude?: string
-  leaves?: any[]
-  permits?: any[]
+  leaves?: Leave[]
+  permits?: Permit[]
 }
 
 export default function RekapAbsensi({
@@ -86,9 +137,9 @@ export default function RekapAbsensi({
   const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'sales_visits' | 'client_visits'>('attendance')
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily')
 
-  const [salesVisits, setSalesVisits] = useState<any[]>([])
+  const [salesVisits, setSalesVisits] = useState<SalesVisit[]>([])
 
-  const fetchSalesVisits = async () => {
+  const fetchSalesVisits = useCallback(async () => {
     try {
       const baseUrl = API_BASE_URL || 'http://localhost:8000'
       const response = await axios.get(`${baseUrl}/api/admin/sales-visits`, {
@@ -100,7 +151,7 @@ export default function RekapAbsensi({
     } catch (err) {
       console.error('Gagal mengambil data kunjungan sales:', err)
     }
-  }
+  }, [token])
 
   // Helper to calculate total working days in reportMonth (excluding Sundays/Saturdays based on user schedule settings)
   const getWorkingDaysCount = (monthStr: string, emp: Employee) => {
@@ -305,7 +356,10 @@ export default function RekapAbsensi({
 
   // Reset page when filters change
   useEffect(() => {
-    setCurrentPage(1)
+    const timer = setTimeout(() => {
+      setCurrentPage(1)
+    }, 0)
+    return () => clearTimeout(timer)
   }, [search, selectedCompany, reportMonth, startDate, endDate, statusIn, statusOut, itemsPerPage])
 
   // Fetch leaves, permits & sales visits on mount to ensure we have fresh data
@@ -313,7 +367,7 @@ export default function RekapAbsensi({
     if (fetchLeaves) fetchLeaves()
     if (fetchPermits) fetchPermits()
     fetchSalesVisits()
-  }, [])
+  }, [fetchLeaves, fetchPermits, fetchSalesVisits])
 
   // Filter Logic (For Web UI Display)
   const filteredAttendances = attendances.filter((att) => {
@@ -434,9 +488,9 @@ export default function RekapAbsensi({
 
     const indonesianMonthName = getIndonesianMonthName(currentMonthNum)
 
-    let title = ''
-    let subtitle = ''
-    let contentHtml = ''
+    let title: string
+    let subtitle: string
+    let contentHtml: string
 
     if (viewMode === 'monthly') {
       title = 'Laporan Ringkasan Absensi Bulanan Karyawan'
@@ -491,7 +545,7 @@ export default function RekapAbsensi({
     } else {
       title = 'Laporan Rekap Absensi Karyawan'
       
-      let dateRangeStr = ''
+      let dateRangeStr: string
       if (startDate && endDate) {
         dateRangeStr = `${formatDate(startDate)} s/d ${formatDate(endDate)}`
       } else if (startDate) {
@@ -754,7 +808,7 @@ export default function RekapAbsensi({
 
     // Helper to sanitize Excel Sheet names to avoid illegal characters and duplicate clashing
     const sanitizeSheetName = (name: string, index: number, usedNames: Set<string>) => {
-      let cleanName = name.replace(/[\\\/\?\*\[\]]/g, '').trim()
+      let cleanName = name.replace(new RegExp('[\\\\/\\?\\*\\[\\]]', 'g'), '').trim()
       cleanName = cleanName.substring(0, 26).toUpperCase()
       if (!cleanName) cleanName = `EMPLOYEE_${index}`
       
@@ -780,7 +834,7 @@ export default function RekapAbsensi({
     })
 
     const baseUrl = API_BASE_URL || 'http://localhost:8000'
-    let visits: any[] = []
+    let visits: SalesVisit[] = []
     try {
       const response = await axios.get(`${baseUrl}/api/admin/sales-visits`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -961,7 +1015,7 @@ export default function RekapAbsensi({
           type: 'Cuti',
           timeIn: '-',
           timeOut: '-',
-          locationDetail: l.category === 'LAINNYA' ? l.custom_category || 'Lainnya' : l.category,
+          locationDetail: l.category === 'LAINNYA' ? l.custom_category || 'Lainnya' : l.category || '-',
           notes: l.reason || '-',
           styleId: 'sLeave'
         })
@@ -1012,7 +1066,7 @@ export default function RekapAbsensi({
           type: 'Izin',
           timeIn: '-',
           timeOut: '-',
-          locationDetail: p.category === 'LAINNYA' ? p.custom_category || 'Lainnya' : p.category,
+          locationDetail: p.category === 'LAINNYA' ? p.custom_category || 'Lainnya' : p.category || '-',
           notes: p.reason || '-',
           styleId: 'sLeave'
         })

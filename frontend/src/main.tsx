@@ -5,7 +5,7 @@ import './index.css'
 import 'leaflet/dist/leaflet.css'
 import App from './App.tsx'
 
-import { API_BASE_URL } from './utils/api.ts'
+import { API_BASE_URL, setupResponseInterceptor } from './utils/api.ts'
 
 const apiBaseUrl = API_BASE_URL;
 
@@ -29,6 +29,9 @@ axios.interceptors.request.use((config) => {
 }, (error) => {
   return Promise.reject(error);
 });
+
+// Set up global response interceptors for all Axios requests
+setupResponseInterceptor(axios);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

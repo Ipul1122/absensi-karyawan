@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 export const getApiBaseUrl = (): string => {
   const hostname = window.location.hostname;
@@ -78,3 +79,85 @@ apiClient.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
+// Shareable active toast reference to prevent spamming multiple toasts
+let activeTimeoutToast: any = null;
+
+// Helper to register response interceptors (handles 401, 500, 408/timeouts)
+export const setupResponseInterceptor = (instance: any) => {
+  instance.interceptors.response.use(
+    (response: any) => response,
+    (error: any) => {
+      const status = error.response?.status;
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.toLowerCase().includes('timeout') || status === 408;
+
+      if (status === 401) {
+        // Clear authorization data
+        sessionStorage.removeItem('auth_token');
+        sessionStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        
+        // Redirect to /401 only if not already on the page
+        if (window.location.pathname !== '/401') {
+          window.location.href = '/401';
+        }
+      } else if (status === 500) {
+        // Redirect to /500 only if not already on the page
+        if (window.location.pathname !== '/500') {
+          window.location.href = '/500';
+        }
+      } else if (isTimeout) {
+        // Display Interactive Toast for 408 Timeout
+        if (!activeTimeoutToast) {
+          let timeLeft = 15;
+          activeTimeoutToast = Swal.fire({
+            title: 'Koneksi Habis Waktu (408)',
+            html: 'Permintaan terlalu lambat. Memuat ulang halaman dalam <b>15</b> detik...',
+            icon: 'warning',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: true,
+            confirmButtonText: 'Muat Ulang',
+            confirmButtonColor: '#dc2626',
+            showCancelButton: true,
+            cancelButtonText: 'Batal',
+            timer: 15000,
+            timerProgressBar: true,
+            background: '#fffdfb',
+            color: '#3c1105',
+            didOpen: () => {
+              const content = Swal.getHtmlContainer();
+              const b = content?.querySelector('b');
+              const timerInterval = setInterval(() => {
+                if (b) {
+                  const timerLeft = Swal.getTimerLeft();
+                  timeLeft = Math.max(0, Math.ceil((timerLeft || 0) / 1000));
+                  b.textContent = timeLeft.toString();
+                }
+              }, 100);
+              (activeTimeoutToast as any)._intervalId = timerInterval;
+            },
+            willClose: () => {
+              if (activeTimeoutToast && activeTimeoutToast._intervalId) {
+                clearInterval(activeTimeoutToast._intervalId);
+              }
+            }
+          }).then((result) => {
+            activeTimeoutToast = null;
+            if (result.isConfirmed) {
+              window.location.reload();
+            } else if (result.dismiss === Swal.DismissReason.timer) {
+              window.location.reload();
+            }
+          });
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
+};
+
+// Set up interceptor for apiClient
+setupResponseInterceptor(apiClient);
+

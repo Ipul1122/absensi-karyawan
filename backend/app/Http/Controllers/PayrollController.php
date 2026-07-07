@@ -14,6 +14,7 @@ use App\Models\Bonus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class PayrollController extends Controller
 {
@@ -178,18 +179,22 @@ class PayrollController extends Controller
         $allowancePosition = $config ? $config->allowance_position : 0;
         $allowanceFixed = $config ? $config->allowance_fixed : 0;
 
-        // Hitung Lembur (Overtime) & Bonus yang disetujui Direktur
-        $approvedOvertimes = Overtime::where('user_id', $employee->id)
-            ->whereBetween('date', [$startOfPeriod->toDateString(), $endOfMonth->toDateString()])
-            ->where('status', 'approved')
-            ->get();
+        // Hitung Lembur (Overtime) & Bonus yang disetujui Direktur dari collection yang sudah di-eager-load
+        $approvedOvertimes = $employee->overtimes
+            ? $employee->overtimes->filter(function ($ot) use ($startOfPeriod, $endOfMonth) {
+                $otDate = Carbon::parse($ot->date);
+                return $ot->status === 'approved' && $otDate->between($startOfPeriod, $endOfMonth);
+            })
+            : collect([]);
         $overtimeHours = $approvedOvertimes->sum('duration');
         $allowanceOvertime = $overtimeHours * ($baseBasicSalary / 173);
 
-        $approvedBonuses = Bonus::where('user_id', $employee->id)
-            ->whereBetween('bonus_date', [$startOfPeriod->toDateString(), $endOfMonth->toDateString()])
-            ->where('status', 'approved')
-            ->get();
+        $approvedBonuses = $employee->bonuses
+            ? $employee->bonuses->filter(function ($b) use ($startOfPeriod, $endOfMonth) {
+                $bDate = Carbon::parse($b->bonus_date);
+                return $b->status === 'approved' && $bDate->between($startOfPeriod, $endOfMonth);
+            })
+            : collect([]);
         $allowanceBonus = $approvedBonuses->sum('bonus_amount');
 
         $deductionLate = $daysLate * $deductDailyLate;
@@ -273,6 +278,14 @@ class PayrollController extends Controller
                                         ->where('end_date', '>=', $endOfMonth->toDateString());
                                 });
                           });
+                },
+                'overtimes' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+                },
+                'bonuses' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->whereBetween('bonus_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
                 }
             ])
             ->first();
@@ -332,7 +345,7 @@ class PayrollController extends Controller
     public function indexConfigurations(Request $request)
     {
         $user = auth('sanctum')->user();
-        $query = User::where('role', 'employee');
+        $query = User::whereIn('role', ['employee', 'admin']);
         if ($user && $user->company && $user->role !== 'director' && $user->role !== 'admin') {
             $query->where('company', $user->company);
         }
@@ -481,6 +494,14 @@ class PayrollController extends Controller
                                         ->where('end_date', '>=', $endOfMonth->toDateString());
                                 });
                           });
+                },
+                'overtimes' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+                },
+                'bonuses' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->whereBetween('bonus_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
                 }
             ])
             ->get();
@@ -892,7 +913,7 @@ class PayrollController extends Controller
             }
         } catch (\Exception $e) {
             // Catat error jika API gagal
-            \Log::error("Import Holidays API Error: " . $e->getMessage());
+            Log::error("Import Holidays API Error: " . $e->getMessage());
         }
 
         if ($success) {

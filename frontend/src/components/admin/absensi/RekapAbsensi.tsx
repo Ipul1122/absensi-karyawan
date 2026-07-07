@@ -86,6 +86,22 @@ export default function RekapAbsensi({
   const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'sales_visits' | 'client_visits'>('attendance')
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily')
 
+  const [salesVisits, setSalesVisits] = useState<any[]>([])
+
+  const fetchSalesVisits = async () => {
+    try {
+      const baseUrl = API_BASE_URL || 'http://localhost:8000'
+      const response = await axios.get(`${baseUrl}/api/admin/sales-visits`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setSalesVisits(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data kunjungan sales:', err)
+    }
+  }
+
   // Helper to calculate total working days in reportMonth (excluding Sundays/Saturdays based on user schedule settings)
   const getWorkingDaysCount = (monthStr: string, emp: Employee) => {
     if (!monthStr) return 0
@@ -99,7 +115,20 @@ export default function RekapAbsensi({
     if (year < currentYear || (year === currentYear && month < currentMonth)) {
       endDay = new Date(year, month, 0).getDate()
     } else if (year === currentYear && month === currentMonth) {
-      endDay = todayDate
+      // Exclude today if employee hasn't clocked in yet and doesn't have an approved leave/permit today
+      const todayStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(todayDate).padStart(2, '0')}`
+      const hasCheckedInToday = attendances.some(
+        (att) => Number(att.user.id) === Number(emp.id) && att.date === todayStr && att.clock_in !== null
+      )
+      const hasLeaveOrPermitToday = [...leaves, ...permits].some(
+        (lp) => Number(lp.user_id) === Number(emp.id) && lp.status === 'approved' && todayStr >= lp.start_date && todayStr <= lp.end_date
+      )
+
+      if (!hasCheckedInToday && !hasLeaveOrPermitToday) {
+        endDay = todayDate - 1
+      } else {
+        endDay = todayDate
+      }
     } else {
       return 0
     }
@@ -213,6 +242,14 @@ export default function RekapAbsensi({
       // Absent: workingDays - presentCount - leaveDaysCount (clamp to 0)
       const absentCount = Math.max(0, workingDays - presentCount - leaveDaysCount)
 
+      const salesCount = salesVisits.filter(
+        (v) => Number(v.user.id) === Number(emp.id) && v.date.startsWith(reportMonth) && (v.visit_type || 'sales') === 'sales'
+      ).length
+
+      const clientCount = salesVisits.filter(
+        (v) => Number(v.user.id) === Number(emp.id) && v.date.startsWith(reportMonth) && (v.visit_type || 'sales') === 'client'
+      ).length
+
       // Presence percentage: presentCount / workingDays * 100
       const presenceRate = workingDays > 0 
         ? Math.min(100, Math.round((presentCount / workingDays) * 100))
@@ -225,6 +262,8 @@ export default function RekapAbsensi({
         late: lateCount,
         leave: leaveDaysCount,
         absent: absentCount,
+        salesCount,
+        clientCount,
         presenceRate,
       }
     })
@@ -269,10 +308,11 @@ export default function RekapAbsensi({
     setCurrentPage(1)
   }, [search, selectedCompany, reportMonth, startDate, endDate, statusIn, statusOut, itemsPerPage])
 
-  // Fetch leaves & permits on mount to ensure we have fresh data
+  // Fetch leaves, permits & sales visits on mount to ensure we have fresh data
   useEffect(() => {
     if (fetchLeaves) fetchLeaves()
     if (fetchPermits) fetchPermits()
+    fetchSalesVisits()
   }, [])
 
   // Filter Logic (For Web UI Display)
@@ -384,51 +424,6 @@ export default function RekapAbsensi({
     const currentMonthNum = parseInt(month, 10) - 1
     const currentYear = year
 
-    // Filter to ONLY include records from the selected report month
-    const currentMonthAttendances = filteredAttendances.filter(att => att.date.startsWith(activeMonth))
-
-    // Helper functions for Indonesian translation in PDF
-    const getTypeLabel = (type: string | null | undefined) => {
-      if (!type || type === 'kantor') return 'Kantor'
-      if (type === 'kunjungan') return 'Kunjungan Kerja'
-      if (type === 'client') return 'Kunjungan Klien'
-      return type
-    }
-
-    const getStatusInLabel = (status: string | null | undefined) => {
-      if (!status) return '-'
-      if (status === 'early') return 'Lebih Awal'
-      if (status === 'normal') return 'Normal'
-      if (status === 'late') return 'Terlambat'
-      return status
-    }
-
-    const getStatusOutLabel = (status: string | null | undefined) => {
-      if (!status) return '-'
-      if (status === 'normal') return 'Normal'
-      if (status === 'early_departure') return 'Pulang Cepat'
-      if (status === 'overtime') return 'Lembur'
-      return status
-    }
-
-    // Calculations for Totals in PDF (based on selected month's filtered data)
-    const pdfCountType = (type: string | null) => {
-      return currentMonthAttendances.filter(att => {
-        if (type === 'kantor') {
-          return !att.attendance_type || att.attendance_type === 'kantor'
-        }
-        return att.attendance_type === type
-      }).length
-    }
-
-    const pdfCountStatusIn = (status: string) => {
-      return currentMonthAttendances.filter(att => att.status_in === status).length
-    }
-
-    const pdfCountStatusOut = (status: string) => {
-      return currentMonthAttendances.filter(att => att.status_out === status).length
-    }
-
     const getIndonesianMonthName = (monthNum: number) => {
       const months = [
         'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -439,69 +434,122 @@ export default function RekapAbsensi({
 
     const indonesianMonthName = getIndonesianMonthName(currentMonthNum)
 
-    const htmlContent = `
-      <html>
-        <head>
-          <title>Rekap Absensi Karyawan - ${indonesianMonthName} ${currentYear}</title>
-          <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; padding: 25px; line-height: 1.5; }
-            h1 { text-align: center; color: #1e293b; margin-bottom: 5px; font-size: 22px; font-weight: 800; }
-            h3 { text-align: center; color: #64748b; font-weight: 600; font-size: 13px; margin-top: 0; margin-bottom: 25px; }
-            .meta { margin-bottom: 25px; font-size: 11px; padding: 15px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
-            .meta table { width: 100%; border-collapse: collapse; }
-            .meta td { padding: 4px 8px; border: none; }
-            .meta td.label { font-weight: bold; color: #475569; width: 18%; }
-            .totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 25px; }
-            .totals-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-            .totals-card .count { font-size: 18px; font-weight: 800; color: #0f172a; margin-top: 4px; }
-            .totals-card .label { font-size: 8px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-            table.data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10px; }
-            table.data-table th, table.data-table td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }
-            table.data-table th { background-color: #f1f5f9; font-weight: 700; color: #334155; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; }
-            .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; text-transform: capitalize; border: 1px solid transparent; }
-            .badge-kantor { background-color: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
-            .badge-kunjungan { background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; }
-            .badge-client { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
-            .badge-normal { background-color: #ecfdf5; color: #047857; border-color: #a7f3d0; }
-            .badge-late { background-color: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
-            .badge-early { background-color: #fffbeb; color: #b45309; border-color: #fde68a; }
-            .badge-early_departure { background-color: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
-            .badge-overtime { background-color: #fffbeb; color: #b45309; border-color: #fde68a; }
-            @media print {
-              button { display: none; }
-              @page { margin: 1.5cm; }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Laporan Rekap Absensi Karyawan</h1>
-          <h3>Bulan: ${indonesianMonthName} ${currentYear} | Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</h3>
-          
-          <div class="meta">
-            <table>
-              <tr>
-                <td class="label">Pencarian Karyawan:</td>
-                <td>${search || 'Semua Karyawan'}</td>
-                <td class="label">Perusahaan:</td>
-                <td>${selectedCompany === 'all' ? 'Semua Perusahaan' : selectedCompany}</td>
-              </tr>
-              <tr>
-                <td class="label">Rentang Tanggal:</td>
-                <td>${startDate && endDate ? `${formatDate(startDate)} s/d ${formatDate(endDate)}` : startDate ? `Sejak ${formatDate(startDate)}` : endDate ? `Hingga ${formatDate(endDate)}` : 'Semua Tanggal'}</td>
-                <td class="label">Status Masuk:</td>
-                <td>${statusIn === 'all' ? 'Semua Status' : statusIn === 'early' ? 'Lebih Awal' : statusIn === 'normal' ? 'Normal' : 'Terlambat'}</td>
-              </tr>
-              <tr>
-                <td class="label">Status Keluar:</td>
-                <td colspan="3">${statusOut === 'all' ? 'Semua Status' : statusOut === 'normal' ? 'Normal' : statusOut === 'early_departure' ? 'Pulang Cepat' : 'Lembur'}</td>
-              </tr>
-            </table>
-          </div>
+    let title = ''
+    let subtitle = ''
+    let contentHtml = ''
 
+    if (viewMode === 'monthly') {
+      title = 'Laporan Ringkasan Absensi Bulanan Karyawan'
+      subtitle = `Bulan: ${indonesianMonthName} ${currentYear} | Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+      
+      contentHtml = `
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 5%; text-align: center;">No</th>
+                <th>Nama Karyawan</th>
+                <th>Nomor Induk</th>
+                <th>Divisi</th>
+                <th>Perusahaan</th>
+                <th style="text-align: center;">Hari Kerja</th>
+                <th style="text-align: center;">Hadir</th>
+                <th style="text-align: center;">Terlambat</th>
+                <th style="text-align: center;">Cuti / Izin</th>
+                <th style="text-align: center;">Alpa</th>
+                <th style="text-align: center;">Kunjungan Sales</th>
+                <th style="text-align: center;">Kunjungan Klien</th>
+                <th style="text-align: center;">Rasio Kehadiran</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredMonthlyStats.length === 0 ? `
+                <tr>
+                  <td colSpan="13" style="text-align: center; padding: 20px; color: #64748b;">
+                    Tidak ada data ringkasan absensi karyawan.
+                  </td>
+                </tr>
+              ` : filteredMonthlyStats.map(({ employee, workingDays, present, late, leave, absent, salesCount, clientCount, presenceRate }, idx) => `
+                <tr>
+                  <td style="text-align: center;">${idx + 1}</td>
+                  <td><strong>${employee.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${employee.email}</span></td>
+                  <td>${employee.employee_number || '-'}</td>
+                  <td>${employee.division || '-'}</td>
+                  <td>${employee.company || '-'}</td>
+                  <td style="text-align: center; font-weight: bold;">${workingDays} hari</td>
+                  <td style="text-align: center; color: #047857; font-weight: bold;">${present} hari</td>
+                  <td style="text-align: center; color: #b91c1c; font-weight: bold;">${late} hari</td>
+                  <td style="text-align: center; color: #b45309; font-weight: bold;">${leave} hari</td>
+                  <td style="text-align: center; color: #64748b; font-weight: bold;">${absent} hari</td>
+                  <td style="text-align: center; color: #2563eb; font-weight: bold;">${salesCount || 0} kali</td>
+                  <td style="text-align: center; color: #7c3aed; font-weight: bold;">${clientCount || 0} kali</td>
+                  <td style="text-align: center; font-weight: bold; color: ${presenceRate >= 90 ? '#047857' : presenceRate >= 75 ? '#b45309' : '#b91c1c'}">${presenceRate}%</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+      `
+    } else {
+      title = 'Laporan Rekap Absensi Karyawan'
+      
+      let dateRangeStr = ''
+      if (startDate && endDate) {
+        dateRangeStr = `${formatDate(startDate)} s/d ${formatDate(endDate)}`
+      } else if (startDate) {
+        dateRangeStr = `Sejak ${formatDate(startDate)}`
+      } else if (endDate) {
+        dateRangeStr = `Hingga ${formatDate(endDate)}`
+      } else {
+        dateRangeStr = `Bulan ${indonesianMonthName} ${currentYear}`
+      }
+      subtitle = `Periode: ${dateRangeStr} | Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+
+      // Helper functions for Indonesian translation in PDF
+      const getTypeLabel = (type: string | null | undefined) => {
+        if (!type || type === 'kantor') return 'Kantor'
+        if (type === 'kunjungan') return 'Kunjungan Kerja'
+        if (type === 'client') return 'Kunjungan Klien'
+        return type
+      }
+
+      const getStatusInLabel = (status: string | null | undefined) => {
+        if (!status) return '-'
+        if (status === 'early') return 'Lebih Awal'
+        if (status === 'normal') return 'Normal'
+        if (status === 'late') return 'Terlambat'
+        return status
+      }
+
+      const getStatusOutLabel = (status: string | null | undefined) => {
+        if (!status) return '-'
+        if (status === 'normal') return 'Normal'
+        if (status === 'early_departure') return 'Pulang Cepat'
+        if (status === 'overtime') return 'Lembur'
+        return status
+      }
+
+      // Calculations for Totals in PDF (based on filtered data)
+      const pdfCountType = (type: string | null) => {
+        return filteredAttendances.filter(att => {
+          if (type === 'kantor') {
+            return !att.attendance_type || att.attendance_type === 'kantor'
+          }
+          return att.attendance_type === type
+        }).length
+      }
+
+      const pdfCountStatusIn = (status: string) => {
+        return filteredAttendances.filter(att => att.status_in === status).length
+      }
+
+      const pdfCountStatusOut = (status: string) => {
+        return filteredAttendances.filter(att => att.status_out === status).length
+      }
+
+      contentHtml = `
           <div class="totals" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
             <div class="totals-card">
-              <div class="label">Total Absen (Bulan Ini)</div>
-              <div class="count">${currentMonthAttendances.length}</div>
+              <div class="label">Total Kehadiran</div>
+              <div class="count">${filteredAttendances.length}</div>
             </div>
             <div class="totals-card">
               <div class="label">Tipe Kantor</div>
@@ -548,13 +596,13 @@ export default function RekapAbsensi({
               </tr>
             </thead>
             <tbody>
-              ${currentMonthAttendances.length === 0 ? `
+              ${filteredAttendances.length === 0 ? `
                 <tr>
                   <td colSpan="9" style="text-align: center; padding: 20px; color: #64748b;">
-                    Tidak ada data absensi untuk bulan ini (${indonesianMonthName} ${currentYear}).
+                    Tidak ada data absensi untuk periode ini.
                   </td>
                 </tr>
-              ` : currentMonthAttendances.map((att, idx) => `
+              ` : filteredAttendances.map((att, idx) => `
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
                   <td><strong>${att.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${att.user.email}</span></td>
@@ -569,6 +617,70 @@ export default function RekapAbsensi({
               `).join('')}
             </tbody>
           </table>
+      `
+    }
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>${title} - ${indonesianMonthName} ${currentYear}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; padding: 25px; line-height: 1.5; }
+            h1 { text-align: center; color: #1e293b; margin-bottom: 5px; font-size: 20px; font-weight: 800; }
+            h3 { text-align: center; color: #64748b; font-weight: 600; font-size: 12px; margin-top: 0; margin-bottom: 25px; }
+            .meta { margin-bottom: 25px; font-size: 11px; padding: 15px; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
+            .meta table { width: 100%; border-collapse: collapse; }
+            .meta td { padding: 4px 8px; border: none; }
+            .meta td.label { font-weight: bold; color: #475569; width: 18%; }
+            .totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 25px; }
+            .totals-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; text-align: center; background-color: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+            .totals-card .count { font-size: 18px; font-weight: 800; color: #0f172a; margin-top: 4px; }
+            .totals-card .label { font-size: 8px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+            table.data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10px; }
+            table.data-table th, table.data-table td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }
+            table.data-table th { background-color: #f1f5f9; font-weight: 700; color: #334155; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; }
+            .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; text-transform: capitalize; border: 1px solid transparent; }
+            .badge-kantor { background-color: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
+            .badge-kunjungan { background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+            .badge-client { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
+            .badge-normal { background-color: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+            .badge-late { background-color: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
+            .badge-early { background-color: #fffbeb; color: #b45309; border-color: #fde68a; }
+            .badge-early_departure { background-color: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
+            .badge-overtime { background-color: #fffbeb; color: #b45309; border-color: #fde68a; }
+            @media print {
+              button { display: none; }
+              @page { margin: 1.5cm; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <h3>${subtitle}</h3>
+          
+          <div class="meta">
+            <table>
+              <tr>
+                <td class="label">Pencarian Karyawan:</td>
+                <td>${search || 'Semua Karyawan'}</td>
+                <td class="label">Perusahaan:</td>
+                <td>${selectedCompany === 'all' ? 'Semua Perusahaan' : selectedCompany}</td>
+              </tr>
+              <tr>
+                <td class="label">Rentang Tanggal:</td>
+                <td>${startDate && endDate ? `${formatDate(startDate)} s/d ${formatDate(endDate)}` : startDate ? `Sejak ${formatDate(startDate)}` : endDate ? `Hingga ${formatDate(endDate)}` : 'Semua Tanggal'}</td>
+                <td class="label">Status Masuk:</td>
+                <td>${statusIn === 'all' ? 'Semua Status' : statusIn === 'early' ? 'Lebih Awal' : statusIn === 'normal' ? 'Normal' : 'Terlambat'}</td>
+              </tr>
+              <tr>
+                <td class="label">Status Keluar:</td>
+                <td colspan="3">${statusOut === 'all' ? 'Semua Status' : statusOut === 'normal' ? 'Normal' : statusOut === 'early_departure' ? 'Pulang Cepat' : 'Lembur'}</td>
+              </tr>
+            </table>
+          </div>
+
+          ${contentHtml}
+
           <script>
             window.onload = function() {
               window.print();
@@ -594,9 +706,13 @@ export default function RekapAbsensi({
     }
     const indonesianMonthName = getIndonesianMonthName(parseInt(month, 10) - 1)
 
+    // Dynamic dates depending on viewMode
+    const activeStartDate = viewMode === 'monthly' ? '' : startDate
+    const activeEndDate = viewMode === 'monthly' ? '' : endDate
+
     console.log("DEBUG EXPORT: reportMonth =", reportMonth);
-    console.log("DEBUG EXPORT: startDate =", startDate);
-    console.log("DEBUG EXPORT: endDate =", endDate);
+    console.log("DEBUG EXPORT: activeStartDate =", activeStartDate);
+    console.log("DEBUG EXPORT: activeEndDate =", activeEndDate);
     console.log("DEBUG EXPORT: permits prop =", permits);
     console.log("DEBUG EXPORT: leaves prop =", leaves);
 
@@ -615,8 +731,8 @@ export default function RekapAbsensi({
     }
 
     const isDateInFilter = (dateStr: string) => {
-      return (!startDate || dateStr >= startDate) &&
-             (!endDate || dateStr <= endDate) &&
+      return (!activeStartDate || dateStr >= activeStartDate) &&
+             (!activeEndDate || dateStr <= activeEndDate) &&
              (!reportMonth || dateStr.startsWith(reportMonth))
     }
 
@@ -633,6 +749,24 @@ export default function RekapAbsensi({
         current.setDate(current.getDate() + 1)
       }
       return dates
+    }
+
+
+    // Helper to sanitize Excel Sheet names to avoid illegal characters and duplicate clashing
+    const sanitizeSheetName = (name: string, index: number, usedNames: Set<string>) => {
+      let cleanName = name.replace(/[\\\/\?\*\[\]]/g, '').trim()
+      cleanName = cleanName.substring(0, 26).toUpperCase()
+      if (!cleanName) cleanName = `EMPLOYEE_${index}`
+      
+      let finalName = cleanName
+      let suffix = 1
+      while (usedNames.has(finalName)) {
+        const suffixStr = ` - ${suffix}`
+        finalName = cleanName.substring(0, 31 - suffixStr.length) + suffixStr
+        suffix++
+      }
+      usedNames.add(finalName)
+      return finalName
     }
 
     // ── Fetch Sales & Client Visits from API ─────────────────────────────────
@@ -803,6 +937,19 @@ export default function RekapAbsensi({
       dates.forEach(dateStr => {
         if (!isDateInFilter(dateStr)) return
 
+        // Skip weekend cuti/izin to avoid double counting weekends in calculations
+        const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay()
+        const isSatOff = !!emp.saturday_off
+        const isSunOff = emp.sunday_off !== false
+        let isOff = false
+        if (dayOfWeek === 0 && isSunOff) {
+          isOff = true
+        } else if (dayOfWeek === 6 && isSatOff) {
+          isOff = true
+        }
+
+        if (isOff) return // Exclude weekend leaves
+
         leavesData.push({
           employeeId: emp.id,
           date: dateStr,
@@ -841,6 +988,19 @@ export default function RekapAbsensi({
       dates.forEach(dateStr => {
         if (!isDateInFilter(dateStr)) return
 
+        // Skip weekend cuti/izin to avoid double counting weekends in calculations
+        const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay()
+        const isSatOff = !!emp.saturday_off
+        const isSunOff = emp.sunday_off !== false
+        let isOff = false
+        if (dayOfWeek === 0 && isSunOff) {
+          isOff = true
+        } else if (dayOfWeek === 6 && isSatOff) {
+          isOff = true
+        }
+
+        if (isOff) return // Exclude weekend permits
+
         permitsData.push({
           employeeId: emp.id,
           date: dateStr,
@@ -874,18 +1034,106 @@ export default function RekapAbsensi({
       return a.employeeName.localeCompare(b.employeeName)
     })
 
-    // Group records by employee to generate a sheet for each
+    // Group records by employee, pre-populating with ALL employees to ensure zero activity employees are included
     const empMap = new Map<number, { employee: Employee; name: string; rows: ExportRow[] }>()
+    
+    // Sort employees by name to ensure consistent order
+    const sortedEmployees = [...employees].sort((a, b) => a.name.localeCompare(b.name))
+    
+    // Initialize all active employees in map
+    sortedEmployees.forEach(emp => {
+      // Filter mapping by search query and company filter
+      const matchesSearch = !search ||
+        emp.name.toLowerCase().includes(search.toLowerCase()) ||
+        emp.email.toLowerCase().includes(search.toLowerCase())
+      
+      const matchesCompany = selectedCompany === 'all' || emp.company === selectedCompany
+
+      if (matchesSearch && matchesCompany) {
+        empMap.set(emp.id, { employee: emp, name: emp.name, rows: [] })
+      }
+    })
+
+    // Populate rows
     mergedRows.forEach(row => {
       const uid = row.employeeId
-      if (!empMap.has(uid)) {
-        const emp = employees.find(e => e.id === uid)
-        empMap.set(uid, { employee: emp!, name: row.employeeName, rows: [] })
+      if (empMap.has(uid)) {
+        empMap.get(uid)!.rows.push(row)
       }
-      empMap.get(uid)!.rows.push(row)
     })
 
     Swal.close()
+
+    // Helper to calculate working days count for the filtered range
+    const getFilteredWorkingDays = (emp: Employee) => {
+      const lastDayOfMonth = new Date(parseInt(year, 10), parseInt(month, 10), 0).getDate()
+      
+      let startStr = `${activeMonth}-01`
+      let endStr = `${activeMonth}-${String(lastDayOfMonth).padStart(2, '0')}`
+
+      if (activeStartDate && activeStartDate > startStr) {
+        startStr = activeStartDate
+      }
+      if (activeEndDate && activeEndDate < endStr) {
+        endStr = activeEndDate
+      }
+
+      if (emp.join_date && emp.join_date > startStr) {
+        startStr = emp.join_date
+      }
+
+      const now = new Date()
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      
+      if (activeMonth === todayStr.substring(0, 7) && endStr >= todayStr) {
+        const empRows = empMap.get(emp.id)?.rows || []
+        const hasActivityToday = empRows.some(
+          (r) => r.date === todayStr && (r.type === 'Kantor' || r.type === 'Sales' || r.type === 'Klien') && r.timeIn !== '-'
+        )
+        const hasLeaveOrPermitToday = [...leaves, ...permits].some(
+          (lp) => Number(lp.user_id) === Number(emp.id) && lp.status === 'approved' && todayStr >= lp.start_date && todayStr <= lp.end_date
+        )
+
+        if (!hasActivityToday && !hasLeaveOrPermitToday) {
+          const yesterday = new Date(now)
+          yesterday.setDate(yesterday.getDate() - 1)
+          const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
+          if (endStr > yesterdayStr) {
+            endStr = yesterdayStr
+          }
+        } else {
+          if (endStr > todayStr) {
+            endStr = todayStr
+          }
+        }
+      }
+
+      if (startStr > endStr) return 0
+
+      let workingDays = 0
+      const isSatOff = !!emp.saturday_off
+      const isSunOff = emp.sunday_off !== false
+
+      const start = new Date(startStr + 'T00:00:00')
+      const end = new Date(endStr + 'T00:00:00')
+      const current = new Date(start)
+      
+      while (current <= end) {
+        const dayOfWeek = current.getDay()
+        let isOff = false
+        if (dayOfWeek === 0 && isSunOff) {
+          isOff = true
+        } else if (dayOfWeek === 6 && isSatOff) {
+          isOff = true
+        }
+
+        if (!isOff) {
+          workingDays++
+        }
+        current.setDate(current.getDate() + 1)
+      }
+      return workingDays
+    }
 
     // ── Build XML Worksheet ──────────────────────────────────────────────────
     const COL_WIDTHS = [35, 90, 80, 145, 90, 100, 180, 80, 90, 90, 220, 220]
@@ -917,12 +1165,15 @@ export default function RekapAbsensi({
     const buildWorksheetXML = (sheetName: string, rows: ExportRow[], employee?: Employee) => {
       let summaryRowsXML = ''
       if (employee) {
-        const workingDays = getWorkingDaysCount(activeMonth, employee)
+        const workingDays = getFilteredWorkingDays(employee)
         
-        const presentCount = rows.filter(r => 
-          (r.type === 'Kantor' || r.type === 'Sales' || r.type === 'Klien') && 
-          r.timeIn !== '-'
-        ).length
+        // Count unique dates present to avoid double-counting presence on multiple visits/checkins
+        const presentDates = new Set(
+          rows
+            .filter(r => (r.type === 'Kantor' || r.type === 'Sales' || r.type === 'Klien') && r.timeIn !== '-')
+            .map(r => r.date)
+        )
+        const presentCount = presentDates.size
 
         const lateCount = rows.filter(r => r.statusIn === 'late').length
         const overtimeCount = rows.filter(r => r.statusOut === 'overtime').length
@@ -943,14 +1194,19 @@ export default function RekapAbsensi({
         const totalLeavePermit = sickCount + cutiCount + izinCount
         const absentCount = Math.max(0, workingDays - presentCount - totalLeavePermit)
 
+        const salesCount = rows.filter(r => r.type === 'Sales').length
+        const clientCount = rows.filter(r => r.type === 'Klien').length
+
         summaryRowsXML = `
         <Row ss:Height="15"></Row>
         <Row ss:Height="22">
-          <Cell ss:StyleID="sSummaryHeader" ss:MergeAcross="8"><Data ss:Type="String">TOTAL KESELURUHAN (SUMMARY)</Data></Cell>
+          <Cell ss:StyleID="sSummaryHeader" ss:MergeAcross="10"><Data ss:Type="String">TOTAL KESELURUHAN (SUMMARY)</Data></Cell>
         </Row>
         <Row ss:Height="20">
           <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Hari Kerja</Data></Cell>
-          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Hadir (Masuk)</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Hadir</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Kunjungan Sales</Data></Cell>
+          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Kunjungan Klien</Data></Cell>
           <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Terlambat</Data></Cell>
           <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Lembur</Data></Cell>
           <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Pulang Cepat</Data></Cell>
@@ -962,6 +1218,8 @@ export default function RekapAbsensi({
         <Row ss:Height="20">
           <Cell ss:StyleID="sSummaryVal"><Data ss:Type="Number">${workingDays}</Data></Cell>
           <Cell ss:StyleID="sSummaryValGreen"><Data ss:Type="Number">${presentCount}</Data></Cell>
+          <Cell ss:StyleID="sSummaryVal"><Data ss:Type="Number">${salesCount}</Data></Cell>
+          <Cell ss:StyleID="sSummaryVal"><Data ss:Type="Number">${clientCount}</Data></Cell>
           <Cell ss:StyleID="sSummaryValOrange"><Data ss:Type="Number">${lateCount}</Data></Cell>
           <Cell ss:StyleID="sSummaryValYellow"><Data ss:Type="Number">${overtimeCount}</Data></Cell>
           <Cell ss:StyleID="sSummaryValRed"><Data ss:Type="Number">${earlyDepartureCount}</Data></Cell>
@@ -973,7 +1231,7 @@ export default function RekapAbsensi({
       }
 
       return `
-      <Worksheet ss:Name="${escXml(sheetName.substring(0, 31))}">
+      <Worksheet ss:Name="${escXml(sheetName)}">
         <Table>
           ${COL_WIDTHS.map(w => `<Column ss:Width="${w}"/>`).join('')}
           <Row ss:Height="28">
@@ -992,19 +1250,24 @@ export default function RekapAbsensi({
     }
 
     const buildSummarySheetXML = () => {
-      const COL_WIDTHS_SUM = [35, 160, 100, 100, 150, 80, 85, 80, 80, 80, 100, 100, 80, 80, 120]
+      const COL_WIDTHS_SUM = [35, 160, 100, 100, 150, 80, 85, 80, 80, 80, 100, 100, 80, 80, 100, 100, 120]
       const HEADERS_SUM = [
         'No', 'Nama Karyawan', 'Nomor Induk', 'Divisi', 'Perusahaan',
-        'Hari Kerja', 'Hadir (Masuk)', 'Terlambat', 'Lembur', 'Pulang Cepat',
-        'Izin (Non-Sakit)', 'Cuti (Non-Sakit)', 'Sakit', 'Alpa', 'Rasio Kehadiran (%)'
+        'Hari Kerja', 'Hadir', 'Terlambat', 'Lembur', 'Pulang Cepat',
+        'Izin (Non-Sakit)', 'Cuti (Non-Sakit)', 'Sakit', 'Alpa', 'Kunjungan Sales', 'Kunjungan Klien', 'Rasio Kehadiran (%)'
       ]
 
       const rowsXML = Array.from(empMap.values()).map(({ employee, name, rows }, idx) => {
-        const workingDays = getWorkingDaysCount(activeMonth, employee)
-        const presentCount = rows.filter(r => 
-          (r.type === 'Kantor' || r.type === 'Sales' || r.type === 'Klien') && 
-          r.timeIn !== '-'
-        ).length
+        const workingDays = getFilteredWorkingDays(employee)
+        
+        // Count unique dates present
+        const presentDates = new Set(
+          rows
+            .filter(r => (r.type === 'Kantor' || r.type === 'Sales' || r.type === 'Klien') && r.timeIn !== '-')
+            .map(r => r.date)
+        )
+        const presentCount = presentDates.size
+
         const lateCount = rows.filter(r => r.statusIn === 'late').length
         const overtimeCount = rows.filter(r => r.statusOut === 'overtime').length
         const earlyDepartureCount = rows.filter(r => r.statusOut === 'early_departure').length
@@ -1023,6 +1286,8 @@ export default function RekapAbsensi({
 
         const totalLeavePermit = sickCount + cutiCount + izinCount
         const absentCount = Math.max(0, workingDays - presentCount - totalLeavePermit)
+        const salesCount = rows.filter(r => r.type === 'Sales').length
+        const clientCount = rows.filter(r => r.type === 'Klien').length
         const presenceRate = workingDays > 0 
           ? Math.min(100, Math.round((presentCount / workingDays) * 100))
           : 0
@@ -1045,6 +1310,8 @@ export default function RekapAbsensi({
           ${cell(String(cutiCount), 'Number', 'sSummaryVal')}
           ${cell(String(sickCount), 'Number', 'sSummaryValYellow')}
           ${cell(String(absentCount), 'Number', 'sSummaryValRed')}
+          ${cell(String(salesCount), 'Number', 'sSummaryVal')}
+          ${cell(String(clientCount), 'Number', 'sSummaryVal')}
           ${cell(String(presenceRate) + '%', 'String', presenceRate >= 90 ? 'sSummaryValGreen' : presenceRate >= 75 ? 'sSummaryValYellow' : 'sSummaryValRed')}
         </Row>`
       }).join('\n')
@@ -1071,9 +1338,14 @@ export default function RekapAbsensi({
     worksheetsXML.push(buildWorksheetXML('REKAP ABSENSI GABUNGAN', mergedRows))
     worksheetsXML.push(buildSummarySheetXML())
 
+    const usedSheetNames = new Set<string>()
+    usedSheetNames.add('REKAP ABSENSI GABUNGAN')
+    usedSheetNames.add('RINGKASAN BULANAN')
+
     empMap.forEach(({ employee, name, rows }) => {
       const sortedRows = [...rows].sort((a, b) => a.date.localeCompare(b.date))
-      worksheetsXML.push(buildWorksheetXML(name.toUpperCase(), sortedRows, employee))
+      const safeSheetName = sanitizeSheetName(name, employee.id, usedSheetNames)
+      worksheetsXML.push(buildWorksheetXML(safeSheetName, sortedRows, employee))
     })
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -1380,6 +1652,7 @@ export default function RekapAbsensi({
               fetchAttendances()
               if (fetchLeaves) fetchLeaves()
               if (fetchPermits) fetchPermits()
+              fetchSalesVisits()
             }}
             disabled={attendanceLoading}
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-red-500 text-slate-650 hover:text-red-500 rounded-xl transition-all cursor-pointer disabled:opacity-50 shadow-sm hover:scale-[1.02] active:scale-[0.98] h-[38px] w-full lg:w-[38px]"
@@ -1699,13 +1972,15 @@ export default function RekapAbsensi({
                   <th className="py-4 px-6 text-center">Terlambat</th>
                   <th className="py-4 px-6 text-center">Cuti / Izin</th>
                   <th className="py-4 px-6 text-center">Alpa</th>
+                  <th className="py-4 px-6 text-center">Kunjungan Sales</th>
+                  <th className="py-4 px-6 text-center">Kunjungan Klien</th>
                   <th className="py-4 px-6">Rasio Kehadiran</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
                 {attendanceLoading ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
+                    <td colSpan={8} className="py-8 text-center text-slate-400 font-medium">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                         Memuat ringkasan absensi...
@@ -1714,12 +1989,12 @@ export default function RekapAbsensi({
                   </tr>
                 ) : paginatedMonthlyStats.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400 font-semibold">
+                    <td colSpan={9} className="py-8 text-center text-slate-400 font-semibold">
                       Data karyawan tidak ditemukan atau belum ada data.
                     </td>
                   </tr>
                 ) : (
-                  paginatedMonthlyStats.map(({ employee, workingDays, present, late, leave, absent, presenceRate }) => {
+                  paginatedMonthlyStats.map(({ employee, workingDays, present, late, leave, absent, salesCount, clientCount, presenceRate }) => {
                     const employeePhotoUrl = employee.photo 
                       ? (employee.photo.startsWith('http') ? employee.photo : `http://localhost:8000/storage/${employee.photo}`)
                       : null;
@@ -1737,7 +2012,7 @@ export default function RekapAbsensi({
                             )}
                             <div>
                               <p className="font-extrabold text-slate-800 font-quicksand">{employee.name}</p>
-                              <p className="text-[11px] text-slate-400 font-medium mt-0.5">{employee.email}</p>
+                              <p className="text-[11px] text-slate-450 font-medium mt-0.5">{employee.email}</p>
                               <div className="mt-1 flex flex-wrap gap-1.5 items-center">
                                 {employee.division && (
                                   <span className="inline-flex items-center text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 font-quicksand">
@@ -1747,8 +2022,8 @@ export default function RekapAbsensi({
                                 {employee.company && (
                                   <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
                                     employee.company.includes('Cakrawala') 
-                                      ? 'text-red-750 bg-red-50 border-red-200' 
-                                      : 'text-blue-750 bg-blue-50 border-blue-200'
+                                      ? 'text-red-755 bg-red-50 border-red-200' 
+                                      : 'text-blue-755 bg-blue-50 border-blue-200'
                                   }`}>
                                     {employee.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
                                   </span>
@@ -1771,6 +2046,12 @@ export default function RekapAbsensi({
                         </td>
                         <td className="py-4 px-6 text-center font-bold text-slate-400">
                           {absent} hari
+                        </td>
+                        <td className="py-4 px-6 text-center font-bold text-blue-600">
+                          {salesCount || 0} kunjungan
+                        </td>
+                        <td className="py-4 px-6 text-center font-bold text-purple-650">
+                          {clientCount || 0} kunjungan
                         </td>
                         <td className="py-4 px-6">
                           <div className="space-y-1.5 max-w-[150px]">
@@ -1929,13 +2210,13 @@ export default function RekapAbsensi({
               Data karyawan tidak ditemukan.
             </div>
           ) : (
-            paginatedMonthlyStats.map(({ employee, workingDays, present, late, leave, absent, presenceRate }) => {
+            paginatedMonthlyStats.map(({ employee, workingDays, present, late, leave, absent, salesCount, clientCount, presenceRate }) => {
               const employeePhotoUrl = employee.photo 
                 ? (employee.photo.startsWith('http') ? employee.photo : `http://localhost:8000/storage/${employee.photo}`)
                 : null;
 
               return (
-                <div key={employee.id} className="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm space-y-4 hover:border-orange-200 hover:shadow-md transition-all font-quicksand font-quicksand">
+                <div key={employee.id} className="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm space-y-4 hover:border-orange-200 hover:shadow-md transition-all font-quicksand">
                   {/* Header: Avatar, Name, Email & Division */}
                   <div className="flex items-center gap-3">
                     {employeePhotoUrl ? (
@@ -1968,26 +2249,34 @@ export default function RekapAbsensi({
                   </div>
 
                   {/* Grid of Stats */}
-                  <div className="grid grid-cols-3 gap-2 bg-orange-50/10 p-3 border border-orange-100/50 rounded-xl text-center">
+                  <div className="grid grid-cols-4 gap-2 bg-orange-50/10 p-3 border border-orange-100/50 rounded-xl text-center">
                     <div className="space-y-1">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Hari Kerja</span>
-                      <p className="text-xs font-bold text-slate-800">{workingDays} hari</p>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block font-quicksand">Kerja</span>
+                      <p className="text-xs font-bold text-slate-800 font-quicksand">{workingDays}h</p>
                     </div>
                     <div className="space-y-1 border-l border-orange-100/50 pl-1">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Hadir</span>
-                      <p className="text-xs font-bold text-emerald-600">{present} hari</p>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block font-quicksand">Hadir</span>
+                      <p className="text-xs font-bold text-emerald-600 font-quicksand">{present}h</p>
                     </div>
                     <div className="space-y-1 border-l border-orange-100/50 pl-1">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Terlambat</span>
-                      <p className="text-xs font-bold text-rose-600">{late} hari</p>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block font-quicksand">Telat</span>
+                      <p className="text-xs font-bold text-rose-600 font-quicksand">{late}h</p>
+                    </div>
+                    <div className="space-y-1 border-l border-orange-100/50 pl-1">
+                      <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block font-quicksand">Izin</span>
+                      <p className="text-xs font-bold text-amber-600 font-quicksand">{leave}h</p>
                     </div>
                     <div className="space-y-1 pt-2 border-t border-orange-100/50">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Cuti / Izin</span>
-                      <p className="text-xs font-bold text-amber-600">{leave} hari</p>
+                      <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block font-quicksand">Alpa</span>
+                      <p className="text-xs font-bold text-slate-400 font-quicksand">{absent}h</p>
                     </div>
                     <div className="space-y-1 pt-2 border-t border-l border-orange-100/50 pl-1">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Alpa</span>
-                      <p className="text-xs font-bold text-slate-400">{absent} hari</p>
+                      <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block font-quicksand">Sales</span>
+                      <p className="text-xs font-bold text-blue-600 font-quicksand">{salesCount || 0}x</p>
+                    </div>
+                    <div className="space-y-1 pt-2 border-t border-l border-orange-100/50 pl-1">
+                      <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block font-quicksand">Klien</span>
+                      <p className="text-xs font-bold text-purple-600 font-quicksand">{clientCount || 0}x</p>
                     </div>
                     <div className="space-y-1 pt-2 border-t border-l border-orange-100/50 pl-1 opacity-0 select-none">
                       <span className="text-[9px] block">-</span>

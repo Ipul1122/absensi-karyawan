@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react'
+import React, { useState, useEffect, lazy, Suspense, useCallback } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { 
@@ -180,7 +180,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     return () => clearInterval(clock)
   }, [])
 
-  const fetchLeaves = async () => {
+  const fetchLeaves = useCallback(async () => {
     try {
       const response = await axios.get(`${baseUrl}/api/admin/leaves`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -191,9 +191,9 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     } catch (err) {
       console.error('Gagal mengambil data cuti:', err)
     }
-  }
+  }, [baseUrl, token])
 
-  const fetchPermits = async () => {
+  const fetchPermits = useCallback(async () => {
     try {
       const response = await axios.get(`${baseUrl}/api/admin/permits`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -204,7 +204,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     } catch (err) {
       console.error('Gagal mengambil data izin:', err)
     }
-  }
+  }, [baseUrl, token])
 
   const fetchSidebarCounts = async () => {
     if (document.hidden) return

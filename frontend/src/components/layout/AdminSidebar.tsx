@@ -37,6 +37,7 @@ interface AdminSidebarProps {
   onClose?: () => void
   counts?: {
     pendingCutiCount: number
+    pendingIzinCount: number
     pendingReimburseCount: number
     pendingLemburCount: number
     unpaidPayrollCount: number
@@ -58,6 +59,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
   const [isOperasionalOpen, setIsOperasionalOpen] = useState(() => {
     return [
       '/admin/cuti',
+      '/admin/izin',
       '/admin/inventaris',
       '/admin/reimbursement',
       '/admin/bonus',
@@ -93,6 +95,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
     if (
       [
         '/admin/cuti',
+        '/admin/izin',
         '/admin/inventaris',
         '/admin/reimbursement',
         '/admin/bonus',
@@ -139,6 +142,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       icon: ClipboardList,
       children: [
         { to: '/admin/cuti', label: 'Cuti', icon: CalendarDays },
+        { to: '/admin/izin', label: 'Izin', icon: ClipboardList },
         { to: '/admin/inventaris', label: 'Inventaris', icon: Package },
         { to: '/admin/reimbursement', label: 'Reimburse', icon: ReceiptText },
         { to: '/admin/bonus', label: 'Bonus', icon: Gift },
@@ -264,6 +268,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                             childBadge = counts?.pendingKaryawanCount ?? 0
                           } else if (child.to === '/admin/cuti') {
                             childBadge = counts?.pendingCutiCount ?? 0
+                          } else if (child.to === '/admin/izin') {
+                            childBadge = counts?.pendingIzinCount ?? 0
                           } else if (child.to === '/admin/reimbursement') {
                             childBadge = counts?.pendingReimburseCount ?? 0
                           } else if (child.to === '/admin/lembur') {

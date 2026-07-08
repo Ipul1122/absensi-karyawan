@@ -27,7 +27,7 @@ interface UserDetails {
   company?: string
 }
 
-interface LeaveRequest {
+interface PermitRequest {
   id: number
   user_id: number
   category: string
@@ -43,13 +43,13 @@ interface LeaveRequest {
   user: UserDetails
 }
 
-interface AdminCutiProps {
+interface AdminIzinProps {
   token: string
 }
 
-export default function AdminCuti({ token }: AdminCutiProps) {
+export default function AdminIzin({ token }: AdminIzinProps) {
   const baseUrl = API_BASE_URL || 'http://localhost:8000'
-  const [leaves, setLeaves] = useState<LeaveRequest[]>([])
+  const [permits, setPermits] = useState<PermitRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'pending_director' | 'approved' | 'rejected'>('all')
@@ -61,10 +61,10 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
   const [monthFilter, setMonthFilter] = useState(currentMonthStr)
 
-  // Form states for Admin Cuti submission (Ajukan Cuti Pribadi)
+  // Form states for Admin Izin submission (Ajukan Izin Pribadi)
   const [showAddModal, setShowAddModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [category, setCategory] = useState('Cuti Sakit')
+  const [category, setCategory] = useState('Izin Sakit Tanpa Surat Dokter')
   const [customCategory, setCustomCategory] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -73,11 +73,10 @@ export default function AdminCuti({ token }: AdminCutiProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const categories = [
-    'Cuti Sakit',
-    'Cuti Tahunan',
-    'Cuti Hamil',
-    'Cuti melahirkan',
-    'Cuti Keluarga',
+    'Izin Sakit Tanpa Surat Dokter',
+    'Izin Keperluan Keluarga Darurat',
+    'Izin Urusan Hukum / Pemerintahan',
+    'Izin Keagamaan',
     'LAINNYA'
   ]
 
@@ -114,7 +113,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     if (!startDate || !endDate || !reason) {
       Swal.fire({
         title: 'Form Belum Lengkap',
-        text: 'Harap isi tanggal mulai, tanggal selesai, dan alasan cuti.',
+        text: 'Harap isi tanggal mulai, tanggal selesai, dan alasan izin.',
         icon: 'warning',
         background: '#fffdfb',
         color: '#3c1105'
@@ -125,7 +124,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     if (category === 'LAINNYA' && !customCategory.trim()) {
       Swal.fire({
         title: 'Kategori Belum Lengkap',
-        text: 'Harap isi nama kategori cuti kustom Anda.',
+        text: 'Harap isi nama kategori izin kustom Anda.',
         icon: 'warning',
         background: '#fffdfb',
         color: '#3c1105'
@@ -159,7 +158,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     }
 
     try {
-      const response = await axios.post(`${baseUrl}/api/leaves`, formData, {
+      const response = await axios.post(`${baseUrl}/api/permits`, formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -175,14 +174,14 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           color: '#3c1105'
         })
         setShowAddModal(false)
-        setCategory('Cuti Sakit')
+        setCategory('Izin Sakit Tanpa Surat Dokter')
         setCustomCategory('')
         setStartDate('')
         setEndDate('')
         setReason('')
         setImageFile(null)
         setImagePreview(null)
-        fetchLeaves()
+        fetchPermits()
       }
     } catch (err: any) {
       console.error(err)
@@ -192,20 +191,20 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     }
   }
 
-  const fetchLeaves = async () => {
+  const fetchPermits = async () => {
     setLoading(true)
     try {
-      const response = await axios.get(`${baseUrl}/api/admin/leaves`, {
+      const response = await axios.get(`${baseUrl}/api/admin/permits`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
-        setLeaves(response.data.data)
+        setPermits(response.data.data)
       }
     } catch (err: any) {
       console.error(err)
       Swal.fire({
         title: 'Error',
-        text: 'Gagal memuat daftar pengajuan cuti.',
+        text: 'Gagal memuat daftar pengajuan izin.',
         icon: 'error',
         background: '#fffdfb',
         color: '#3c1105'
@@ -216,20 +215,20 @@ export default function AdminCuti({ token }: AdminCutiProps) {
   }
 
   useEffect(() => {
-    fetchLeaves()
+    fetchPermits()
   }, [])
 
   const handleApprove = (id: number, employeeName: string) => {
     Swal.fire({
-      title: 'Setujui Pengajuan Cuti',
-      text: `Apakah Anda yakin ingin menyetujui pengajuan cuti dari ${employeeName}?`,
+      title: 'Setujui Pengajuan Izin',
+      text: `Apakah Anda yakin ingin memverifikasi pengajuan izin dari ${employeeName}?`,
       input: 'textarea',
       inputPlaceholder: 'Tambahkan catatan persetujuan di sini (opsional)...',
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#10b981',
       cancelButtonColor: '#94a3b8',
-      confirmButtonText: 'Ya, Setujui!',
+      confirmButtonText: 'Ya, Verifikasi!',
       cancelButtonText: 'Batal',
       background: '#fffdfb',
       color: '#3c1105'
@@ -238,27 +237,27 @@ export default function AdminCuti({ token }: AdminCutiProps) {
         const adminNotes = result.value || ''
         try {
           const response = await axios.put(
-            `${baseUrl}/api/admin/leaves/${id}/approve`,
+            `${baseUrl}/api/admin/permits/${id}/approve`,
             { admin_notes: adminNotes },
             { headers: { Authorization: `Bearer ${token}` } }
           )
 
           if (response.data.status === 'success') {
-            const leaveItem = leaves.find((l) => l.id === id)
-            const companyName = leaveItem?.user?.company || 'PT Cakrawala Parama Internasional'
+            const permitItem = permits.find((p) => p.id === id)
+            const companyName = permitItem?.user?.company || 'PT Cakrawala Parama Internasional'
             const targetPhone = companyName.toLowerCase().includes('yasodana') ? '6289656931184' : '628170038421'
-            const categoryName = leaveItem ? (leaveItem.category === 'LAINNYA' ? leaveItem.custom_category : leaveItem.category) : ''
-            const duration = leaveItem ? calculateDays(leaveItem.start_date, leaveItem.end_date) : 0
-            const periodStr = leaveItem ? `${formatDate(leaveItem.start_date)} s/d ${formatDate(leaveItem.end_date)}` : ''
-            const reasonText = leaveItem?.reason || ''
+            const categoryName = permitItem ? (permitItem.category === 'LAINNYA' ? permitItem.custom_category : permitItem.category) : ''
+            const duration = permitItem ? calculateDays(permitItem.start_date, permitItem.end_date) : 0
+            const periodStr = permitItem ? `${formatDate(permitItem.start_date)} s/d ${formatDate(permitItem.end_date)}` : ''
+            const reasonText = permitItem?.reason || ''
 
             const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
-            const waMessage = `Halo Direktur, terdapat pengajuan cuti baru yang membutuhkan persetujuan Anda.\n\nDetail Pengajuan:\n- Nama Karyawan: ${employeeName}\n- Perusahaan: ${companyName}\n- Kategori Cuti: ${categoryName}\n- Masa Cuti: ${periodStr} (${duration} Hari)\n- Alasan: ${reasonText}\n\nSilakan buka tautan berikut untuk memproses persetujuan:\n${appUrl}/director/karyawan`
+            const waMessage = `Halo Direktur, terdapat pengajuan izin baru yang membutuhkan persetujuan Anda.\n\nDetail Pengajuan:\n- Nama Karyawan: ${employeeName}\n- Perusahaan: ${companyName}\n- Kategori Izin: ${categoryName}\n- Masa Izin: ${periodStr} (${duration} Hari)\n- Alasan: ${reasonText}\n\nSilakan buka tautan berikut untuk memproses persetujuan:\n${appUrl}/director/operasional`
             const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(waMessage)}`
 
             Swal.fire({
-              title: 'Disetujui!',
-              text: 'Pengajuan cuti berhasil disetujui. Ingin mengirim notifikasi WhatsApp ke Direktur?',
+              title: 'Diverifikasi!',
+              text: 'Pengajuan izin berhasil diverifikasi. Ingin mengirim notifikasi WhatsApp ke Direktur?',
               icon: 'success',
               showCancelButton: true,
               confirmButtonText: 'Ya, Kirim WhatsApp',
@@ -272,7 +271,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                 window.open(waUrl, '_blank')
               }
             })
-            fetchLeaves()
+            fetchPermits()
           }
         } catch (err: any) {
           console.error(err)
@@ -291,8 +290,8 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
   const handleReject = (id: number, employeeName: string) => {
     Swal.fire({
-      title: 'Tolak Pengajuan Cuti',
-      text: `Apakah Anda yakin ingin menolak pengajuan cuti dari ${employeeName}?`,
+      title: 'Tolak Pengajuan Izin',
+      text: `Apakah Anda yakin ingin menolak pengajuan izin dari ${employeeName}?`,
       input: 'textarea',
       inputPlaceholder: 'Tuliskan alasan penolakan di sini (opsional)...',
       icon: 'warning',
@@ -308,7 +307,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
         const adminNotes = result.value || ''
         try {
           const response = await axios.put(
-            `${baseUrl}/api/admin/leaves/${id}/reject`,
+            `${baseUrl}/api/admin/permits/${id}/reject`,
             { admin_notes: adminNotes },
             { headers: { Authorization: `Bearer ${token}` } }
           )
@@ -316,14 +315,14 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           if (response.data.status === 'success') {
             Swal.fire({
               title: 'Ditolak!',
-              text: 'Pengajuan cuti berhasil ditolak.',
+              text: 'Pengajuan izin berhasil ditolak.',
               icon: 'success',
               timer: 1500,
               showConfirmButton: false,
               background: '#fffdfb',
               color: '#3c1105'
             })
-            fetchLeaves()
+            fetchPermits()
           }
         } catch (err: any) {
           console.error(err)
@@ -342,8 +341,8 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
   const handleDelete = async (id: number, name: string) => {
     const result = await Swal.fire({
-      title: 'Hapus Pengajuan Cuti?',
-      text: `Apakah Anda yakin ingin menghapus pengajuan cuti untuk ${name}?`,
+      title: 'Hapus Pengajuan Izin?',
+      text: `Apakah Anda yakin ingin menghapus pengajuan izin untuk ${name}?`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
@@ -356,7 +355,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
     if (result.isConfirmed) {
       try {
-        const response = await axios.delete(`${baseUrl}/api/leaves/${id}`, {
+        const response = await axios.delete(`${baseUrl}/api/permits/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (response.data.status === 'success') {
@@ -367,7 +366,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
             background: '#fffdfb',
             color: '#3c1105'
           })
-          fetchLeaves()
+          fetchPermits()
         }
       } catch (err: any) {
         Swal.fire('Gagal', err.response?.data?.message || 'Gagal menghapus pengajuan.', 'error')
@@ -377,9 +376,9 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
   const viewProofImage = (imageUrl: string, name: string) => {
     Swal.fire({
-      title: `Bukti Pengajuan Cuti - ${name}`,
+      title: `Bukti Pengajuan Izin - ${name}`,
       imageUrl: getAssetUrl(imageUrl),
-      imageAlt: 'Bukti Cuti',
+      imageAlt: 'Bukti Izin',
       confirmButtonColor: '#ea580c',
       confirmButtonText: 'Tutup',
       background: '#fffdfb',
@@ -419,30 +418,30 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
-  // Filtered Leave list
-  const filteredLeaves = leaves.filter((leave) => {
+  // Filtered permit list
+  const filteredPermits = permits.filter((permit) => {
     const matchesSearch = 
-      leave.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      leave.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (leave.category === 'LAINNYA' ? leave.custom_category || '' : leave.category)
+      permit.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      permit.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (permit.category === 'LAINNYA' ? permit.custom_category || '' : permit.category)
         .toLowerCase()
         .includes(searchQuery.toLowerCase())
 
-    const matchesStatus = statusFilter === 'all' || leave.status === statusFilter
+    const matchesStatus = statusFilter === 'all' || permit.status === statusFilter
 
     const matchesMonth = !monthFilter || 
-                         leave.start_date.startsWith(monthFilter) || 
-                         leave.end_date.startsWith(monthFilter) || 
-                         leave.created_at.startsWith(monthFilter)
+                         permit.start_date.startsWith(monthFilter) || 
+                         permit.end_date.startsWith(monthFilter) || 
+                         permit.created_at.startsWith(monthFilter)
 
     return matchesSearch && matchesStatus && matchesMonth
   })
 
   // Statistics calculation
-  const totalPending = leaves.filter((l) => l.status === 'pending').length
-  const totalPendingDirector = leaves.filter((l) => l.status === 'pending_director').length
-  const totalApproved = leaves.filter((l) => l.status === 'approved').length
-  const totalRejected = leaves.filter((l) => l.status === 'rejected').length
+  const totalPending = permits.filter((p) => p.status === 'pending').length
+  const totalPendingDirector = permits.filter((p) => p.status === 'pending_director').length
+  const totalApproved = permits.filter((p) => p.status === 'approved').length
+  const totalRejected = permits.filter((p) => p.status === 'rejected').length
 
   const getIndonesianMonthName = (monthNum: number) => {
     const months = [
@@ -470,7 +469,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     const htmlContent = `
       <html>
         <head>
-          <title>Rekap Cuti Karyawan - ${indonesianMonthName} ${activeYear}</title>
+          <title>Rekap Izin Karyawan - ${indonesianMonthName} ${activeYear}</title>
           <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; padding: 25px; line-height: 1.5; }
             h1 { text-align: center; color: #1e293b; margin-bottom: 5px; font-size: 22px; font-weight: 800; }
@@ -493,7 +492,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           </style>
         </head>
         <body>
-          <h1>Laporan Rekapitulasi Cuti Karyawan</h1>
+          <h1>Laporan Rekapitulasi Izin Karyawan</h1>
           <h3>Bulan: ${indonesianMonthName} ${activeYear} | Tanggal Cetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</h3>
           
           <div class="meta">
@@ -501,7 +500,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
               <tr>
                 <td class="label">Pencarian Karyawan:</td>
                 <td>${searchQuery || 'Semua Karyawan'}</td>
-                <td class="label">Status Cuti:</td>
+                <td class="label">Status Izin:</td>
                 <td>${statusFilter === 'all' ? 'Semua Status' : statusFilter === 'approved' ? 'Disetujui' : statusFilter === 'rejected' ? 'Ditolak' : 'Menunggu Persetujuan'}</td>
               </tr>
             </table>
@@ -512,31 +511,31 @@ export default function AdminCuti({ token }: AdminCutiProps) {
               <tr>
                 <th style="width: 5%; text-align: center;">No</th>
                 <th>Nama Karyawan</th>
-                <th>Kategori Cuti</th>
-                <th>Tanggal Cuti</th>
+                <th>Kategori Izin</th>
+                <th>Tanggal Izin</th>
                 <th>Durasi</th>
                 <th>Alasan / Keterangan</th>
                 <th>Status</th>
-                <th>Catatan Admin</th>
+                <th>Catatan Admin/Direktur</th>
               </tr>
             </thead>
             <tbody>
-              ${filteredLeaves.length === 0 ? `
+              ${filteredPermits.length === 0 ? `
                 <tr>
                   <td colSpan="8" style="text-align: center; padding: 20px; color: #64748b;">
-                    Tidak ada data pengajuan cuti yang sesuai filter.
+                    Tidak ada data pengajuan izin yang sesuai filter.
                   </td>
                 </tr>
-              ` : filteredLeaves.map((leave, idx) => `
+              ` : filteredPermits.map((permit, idx) => `
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
-                  <td><strong>${leave.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${leave.user.email}</span></td>
-                  <td>${leave.category === 'LAINNYA' ? leave.custom_category : leave.category}</td>
-                  <td>${formatDate(leave.start_date)} s/d ${formatDate(leave.end_date)}</td>
-                  <td>${calculateDays(leave.start_date, leave.end_date)} Hari</td>
-                  <td>${leave.reason}</td>
-                  <td><span class="badge badge-${leave.status}">${getStatusLabel(leave.status)}</span></td>
-                  <td>${leave.admin_notes || '-'}</td>
+                  <td><strong>${permit.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${permit.user.email}</span></td>
+                  <td>${permit.category === 'LAINNYA' ? permit.custom_category : permit.category}</td>
+                  <td>${formatDate(permit.start_date)} s/d ${formatDate(permit.end_date)}</td>
+                  <td>${calculateDays(permit.start_date, permit.end_date)} Hari</td>
+                  <td>${permit.reason}</td>
+                  <td><span class="badge badge-${permit.status}">${getStatusLabel(permit.status)}</span></td>
+                  <td>${permit.admin_notes || '-'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -564,31 +563,18 @@ export default function AdminCuti({ token }: AdminCutiProps) {
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
         <meta charset="utf-8">
-        <!--[if gte mso 9]>
-        <xml>
-          <x:ExcelWorkbook>
-            <x:ExcelWorksheets>
-              <x:Name>Rekap Cuti</x:Name>
-              <x:WorksheetOptions>
-                <x:DisplayGridlines/>
-              </x:WorksheetOptions>
-            </x:ExcelWorksheet>
-          </x:ExcelWorksheets>
-        </x:ExcelWorkbook>
-      </xml>
-      <![endif]-->
-      <style>
-        body { font-family: sans-serif; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #089720ff; padding: 8px; text-align: left; }
-        th { background-color: #089720ff; font-weight: bold; }
-        .text-center { text-align: center; }
-        .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-        .subtitle { font-size: 12px; color: #089720ff; margin-bottom: 20px; }
-      </style>
+        <style>
+          body { font-family: sans-serif; }
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #089720ff; padding: 8px; text-align: left; }
+          th { background-color: #089720ff; font-weight: bold; }
+          .text-center { text-align: center; }
+          .title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+          .subtitle { font-size: 12px; color: #089720ff; margin-bottom: 20px; }
+        </style>
       </head>
       <body>
-        <div class="title">Laporan Rekapitulasi Cuti Karyawan</div>
+        <div class="title">Laporan Rekapitulasi Izin Karyawan</div>
         <div class="subtitle">Bulan: ${indonesianMonthName} ${activeYear} | Tanggal Ekspor: ${new Date().toLocaleDateString('id-ID')}</div>
         <table>
           <thead>
@@ -596,49 +582,49 @@ export default function AdminCuti({ token }: AdminCutiProps) {
               <th>No</th>
               <th>Nama Karyawan</th>
               <th>Email</th>
-              <th>Kategori Cuti</th>
+              <th>Kategori Izin</th>
               <th>Tanggal Mulai</th>
               <th>Tanggal Selesai</th>
               <th>Durasi (Hari)</th>
-              <th>Alasan Cuti</th>
+              <th>Alasan Izin</th>
               <th>Status</th>
-              <th>Catatan Admin</th>
+              <th>Catatan Admin/Direktur</th>
             </tr>
           </thead>
           <tbody>
     `
 
-    filteredLeaves.forEach((leave, idx) => {
-      const days = calculateDays(leave.start_date, leave.end_date)
-      const statusText = leave.status === 'approved' 
+    filteredPermits.forEach((permit, idx) => {
+      const days = calculateDays(permit.start_date, permit.end_date)
+      const statusText = permit.status === 'approved' 
         ? 'Disetujui' 
-        : leave.status === 'rejected' 
+        : permit.status === 'rejected' 
           ? 'Ditolak' 
-          : leave.status === 'pending_director' 
+          : permit.status === 'pending_director' 
             ? 'Menunggu Direktur' 
             : 'Menunggu Admin'
-      const catText = leave.category === 'LAINNYA' ? leave.custom_category : leave.category
+      const catText = permit.category === 'LAINNYA' ? permit.custom_category : permit.category
 
       excelContent += `
         <tr>
           <td class="text-center">${idx + 1}</td>
-          <td><b>${leave.user.name}</b></td>
-          <td>${leave.user.email}</td>
+          <td><b>${permit.user.name}</b></td>
+          <td>${permit.user.email}</td>
           <td>${catText}</td>
-          <td>${leave.start_date}</td>
-          <td>${leave.end_date}</td>
+          <td>${permit.start_date}</td>
+          <td>${permit.end_date}</td>
           <td class="text-center">${days} Hari</td>
-          <td>${leave.reason}</td>
+          <td>${permit.reason}</td>
           <td>${statusText}</td>
-          <td>${leave.admin_notes || '-'}</td>
+          <td>${permit.admin_notes || '-'}</td>
         </tr>
       `
     })
 
-    if (filteredLeaves.length === 0) {
+    if (filteredPermits.length === 0) {
       excelContent += `
         <tr>
-          <td colspan="10" class="text-center" style="color: #64748b; padding: 20px;">Tidak ada data cuti yang sesuai filter.</td>
+          <td colspan="10" class="text-center" style="color: #64748b; padding: 20px;">Tidak ada data izin yang sesuai filter.</td>
         </tr>
       `
     }
@@ -654,7 +640,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `Rekap_Cuti_${indonesianMonthName.replace(/\s+/g, '_')}_${activeYear}.xls`
+    link.download = `Rekap_Izin_${indonesianMonthName.replace(/\s+/g, '_')}_${activeYear}.xls`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -690,19 +676,19 @@ export default function AdminCuti({ token }: AdminCutiProps) {
       {/* Header Panel */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-bold text-slate-800">Manajemen Cuti Karyawan</h3>
-          <p className="text-xs text-slate-500 font-medium">Setujui, tolak, dan pantau pengajuan cuti serta ketidakhadiran karyawan.</p>
+          <h3 className="text-lg font-bold text-slate-800">Manajemen Izin Karyawan</h3>
+          <p className="text-xs text-slate-500 font-medium">Verifikasi, tolak, dan pantau pengajuan izin tidak masuk kerja dari karyawan.</p>
         </div>
         
         <div className="flex items-center gap-2.5">
-          {/* Ajukan Cuti Button */}
+          {/* Ajukan Izin Button */}
           <button
             onClick={() => setShowAddModal(true)}
             className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-orange-500/10 cursor-pointer"
-            title="Ajukan Cuti Pribadi"
+            title="Ajukan Izin Pribadi"
           >
             <Plus className="w-4 h-4" />
-            Ajukan Cuti Pribadi
+            Ajukan Izin Pribadi
           </button>
 
           {/* Export PDF Button */}
@@ -811,7 +797,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           <div className="space-y-1 col-span-1 md:col-span-2">
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-slate-400" />
-              Status Cuti
+              Status Izin
             </label>
             <div className="flex bg-orange-50/30 border border-orange-100 rounded-xl p-1 justify-between h-[38px] items-center shadow-sm">
               {[
@@ -861,10 +847,10 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-orange-600"></div>
           </div>
-        ) : filteredLeaves.length === 0 ? (
+        ) : filteredPermits.length === 0 ? (
           <div className="text-center py-12 text-slate-400 font-medium font-quicksand">
             <AlertCircle className="w-10 h-10 mx-auto text-slate-300 mb-3" />
-            <p>Tidak ditemukan pengajuan cuti yang sesuai.</p>
+            <p>Tidak ditemukan pengajuan izin yang sesuai.</p>
           </div>
         ) : (
           <div className="border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
@@ -876,28 +862,28 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                     <th className="py-4 px-5">Kategori</th>
                     <th className="py-4 px-5">Dibuat</th>
                     <th className="py-4 px-5">Diterima</th>
-                    <th className="py-4 px-5">Masa Cuti</th>
+                    <th className="py-4 px-5">Masa Izin</th>
                     <th className="py-4 px-5">Keterangan / Alasan</th>
                     <th className="py-4 px-5">Bukti</th>
                     <th className="py-4 px-5">Status</th>
-                    <th className="py-4 px-5">Catatan Admin</th>
+                    <th className="py-4 px-5">Catatan Admin/Direktur</th>
                     <th className="py-4 px-5 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-orange-100 text-xs font-semibold text-slate-700">
-                  {filteredLeaves.map((leave) => {
-                    const days = calculateDays(leave.start_date, leave.end_date)
+                  {filteredPermits.map((permit) => {
+                    const days = calculateDays(permit.start_date, permit.end_date)
                     return (
-                      <tr key={leave.id} className="hover:bg-orange-50/10 transition-colors">
+                      <tr key={permit.id} className="hover:bg-orange-50/10 transition-colors">
                         {/* Employee detail */}
                         <td className="py-4 px-5">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs">
-                              {leave.user.name.charAt(0).toUpperCase()}
+                              {permit.user.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <span className="block font-bold text-slate-800">{leave.user.name}</span>
-                              <span className="text-[10px] text-slate-400 font-medium">{leave.user.email}</span>
+                              <span className="block font-bold text-slate-800">{permit.user.name}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">{permit.user.email}</span>
                             </div>
                           </div>
                         </td>
@@ -905,19 +891,19 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                         {/* Category */}
                         <td className="py-4 px-5">
                           <span className="block font-bold text-slate-800">
-                            {leave.category === 'LAINNYA' ? leave.custom_category : leave.category}
+                            {permit.category === 'LAINNYA' ? permit.custom_category : permit.category}
                           </span>
                         </td>
 
                         {/* Dibuat */}
                         <td className="py-4 px-5 text-slate-700">
-                          {formatDateTime(leave.created_at)}
+                          {formatDateTime(permit.created_at)}
                         </td>
 
                         {/* Diterima */}
                         <td className="py-4 px-5 text-slate-700">
-                          {leave.status === 'approved' || leave.status === 'rejected'
-                            ? formatDateTime(leave.updated_at)
+                          {permit.status === 'approved' || permit.status === 'rejected'
+                            ? formatDateTime(permit.updated_at)
                             : '-'}
                         </td>
 
@@ -925,21 +911,21 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                         <td className="py-4 px-5">
                           <span className="block text-slate-750 font-bold">{days} Hari</span>
                           <span className="text-[10px] text-slate-400 font-medium block">
-                            {formatDate(leave.start_date)} - {formatDate(leave.end_date)}
+                            {formatDate(permit.start_date)} - {formatDate(permit.end_date)}
                           </span>
                         </td>
 
                         {/* Reason */}
-                        <td className="py-4 px-5 max-w-xs truncate" title={leave.reason}>
-                          {leave.reason}
+                        <td className="py-4 px-5 max-w-xs truncate" title={permit.reason}>
+                          {permit.reason}
                         </td>
 
                         {/* Evidence */}
                         <td className="py-4 px-5">
-                          {leave.image ? (
+                          {permit.image ? (
                             <button
                               type="button"
-                              onClick={() => viewProofImage(leave.image!, leave.user.name)}
+                              onClick={() => viewProofImage(permit.image!, permit.user.name)}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-all border border-orange-150 cursor-pointer text-[10px] font-bold"
                             >
                               <Eye className="w-3.5 h-3.5" /> Lihat
@@ -951,13 +937,13 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
                         {/* Status */}
                         <td className="py-4 px-5">
-                          {getStatusBadge(leave.status)}
+                          {getStatusBadge(permit.status)}
                         </td>
 
                         {/* Admin Notes */}
-                        <td className="py-4 px-5 max-w-[180px] truncate" title={leave.admin_notes || ''}>
-                          {leave.admin_notes ? (
-                            <span className="text-slate-600 font-medium italic">"{leave.admin_notes}"</span>
+                        <td className="py-4 px-5 max-w-[180px] truncate" title={permit.admin_notes || ''}>
+                          {permit.admin_notes ? (
+                            <span className="text-slate-600 font-medium italic">"{permit.admin_notes}"</span>
                           ) : (
                             <span className="text-[10px] text-slate-400 italic font-medium">-</span>
                           )}
@@ -966,18 +952,18 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                         {/* Actions */}
                         <td className="py-4 px-5 text-right">
                           <div className="flex justify-end gap-1.5">
-                            {(leave.status === 'pending' || leave.status === 'rejected') && (
+                            {(permit.status === 'pending' || permit.status === 'rejected') && (
                               <button
-                                onClick={() => handleApprove(leave.id, leave.user.name)}
+                                onClick={() => handleApprove(permit.id, permit.user.name)}
                                 className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
-                                title="Setujui"
+                                title="Verifikasi"
                               >
                                 <Check className="w-4 h-4" />
                               </button>
                             )}
-                            {(leave.status === 'pending' || leave.status === 'approved' || leave.status === 'pending_director') && (
+                            {(permit.status === 'pending' || permit.status === 'approved' || permit.status === 'pending_director') && (
                               <button
-                                onClick={() => handleReject(leave.id, leave.user.name)}
+                                onClick={() => handleReject(permit.id, permit.user.name)}
                                 className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
                                 title="Tolak"
                               >
@@ -985,8 +971,8 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                               </button>
                             )}
                             <button
-                              onClick={() => handleDelete(leave.id, leave.user.name)}
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-800 rounded-lg transition-all cursor-pointer shadow-sm"
+                              onClick={() => handleDelete(permit.id, permit.user.name)}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-850 rounded-lg transition-all cursor-pointer shadow-sm"
                               title="Hapus"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1003,7 +989,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
         )}
       </section>
 
-      {/* Modal Ajukan Cuti */}
+      {/* Modal Ajukan Izin */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white border border-slate-100 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4 animate-scaleUp">
@@ -1016,13 +1002,13 @@ export default function AdminCuti({ token }: AdminCutiProps) {
             </button>
 
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Ajukan Cuti Pribadi</h3>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Silakan isi formulir di bawah untuk mengajukan cuti Anda sendiri. Pengajuan akan diteruskan langsung ke Direktur.</p>
+              <h3 className="text-sm font-bold text-slate-800">Ajukan Izin Pribadi</h3>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Silakan isi formulir di bawah untuk mengajukan izin tidak masuk kerja Anda sendiri. Pengajuan akan diteruskan langsung ke Direktur.</p>
             </div>
 
             <form onSubmit={handleAddSubmit} className="space-y-4">
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kategori Cuti</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kategori Izin</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
@@ -1041,7 +1027,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                     type="text"
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder="Tulis kategori cuti..."
+                    placeholder="Tulis kategori izin..."
                     className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold"
                   />
                 </div>
@@ -1069,12 +1055,12 @@ export default function AdminCuti({ token }: AdminCutiProps) {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alasan Cuti</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alasan Izin</label>
                 <textarea
                   rows={3}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="Berikan alasan detail cuti..."
+                  placeholder="Berikan alasan detail izin..."
                   className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold resize-none"
                 />
               </div>

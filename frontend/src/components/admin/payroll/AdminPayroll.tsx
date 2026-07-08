@@ -123,11 +123,12 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
   }, [])
 
   // Fetch payroll transactions for selected month
-  const fetchPayrolls = async () => {
+  const fetchPayrolls = async (signal?: AbortSignal) => {
     setLoadingPayroll(true)
     try {
       const response = await axios.get(`http://localhost:8000/api/admin/payroll?period_month=${selectedMonth}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        signal: signal
       })
       if (response.data.status === 'success') {
         setPayrollRecords(response.data.data)
@@ -136,15 +137,23 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
         }
       }
     } catch (err) {
-      console.error(err)
-      setPayrollRecords([])
+      if (!axios.isCancel(err)) {
+        console.error(err)
+        setPayrollRecords([])
+      }
     } finally {
-      setLoadingPayroll(false)
+      if (!signal || !signal.aborted) {
+        setLoadingPayroll(false)
+      }
     }
   }
 
   useEffect(() => {
-    fetchPayrolls()
+    const controller = new AbortController()
+    fetchPayrolls(controller.signal)
+    return () => {
+      controller.abort()
+    }
   }, [selectedMonth])
 
   // Export to PDF
@@ -563,7 +572,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
     }
   }
 
-  // Delete Payroll record
+  // Delete Payroll record dengan Optimistic UI
   const handleDeletePayroll = (record: PayrollRecord) => {
     Swal.fire({
       title: 'Hapus Rekam Jejak Gaji?',
@@ -576,6 +585,11 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
       cancelButtonText: 'Batal'
     }).then(async (result) => {
       if (result.isConfirmed) {
+        // Backup data untuk rollback
+        const backupRecords = [...payrollRecords];
+        // Hapus langsung dari UI
+        setPayrollRecords(prev => prev.filter(r => r.id !== record.id));
+
         try {
           const response = await axios.delete(
             `http://localhost:8000/api/admin/payroll/${record.id}`,
@@ -589,10 +603,14 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
               timer: 1500,
               showConfirmButton: false
             })
-            fetchPayrolls()
+          } else {
+            // Rollback jika status tidak sukses
+            setPayrollRecords(backupRecords);
           }
         } catch (err: any) {
           console.error(err)
+          // Rollback state ke kondisi semula
+          setPayrollRecords(backupRecords);
           const msg = err.response?.data?.message || 'Gagal menghapus data gaji.'
           Swal.fire({
             title: 'Gagal',

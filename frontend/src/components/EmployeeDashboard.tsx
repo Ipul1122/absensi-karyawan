@@ -26,6 +26,7 @@ import EmployeeHistory from './employee/absensi/EmployeeHistory'
 import EmployeeSettings from './employee/pengaturan/EmployeeSettings'
 import BiodataSetting from './employee/pengaturan/BiodataSetting'
 import EmployeeCuti from './employee/operasional/EmployeeCuti'
+import EmployeeIzin from './employee/operasional/EmployeeIzin'
 import EmployeePayroll from './employee/payroll/EmployeePayroll'
 import EmployeeReimbursement from './employee/operasional/EmployeeReimbursement'
 import EmployeeBonus from './employee/payroll/EmployeeBonus'
@@ -88,6 +89,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
   const [profile, setProfile] = useState<any | null>(null)
   const [sidebarCounts, setSidebarCounts] = useState({
     pendingCutiCount: 0,
+    pendingIzinCount: 0,
     pendingLemburCount: 0,
     pendingReimburseCount: 0,
     unpaidPayrollCount: 0,
@@ -377,6 +379,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     if (path.includes('cuti')) {
       return { title: 'Pengajuan Cuti', subtitle: 'Leave Request' }
     }
+    if (path.includes('izin')) {
+      return { title: 'Pengajuan Izin', subtitle: 'Permit Request' }
+    }
     if (path.includes('riwayat')) {
       return { title: 'Riwayat Presensi', subtitle: 'History Logs' }
     }
@@ -616,6 +621,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               } 
             />
             <Route 
+              path="izin" 
+              element={
+                <EmployeeIzin
+                  token={token}
+                />
+              } 
+            />
+            <Route 
               path="payroll" 
               element={
                 <EmployeePayroll
@@ -650,7 +663,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               } 
             />
             {/* Fallback route */}
-            <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         )}
       </main>

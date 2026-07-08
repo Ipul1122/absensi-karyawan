@@ -8,37 +8,32 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 
 #[Fillable([
     'user_id',
-    'title',
     'category',
-    'amount',
-    'expense_date',
-    'description',
-    'receipt_path',
+    'custom_category',
+    'start_date',
+    'end_date',
+    'reason',
+    'image',
     'status',
-    'admin_notes'
+    'admin_notes',
 ])]
-class Reimbursement extends Model
+class PermitRequest extends Model
 {
     use \App\Traits\RecycleBinable;
 
     protected static function boot()
     {
         parent::boot();
-        static::forceDeleted(function ($reimbursement) {
-            if ($reimbursement->receipt_path) {
-                $storagePath = str_replace('/storage/', '', $reimbursement->receipt_path);
+        static::forceDeleted(function ($permit) {
+            if ($permit->image) {
+                $storagePath = str_replace('/storage/', '', $permit->image);
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($storagePath);
             }
         });
     }
 
-    protected $casts = [
-        'amount' => 'double',
-        'expense_date' => 'date',
-    ];
-
     /**
-     * Get the user that owns the reimbursement request.
+     * Get the user that owns the permit request.
      */
     public function user(): BelongsTo
     {
@@ -51,6 +46,7 @@ class Reimbursement extends Model
     public function getRecycleBinName(): string
     {
         $userName = $this->user ? $this->user->name : ('User ID: ' . $this->user_id);
-        return "Reimbursement: " . $userName . " - " . $this->title . " (Rp " . number_format($this->amount, 0, ',', '.') . ")";
+        $cat = $this->category === 'other' ? $this->custom_category : $this->category;
+        return "Izin: " . $userName . " - " . ucfirst($cat ?: '') . " (" . $this->start_date . " s/d " . $this->end_date . ")";
     }
 }

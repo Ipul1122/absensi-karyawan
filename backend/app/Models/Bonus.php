@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 ])]
 class Bonus extends Model
 {
+    use \App\Traits\RecycleBinable;
+
     protected $casts = [
         'bonus_amount' => 'double',
         'bonus_date' => 'date',
@@ -26,5 +28,14 @@ class Bonus extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get a user-friendly name for this specific record in the Recycle Bin.
+     */
+    public function getRecycleBinName(): string
+    {
+        $userName = $this->user ? $this->user->name : ('User ID: ' . $this->user_id);
+        return "Tunjangan/Bonus: " . $userName . " - " . ($this->description ?: 'Tanpa keterangan') . " (Rp " . number_format($this->bonus_amount, 0, ',', '.') . ")";
     }
 }

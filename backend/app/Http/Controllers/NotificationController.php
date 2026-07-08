@@ -11,6 +11,7 @@ use App\Models\Payroll;
 use App\Models\SalaryConfiguration;
 use App\Models\Bonus;
 use App\Models\Inventory;
+use App\Models\PermitRequest;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
@@ -27,20 +28,23 @@ class NotificationController extends Controller
             $pendingCuti = LeaveRequest::where('user_id', $user->id)->whereIn('status', ['pending', 'pending_director'])->count();
             $pendingLembur = Overtime::where('user_id', $user->id)->whereIn('status', ['pending', 'pending_director'])->count();
             $pendingReimburse = Reimbursement::where('user_id', $user->id)->whereIn('status', ['pending', 'pending_director'])->count();
+            $pendingIzin = PermitRequest::where('user_id', $user->id)->whereIn('status', ['pending', 'pending_director'])->count();
             $unpaidPayroll = Payroll::where('user_id', $user->id)->where('status', 'unpaid')->count();
 
             $counts = [
                 'pendingCutiCount' => $pendingCuti,
                 'pendingLemburCount' => $pendingLembur,
                 'pendingReimburseCount' => $pendingReimburse,
+                'pendingIzinCount' => $pendingIzin,
                 'unpaidPayrollCount' => $unpaidPayroll,
-                'operasionalCount' => $pendingCuti + $pendingLembur + $pendingReimburse,
+                'operasionalCount' => $pendingCuti + $pendingLembur + $pendingReimburse + $pendingIzin,
             ];
         } elseif ($user->role === 'admin') {
             $pendingKaryawan = User::where('role', 'employee')->where('status', 'pending')->count();
             $pendingCuti = LeaveRequest::where('status', 'pending')->count();
             $pendingLembur = Overtime::where('status', 'pending')->count();
             $pendingReimburse = Reimbursement::where('status', 'pending')->count();
+            $pendingIzin = PermitRequest::where('status', 'pending')->count();
             $unpaidPayroll = Payroll::where('status', 'unpaid')->count();
 
             $counts = [
@@ -48,8 +52,9 @@ class NotificationController extends Controller
                 'pendingCutiCount' => $pendingCuti,
                 'pendingLemburCount' => $pendingLembur,
                 'pendingReimburseCount' => $pendingReimburse,
+                'pendingIzinCount' => $pendingIzin,
                 'unpaidPayrollCount' => $unpaidPayroll,
-                'operasionalCount' => $pendingCuti + $pendingLembur + $pendingReimburse,
+                'operasionalCount' => $pendingCuti + $pendingLembur + $pendingReimburse + $pendingIzin,
             ];
         } elseif ($user->role === 'director') {
             $pendingKaryawan = User::whereIn('status', ['pending', 'pending_delete'])->count();
@@ -59,6 +64,7 @@ class NotificationController extends Controller
             $opCuti = LeaveRequest::where('status', 'pending_director')->count();
             $opLembur = Overtime::where('status', 'pending_director')->count();
             $opReimburse = Reimbursement::where('status', 'pending_director')->count();
+            $opIzin = PermitRequest::where('status', 'pending_director')->count();
             $opBonus = Bonus::where('status', 'pending')->count();
             $opInventory = Inventory::where('status', 'pending')->count();
 
@@ -66,7 +72,7 @@ class NotificationController extends Controller
                 'pendingKaryawanCount' => $pendingKaryawan,
                 'pendingGajiCount' => $pendingGaji,
                 'pendingPayrollCount' => $pendingPayroll,
-                'pendingOperasionalCount' => $opCuti + $opLembur + $opReimburse + $opBonus + $opInventory,
+                'pendingOperasionalCount' => $opCuti + $opLembur + $opReimburse + $opBonus + $opInventory + $opIzin,
             ];
         }
 

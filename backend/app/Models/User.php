@@ -16,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, \App\Traits\RecycleBinable;
 
     /**
      * Get the attributes that should be cast.
@@ -42,6 +42,10 @@ class User extends Authenticatable
         parent::boot();
 
         static::deleting(function ($user) {
+            if (method_exists($user, 'isForceDeleting') && !$user->isForceDeleting()) {
+                return;
+            }
+
             // Delete user's own profile photo
             if ($user->photo) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $user->photo));
@@ -134,6 +138,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the overtime requests for the user.
+     */
+    public function overtimes()
+    {
+        return $this->hasMany(Overtime::class);
+    }
+
+    /**
      * Get the sales visits for the user.
      */
     public function salesVisits()
@@ -147,6 +159,14 @@ class User extends Authenticatable
     public function pushSubscriptions()
     {
         return $this->hasMany(PushSubscription::class);
+    }
+
+    /**
+     * Get a user-friendly name for this specific record in the Recycle Bin.
+     */
+    public function getRecycleBinName(): string
+    {
+        return "Karyawan: " . $this->name . " (" . $this->email . ")";
     }
 }
 

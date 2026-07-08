@@ -25,3 +25,4 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /database/seeders/PrivateDataSeeder.php
+/vendor.zip

@@ -108,6 +108,12 @@ class AttendanceController extends Controller
             if ($shift) {
                 $shiftStart = $shift->start_time;
                 $shiftEnd = $shift->end_time;
+                
+                // Override jam pulang untuk Shift Reguler di hari Sabtu menjadi 14:00:00
+                if (Carbon::now()->isSaturday() && $shift->name === 'Shift Reguler') {
+                    $shiftEnd = '14:00:00';
+                }
+                
                 $limitIn = Carbon::parse($shift->start_time)->addMinutes($shift->grace_period)->format('H:i:s');
             }
 
@@ -362,9 +368,68 @@ class AttendanceController extends Controller
             });
         }
         
-        $attendances = $query->orderBy('date', 'desc')
-            ->orderBy('clock_in', 'desc')
-            ->get();
+        // Filter by exact date (e.g. YYYY-MM-DD)
+        if ($request->filled('date')) {
+            $query->where('date', $request->date);
+        }
+
+        // Filter by month and year
+        if ($request->filled('month') && $request->filled('year')) {
+            $query->whereMonth('date', $request->month)
+                  ->whereYear('date', $request->year);
+        } elseif ($request->filled('month')) {
+            $parts = explode('-', $request->month);
+            if (count($parts) === 2) {
+                $query->whereYear('date', $parts[0])
+                      ->whereMonth('date', $parts[1]);
+            } else {
+                $query->whereMonth('date', $request->month);
+            }
+        }
+
+        // Filter by specific company
+        if ($request->filled('company') && $request->company !== 'all') {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('company', $request->company);
+            });
+        }
+
+        // Filter by search query (user name or email)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        $query->orderBy('date', 'desc')
+            ->orderBy('clock_in', 'desc');
+
+        // Support pagination if explicitly requested via page or paginate parameter
+        if ($request->has('page') || $request->filled('paginate')) {
+            $limit = $request->input('limit', 15);
+            $paginated = $query->paginate($limit);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $paginated->items(),
+                'pagination' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                    'per_page' => $paginated->perPage(),
+                    'total' => $paginated->total(),
+                ]
+            ]);
+        }
+
+        // Default query limit optimization: if no filters or pagination are requested,
+        // default to loading only the last 60 days of attendances to avoid memory bloat.
+        if (!$request->filled('date') && !$request->filled('month') && !$request->filled('year') && !$request->filled('all')) {
+            $query->where('date', '>=', Carbon::now()->subDays(60)->toDateString());
+        }
+
+        $attendances = $query->get();
 
         return response()->json([
             'status' => 'success',

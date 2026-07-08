@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react'
+import React, { useState, useEffect, lazy, Suspense, useCallback } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { 
@@ -15,6 +15,7 @@ import {
 // Import layout components
 import AdminSidebar from './layout/AdminSidebar'
 import AdminNavbar, { AdminMobileNavbar } from './layout/AdminNavbar'
+import { API_BASE_URL } from '../utils/api'
 
 // Import sub-components (Lazy loaded for optimal code splitting & chunk sizing)
 const DashboardOverview = lazy(() => import('./admin/dashboard/DashboardOverview'))
@@ -23,6 +24,7 @@ const AbsenMandiriAdmin = lazy(() => import('./admin/absensi/AbsenMandiriAdmin')
 const AkunKaryawan = lazy(() => import('./admin/dataKaryawan/AkunKaryawan'))
 const LokasiKantor = lazy(() => import('./admin/pengaturan/LokasiKantor'))
 const AdminCuti = lazy(() => import('./admin/operasional/AdminCuti'))
+const AdminIzin = lazy(() => import('./admin/operasional/AdminIzin'))
 const AdminPayroll = lazy(() => import('./admin/payroll/AdminPayroll'))
 const AdminKelolaHariLibur = lazy(() => import('./admin/pengaturan/AdminKelolaHariLibur'))
 const AdminSalaryConfig = lazy(() => import('./admin/payroll/AdminSalaryConfig'))
@@ -32,11 +34,11 @@ const AdminBonus = lazy(() => import('./admin/payroll/AdminBonus'))
 const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
 const KelolaShift = lazy(() => import('./admin/pengaturan/KelolaShift'))
 
-import AddEmployeeModal from './admin/dataKaryawan/AddEmployeeModal'
-import EditEmployeeModal from './admin/dataKaryawan/EditEmployeeModal'
-import ViewEmployeeModal from './admin/dataKaryawan/ViewEmployeeModal'
-import DetailAttendanceModal from './admin/absensi/DetailAttendanceModal'
-import EditTimeModal from './admin/absensi/EditTimeModal'
+const AddEmployeeModal = lazy(() => import('./admin/dataKaryawan/AddEmployeeModal'))
+const EditEmployeeModal = lazy(() => import('./admin/dataKaryawan/EditEmployeeModal'))
+const ViewEmployeeModal = lazy(() => import('./admin/dataKaryawan/ViewEmployeeModal'))
+const DetailAttendanceModal = lazy(() => import('./admin/absensi/DetailAttendanceModal'))
+const EditTimeModal = lazy(() => import('./admin/absensi/EditTimeModal'))
 
 interface Employee {
   id: number
@@ -95,6 +97,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ user, token, onLogout, onProfileUpdate }: AdminDashboardProps) {
+  const baseUrl = API_BASE_URL || 'http://localhost:8000'
   const location = useLocation()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [attendances, setAttendances] = useState<Attendance[]>([])
@@ -102,6 +105,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const [sidebarCounts, setSidebarCounts] = useState({
     pendingKaryawanCount: 0,
     pendingCutiCount: 0,
+    pendingIzinCount: 0,
     pendingLemburCount: 0,
     pendingReimburseCount: 0,
     unpaidPayrollCount: 0,
@@ -116,10 +120,11 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
 
   // Admin's own attendance & leaves states
   const [leaves, setLeaves] = useState<any[]>([])
+  const [permits, setPermits] = useState<any[]>([])
 
   const fetchProfile = async () => {
     try {
-      await axios.get('http://localhost:8000/api/user/profile', {
+      await axios.get(`${baseUrl}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       })
     } catch (err) {
@@ -175,9 +180,9 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     return () => clearInterval(clock)
   }, [])
 
-  const fetchLeaves = async () => {
+  const fetchLeaves = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/leaves', {
+      const response = await axios.get(`${baseUrl}/api/admin/leaves`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -186,12 +191,25 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     } catch (err) {
       console.error('Gagal mengambil data cuti:', err)
     }
-  }
+  }, [baseUrl, token])
+
+  const fetchPermits = useCallback(async () => {
+    try {
+      const response = await axios.get(`${baseUrl}/api/admin/permits`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setPermits(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data izin:', err)
+    }
+  }, [baseUrl, token])
 
   const fetchSidebarCounts = async () => {
     if (document.hidden) return
     try {
-      const response = await axios.get('http://localhost:8000/api/sidebar/notification-counts', {
+      const response = await axios.get(`${baseUrl}/api/sidebar/notification-counts`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -205,7 +223,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const fetchEmployees = async () => {
     setLoading(true)
     try {
-      const response = await axios.get('http://localhost:8000/api/employees', {
+      const response = await axios.get(`${baseUrl}/api/employees`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -228,7 +246,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const fetchAttendances = async () => {
     setAttendanceLoading(true)
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/attendances', {
+      const response = await axios.get(`${baseUrl}/api/admin/attendances`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -250,7 +268,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
 
   const fetchOfficeSetting = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/office-setting', {
+      const response = await axios.get(`${baseUrl}/api/office-setting`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success' && response.data.data) {
@@ -273,6 +291,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     fetchAttendances()
     fetchOfficeSetting()
     fetchLeaves()
+    fetchPermits()
     fetchProfile()
   }, [])
 
@@ -597,7 +616,7 @@ ${window.location.origin}/director/karyawan`
     setUpdating(true)
     try {
       const response = await axios.put(
-        `http://localhost:8000/api/admin/attendances/${editingAttendance.id}`,
+        `${baseUrl}/api/admin/attendances/${editingAttendance.id}`,
         {
           clock_in: editClockIn || null,
           clock_out: editClockOut || null
@@ -642,7 +661,7 @@ ${window.location.origin}/director/karyawan`
     setSavingOffice(true)
     try {
       const response = await axios.put(
-        'http://localhost:8000/api/admin/office-setting',
+        `${baseUrl}/api/admin/office-setting`,
         {
           latitude: officeLatitude,
           longitude: officeLongitude,
@@ -742,6 +761,9 @@ ${window.location.origin}/director/karyawan`
     }
     if (path.includes('cuti')) {
       return { title: 'Persetujuan Cuti', subtitle: 'Leave Requests' }
+    }
+    if (path.includes('izin')) {
+      return { title: 'Persetujuan Izin', subtitle: 'Permit Requests' }
     }
     if (path.includes('akunKaryawan')) {
       return { title: 'Kelola Akun Karyawan', subtitle: 'Accounts Management' }
@@ -894,12 +916,15 @@ ${window.location.origin}/director/karyawan`
                   attendanceLoading={attendanceLoading}
                   attendances={attendances}
                   fetchAttendances={fetchAttendances}
+                  fetchLeaves={fetchLeaves}
+                  fetchPermits={fetchPermits}
                   formatDate={formatDate}
                   getStatusBadge={getStatusBadge}
                   setSelectedAttendance={setSelectedAttendance}
                   officeLatitude={officeLatitude}
                   officeLongitude={officeLongitude}
                   leaves={leaves}
+                  permits={permits}
                 />
               } 
             />
@@ -1045,6 +1070,14 @@ ${window.location.origin}/director/karyawan`
               } 
             />
             <Route 
+              path="izin" 
+              element={
+                <AdminIzin
+                  token={token}
+                />
+              } 
+            />
+            <Route 
               path="inventaris" 
               element={
                 <AdminInventaris
@@ -1093,94 +1126,106 @@ ${window.location.origin}/director/karyawan`
               } 
             />
             {/* Default fallback route */}
-            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         </Suspense>
       </main>
       </div>
 
       {/* Add Employee Modal */}
-      <Suspense fallback={null}>
-        <AddEmployeeModal
-          show={showModal}
-          onClose={() => setShowModal(false)}
-          onSubmit={handleAddEmployee}
-          submitting={submitting}
-        />
-      </Suspense>
+      {showModal && (
+        <Suspense fallback={null}>
+          <AddEmployeeModal
+            show={showModal}
+            onClose={() => setShowModal(false)}
+            onSubmit={handleAddEmployee}
+            submitting={submitting}
+          />
+        </Suspense>
+      )}
 
       {/* Edit Employee Modal */}
-      <EditEmployeeModal
-        show={showEditEmployeeModal}
-        onClose={() => setShowEditEmployeeModal(false)}
-        onSubmit={handleEditEmployee}
-        name={editName}
-        setName={setEditName}
-        email={editEmail}
-        password={editPassword}
-        setPassword={setEditPassword}
-        noRekening={editNoRekening}
-        setNoRekening={setEditNoRekening}
-        company={editCompany}
-        setCompany={setEditCompany}
-        whatsapp={editWhatsapp}
-        setWhatsapp={setEditWhatsapp}
-        saturdayOff={editSaturdayOff}
-        setSaturdayOff={setEditSaturdayOff}
-        sundayOff={editSundayOff}
-        setSundayOff={setEditSundayOff}
-        submitting={submittingEdit}
-        onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
-        officeLocation={editOfficeLocation}
-        setOfficeLocation={setEditOfficeLocation}
-      />
+      {showEditEmployeeModal && (
+        <Suspense fallback={null}>
+          <EditEmployeeModal
+            show={showEditEmployeeModal}
+            onClose={() => setShowEditEmployeeModal(false)}
+            onSubmit={handleEditEmployee}
+            name={editName}
+            setName={setEditName}
+            email={editEmail}
+            password={editPassword}
+            setPassword={setEditPassword}
+            noRekening={editNoRekening}
+            setNoRekening={setEditNoRekening}
+            company={editCompany}
+            setCompany={setEditCompany}
+            whatsapp={editWhatsapp}
+            setWhatsapp={setEditWhatsapp}
+            saturdayOff={editSaturdayOff}
+            setSaturdayOff={setEditSaturdayOff}
+            sundayOff={editSundayOff}
+            setSundayOff={setEditSundayOff}
+            submitting={submittingEdit}
+            onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
+            officeLocation={editOfficeLocation}
+            setOfficeLocation={setEditOfficeLocation}
+          />
+        </Suspense>
+      )}
 
       {/* View Biodata Modal (Admin) */}
-      <Suspense fallback={null}>
-        <ViewEmployeeModal
-          show={showViewModal}
-          onClose={() => setShowViewModal(false)}
-          profile={viewProfile}
-          onRefresh={() => {
-            fetchEmployees()
-            setShowEditEmployeeModal(false)
-          }}
-          token={token}
-        />
-      </Suspense>
+      {showViewModal && (
+        <Suspense fallback={null}>
+          <ViewEmployeeModal
+            show={showViewModal}
+            onClose={() => setShowViewModal(false)}
+            profile={viewProfile}
+            onRefresh={() => {
+              fetchEmployees()
+              setShowEditEmployeeModal(false)
+            }}
+            token={token}
+          />
+        </Suspense>
+      )}
 
       {/* Detail Attendance Modal */}
-      <Suspense fallback={null}>
-        <DetailAttendanceModal
-          attendance={selectedAttendance}
-          onClose={() => setSelectedAttendance(null)}
-          formatDate={formatDate}
-          getStatusBadge={getStatusBadge}
-          token={token}
-          officeLatitude={officeLatitude}
-          officeLongitude={officeLongitude}
-          onEditClick={selectedAttendance ? () => {
-            handleOpenEditModal(selectedAttendance)
-            setSelectedAttendance(null)
-          } : undefined}
-        />
-      </Suspense>
+      {selectedAttendance && (
+        <Suspense fallback={null}>
+          <DetailAttendanceModal
+            attendance={selectedAttendance}
+            onClose={() => setSelectedAttendance(null)}
+            formatDate={formatDate}
+            getStatusBadge={getStatusBadge}
+            token={token}
+            officeLatitude={officeLatitude}
+            officeLongitude={officeLongitude}
+            onEditClick={selectedAttendance ? () => {
+              handleOpenEditModal(selectedAttendance)
+              setSelectedAttendance(null)
+            } : undefined}
+          />
+        </Suspense>
+      )}
 
       {/* Edit Time Modal */}
-      <Suspense fallback={null}>
-        <EditTimeModal
-          show={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          onSubmit={handleEditTimeSubmit}
-          attendance={editingAttendance}
-          editClockIn={editClockIn}
-          setEditClockIn={setEditClockIn}
-          editClockOut={editClockOut}
-          setEditClockOut={setEditClockOut}
-          updating={updating}
-          formatDate={formatDate}
-        />
-      </Suspense>
+      {showEditModal && (
+        <Suspense fallback={null}>
+          <EditTimeModal
+            show={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            onSubmit={handleEditTimeSubmit}
+            attendance={editingAttendance}
+            editClockIn={editClockIn}
+            setEditClockIn={setEditClockIn}
+            editClockOut={editClockOut}
+            setEditClockOut={setEditClockOut}
+            updating={updating}
+            formatDate={formatDate}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

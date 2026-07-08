@@ -34,6 +34,9 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('scheduler')) {
+                return 'vendor-react-core'
+              }
               if (id.includes('leaflet')) {
                 return 'vendor-leaflet'
               }
@@ -42,6 +45,12 @@ export default defineConfig(({ mode }) => {
               }
               if (id.includes('lucide-react')) {
                 return 'vendor-lucide'
+              }
+              if (id.includes('axios')) {
+                return 'vendor-axios'
+              }
+              if (id.includes('qrcode')) {
+                return 'vendor-qrcode'
               }
               return 'vendor'
             }

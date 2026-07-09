@@ -339,12 +339,20 @@ export default function DashboardOverview({
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current
       const canvas = canvasRef.current
-      canvas.width = video.videoWidth || 640
-      canvas.height = video.videoHeight || 480
+      
+      // Tentukan ukuran maksimal gambar di sisi client (lebar maks 640px)
+      const maxClientWidth = 640
+      const originalWidth = video.videoWidth || 640
+      const originalHeight = video.videoHeight || 480
+      const scaleFactor = originalWidth > maxClientWidth ? maxClientWidth / originalWidth : 1
+      canvas.width = originalWidth * scaleFactor
+      canvas.height = originalHeight * scaleFactor
+
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        setCapturedPhoto(canvas.toDataURL('image/jpeg'))
+        // Kompresi gambar langsung di client dengan kualitas 0.6 (60%)
+        setCapturedPhoto(canvas.toDataURL('image/jpeg', 0.6))
         stopCamera()
       }
     }
@@ -360,8 +368,22 @@ export default function DashboardOverview({
     if (!file) return
     const reader = new FileReader()
     reader.onload = (event) => {
-      setCapturedPhoto(event.target?.result as string)
-      stopCamera()
+      const img = new Image()
+      img.src = event.target?.result as string
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const maxClientWidth = 640
+        const scaleFactor = img.width > maxClientWidth ? maxClientWidth / img.width : 1
+        canvas.width = img.width * scaleFactor
+        canvas.height = img.height * scaleFactor
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6)
+          setCapturedPhoto(compressedDataUrl)
+          stopCamera()
+        }
+      }
     }
     reader.readAsDataURL(file)
   }

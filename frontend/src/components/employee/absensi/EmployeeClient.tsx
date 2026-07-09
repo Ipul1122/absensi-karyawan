@@ -177,13 +177,21 @@ export default function EmployeeClient({
     if (visitVideoRef.current && visitCanvasRef.current) {
       const video = visitVideoRef.current
       const canvas = visitCanvasRef.current
-      canvas.width = video.videoWidth || 640
-      canvas.height = video.videoHeight || 480
+      
+      // Tentukan ukuran maksimal gambar di sisi client (lebar maks 640px)
+      const maxClientWidth = 640
+      const originalWidth = video.videoWidth || 640
+      const originalHeight = video.videoHeight || 480
+      const scaleFactor = originalWidth > maxClientWidth ? maxClientWidth / originalWidth : 1
+      canvas.width = originalWidth * scaleFactor
+      canvas.height = originalHeight * scaleFactor
+
       const ctx = canvas.getContext('2d')
       if (ctx) {
         if (facingMode === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1) }
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        const dataUrl = canvas.toDataURL('image/jpeg')
+        // Kompresi gambar langsung di client dengan kualitas 0.6 (60%)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6)
         if (cameraMode === 'checkout') {
           setCheckoutCapturedPhoto(dataUrl)
         } else {
@@ -198,27 +206,28 @@ export default function EmployeeClient({
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 3 * 1024 * 1024) {
-      Swal.fire({
-        title: 'Ukuran File Terlalu Besar',
-        text: 'Ukuran foto maksimal adalah 3MB.',
-        icon: 'warning',
-        background: '#1e293b',
-        color: '#f8fafc',
-        confirmButtonColor: '#6366f1'
-      })
-      return
-    }
-
     const reader = new FileReader()
     reader.onload = (event) => {
-      const dataUrl = event.target?.result as string
-      if (cameraMode === 'checkout') {
-        setCheckoutCapturedPhoto(dataUrl)
-      } else {
-        setVisitCapturedPhoto(dataUrl)
+      const img = new Image()
+      img.src = event.target?.result as string
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const maxClientWidth = 640
+        const scaleFactor = img.width > maxClientWidth ? maxClientWidth / img.width : 1
+        canvas.width = img.width * scaleFactor
+        canvas.height = img.height * scaleFactor
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6)
+          if (cameraMode === 'checkout') {
+            setCheckoutCapturedPhoto(compressedDataUrl)
+          } else {
+            setVisitCapturedPhoto(compressedDataUrl)
+          }
+          stopVisitCamera()
+        }
       }
-      stopVisitCamera()
     }
     reader.readAsDataURL(file)
   }

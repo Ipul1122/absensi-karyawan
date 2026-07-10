@@ -194,7 +194,7 @@ export default function DashboardOverview({
 
   const absentTodayList = activeEmployees.filter(
     (emp) => 
-      !presentTodayList.some(att => att.user.id === emp.id) &&
+      !presentTodayList.some(att => att.user?.id === emp.id) &&
       !cutiTodayList.some(l => l.user_id === emp.id)
   )
   const absentTodayCount = absentTodayList.length
@@ -211,7 +211,7 @@ export default function DashboardOverview({
 
   // Filtered lists for the tabs based on query search
   const filteredPresentList = presentTodayList.filter(att => 
-    att.user.name.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
+    att.user && att.user.name.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
   )
 
   const filteredCutiList = cutiTodayList.map(l => {
@@ -739,7 +739,7 @@ export default function DashboardOverview({
                   </div>
                 ) : (
                   filteredPresentList.map((att) => {
-                    const photoUrl = getFullPhotoUrl(att.user.photo)
+                    const photoUrl = getFullPhotoUrl(att.user?.photo)
                     const checkinPhoto = getFullPhotoUrl(att.photo_in)
 
                     return (
@@ -749,14 +749,14 @@ export default function DashboardOverview({
                             <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-400 to-red-500 border border-slate-100 flex items-center justify-center text-white font-extrabold text-xs shadow-inner shrink-0 select-none">
-                              {att.user.name.charAt(0).toUpperCase()}
+                              {att.user?.name ? att.user.name.charAt(0).toUpperCase() : '?'}
                             </div>
                           )}
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="text-xs font-black text-slate-800">{att.user.name}</h4>
+                              <h4 className="text-xs font-black text-slate-800">{att.user?.name || 'Karyawan'}</h4>
                               <span className="px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded text-[8px] font-bold uppercase font-mono tracking-wider">
-                                {employees.find(e => e.id === att.user.id)?.division || 'Umum'}
+                                {att.user ? employees.find(e => e.id === att.user.id)?.division || 'Umum' : 'Umum'}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
@@ -779,7 +779,7 @@ export default function DashboardOverview({
                             <button
                               onClick={() => {
                                 Swal.fire({
-                                  title: `Bukti Foto Check-In: ${att.user.name}`,
+                                  title: `Bukti Foto Check-In: ${att.user?.name || 'Karyawan'}`,
                                   imageUrl: checkinPhoto,
                                   imageAlt: 'Check-In Foto Wajah',
                                   confirmButtonColor: '#ea580c',

@@ -232,7 +232,10 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
-        setAttendances(response.data.data)
+        const validAttendances = (response.data.data || []).filter(
+          (att: any) => att && att.user && att.user.id
+        )
+        setAttendances(validAttendances)
       }
     } catch (err: any) {
       console.error(err)

@@ -136,7 +136,7 @@ export default function RekapAbsensi({
 
       // 1. Filter user attendances for this month
       const userMonthAtt = attendances.filter(
-        (att) => att.user.id === emp.id && att.date.startsWith(reportMonth)
+        (att) => att.user?.id === emp.id && att.date.startsWith(reportMonth)
       )
 
       // Present: unique dates where clock_in is not null
@@ -656,8 +656,9 @@ export default function RekapAbsensi({
     // ── Group attendances per employee ───────────────────────────────────────
     const empMap = new Map<number, { name: string; atts: Attendance[] }>()
     filteredAttendances.forEach(att => {
-      const uid = att.user.id
-      if (!empMap.has(uid)) empMap.set(uid, { name: att.user.name, atts: [] })
+      const uid = att.user?.id
+      if (!uid) return
+      if (!empMap.has(uid)) empMap.set(uid, { name: att.user?.name || 'Karyawan', atts: [] })
       empMap.get(uid)!.atts.push(att)
     })
 

@@ -161,7 +161,7 @@ export default function DashboardOverview({
 
   const absentTodayList = activeEmployees.filter(
     (emp) => 
-      !presentTodayList.some(att => att.user.id === emp.id) &&
+      !presentTodayList.some(att => att.user?.id === emp.id) &&
       !cutiTodayList.some(l => l.user_id === emp.id)
   )
   const absentTodayCount = absentTodayList.length
@@ -178,7 +178,7 @@ export default function DashboardOverview({
 
   // Filtered lists for the tabs based on query search
   const filteredPresentList = presentTodayList.filter(att => 
-    att.user.name.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
+    att.user && att.user.name.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
   )
 
   const filteredCutiList = cutiTodayList.map(l => {
@@ -602,9 +602,9 @@ export default function DashboardOverview({
                   </div>
                 ) : (
                   filteredPresentList.map((att) => {
-                    const photoUrl = getFullPhotoUrl(att.user.photo)
+                    const photoUrl = getFullPhotoUrl(att.user?.photo)
                     const checkinPhoto = getFullPhotoUrl(att.photo_in)
-                    const empDivision = employees.find(e => e.id === att.user.id)?.division
+                    const empDivision = att.user ? employees.find(e => e.id === att.user.id)?.division : undefined
 
                     return (
                       <div 
@@ -618,12 +618,12 @@ export default function DashboardOverview({
                             <img src={photoUrl} alt="Foto" className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
                           ) : (
                             <div className="w-8.5 h-8.5 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 border border-orange-200/40 flex items-center justify-center text-white font-extrabold text-[10px] md:text-xs shadow-md shrink-0 select-none">
-                              {att.user.name.substring(0, 2).toUpperCase()}
+                              {att.user?.name ? att.user.name.substring(0, 2).toUpperCase() : '?'}
                             </div>
                           )}
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <h4 className="text-[11px] md:text-xs font-black text-slate-800 truncate">{att.user.name}</h4>
+                              <h4 className="text-[11px] md:text-xs font-black text-slate-800 truncate">{att.user?.name || 'Karyawan'}</h4>
                               <span className={`inline-block px-1.5 py-0.2 rounded-full text-[7.5px] md:text-[8px] font-extrabold border font-quicksand shrink-0 ${getDivisionBadgeStyle(empDivision)}`}>
                                 {empDivision || 'Umum'}
                               </span>
@@ -648,7 +648,7 @@ export default function DashboardOverview({
                             <button
                               onClick={() => {
                                 Swal.fire({
-                                  title: `Bukti Foto Absen Masuk: ${att.user.name}`,
+                                  title: `Bukti Foto Absen Masuk: ${att.user?.name || 'Karyawan'}`,
                                   imageUrl: checkinPhoto,
                                   imageAlt: 'Absen Masuk Foto Wajah',
                                   confirmButtonColor: '#dc2626',

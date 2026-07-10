@@ -19,37 +19,6 @@ class EmployeeController extends Controller
         $employees = $query->orderBy('id', 'desc')->get();
 
         $data = $employees->map(function (User $emp) {
-            if (empty($emp->password_plain)) {
-                $possiblePasswords = [
-                    'password',
-                    '123456',
-                    '12345678',
-                    'admin123',
-                    'karyawan123',
-                ];
-                
-                $emailPrefix = explode('@', $emp->email)[0] ?? '';
-                if ($emailPrefix) {
-                    $possiblePasswords[] = $emailPrefix;
-                    $possiblePasswords[] = $emailPrefix . '123';
-                }
-                $nameClean = str_replace(' ', '', strtolower($emp->name));
-                if ($nameClean) {
-                    $possiblePasswords[] = $nameClean;
-                    $possiblePasswords[] = $nameClean . '123';
-                }
-
-                $possiblePasswords = array_unique($possiblePasswords);
-
-                foreach ($possiblePasswords as $possible) {
-                    if (Hash::check($possible, $emp->password)) {
-                        $emp->password_plain = $possible;
-                        $emp->save();
-                        break;
-                    }
-                }
-            }
-
             return [
                 'id'              => $emp->id,
                 'name'            => $emp->name,

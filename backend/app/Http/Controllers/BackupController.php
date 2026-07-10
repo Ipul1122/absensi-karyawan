@@ -36,8 +36,8 @@ class BackupController extends Controller
             ], 404);
         }
 
-        // 2. Instantiate custom Pure PHP Zip Writer
-        $zip = new PureZip();
+        // 2. Instantiate custom BackupZip (uses ZipArchive if available, falls back to PureZip)
+        $zip = new BackupZip();
 
         // 3. Write Master CSV: daftar_karyawan.csv
         $masterCsvStream = fopen('php://temp', 'r+');
@@ -88,7 +88,7 @@ class BackupController extends Controller
         $masterCsvContent = stream_get_contents($masterCsvStream);
         fclose($masterCsvStream);
         
-        $zip->addFile('daftar_karyawan.csv', $masterCsvContent);
+        $zip->addFileFromString('daftar_karyawan.csv', $masterCsvContent);
 
         // 4. Process each employee folders
         /** @var \App\Models\User $emp */
@@ -132,14 +132,14 @@ class BackupController extends Controller
             $bioText .= "Potongan Mangkir / Hari   : Rp " . ($sc ? number_format($sc->deduction_absence_daily, 0, ',', '.') : '0') . "\n";
             $bioText .= "Potongan Tetap Bulanan    : Rp " . ($sc ? number_format($sc->deduction_fixed, 0, ',', '.') : '0') . "\n\n";
 
-            $zip->addFile($folderName . 'biodata_lengkap.txt', $bioText);
+            $zip->addFileFromString($folderName . 'biodata_lengkap.txt', $bioText);
 
             // Add profile photo from storage if exists
             if ($emp->photo) {
                 $cleanPhotoPath = str_replace(['/storage/', 'storage/'], '', $emp->photo);
                 if (Storage::disk('public')->exists($cleanPhotoPath)) {
                     $ext = pathinfo($cleanPhotoPath, PATHINFO_EXTENSION);
-                    $zip->addFile($folderName . 'foto_profil.' . ($ext ?: 'webp'), Storage::disk('public')->get($cleanPhotoPath));
+                    $zip->addFileFromPath($folderName . 'foto_profil.' . ($ext ?: 'webp'), Storage::disk('public')->path($cleanPhotoPath));
                 }
             }
 
@@ -148,7 +148,7 @@ class BackupController extends Controller
                 $cleanCvPath = str_replace(['/storage/', 'storage/'], '', $emp->cv);
                 if (Storage::disk('public')->exists($cleanCvPath)) {
                     $ext = pathinfo($cleanCvPath, PATHINFO_EXTENSION);
-                    $zip->addFile($folderName . 'cv_karyawan.' . ($ext ?: 'pdf'), Storage::disk('public')->get($cleanCvPath));
+                    $zip->addFileFromPath($folderName . 'cv_karyawan.' . ($ext ?: 'pdf'), Storage::disk('public')->path($cleanCvPath));
                 }
             }
 
@@ -172,7 +172,7 @@ class BackupController extends Controller
                     ]);
                 }
                 rewind($stream);
-                $zip->addFile($folderName . 'riwayat_absensi.csv', stream_get_contents($stream));
+                $zip->addFileFromString($folderName . 'riwayat_absensi.csv', stream_get_contents($stream));
                 fclose($stream);
             }
 
@@ -194,7 +194,7 @@ class BackupController extends Controller
                     ]);
                 }
                 rewind($stream);
-                $zip->addFile($folderName . 'riwayat_cuti.csv', stream_get_contents($stream));
+                $zip->addFileFromString($folderName . 'riwayat_cuti.csv', stream_get_contents($stream));
                 fclose($stream);
             }
 
@@ -221,7 +221,7 @@ class BackupController extends Controller
                     ]);
                 }
                 rewind($stream);
-                $zip->addFile($folderName . 'riwayat_payroll.csv', stream_get_contents($stream));
+                $zip->addFileFromString($folderName . 'riwayat_payroll.csv', stream_get_contents($stream));
                 fclose($stream);
             }
 
@@ -243,19 +243,72 @@ class BackupController extends Controller
                     ]);
                 }
                 rewind($stream);
-                $zip->addFile($folderName . 'riwayat_reimbursement.csv', stream_get_contents($stream));
+                $zip->addFileFromString($folderName . 'riwayat_reimbursement.csv', stream_get_contents($stream));
                 fclose($stream);
             }
         }
 
         // 5. Download the file stream
         $filename = 'Backup_Karyawan_' . date('d_M_Y_H_i') . '.zip';
-        return response($zip->getZip(), 200, [
-            'Content-Type' => 'application/zip',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ]);
+        return $zip->getResponse($filename);
+    }
+}
+
+/**
+ * Adapter wrapper to handle disk-based ZipArchive or fall back to PureZip memory buffer.
+ */
+class BackupZip
+{
+    private ?\ZipArchive $nativeZip = null;
+    private ?PureZip $pureZip = null;
+    private ?string $tempPath = null;
+
+    public function __construct()
+    {
+        if (class_exists('\ZipArchive')) {
+            $this->tempPath = tempnam(sys_get_temp_dir(), 'laravel_backup_');
+            $this->nativeZip = new \ZipArchive();
+            if ($this->nativeZip->open($this->tempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+                $this->nativeZip = null;
+            }
+        }
+        if (!$this->nativeZip) {
+            $this->pureZip = new PureZip();
+        }
+    }
+
+    public function addFileFromString(string $name, string $content): void
+    {
+        if ($this->nativeZip) {
+            $this->nativeZip->addFromString($name, $content);
+        } else {
+            $this->pureZip->addFile($name, $content);
+        }
+    }
+
+    public function addFileFromPath(string $name, string $absolutePath): void
+    {
+        if ($this->nativeZip) {
+            $this->nativeZip->addFile($absolutePath, $name);
+        } else {
+            $content = file_get_contents($absolutePath);
+            $this->pureZip->addFile($name, $content);
+        }
+    }
+
+    public function getResponse(string $filename)
+    {
+        if ($this->nativeZip) {
+            $this->nativeZip->close();
+            return response()->download($this->tempPath, $filename)->deleteFileAfterSend(true);
+        } else {
+            return response($this->pureZip->getZip(), 200, [
+                'Content-Type' => 'application/zip',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
+        }
     }
 }
 

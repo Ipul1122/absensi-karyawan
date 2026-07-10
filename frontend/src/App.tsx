@@ -12,6 +12,12 @@ const PrivacyPolicy = lazy(() => import('./components/public/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./components/public/TermsOfService'))
 const SecurityCompliance = lazy(() => import('./components/public/SecurityCompliance'))
 
+// Lazy load error pages
+const Error404 = lazy(() => import('./components/errors/Error404'))
+const Error401 = lazy(() => import('./components/errors/Error401'))
+const Error408 = lazy(() => import('./components/errors/Error408'))
+const Error500 = lazy(() => import('./components/errors/Error500'))
+
 
 interface HealthResponse {
   status: string
@@ -187,6 +193,12 @@ function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/security-compliance" element={<SecurityCompliance />} />
+          
+          {/* Error Page Routes */}
+          <Route path="/404" element={<Error404 />} />
+          <Route path="/401" element={<Error401 />} />
+          <Route path="/408" element={<Error408 />} />
+          <Route path="/500" element={<Error500 />} />
 
           {token && user ? (
             user.role === 'admin' ? (
@@ -199,7 +211,7 @@ function App() {
                     </div>
                   } 
                   />
-                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
               </>
             ) : user.role === 'director' ? (
               <>
@@ -209,7 +221,7 @@ function App() {
                     <DirectorDashboard user={user as any} token={token} onLogout={handleLogout} onProfileUpdate={handleProfileUpdate} />
                   } 
                   />
-                <Route path="*" element={<Navigate to="/director/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
               </>
             ) : (
               <>
@@ -219,7 +231,7 @@ function App() {
                     <EmployeeDashboard user={user as any} token={token} onLogout={handleLogout} />
                   } 
                 />
-                <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
               </>
             )
           ) : (
@@ -233,7 +245,7 @@ function App() {
                   />
                 }
               />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/404" replace />} />
             </>
           )}
         </Routes>

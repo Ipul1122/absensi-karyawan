@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
-import { getAssetUrl } from '../../../utils/api'
+import { getAssetUrl, API_BASE_URL } from '../../../utils/api'
 import { 
   Check, 
   X, 
@@ -14,7 +14,10 @@ import {
   Eye,
   FileDown,
   Printer,
-  Calendar
+  Calendar,
+  Trash2,
+  Plus,
+  Upload
 } from 'lucide-react'
 
 interface UserDetails {
@@ -45,6 +48,7 @@ interface AdminCutiProps {
 }
 
 export default function AdminCuti({ token }: AdminCutiProps) {
+  const baseUrl = API_BASE_URL || 'http://localhost:8000'
   const [leaves, setLeaves] = useState<LeaveRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -57,10 +61,141 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
   const [monthFilter, setMonthFilter] = useState(currentMonthStr)
 
+  // Form states for Admin Cuti submission (Ajukan Cuti Pribadi)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [category, setCategory] = useState('Cuti Sakit')
+  const [customCategory, setCustomCategory] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [reason, setReason] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+
+  const categories = [
+    'Cuti Sakit',
+    'Cuti Tahunan',
+    'Cuti Hamil',
+    'Cuti melahirkan',
+    'Cuti Keluarga',
+    'LAINNYA'
+  ]
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        Swal.fire({
+          title: 'File Terlalu Besar',
+          text: 'Ukuran file maksimal adalah 5MB.',
+          icon: 'warning',
+          background: '#fffdfb',
+          color: '#3c1105'
+        })
+        return
+      }
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+  }
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!startDate || !endDate || !reason) {
+      Swal.fire({
+        title: 'Form Belum Lengkap',
+        text: 'Harap isi tanggal mulai, tanggal selesai, dan alasan cuti.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+      return
+    }
+
+    if (category === 'LAINNYA' && !customCategory.trim()) {
+      Swal.fire({
+        title: 'Kategori Belum Lengkap',
+        text: 'Harap isi nama kategori cuti kustom Anda.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+      return
+    }
+
+    if (new Date(endDate) < new Date(startDate)) {
+      Swal.fire({
+        title: 'Tanggal Tidak Valid',
+        text: 'Tanggal selesai tidak boleh sebelum tanggal mulai.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+      return
+    }
+
+    setSubmitting(true)
+    
+    const formData = new FormData()
+    formData.append('category', category)
+    if (category === 'LAINNYA') {
+      formData.append('custom_category', customCategory)
+    }
+    formData.append('start_date', startDate)
+    formData.append('end_date', endDate)
+    formData.append('reason', reason)
+    if (imageFile) {
+      formData.append('image', imageFile)
+    }
+
+    try {
+      const response = await axios.post(`${baseUrl}/api/leaves`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      if (response.data.status === 'success') {
+        Swal.fire({
+          title: 'Berhasil!',
+          text: response.data.message,
+          icon: 'success',
+          background: '#fffdfb',
+          color: '#3c1105'
+        })
+        setShowAddModal(false)
+        setCategory('Cuti Sakit')
+        setCustomCategory('')
+        setStartDate('')
+        setEndDate('')
+        setReason('')
+        setImageFile(null)
+        setImagePreview(null)
+        fetchLeaves()
+      }
+    } catch (err: any) {
+      console.error(err)
+      Swal.fire('Gagal', err.response?.data?.message || 'Gagal mengirim pengajuan.', 'error')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const fetchLeaves = async () => {
     setLoading(true)
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/leaves', {
+      const response = await axios.get(`${baseUrl}/api/admin/leaves`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -103,7 +238,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
         const adminNotes = result.value || ''
         try {
           const response = await axios.put(
-            `http://localhost:8000/api/admin/leaves/${id}/approve`,
+            `${baseUrl}/api/admin/leaves/${id}/approve`,
             { admin_notes: adminNotes },
             { headers: { Authorization: `Bearer ${token}` } }
           )
@@ -173,7 +308,7 @@ export default function AdminCuti({ token }: AdminCutiProps) {
         const adminNotes = result.value || ''
         try {
           const response = await axios.put(
-            `http://localhost:8000/api/admin/leaves/${id}/reject`,
+            `${baseUrl}/api/admin/leaves/${id}/reject`,
             { admin_notes: adminNotes },
             { headers: { Authorization: `Bearer ${token}` } }
           )
@@ -203,6 +338,41 @@ export default function AdminCuti({ token }: AdminCutiProps) {
         }
       }
     })
+  }
+
+  const handleDelete = async (id: number, name: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Pengajuan Cuti?',
+      text: `Apakah Anda yakin ingin menghapus pengajuan cuti untuk ${name}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        const response = await axios.delete(`${baseUrl}/api/leaves/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.data.status === 'success') {
+          Swal.fire({
+            title: 'Terhapus!',
+            text: response.data.message,
+            icon: 'success',
+            background: '#fffdfb',
+            color: '#3c1105'
+          })
+          fetchLeaves()
+        }
+      } catch (err: any) {
+        Swal.fire('Gagal', err.response?.data?.message || 'Gagal menghapus pengajuan.', 'error')
+      }
+    }
   }
 
   const viewProofImage = (imageUrl: string, name: string) => {
@@ -525,6 +695,16 @@ export default function AdminCuti({ token }: AdminCutiProps) {
         </div>
         
         <div className="flex items-center gap-2.5">
+          {/* Ajukan Cuti Button */}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-orange-500/10 cursor-pointer"
+            title="Ajukan Cuti Pribadi"
+          >
+            <Plus className="w-4 h-4" />
+            Ajukan Cuti Pribadi
+          </button>
+
           {/* Export PDF Button */}
           <button
             onClick={handleExportPDF}
@@ -785,8 +965,8 @@ export default function AdminCuti({ token }: AdminCutiProps) {
 
                         {/* Actions */}
                         <td className="py-4 px-5 text-right">
-                          {leave.status === 'pending' ? (
-                            <div className="flex justify-end gap-1.5">
+                          <div className="flex justify-end gap-1.5">
+                            {(leave.status === 'pending' || leave.status === 'rejected') && (
                               <button
                                 onClick={() => handleApprove(leave.id, leave.user.name)}
                                 className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
@@ -794,6 +974,8 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                               >
                                 <Check className="w-4 h-4" />
                               </button>
+                            )}
+                            {(leave.status === 'pending' || leave.status === 'approved' || leave.status === 'pending_director') && (
                               <button
                                 onClick={() => handleReject(leave.id, leave.user.name)}
                                 className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
@@ -801,10 +983,15 @@ export default function AdminCuti({ token }: AdminCutiProps) {
                               >
                                 <X className="w-4 h-4" />
                               </button>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-bold">-</span>
-                          )}
+                            )}
+                            <button
+                              onClick={() => handleDelete(leave.id, leave.user.name)}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-800 rounded-lg transition-all cursor-pointer shadow-sm"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -815,6 +1002,121 @@ export default function AdminCuti({ token }: AdminCutiProps) {
           </div>
         )}
       </section>
+
+      {/* Modal Ajukan Cuti */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-100 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative space-y-4 animate-scaleUp">
+            
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-xl transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Ajukan Cuti Pribadi</h3>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Silakan isi formulir di bawah untuk mengajukan cuti Anda sendiri. Pengajuan akan diteruskan langsung ke Direktur.</p>
+            </div>
+
+            <form onSubmit={handleAddSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kategori Cuti</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold"
+                >
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              {category === 'LAINNYA' && (
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nama Kategori Kustom</label>
+                  <input
+                    type="text"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    placeholder="Tulis kategori cuti..."
+                    className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Mulai</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold cursor-pointer"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tanggal Selesai</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Alasan Cuti</label>
+                <textarea
+                  rows={3}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Berikan alasan detail cuti..."
+                  className="w-full bg-slate-50/50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold resize-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lampiran Bukti (Opsional)</label>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-350 text-slate-650 rounded-xl text-[10px] font-bold cursor-pointer transition-all shadow-sm">
+                    <Upload className="w-3.5 h-3.5 text-orange-500" />
+                    Pilih File Foto
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  </label>
+                  {imagePreview && (
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 pr-2">
+                      <img src={imagePreview} alt="Preview" className="w-6 h-6 object-cover rounded-lg" />
+                      <span className="text-[9px] text-slate-500 font-semibold truncate max-w-[80px]">{imageFile?.name}</span>
+                      <button type="button" onClick={handleRemoveImage} className="text-red-500 hover:text-red-700 text-xs cursor-pointer font-bold leading-none">×</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-orange-500/10 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Mengirim...' : 'Kirim Pengajuan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

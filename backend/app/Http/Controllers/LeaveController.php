@@ -57,6 +57,11 @@ class LeaveController extends Controller
         }
 
         try {
+            $status = ($user->role === 'admin') ? 'pending_director' : 'pending';
+            $message = ($user->role === 'admin') 
+                ? 'Pengajuan cuti pribadi Admin berhasil dikirim dan diteruskan ke Direktur.' 
+                : 'Pengajuan cuti berhasil dikirim dan menunggu persetujuan Admin.';
+
             $leave = LeaveRequest::create([
                 'user_id' => $user->id,
                 'category' => $request->category,
@@ -65,13 +70,13 @@ class LeaveController extends Controller
                 'end_date' => $request->end_date,
                 'reason' => $request->reason,
                 'image' => $imagePath,
-                'status' => 'pending',
-                'admin_notes' => null,
+                'status' => $status,
+                'admin_notes' => ($user->role === 'admin') ? 'Pengajuan oleh Admin sendiri' : null,
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Pengajuan cuti berhasil dikirim dan menunggu persetujuan Admin.',
+                'message' => $message,
                 'data' => $leave
             ], 201);
         } catch (\Exception $e) {
@@ -88,21 +93,24 @@ class LeaveController extends Controller
     public function destroy(Request $request, $id)
     {
         $user = $request->user();
-        $leave = LeaveRequest::where('user_id', $user->id)->where('id', $id)->firstOrFail();
-
-        if ($leave->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Pengajuan cuti yang sudah diproses tidak dapat dibatalkan.'
-            ], 422);
+        if ($user->role === 'admin' || $user->role === 'director') {
+            $leave = LeaveRequest::findOrFail($id);
+        } else {
+            $leave = LeaveRequest::where('user_id', $user->id)->where('id', $id)->firstOrFail();
+            if ($leave->status !== 'pending') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Pengajuan cuti yang sudah diproses tidak dapat dibatalkan.'
+                ], 422);
+            }
         }
 
         try {
-            // Delete image from storage if exists
-            if ($leave->image) {
-                $storagePath = str_replace('/storage/', '', $leave->image);
-                Storage::disk('public')->delete($storagePath);
-            }
+            // Physical file deletion is now handled by model forceDeleted event
+            // if ($leave->image) {
+            //     $storagePath = str_replace('/storage/', '', $leave->image);
+            //     Storage::disk('public')->delete($storagePath);
+            // }
 
             $leave->delete();
 
@@ -151,13 +159,6 @@ class LeaveController extends Controller
 
         $leave = LeaveRequest::findOrFail($id);
 
-        if ($leave->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Pengajuan cuti ini sudah diproses sebelumnya.'
-            ], 422);
-        }
-
         try {
             $leave->update([
                 'status' => 'pending_director',
@@ -187,13 +188,6 @@ class LeaveController extends Controller
         ]);
 
         $leave = LeaveRequest::findOrFail($id);
-
-        if ($leave->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Pengajuan cuti ini sudah diproses sebelumnya.'
-            ], 422);
-        }
 
         try {
             $leave->update([
@@ -225,13 +219,6 @@ class LeaveController extends Controller
 
         $leave = LeaveRequest::findOrFail($id);
 
-        if ($leave->status !== 'pending_director') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Pengajuan cuti ini belum diverifikasi oleh Admin atau sudah diproses sebelumnya.'
-            ], 422);
-        }
-
         try {
             $leave->update([
                 'status' => 'approved',
@@ -261,13 +248,6 @@ class LeaveController extends Controller
         ]);
 
         $leave = LeaveRequest::findOrFail($id);
-
-        if ($leave->status !== 'pending_director') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Pengajuan cuti ini belum diverifikasi oleh Admin atau sudah diproses sebelumnya.'
-            ], 422);
-        }
 
         try {
             $leave->update([

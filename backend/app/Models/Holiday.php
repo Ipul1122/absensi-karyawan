@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Holiday extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\RecycleBinable;
 
     protected $fillable = [
         'holiday_date',
@@ -17,4 +17,12 @@ class Holiday extends Model
     protected $casts = [
         'holiday_date' => 'date',
     ];
+
+    /**
+     * Get a user-friendly name for this specific record in the Recycle Bin.
+     */
+    public function getRecycleBinName(): string
+    {
+        return "Hari Libur: " . $this->name . " (" . ($this->holiday_date ? $this->holiday_date->format('d-m-Y') : '') . ")";
+    }
 }

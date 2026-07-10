@@ -13,7 +13,8 @@ import {
   FileDown,
   Printer,
   CalendarDays,
-  Users
+  Users,
+  Trash2
 } from 'lucide-react'
 
 interface UserDetails {
@@ -247,6 +248,41 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
         }
       }
     })
+  }
+
+  const handleDelete = async (id: number, name: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Pengajuan Lembur?',
+      text: `Apakah Anda yakin ingin menghapus pengajuan lembur untuk ${name}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        const response = await axios.delete(`http://localhost:8000/api/overtimes/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.data.status === 'success') {
+          Swal.fire({
+            title: 'Terhapus!',
+            text: response.data.message,
+            icon: 'success',
+            background: '#fffdfb',
+            color: '#3c1105'
+          })
+          fetchOvertimes()
+        }
+      } catch (err: any) {
+        Swal.fire('Gagal', err.response?.data?.message || 'Gagal menghapus pengajuan.', 'error')
+      }
+    }
   }
 
   const handleWhatsAppShare = (item: Overtime) => {
@@ -920,24 +956,31 @@ Terima kasih.`;
                         {/* Actions */}
                         <td className="py-4 px-5 text-right">
                           <div className="flex justify-end gap-1.5 items-center">
-                            {item.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => handleApprove(item.id, item.user.name, item.duration)}
-                                  className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
-                                  title="Setujui"
-                                >
-                                  <Check className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleReject(item.id, item.user.name)}
-                                  className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
-                                  title="Tolak"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </>
+                            {(item.status === 'pending' || item.status === 'rejected') && (
+                              <button
+                                onClick={() => handleApprove(item.id, item.user.name, item.duration)}
+                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Setujui"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
                             )}
+                            {(item.status === 'pending' || item.status === 'approved' || item.status === 'pending_director') && (
+                              <button
+                                onClick={() => handleReject(item.id, item.user.name)}
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Tolak"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDelete(item.id, item.user.name)}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-800 rounded-lg transition-all cursor-pointer shadow-sm"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => handleWhatsAppShare(item)}
                               className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-600 hover:text-green-700 rounded-lg transition-all cursor-pointer shadow-sm flex items-center justify-center"

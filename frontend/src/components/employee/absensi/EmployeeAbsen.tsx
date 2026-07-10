@@ -67,13 +67,17 @@ interface EmployeeAbsenProps {
 
 const getShiftLabelForAttendance = (att: Attendance | null | undefined) => {
   if (!att) return null
+  const isSat = att.date ? new Date(att.date).getDay() === 6 : new Date().getDay() === 6
+  
   if (att.shift?.name) {
-    return `${att.shift.name} (${att.shift.start_time.substring(0, 5)} - ${att.shift.end_time.substring(0, 5)})`
+    const isRegulerSat = att.shift.name === 'Shift Reguler' && isSat
+    const endTime = isRegulerSat ? '14:00' : att.shift.end_time.substring(0, 5)
+    return `${att.shift.name} (${att.shift.start_time.substring(0, 5)} - ${endTime})`
   }
   if (att.shift_start_time && att.shift_end_time) {
     return `${att.shift_start_time.substring(0, 5)} - ${att.shift_end_time.substring(0, 5)}`
   }
-  return 'Shift Reguler (08:30 - 17:30)'
+  return isSat ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:30)'
 }
 
 export default function EmployeeAbsen({
@@ -170,7 +174,7 @@ export default function EmployeeAbsen({
           </div>
           <NavLink
             to={todayAttendance.attendance_type === 'kunjungan' ? '/employee/sales' : '/employee/client'}
-            className="mt-2 px-5 py-2.5 bg-gradient-to-r from-orange-50 to-red-500 hover:from-orange-600 hover:to-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer font-quicksand font-semibold"
+            className="mt-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer font-quicksand font-semibold"
           >
             Buka Absen {todayAttendance.attendance_type === 'kunjungan' ? 'Kunjungan Kerja' : 'Kunjungan Klien'}
           </NavLink>
@@ -286,23 +290,24 @@ export default function EmployeeAbsen({
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      Swal.fire({
-        title: 'Ukuran File Terlalu Besar',
-        text: 'Ukuran foto maksimal adalah 5MB.',
-        icon: 'warning',
-        background: '#1e293b',
-        color: '#f8fafc',
-        confirmButtonColor: '#6366f1'
-      })
-      return
-    }
-
     const reader = new FileReader()
     reader.onload = (event) => {
-      const dataUrl = event.target?.result as string
-      setCapturedPhoto(dataUrl)
-      stopCamera()
+      const img = new Image()
+      img.src = event.target?.result as string
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const maxClientWidth = 640
+        const scaleFactor = img.width > maxClientWidth ? maxClientWidth / img.width : 1
+        canvas.width = img.width * scaleFactor
+        canvas.height = img.height * scaleFactor
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6)
+          setCapturedPhoto(compressedDataUrl)
+          stopCamera()
+        }
+      }
     }
     reader.onerror = (err) => {
       console.error('File reading error:', err)
@@ -381,8 +386,15 @@ export default function EmployeeAbsen({
     setIsCapturing(true)
     const video = modalVideoRef.current
     const canvas = modalCanvasRef.current
-    canvas.width = video.videoWidth || 1280
-    canvas.height = video.videoHeight || 720
+    
+    // Tentukan ukuran maksimal gambar di sisi client (lebar maks 640px)
+    const maxClientWidth = 640
+    const originalWidth = video.videoWidth || 1280
+    const originalHeight = video.videoHeight || 720
+    const scaleFactor = originalWidth > maxClientWidth ? maxClientWidth / originalWidth : 1
+    canvas.width = originalWidth * scaleFactor
+    canvas.height = originalHeight * scaleFactor
+
     const ctx = canvas.getContext('2d')
     if (ctx) {
       // Mirror if front-facing camera
@@ -391,7 +403,8 @@ export default function EmployeeAbsen({
         ctx.scale(-1, 1)
       }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
+      // Kompresi gambar langsung di client dengan kualitas 0.6 (60%)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6)
       // Pause camera, show preview — don't close modal yet
       stopModalCamera()
       setPreviewPhoto(dataUrl)
@@ -845,12 +858,18 @@ export default function EmployeeAbsen({
                   onChange={(e) => setSelectedShiftId(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none text-xs font-semibold appearance-none cursor-pointer"
                 >
-                  <option value="">Shift Reguler (08:30 - 17:30)</option>
-                  {shifts.map((shift) => (
-                    <option key={shift.id} value={shift.id}>
-                      {shift.name} ({shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)})
-                    </option>
-                  ))}
+                  <option value="">
+                    {new Date().getDay() === 6 ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:30)'}
+                  </option>
+                  {shifts.map((shift) => {
+                    const isRegulerSat = shift.name === 'Shift Reguler' && new Date().getDay() === 6;
+                    const displayEndTime = isRegulerSat ? '14:00' : shift.end_time.substring(0, 5);
+                    return (
+                      <option key={shift.id} value={shift.id}>
+                        {shift.name} ({shift.start_time.substring(0, 5)} - {displayEndTime})
+                      </option>
+                    );
+                  })}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
                   <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>

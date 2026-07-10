@@ -131,6 +131,173 @@ class SalesVisitController extends Controller
     }
 
     /**
+     * Process checkout for a sales/client visit.
+     */
+    public function checkout(Request $request, $id)
+    {
+        $request->validate([
+            'latitude' => 'required|string',
+            'longitude' => 'required|string',
+            'photo' => 'required|string', // base64 string
+            'notes' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $today = Carbon::today()->toDateString();
+
+        try {
+            $visit = SalesVisit::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$visit) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Laporan kunjungan tidak ditemukan.'
+                ], 404);
+            }
+
+            if ($visit->visit_time_out) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Anda sudah melakukan absen keluar dari kunjungan ini.'
+                ], 422);
+            }
+
+            // Save photo
+            $photoPath = $this->saveBase64Image($request->photo, 'visit_out_' . $user->id);
+            $visitTimeOut = Carbon::now()->format('H:i:s');
+
+            // Update record
+            $visit->update([
+                'visit_time_out' => $visitTimeOut,
+                'latitude_out' => $request->latitude,
+                'longitude_out' => $request->longitude,
+                'photo_path_out' => $photoPath,
+                'notes_out' => $request->notes,
+            ]);
+
+            // Sync with main attendance log: update check-out for today
+            $attendance = Attendance::where('user_id', $user->id)
+                ->where('date', $today)
+                ->first();
+
+            if ($attendance) {
+                // Determine checkout status (early departure vs normal vs overtime)
+                $now = Carbon::now();
+                $isSaturday = $now->isSaturday();
+                
+                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+
+                $status = 'normal';
+                if ($attendance->shift_end_time) {
+                    $limitEarly = $attendance->shift_end_time;
+                    $limitOvertime = Carbon::parse($attendance->shift_end_time)->addHour()->format('H:i:s');
+                } else {
+                    $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                    $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+                }
+
+                if ($visitTimeOut < $limitEarly) {
+                    $status = 'early_departure';
+                } elseif ($visitTimeOut > $limitOvertime) {
+                    $status = 'overtime';
+                }
+
+                $attendance->update([
+                    'clock_out' => $visitTimeOut,
+                    'latitude_out' => $request->latitude,
+                    'longitude_out' => $request->longitude,
+                    'photo_out' => $photoPath,
+                    'notes_out' => $request->notes ?: 'Absen Keluar via Kunjungan: ' . $visit->client_name,
+                    'status_out' => $status,
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Absen keluar kunjungan berhasil dicatat!',
+                'data' => $visit
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memproses absen keluar kunjungan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a sales/client visit (for admin).
+     */
+    public function updateVisit(Request $request, $id)
+    {
+        $request->validate([
+            'client_name' => 'required|string|max:255',
+            'date' => 'required|date',
+            'visit_time' => 'required|string',
+            'visit_time_out' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'notes_out' => 'nullable|string',
+        ]);
+
+        try {
+            $visit = SalesVisit::findOrFail($id);
+            $oldVisitTime = $visit->visit_time;
+            $oldVisitTimeOut = $visit->visit_time_out;
+
+            $visitTime = Carbon::parse($request->visit_time)->format('H:i:s');
+            $visitTimeOut = null;
+            if ($request->visit_time_out) {
+                $visitTimeOut = Carbon::parse($request->visit_time_out)->format('H:i:s');
+            }
+
+            $visit->update([
+                'client_name' => $request->client_name,
+                'date' => Carbon::parse($request->date)->toDateString(),
+                'visit_time' => $visitTime,
+                'visit_time_out' => $visitTimeOut,
+                'notes' => $request->notes,
+                'notes_out' => $request->notes_out,
+            ]);
+
+            // Sync with attendance log: if there is an attendance record for this user and date
+            $attendance = Attendance::where('user_id', $visit->user_id)
+                ->where('date', $visit->date)
+                ->first();
+
+            if ($attendance) {
+                $attUpdate = [];
+                // If the old visit_time matches clock_in, update it
+                if ($attendance->clock_in === $oldVisitTime) {
+                    $attUpdate['clock_in'] = $visitTime;
+                }
+                // If the old visit_time_out matches clock_out, update it
+                if ($oldVisitTimeOut && $attendance->clock_out === $oldVisitTimeOut) {
+                    $attUpdate['clock_out'] = $visitTimeOut;
+                }
+                if (!empty($attUpdate)) {
+                    $attendance->update($attUpdate);
+                }
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Laporan kunjungan berhasil diperbarui!',
+                'data' => $visit
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memperbarui laporan kunjungan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper to decode and save base64 image.
      */
     private function saveBase64Image($base64String, $prefix)

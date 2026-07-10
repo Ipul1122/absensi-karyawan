@@ -21,13 +21,21 @@ import {
   Filter,
   // Download,
   ArrowUpDown,
-  BookOpen
+  BookOpen,
+  Trash2
 } from 'lucide-react'
 
 
 interface UserBrief { id: number; name: string; email: string }
 
 interface LeaveRequest {
+  id: number; user_id: number; category: string; custom_category: string | null
+  start_date: string; end_date: string; reason: string; image: string | null
+  status: string; admin_notes: string | null; user: UserBrief
+  created_at: string; updated_at: string
+}
+
+interface PermitRequest {
   id: number; user_id: number; category: string; custom_category: string | null
   start_date: string; end_date: string; reason: string; image: string | null
   status: string; admin_notes: string | null; user: UserBrief
@@ -68,12 +76,13 @@ interface InventoryRequest {
 }
 
 interface PersetujuanOperationalProps { token: string }
-type ActiveSubTab = 'cuti' | 'lembur' | 'reimbursement' | 'bonus' | 'inventaris' | 'recap'
+type ActiveSubTab = 'cuti' | 'izin' | 'lembur' | 'reimbursement' | 'bonus' | 'inventaris' | 'recap'
 
 const S = { fontFamily: "'Inter', 'system-ui', sans-serif" }
 
 const tabDefs = [
   { key: 'cuti' as const, label: 'Cuti', icon: CalendarDays, color: '#4f46e5', bg: 'rgba(79,70,229,0.08)', border: 'rgba(79,70,229,0.20)', gradient: 'linear-gradient(135deg,#4f46e5,#7c3aed)' },
+  { key: 'izin' as const, label: 'Izin', icon: BookOpen, color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.20)', gradient: 'linear-gradient(135deg,#8b5cf6,#7c3aed)' },
   { key: 'lembur' as const, label: 'Lembur', icon: Clock, color: '#d97706', bg: 'rgba(217,119,6,0.08)', border: 'rgba(217,119,6,0.20)', gradient: 'linear-gradient(135deg,#d97706,#b45309)' },
   { key: 'reimbursement' as const, label: 'Reimburse', icon: Receipt, color: '#0891b2', bg: 'rgba(8,145,178,0.08)', border: 'rgba(8,145,178,0.20)', gradient: 'linear-gradient(135deg,#0891b2,#0e7490)' },
   { key: 'bonus' as const, label: 'Bonus', icon: Gift, color: '#059669', bg: 'rgba(5,150,105,0.08)', border: 'rgba(5,150,105,0.20)', gradient: 'linear-gradient(135deg,#059669,#047857)' },
@@ -86,6 +95,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
   const [activeTab, setActiveTab] = useState<ActiveSubTab>('cuti')
   const [loading, setLoading] = useState(true)
   const [leaves, setLeaves] = useState<LeaveRequest[]>([])
+  const [permits, setPermits] = useState<PermitRequest[]>([])
   const [overtimes, setOvertimes] = useState<OvertimeRequest[]>([])
   const [reimbursements, setReimbursements] = useState<ReimbursementRequest[]>([])
   const [bonuses, setBonuses] = useState<BonusRequest[]>([])
@@ -95,14 +105,16 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
     setLoading(true)
     try {
       const headers = { Authorization: `Bearer ${token}` }
-      const [r1, r2, r3, r4, r5] = await Promise.all([
+      const [r1, r1_2, r2, r3, r4, r5] = await Promise.all([
         axios.get('http://localhost:8000/api/admin/leaves', { headers }).catch(() => ({ data: { data: [] } })),
+        axios.get('http://localhost:8000/api/admin/permits', { headers }).catch(() => ({ data: { data: [] } })),
         axios.get('http://localhost:8000/api/admin/overtimes', { headers }).catch(() => ({ data: { data: [] } })),
         axios.get('http://localhost:8000/api/admin/reimbursements', { headers }).catch(() => ({ data: { data: [] } })),
         axios.get('http://localhost:8000/api/admin/bonuses', { headers }).catch(() => ({ data: { data: [] } })),
         axios.get('http://localhost:8000/api/admin/inventories', { headers }).catch(() => ({ data: { data: [] } })),
       ])
       setLeaves(r1.data?.data || [])
+      setPermits(r1_2.data?.data || [])
       setOvertimes(r2.data?.data || [])
       setReimbursements(r3.data?.data || [])
       setBonuses(r4.data?.data || [])
@@ -149,6 +161,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
   }
 
   const pendingLeaves = leaves.filter(l => l.status === 'pending_director')
+  const pendingPermits = permits.filter(p => p.status === 'pending_director')
   const pendingOvertimes = overtimes.filter(o => o.status === 'pending_director')
   const pendingReimbursements = reimbursements.filter(r => r.status === 'pending_director')
   const pendingBonuses = bonuses.filter(b => b.status === 'pending')
@@ -156,6 +169,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
 
   const counts: Record<ActiveSubTab, number> = {
     cuti: pendingLeaves.length,
+    izin: pendingPermits.length,
     lembur: pendingOvertimes.length,
     reimbursement: pendingReimbursements.length,
     bonus: pendingBonuses.length,
@@ -165,7 +179,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
 
   interface NormalizedRecord {
     id: string;
-    type: 'cuti' | 'lembur' | 'reimbursement' | 'bonus' | 'inventaris';
+    type: 'cuti' | 'izin' | 'lembur' | 'reimbursement' | 'bonus' | 'inventaris';
     employeeName: string;
     employeeEmail: string;
     dateStr: string;
@@ -205,6 +219,19 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
       details: `Kategori: ${l.category === 'LAINNYA' ? l.custom_category || 'Lainnya' : l.category} | Alasan: ${l.reason}`,
       status: l.status,
       raw: l
+    })),
+    ...permits.map(p => ({
+      id: `izin-${p.id}`,
+      type: 'izin' as const,
+      employeeName: p.user?.name || 'Karyawan',
+      employeeEmail: p.user?.email || '',
+      dateStr: p.start_date && p.end_date ? `${new Date(p.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} — ${new Date(p.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : '-',
+      dateObj: p.start_date ? new Date(p.start_date) : new Date(),
+      amount: null,
+      amountStr: '-',
+      details: `Kategori: ${p.category === 'LAINNYA' ? p.custom_category || 'Lainnya' : p.category} | Alasan: ${p.reason}`,
+      status: p.status,
+      raw: p
     })),
     ...overtimes.map(o => ({
       id: `lembur-${o.id}`,
@@ -313,6 +340,11 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
       approved: leaves.filter(l => l.status === 'approved').length,
       pending: leaves.filter(l => l.status === 'pending_director' || l.status === 'pending').length,
     },
+    izin: {
+      total: permits.length,
+      approved: permits.filter(p => p.status === 'approved').length,
+      pending: permits.filter(p => p.status === 'pending_director' || p.status === 'pending').length,
+    },
     lembur: {
       total: overtimes.length,
       approvedHours: overtimes.filter(o => o.status === 'approved').reduce((a, b) => a + Number(b.duration), 0),
@@ -408,6 +440,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
   <Table>
    <Column ss:Width="150"/>
    <Column ss:Width="150"/>
+   <Column ss:Width="120"/>
    <Column ss:Width="100"/>
    <Column ss:Width="100"/>
    <Column ss:Width="200"/>
@@ -415,20 +448,59 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
    <Row ss:Height="22">
     <Cell ss:StyleID="Header"><Data ss:Type="String">Nama Karyawan</Data></Cell>
     <Cell ss:StyleID="Header"><Data ss:Type="String">Email</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Kategori Cuti</Data></Cell>
     <Cell ss:StyleID="Header"><Data ss:Type="String">Mulai Cuti</Data></Cell>
     <Cell ss:StyleID="Header"><Data ss:Type="String">Selesai Cuti</Data></Cell>
     <Cell ss:StyleID="Header"><Data ss:Type="String">Alasan</Data></Cell>
     <Cell ss:StyleID="Header"><Data ss:Type="String">Status</Data></Cell>
    </Row>`;
     leaves.forEach(l => {
+      const catText = l.category === 'LAINNYA' ? l.custom_category || 'Lainnya' : l.category;
       xml += `
    <Row>
     <Cell><Data ss:Type="String">${escapeXML(l.user?.name)}</Data></Cell>
     <Cell><Data ss:Type="String">${escapeXML(l.user?.email)}</Data></Cell>
+    <Cell><Data ss:Type="String">${escapeXML(catText)}</Data></Cell>
     <Cell ss:StyleID="Date"><Data ss:Type="String">${l.start_date || ''}</Data></Cell>
     <Cell ss:StyleID="Date"><Data ss:Type="String">${l.end_date || ''}</Data></Cell>
     <Cell><Data ss:Type="String">${escapeXML(l.reason)}</Data></Cell>
     <Cell><Data ss:Type="String">${l.status}</Data></Cell>
+   </Row>`;
+    });
+    xml += `  </Table>
+ </Worksheet>
+`;
+
+    // Izin Sheet
+    xml += ` <Worksheet ss:Name="Izin">
+  <Table>
+   <Column ss:Width="150"/>
+   <Column ss:Width="150"/>
+   <Column ss:Width="120"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="100"/>
+   <Column ss:Width="200"/>
+   <Column ss:Width="100"/>
+   <Row ss:Height="22">
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Nama Karyawan</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Email</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Kategori Izin</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Mulai Izin</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Selesai Izin</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Alasan</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Status</Data></Cell>
+   </Row>`;
+    permits.forEach(p => {
+      const catText = p.category === 'LAINNYA' ? p.custom_category || 'Lainnya' : p.category;
+      xml += `
+   <Row>
+    <Cell><Data ss:Type="String">${escapeXML(p.user?.name)}</Data></Cell>
+    <Cell><Data ss:Type="String">${escapeXML(p.user?.email)}</Data></Cell>
+    <Cell><Data ss:Type="String">${escapeXML(catText)}</Data></Cell>
+    <Cell ss:StyleID="Date"><Data ss:Type="String">${p.start_date || ''}</Data></Cell>
+    <Cell ss:StyleID="Date"><Data ss:Type="String">${p.end_date || ''}</Data></Cell>
+    <Cell><Data ss:Type="String">${escapeXML(p.reason)}</Data></Cell>
+    <Cell><Data ss:Type="String">${p.status}</Data></Cell>
    </Row>`;
     });
     xml += `  </Table>
@@ -584,6 +656,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
 
   const exportToPDF = () => {
     const approvedLeaves = leaves.filter(l => l.status === 'approved').length;
+    const approvedPermits = permits.filter(p => p.status === 'approved').length;
     const approvedOvertimes = overtimes.filter(o => o.status === 'approved');
     const totalOvertimeHours = approvedOvertimes.reduce((acc, curr) => acc + Number(curr.duration), 0);
     const approvedReimbursements = reimbursements.filter(r => r.status === 'approved');
@@ -641,7 +714,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
             }
             .stats-grid {
               display: grid;
-              grid-template-columns: repeat(5, 1fr);
+              grid-template-columns: repeat(6, 1fr);
               gap: 12px;
               margin-bottom: 30px;
             }
@@ -681,6 +754,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
               letter-spacing: 0.5px;
             }
             .section-title.lembur { border-left-color: #d97706; }
+            .section-title.izin { border-left-color: #8b5cf6; }
             .section-title.reimburse { border-left-color: #0891b2; }
             .section-title.bonus { border-left-color: #059669; }
             .section-title.inventaris { border-left-color: #f97316; }
@@ -725,7 +799,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
           <div class="header-container">
             <div>
               <h1 class="title">REKAP LAPORAN OPERASIONAL SDM</h1>
-              <p class="subtitle">Rekapitulasi persetujuan cuti, lembur, reimburse, bonus, dan inventaris barang</p>
+              <p class="subtitle">Rekapitulasi persetujuan cuti, izin, lembur, reimburse, bonus, dan inventaris barang</p>
             </div>
             <div class="meta-info">
               <p style="margin:0;"><strong>Diekspor Oleh:</strong> Direktur</p>
@@ -737,6 +811,10 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
             <div class="stat-card" style="border-top: 4px solid #4f46e5;">
               <div class="stat-title">Disetujui Cuti</div>
               <div class="stat-value">${approvedLeaves} Pengajuan</div>
+            </div>
+            <div class="stat-card" style="border-top: 4px solid #8b5cf6;">
+              <div class="stat-title">Disetujui Izin</div>
+              <div class="stat-value">${approvedPermits} Pengajuan</div>
             </div>
             <div class="stat-card" style="border-top: 4px solid #d97706;">
               <div class="stat-title">Lembur Disetujui</div>
@@ -778,6 +856,37 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                       <td>${formatDate(l.start_date)} - ${formatDate(l.end_date)}</td>
                       <td>${escapeXML(l.reason)}</td>
                       <td><span class="badge ${l.status === 'approved' ? 'badge-approved' : l.status === 'rejected' ? 'badge-rejected' : 'badge-pending'}">${l.status}</span></td>
+                    </tr>
+                  `).join('')
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="page-break"></div>
+
+          <!-- 1.2. IZIN -->
+          <div class="section">
+            <h2 class="section-title izin">1.2. Pengajuan Izin Karyawan</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nama Karyawan</th>
+                  <th>Kategori Izin</th>
+                  <th>Tanggal Izin</th>
+                  <th>Alasan</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${permits.length === 0 ? `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 20px;">Tidak ada data pengajuan izin</td></tr>` : 
+                  permits.map(p => `
+                    <tr>
+                      <td><strong>${escapeXML(p.user?.name)}</strong><br/><span style="color: #64748b; font-size: 9px;">${escapeXML(p.user?.email)}</span></td>
+                      <td>${escapeXML(p.category === 'LAINNYA' ? p.custom_category || 'Lainnya' : p.category)}</td>
+                      <td>${formatDate(p.start_date)} - ${formatDate(p.end_date)}</td>
+                      <td>${escapeXML(p.reason)}</td>
+                      <td><span class="badge ${p.status === 'approved' ? 'badge-approved' : p.status === 'rejected' ? 'badge-rejected' : 'badge-pending'}">${p.status}</span></td>
                     </tr>
                   `).join('')
                 }
@@ -1033,6 +1142,45 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
     }
   }
 
+  const handleDelete = async (type: string, id: string | number, name: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Pengajuan?',
+      text: `Apakah Anda yakin ingin menghapus pengajuan ${type} untuk ${name}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        let url = ''
+        if (type === 'cuti') url = `http://localhost:8000/api/leaves/${id}`
+        else if (type === 'izin') url = `http://localhost:8000/api/permits/${id}`
+        else if (type === 'lembur') url = `http://localhost:8000/api/overtimes/${id}`
+        else if (type === 'reimbursement') url = `http://localhost:8000/api/reimbursements/${id}`
+        else if (type === 'bonus') url = `http://localhost:8000/api/admin/bonuses/${id}`
+        else if (type === 'inventaris') url = `http://localhost:8000/api/admin/inventories/${id}`
+
+        const response = await axios.delete(url, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.data.status === 'success') {
+          Swal.fire({
+            title: 'Terhapus!',
+            text: response.data.message,
+            icon: 'success'
+          })
+          fetchData()
+        }
+      } catch (err: any) {
+        Swal.fire('Gagal', err.response?.data?.message || 'Gagal menghapus pengajuan.', 'error')
+      }
+    }
+  }
+
   const currentTab = tabDefs.find(t => t.key === activeTab)!
 
   const ActionButtons = ({ approveUrl, rejectUrl, rejectLabel, name, simpleReject = false, imageUrl }: {
@@ -1167,6 +1315,68 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                             approveUrl={`http://localhost:8000/api/director/leaves/${r.id}/approve`}
                             rejectUrl={`http://localhost:8000/api/director/leaves/${r.id}/reject`}
                             rejectLabel="Alasan Penolakan Cuti"
+                            name={r.user?.name}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+
+          /* ── IZIN ── */
+          ) : activeTab === 'izin' ? (
+            pendingPermits.length === 0 ? (
+              <EmptyState text="Tidak ada pengajuan izin yang menunggu persetujuan." />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-slate-100">
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Karyawan</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Kategori & Tanggal</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Dibuat</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Diterima</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Alasan</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Bukti</th>
+                      <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Tindakan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {pendingPermits.map(r => (
+                      <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 px-6"><EmployeeCell name={r.user?.name} email={r.user?.email} gradient={currentTab.gradient} /></td>
+                        <td className="py-4 px-6">
+                          <span className="inline-block px-2 py-0.5 rounded-lg text-[9px] font-black mb-1.5 uppercase tracking-wider" style={{ background: currentTab.bg, color: currentTab.color, border: `1px solid ${currentTab.border}` }}>
+                            {r.category === 'LAINNYA' ? r.custom_category : r.category}
+                          </span>
+                          <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-slate-300 shrink-0" />
+                            {new Date(r.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} — {new Date(r.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </td>
+                        <td className="py-4 px-6 text-slate-700 font-semibold">
+                          {formatDateTime(r.created_at)}
+                        </td>
+                        <td className="py-4 px-6 text-slate-500 font-semibold">
+                          -
+                        </td>
+                        <td className="py-4 px-6 max-w-[200px]">
+                          <p className="text-xs text-slate-500 font-medium truncate" title={r.reason}>{r.reason}</p>
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          {r.image ? (
+                            <a href={getAssetUrl(r.image)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold hover:underline" style={{ color: currentTab.color }}>
+                              <ExternalLink className="w-3 h-3" /> Lihat
+                            </a>
+                          ) : <span className="text-slate-300 text-xs">-</span>}
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          <ActionButtons
+                            approveUrl={`http://localhost:8000/api/director/permits/${r.id}/approve`}
+                            rejectUrl={`http://localhost:8000/api/director/permits/${r.id}/reject`}
+                            rejectLabel="Alasan Penolakan Izin"
                             name={r.user?.name}
                           />
                         </td>
@@ -1420,7 +1630,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
             /* ── REKAPAN & EXPORT ── */
             <div className="p-6 space-y-8">
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                 {/* Card 1: Cuti */}
                 <div className="bg-gradient-to-br from-indigo-50/60 to-white hover:shadow-md border border-indigo-100 rounded-2xl p-4 transition-all duration-300 relative overflow-hidden group">
                   <div className="absolute right-2 -bottom-2 text-indigo-100 opacity-20 group-hover:scale-110 transition-transform duration-300">
@@ -1432,6 +1642,20 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                     <span className="bg-indigo-100/50 text-indigo-700 px-1.5 py-0.5 rounded">{stats.cuti.pending} Menunggu</span>
                     <span>•</span>
                     <span>Total {stats.cuti.total}</span>
+                  </div>
+                </div>
+
+                {/* Card 1.5: Izin */}
+                <div className="bg-gradient-to-br from-violet-50/60 to-white hover:shadow-md border border-violet-100 rounded-2xl p-4 transition-all duration-300 relative overflow-hidden group">
+                  <div className="absolute right-2 -bottom-2 text-violet-100 opacity-20 group-hover:scale-110 transition-transform duration-300">
+                    <BookOpen className="w-16 h-16" />
+                  </div>
+                  <span className="text-[10px] font-black text-violet-500 uppercase tracking-wider">Laporan Izin</span>
+                  <h3 className="text-2xl font-black text-slate-800 mt-1">{stats.izin.approved} <span className="text-xs font-semibold text-slate-400">Disetujui</span></h3>
+                  <div className="flex items-center gap-2 mt-2 text-[10px] text-slate-500 font-semibold">
+                    <span className="bg-violet-100/50 text-violet-700 px-1.5 py-0.5 rounded">{stats.izin.pending} Menunggu</span>
+                    <span>•</span>
+                    <span>Total {stats.izin.total}</span>
                   </div>
                 </div>
 
@@ -1536,6 +1760,7 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                     >
                       <option value="all">Semua Kategori</option>
                       <option value="cuti">Cuti</option>
+                      <option value="izin">Izin</option>
                       <option value="lembur">Lembur</option>
                       <option value="reimbursement">Reimburse</option>
                       <option value="bonus">Bonus</option>
@@ -1623,12 +1848,14 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                           <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider">Detail Pengajuan</th>
                           <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-right">Nilai / Durasi</th>
                           <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Status</th>
+                          <th className="py-3 px-6 text-[10px] font-black text-slate-400 uppercase tracking-wider text-center">Tindakan</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-xs">
                         {paginatedRecords.map((r) => {
                           const typeStyles = {
                             cuti: { bg: 'rgba(79,70,229,0.08)', color: '#4f46e5', border: 'rgba(79,70,229,0.20)', label: 'Cuti' },
+                            izin: { bg: 'rgba(139,92,246,0.08)', color: '#8b5cf6', border: 'rgba(139,92,246,0.20)', label: 'Izin' },
                             lembur: { bg: 'rgba(217,119,6,0.08)', color: '#d97706', border: 'rgba(217,119,6,0.20)', label: 'Lembur' },
                             reimbursement: { bg: 'rgba(8,145,178,0.08)', color: '#0891b2', border: 'rgba(8,145,178,0.20)', label: 'Reimburse' },
                             bonus: { bg: 'rgba(5,150,105,0.08)', color: '#059669', border: 'rgba(5,150,105,0.20)', label: 'Bonus' },
@@ -1706,6 +1933,71 @@ export default function PersetujuanOperational({ token }: PersetujuanOperational
                                 <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
                                   {statusStyle.label}
                                 </span>
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-4 px-6 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  {(r.status === 'pending' || r.status === 'pending_director' || r.status === 'rejected') && (
+                                    <button
+                                      onClick={() => {
+                                        let approveUrl = ''
+                                        if (r.type === 'cuti') approveUrl = `http://localhost:8000/api/director/leaves/${r.id}/approve`
+                                        else if (r.type === 'izin') approveUrl = `http://localhost:8000/api/director/permits/${r.id}/approve`
+                                        else if (r.type === 'lembur') approveUrl = `http://localhost:8000/api/director/overtimes/${r.id}/approve`
+                                        else if (r.type === 'reimbursement') approveUrl = `http://localhost:8000/api/director/reimbursements/${r.id}/approve`
+                                        else if (r.type === 'bonus') approveUrl = `http://localhost:8000/api/director/bonuses/${r.id}/approve`
+                                        else if (r.type === 'inventaris') approveUrl = `http://localhost:8000/api/director/inventories/${r.id}/approve`
+                                        
+                                        const imageUrl = r.type === 'reimbursement' && r.raw.receipt_path ? getAssetUrl(r.raw.receipt_path) : undefined
+                                        approve(approveUrl, r.employeeName, imageUrl)
+                                      }}
+                                      className="p-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-600 rounded-lg transition-all cursor-pointer shadow-sm"
+                                      title="Setujui"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  {(r.status === 'pending' || r.status === 'pending_director' || r.status === 'approved') && (
+                                    <button
+                                      onClick={() => {
+                                        let rejectUrl = ''
+                                        if (r.type === 'cuti') rejectUrl = `http://localhost:8000/api/director/leaves/${r.id}/reject`
+                                        else if (r.type === 'izin') rejectUrl = `http://localhost:8000/api/director/permits/${r.id}/reject`
+                                        else if (r.type === 'lembur') rejectUrl = `http://localhost:8000/api/director/overtimes/${r.id}/reject`
+                                        else if (r.type === 'reimbursement') rejectUrl = `http://localhost:8000/api/director/reimbursements/${r.id}/reject`
+                                        else if (r.type === 'bonus') rejectUrl = `http://localhost:8000/api/director/bonuses/${r.id}/reject`
+                                        else if (r.type === 'inventaris') rejectUrl = `http://localhost:8000/api/director/inventories/${r.id}/reject`
+                                        
+                                        const imageUrl = r.type === 'reimbursement' && r.raw.receipt_path ? getAssetUrl(r.raw.receipt_path) : undefined
+                                        
+                                        if (r.type === 'bonus') {
+                                          rejectSimple(rejectUrl, r.employeeName, imageUrl)
+                                        } else {
+                                          const label = {
+                                            cuti: 'Alasan Penolakan Cuti',
+                                            izin: 'Alasan Penolakan Izin',
+                                            lembur: 'Alasan Penolakan Lembur',
+                                            reimbursement: 'Alasan Penolakan Klaim',
+                                            inventaris: 'Alasan Penolakan Barang Inventaris'
+                                          }[r.type] || 'Alasan Penolakan'
+                                          rejectWithNotes(rejectUrl, label, imageUrl)
+                                        }
+                                      }}
+                                      className="p-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-lg transition-all cursor-pointer shadow-sm"
+                                      title="Tolak"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleDelete(r.type, r.id, r.employeeName)}
+                                    className="p-1 bg-rose-50 hover:bg-rose-100 border border-rose-250 text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                    title="Hapus"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );

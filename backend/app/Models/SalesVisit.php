@@ -15,7 +15,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
     'longitude',
     'photo_path',
     'notes',
-    'visit_type'
+    'visit_type',
+    'visit_time_out',
+    'latitude_out',
+    'longitude_out',
+    'photo_path_out',
+    'notes_out'
 ])]
 class SalesVisit extends Model
 {

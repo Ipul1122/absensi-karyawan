@@ -316,8 +316,15 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
     setIsCapturing(true)
     const video = modalVideoRef.current
     const canvas = modalCanvasRef.current
-    canvas.width = video.videoWidth || 1280
-    canvas.height = video.videoHeight || 720
+    
+    // Tentukan ukuran maksimal gambar di sisi client (lebar maks 640px)
+    const maxClientWidth = 640
+    const originalWidth = video.videoWidth || 1280
+    const originalHeight = video.videoHeight || 720
+    const scaleFactor = originalWidth > maxClientWidth ? maxClientWidth / originalWidth : 1
+    canvas.width = originalWidth * scaleFactor
+    canvas.height = originalHeight * scaleFactor
+
     const ctx = canvas.getContext('2d')
     if (ctx) {
       if (modalFacingMode === 'user') {
@@ -325,7 +332,8 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
         ctx.scale(-1, 1)
       }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.92)
+      // Kompresi gambar langsung di client dengan kualitas 0.6 (60%)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6)
       stopModalCamera()
       setPreviewPhoto(dataUrl)
     }

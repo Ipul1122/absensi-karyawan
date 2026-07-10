@@ -14,6 +14,7 @@ use App\Models\Bonus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class PayrollController extends Controller
 {
@@ -163,7 +164,12 @@ class PayrollController extends Controller
 
         // 5. Hitung tunjangan & potongan (rumus per hari hadir / per hari mangkir)
         if ($isSatOff && $isSunOff) {
-            $allowanceDays = 26 - $holidaysCount;
+            if ($isProrated) {
+                // Prorata hari tunjangan berdasarkan hari aktif kerja dikurangi libur nasional periode aktif
+                $allowanceDays = max(0, $activeWorkingDays - $holidaysInActivePeriod);
+            } else {
+                $allowanceDays = 26 - $holidaysCount;
+            }
             $allowanceMeal = $allowanceDays * $allowanceMealDaily;
             $allowanceTransport = $allowanceDays * $allowanceTransportDaily;
         } else {
@@ -173,18 +179,22 @@ class PayrollController extends Controller
         $allowancePosition = $config ? $config->allowance_position : 0;
         $allowanceFixed = $config ? $config->allowance_fixed : 0;
 
-        // Hitung Lembur (Overtime) & Bonus yang disetujui Direktur
-        $approvedOvertimes = Overtime::where('user_id', $employee->id)
-            ->whereBetween('date', [$startOfPeriod->toDateString(), $endOfMonth->toDateString()])
-            ->where('status', 'approved')
-            ->get();
+        // Hitung Lembur (Overtime) & Bonus yang disetujui Direktur dari collection yang sudah di-eager-load
+        $approvedOvertimes = $employee->overtimes
+            ? $employee->overtimes->filter(function ($ot) use ($startOfPeriod, $endOfMonth) {
+                $otDate = Carbon::parse($ot->date);
+                return $ot->status === 'approved' && $otDate->between($startOfPeriod, $endOfMonth);
+            })
+            : collect([]);
         $overtimeHours = $approvedOvertimes->sum('duration');
         $allowanceOvertime = $overtimeHours * ($baseBasicSalary / 173);
 
-        $approvedBonuses = Bonus::where('user_id', $employee->id)
-            ->whereBetween('bonus_date', [$startOfPeriod->toDateString(), $endOfMonth->toDateString()])
-            ->where('status', 'approved')
-            ->get();
+        $approvedBonuses = $employee->bonuses
+            ? $employee->bonuses->filter(function ($b) use ($startOfPeriod, $endOfMonth) {
+                $bDate = Carbon::parse($b->bonus_date);
+                return $b->status === 'approved' && $bDate->between($startOfPeriod, $endOfMonth);
+            })
+            : collect([]);
         $allowanceBonus = $approvedBonuses->sum('bonus_amount');
 
         $deductionLate = $daysLate * $deductDailyLate;
@@ -268,6 +278,14 @@ class PayrollController extends Controller
                                         ->where('end_date', '>=', $endOfMonth->toDateString());
                                 });
                           });
+                },
+                'overtimes' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+                },
+                'bonuses' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->whereBetween('bonus_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
                 }
             ])
             ->first();
@@ -327,7 +345,7 @@ class PayrollController extends Controller
     public function indexConfigurations(Request $request)
     {
         $user = auth('sanctum')->user();
-        $query = User::where('role', 'employee');
+        $query = User::whereIn('role', ['employee', 'admin']);
         if ($user && $user->company && $user->role !== 'director' && $user->role !== 'admin') {
             $query->where('company', $user->company);
         }
@@ -476,6 +494,14 @@ class PayrollController extends Controller
                                         ->where('end_date', '>=', $endOfMonth->toDateString());
                                 });
                           });
+                },
+                'overtimes' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->whereBetween('date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
+                },
+                'bonuses' => function ($query) use ($startOfMonth, $endOfMonth) {
+                    $query->where('status', 'approved')
+                          ->whereBetween('bonus_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()]);
                 }
             ])
             ->get();
@@ -593,6 +619,8 @@ class PayrollController extends Controller
             'allowance_transport' => 'nullable|numeric|min:0',
             'allowance_position' => 'nullable|numeric|min:0',
             'allowance_fixed' => 'nullable|numeric|min:0',
+            'allowance_overtime' => 'nullable|numeric|min:0',
+            'allowance_bonus' => 'nullable|numeric|min:0',
             'deduction_late' => 'required|numeric|min:0',
             'deduction_fixed' => 'required|numeric|min:0',
             'deduction_absence' => 'nullable|numeric|min:0',
@@ -613,11 +641,13 @@ class PayrollController extends Controller
         $transport = $request->input('allowance_transport', 0);
         $position = $request->input('allowance_position', 0);
         $fixedAllow = $request->input('allowance_fixed', 0);
+        $overtime = $request->input('allowance_overtime', $payroll->allowance_overtime ?? 0);
+        $bonus = $request->input('allowance_bonus', $payroll->allowance_bonus ?? 0);
         $lateDeduct = $request->deduction_late;
         $fixedDeduct = $request->deduction_fixed;
         $absenceDeduct = $request->input('deduction_absence', 0);
 
-        $net = ($basic + $meal + $transport + $position + $fixedAllow) - ($lateDeduct + $fixedDeduct + $absenceDeduct);
+        $net = ($basic + $meal + $transport + $position + $fixedAllow + $overtime + $bonus) - ($lateDeduct + $fixedDeduct + $absenceDeduct);
         if ($net < 0) {
             $net = 0;
         }
@@ -628,6 +658,8 @@ class PayrollController extends Controller
             'allowance_transport' => $transport,
             'allowance_position' => $position,
             'allowance_fixed' => $fixedAllow,
+            'allowance_overtime' => $overtime,
+            'allowance_bonus' => $bonus,
             'deduction_late' => $lateDeduct,
             'deduction_fixed' => $fixedDeduct,
             'deduction_absence' => $absenceDeduct,
@@ -881,7 +913,7 @@ class PayrollController extends Controller
             }
         } catch (\Exception $e) {
             // Catat error jika API gagal
-            \Log::error("Import Holidays API Error: " . $e->getMessage());
+            Log::error("Import Holidays API Error: " . $e->getMessage());
         }
 
         if ($success) {

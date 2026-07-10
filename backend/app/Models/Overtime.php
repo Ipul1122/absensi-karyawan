@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 ])]
 class Overtime extends Model
 {
+    use \App\Traits\RecycleBinable;
+
     protected $casts = [
         'duration' => 'double',
         'date' => 'date',
@@ -29,5 +31,14 @@ class Overtime extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get a user-friendly name for this specific record in the Recycle Bin.
+     */
+    public function getRecycleBinName(): string
+    {
+        $userName = $this->user ? $this->user->name : ('User ID: ' . $this->user_id);
+        return "Lembur: " . $userName . " - Tanggal " . ($this->date ? $this->date->format('d-m-Y') : '') . " (" . $this->duration . " jam)";
     }
 }

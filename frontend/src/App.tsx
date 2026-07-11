@@ -34,13 +34,25 @@ interface User {
   company?: string | null
 }
 
-// Capture requested path for redirect after login synchronously before React Router redirects to "/"
+// Exclude static, login, and error pages from redirect_to capture
+const EXCLUDED_REDIRECT_PATHS = [
+  '/',
+  '/404',
+  '/401',
+  '/408',
+  '/500',
+  '/privacy-policy',
+  '/terms-of-service',
+  '/security-compliance'
+]
+
 const initialPath = window.location.pathname
-if (initialPath && initialPath !== '/' && !initialPath.startsWith('/verify-slip')) {
+if (initialPath && !EXCLUDED_REDIRECT_PATHS.includes(initialPath) && !initialPath.startsWith('/verify-slip')) {
   if (!sessionStorage.getItem('auth_token') && !localStorage.getItem('auth_token')) {
     sessionStorage.setItem('redirect_to', initialPath)
   }
 }
+
 
 function App() {
   const [backendStatus, setBackendStatus] = useState<'idle' | 'checking' | 'connected' | 'error'>('idle')
@@ -167,6 +179,7 @@ function App() {
     localStorage.removeItem('auth_user')
     setToken(null)
     setUser(null)
+    window.location.href = '/'
   }
 
   const handleProfileUpdate = (updatedFields: { name: string; email: string; photo?: string | null }) => {
@@ -211,6 +224,7 @@ function App() {
                     </div>
                   } 
                   />
+                <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
               </>
             ) : user.role === 'director' ? (
@@ -221,6 +235,7 @@ function App() {
                     <DirectorDashboard user={user as any} token={token} onLogout={handleLogout} onProfileUpdate={handleProfileUpdate} />
                   } 
                   />
+                <Route path="/" element={<Navigate to="/director/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
               </>
             ) : (
@@ -231,6 +246,7 @@ function App() {
                     <EmployeeDashboard user={user as any} token={token} onLogout={handleLogout} />
                   } 
                 />
+                <Route path="/" element={<Navigate to="/employee/dashboard" replace />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
               </>
             )

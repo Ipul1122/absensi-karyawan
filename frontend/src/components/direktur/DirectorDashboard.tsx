@@ -140,6 +140,7 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
             <Route path="operasional" element={<PersetujuanOperational token={token} />} />
             <Route path="log-kehadiran" element={<LogKehadiran token={token} />} />
             <Route path="pengaturan" element={<DirectorSettings user={user} token={token} onProfileUpdate={onProfileUpdate} />} />
+            <Route path="" element={<Navigate to="dashboard" replace />} />
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         </main>

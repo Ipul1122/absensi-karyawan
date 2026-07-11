@@ -663,6 +663,7 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               } 
             />
             {/* Fallback route */}
+            <Route path="" element={<Navigate to="dashboard" replace />} />
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         )}

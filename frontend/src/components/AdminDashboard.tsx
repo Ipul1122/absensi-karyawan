@@ -114,19 +114,6 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   
   const [loading, setLoading] = useState(true)
   const [attendanceLoading, setAttendanceLoading] = useState(true)
-
-  const fetchSidebarCounts = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/sidebar/counts', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (response.data.status === 'success') {
-        setSidebarCounts(response.data.data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch sidebar counts:', err)
-    }
-  }
   const [showModal, setShowModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [time, setTime] = useState(new Date())
@@ -307,6 +294,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     fetchAttendances()
     fetchOfficeSetting()
     fetchLeaves()
+    fetchProfile()
     fetchSidebarCounts()
   }, [])
 

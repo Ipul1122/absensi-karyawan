@@ -96,25 +96,11 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     operasionalCount: 0,
   })
 
-  const fetchSidebarCounts = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/sidebar/counts', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (response.data.status === 'success') {
-        setSidebarCounts(prev => ({ ...prev, ...response.data.data }))
-      }
-    } catch (err) {
-      console.error('Failed to fetch sidebar counts:', err)
-    }
-  }
-
   // Remove dark mode class and theme from local storage
   useEffect(() => {
     document.documentElement.classList.remove('dark')
     localStorage.removeItem('theme')
   }, [])
->>>>>>> 9ee49df136d682c1bd16b350eff733781b122b90
 
   // Live clock
   useEffect(() => {

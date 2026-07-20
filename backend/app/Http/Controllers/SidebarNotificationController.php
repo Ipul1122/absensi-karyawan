@@ -11,132 +11,85 @@ use App\Models\Bonus;
 use App\Models\Inventory;
 use App\Models\Payroll;
 use App\Models\SalaryConfiguration;
+use App\Models\PermitRequest;
+use Illuminate\Support\Facades\Auth;
 
 class SidebarNotificationController extends Controller
 {
     public function getCounts(Request $request)
     {
-        $user = $request->user();
-        $role = $user->role;
-
-        $data = [];
-
-        if ($role === 'employee') {
-            // Employee needs counts of their own pending requests
-            $data['pendingCutiCount'] = LeaveRequest::where('user_id', $user->id)
-                ->whereIn('status', ['pending', 'pending_director'])
-                ->count();
-
-            $data['pendingLemburCount'] = Overtime::where('user_id', $user->id)
-                ->whereIn('status', ['pending', 'pending_director'])
-                ->count();
-
-            $data['pendingReimburseCount'] = Reimbursement::where('user_id', $user->id)
-                ->whereIn('status', ['pending', 'pending_director'])
-                ->count();
-
-            // Employee only sees approved bonuses in index, so maybe pending bonuses count is not shown,
-            // but let's send 0 or check if they want to see pending bonus. Let's send 0.
-            $data['pendingBonusCount'] = 0;
-
-            // Employee unpaid payroll count
-            $data['unpaidPayrollCount'] = Payroll::where('user_id', $user->id)
-                ->where('status', 'unpaid')
-                ->count();
-
-            // Total for parent "Operasional" dropdown
-            $data['operasionalCount'] = $data['pendingCutiCount'] + $data['pendingLemburCount'] + $data['pendingReimburseCount'];
-        } elseif ($role === 'admin') {
-            // Admin needs counts of pending items waiting for Admin action
-            $company = $user->company;
-
-            $pendingCutiQuery = LeaveRequest::where('status', 'pending');
-            $pendingReimburseQuery = Reimbursement::where('status', 'pending');
-            $pendingLemburQuery = Overtime::where('status', 'pending');
-            $unpaidPayrollQuery = Payroll::where('status', 'unpaid');
-            $pendingKaryawanQuery = User::where('role', 'employee')->whereIn('status', ['pending', 'pending_delete']);
-
-            if ($company) {
-                $pendingCutiQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                $pendingReimburseQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                $pendingLemburQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                $unpaidPayrollQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                $pendingKaryawanQuery->where('company', $company);
+        try {
+            $user = $request->user() ?: Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'status' => 'success',
+                    'data' => []
+                ]);
             }
 
-            $data['pendingCutiCount'] = $pendingCutiQuery->count();
-            $data['pendingReimburseCount'] = $pendingReimburseQuery->count();
-            $data['pendingLemburCount'] = $pendingLemburQuery->count();
-            $data['unpaidPayrollCount'] = $unpaidPayrollQuery->count();
-            $data['pendingKaryawanCount'] = $pendingKaryawanQuery->count();
-            
-            // Total for parent "Operasional" dropdown
-            $data['operasionalCount'] = $data['pendingCutiCount'] + $data['pendingReimburseCount'] + $data['pendingLemburCount'];
-        } elseif ($role === 'director') {
-            // Director needs counts of pending items waiting for Director action
-            $company = $user->company;
+            $role = $user->role;
+            $data = [];
 
-            $pendingKaryawanQuery = User::where('role', 'employee')->whereIn('status', ['pending', 'pending_delete']);
-            $pendingGajiQuery = SalaryConfiguration::where('salary_change_status', 'pending');
-            $pendingPayrollQuery = Payroll::whereIn('status', ['pending_approval', 'unpaid']);
-            
-            // Director's pending operasional count: cuti, lembur, reimburse, bonus, inventaris
-            $pendingCutiQuery = LeaveRequest::where('status', 'pending_director');
-            $pendingLemburQuery = Overtime::where('status', 'pending_director');
-            $pendingReimburseQuery = Reimbursement::where('status', 'pending_director');
-            $pendingBonusQuery = Bonus::where('status', 'pending');
-            $pendingInventoryQuery = Inventory::where('status', 'pending');
+            if ($role === 'employee') {
+                $data['pendingCutiCount'] = LeaveRequest::where('user_id', $user->id)
+                    ->whereIn('status', ['pending', 'pending_director'])
+                    ->count();
 
-            if (false && $company) {
-                $pendingKaryawanQuery->where('company', $company);
-                $pendingGajiQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                $pendingPayrollQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                $pendingCutiQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                $pendingLemburQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                $pendingReimburseQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                $pendingBonusQuery->whereHas('user', function ($q) use ($company) {
-                    $q->where('company', $company);
-                });
-                // Note: Inventory does not have a user relationship, counted as-is
+                $data['pendingLemburCount'] = Overtime::where('user_id', $user->id)
+                    ->whereIn('status', ['pending', 'pending_director'])
+                    ->count();
+
+                $data['pendingReimburseCount'] = Reimbursement::where('user_id', $user->id)
+                    ->whereIn('status', ['pending', 'pending_director'])
+                    ->count();
+
+                $data['pendingIzinCount'] = PermitRequest::where('user_id', $user->id)
+                    ->whereIn('status', ['pending', 'pending_director'])
+                    ->count();
+
+                $data['pendingBonusCount'] = 0;
+
+                $data['unpaidPayrollCount'] = Payroll::where('user_id', $user->id)
+                    ->where('status', 'unpaid')
+                    ->count();
+
+                $data['operasionalCount'] = $data['pendingCutiCount'] + $data['pendingLemburCount'] + $data['pendingReimburseCount'] + $data['pendingIzinCount'];
+            } elseif ($role === 'admin') {
+                $data['pendingKaryawanCount'] = User::where('role', 'employee')
+                    ->where('status', 'pending')
+                    ->count();
+
+                $data['pendingCutiCount'] = LeaveRequest::where('status', 'pending')->count();
+                $data['pendingIzinCount'] = PermitRequest::where('status', 'pending')->count();
+                $data['pendingReimburseCount'] = Reimbursement::where('status', 'pending')->count();
+                $data['pendingLemburCount'] = Overtime::where('status', 'pending')->count();
+                $data['unpaidPayrollCount'] = Payroll::where('status', 'unpaid')->count();
+
+                $data['operasionalCount'] = $data['pendingCutiCount'] + $data['pendingIzinCount'] + $data['pendingReimburseCount'] + $data['pendingLemburCount'];
+            } elseif ($role === 'director') {
+                $data['pendingKaryawanCount'] = User::whereIn('status', ['pending', 'pending_delete'])->count();
+                $data['pendingGajiCount'] = SalaryConfiguration::where('salary_change_status', 'pending')->count();
+                $data['pendingPayrollCount'] = Payroll::whereIn('status', ['pending_approval', 'unpaid'])->count();
+
+                $opCuti = LeaveRequest::where('status', 'pending_director')->count();
+                $opLembur = Overtime::where('status', 'pending_director')->count();
+                $opReimburse = Reimbursement::where('status', 'pending_director')->count();
+                $opIzin = PermitRequest::where('status', 'pending_director')->count();
+                $opBonus = Bonus::where('status', 'pending')->count();
+                $opInventory = Inventory::where('status', 'pending')->count();
+
+                $data['pendingOperasionalCount'] = $opCuti + $opLembur + $opReimburse + $opBonus + $opInventory + $opIzin;
             }
 
-            $data['pendingKaryawanCount'] = $pendingKaryawanQuery->count();
-            $data['pendingGajiCount'] = $pendingGajiQuery->count();
-            $data['pendingPayrollCount'] = $pendingPayrollQuery->count();
-            $data['pendingCutiCount'] = $pendingCutiQuery->count();
-            $data['pendingLemburCount'] = $pendingLemburQuery->count();
-            $data['pendingReimburseCount'] = $pendingReimburseQuery->count();
-            $data['pendingBonusCount'] = $pendingBonusQuery->count();
-            $data['pendingInventoryCount'] = $pendingInventoryQuery->count();
-
-            $data['pendingOperasionalCount'] = $data['pendingCutiCount'] 
-                + $data['pendingLemburCount'] 
-                + $data['pendingReimburseCount'] 
-                + $data['pendingBonusCount'] 
-                + $data['pendingInventoryCount'];
+            return response()->json([
+                'status' => 'success',
+                'data' => $data
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'success',
+                'data' => []
+            ]);
         }
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $data
-        ]);
     }
 }

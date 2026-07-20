@@ -15,12 +15,13 @@ use App\Http\Controllers\ReimbursementController;
 use App\Http\Controllers\BonusController;
 use App\Http\Controllers\SalesVisitController;
 use App\Http\Controllers\OvertimeController;
-use App\Http\Controllers\SidebarNotificationController;
-use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DirectorController;
 use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\PermitController;
+use App\Http\Controllers\ScheduleOverrideController;
+use App\Http\Controllers\SidebarNotificationController;
+use App\Http\Controllers\NotificationController;
 
 Route::get('/health-check', function () {
     try {
@@ -111,6 +112,7 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     Route::get('/overtimes', [OvertimeController::class, 'index']);
     Route::post('/overtimes', [OvertimeController::class, 'store']);
     Route::delete('/overtimes/{id}', [OvertimeController::class, 'destroy']);
+    Route::get('/schedule-overrides/my', [ScheduleOverrideController::class, 'getMyOverrides']);
 
     // Admin or Director routes (Read only for Director)
     Route::middleware('admin_or_director')->group(function () {
@@ -132,6 +134,7 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::get('/admin/overtimes', [OvertimeController::class, 'indexAdmin']);
         Route::get('/admin/overtimes/recap', [OvertimeController::class, 'recapAdmin']);
         Route::get('/admin/holidays', [PayrollController::class, 'indexHolidays']);
+        Route::get('/admin/schedule-overrides', [ScheduleOverrideController::class, 'index']);
         Route::delete('/admin/bonuses/{id}', [BonusController::class, 'destroy']);
         Route::delete('/admin/inventories/{id}', [InventoryController::class, 'destroy']);
     });
@@ -165,6 +168,8 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::post('/admin/holidays', [PayrollController::class, 'storeHoliday']);
         Route::post('/admin/holidays/import', [PayrollController::class, 'importHolidays']);
         Route::delete('/admin/holidays/{id}', [PayrollController::class, 'destroyHoliday']);
+        Route::post('/admin/schedule-overrides', [ScheduleOverrideController::class, 'store']);
+        Route::delete('/admin/schedule-overrides/{id}', [ScheduleOverrideController::class, 'destroy']);
 
         // Admin Inventory routes
         Route::post('/admin/inventories', [InventoryController::class, 'store']);

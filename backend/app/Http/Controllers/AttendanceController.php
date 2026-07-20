@@ -314,43 +314,196 @@ class AttendanceController extends Controller
     public function getHistory(Request $request)
     {
         $userId = $request->user()->id;
-        $query = Attendance::where('user_id', $userId);
+        $type = strtolower($request->input('attendance_type', 'all'));
+        $date = $request->input('date');
+        $month = $request->input('month');
+        $year = $request->input('year');
 
-        // Filter by specific date if provided
-        if ($request->filled('date')) {
-            $query->where('date', $request->date);
+        $items = collect();
+
+        // 1. Fetch Office Attendances (attendance_type = 'kantor' or null)
+        if (in_array($type, ['all', 'kantor'])) {
+            $attQuery = Attendance::with('shift')->where('user_id', $userId)
+                ->where(function ($q) {
+                    $q->where('attendance_type', 'kantor')
+                      ->orWhereNull('attendance_type');
+                });
+
+            if ($date) {
+                $attQuery->where('date', $date);
+            } elseif ($month && $year) {
+                $attQuery->whereMonth('date', $month)->whereYear('date', $year);
+            }
+
+            $attendances = $attQuery->get()->map(function ($att) {
+                $dateStr = is_string($att->date) ? $att->date : ($att->date ? $att->date->format('Y-m-d') : null);
+                return [
+                    'id' => 'att_' . $att->id,
+                    'date' => $dateStr,
+                    'attendance_type' => 'kantor',
+                    'clock_in' => $att->clock_in,
+                    'clock_out' => $att->clock_out,
+                    'latitude_in' => $att->latitude_in,
+                    'longitude_in' => $att->longitude_in,
+                    'latitude_out' => $att->latitude_out,
+                    'longitude_out' => $att->longitude_out,
+                    'photo_in' => $att->photo_in,
+                    'photo_out' => $att->photo_out,
+                    'notes_in' => $att->notes_in,
+                    'notes_out' => $att->notes_out,
+                    'status_in' => $att->status_in,
+                    'status_out' => $att->status_out,
+                    'shift_start_time' => $att->shift_start_time,
+                    'shift_end_time' => $att->shift_end_time,
+                    'shift' => $att->shift ? [
+                        'name' => $att->shift->name,
+                        'start_time' => $att->shift->start_time,
+                        'end_time' => $att->shift->end_time,
+                    ] : null,
+                    'sort_time' => ($dateStr ?: '') . ' ' . ($att->clock_in ?: '00:00:00')
+                ];
+            });
+
+            $items = $items->concat($attendances);
         }
-        // Filter by specific month and year if provided
-        elseif ($request->filled('month') && $request->filled('year')) {
-            $query->whereMonth('date', $request->month)
-                  ->whereYear('date', $request->year);
+
+        // 2. Fetch Sales / Client Visit Logs (from sales_visits table)
+        if (in_array($type, ['all', 'client', 'sales', 'kunjungan'])) {
+            $visitQuery = \App\Models\SalesVisit::where('user_id', $userId);
+
+            if ($type === 'client') {
+                $visitQuery->where('visit_type', 'client');
+            } elseif ($type === 'sales' || $type === 'kunjungan') {
+                $visitQuery->where(function ($q) {
+                    $q->where('visit_type', 'sales')
+                      ->orWhereNull('visit_type');
+                });
+            }
+
+            if ($date) {
+                $visitQuery->where('date', $date);
+            } elseif ($month && $year) {
+                $visitQuery->whereMonth('date', $month)->whereYear('date', $year);
+            }
+
+            $visits = $visitQuery->get()->map(function ($sv) {
+                $dateStr = is_string($sv->date) ? $sv->date : ($sv->date ? $sv->date->format('Y-m-d') : null);
+                $visitType = ($sv->visit_type === 'client') ? 'client' : 'kunjungan';
+                $prefix = ($sv->visit_type === 'client') ? 'Klien: ' : 'Tujuan: ';
+                $noteText = $prefix . $sv->client_name . ($sv->notes ? ' (' . $sv->notes . ')' : '');
+
+                return [
+                    'id' => 'visit_' . $sv->id,
+                    'date' => $dateStr,
+                    'attendance_type' => $visitType,
+                    'clock_in' => $sv->visit_time,
+                    'clock_out' => $sv->visit_time_out,
+                    'latitude_in' => $sv->latitude,
+                    'longitude_in' => $sv->longitude,
+                    'latitude_out' => $sv->latitude_out,
+                    'longitude_out' => $sv->longitude_out,
+                    'photo_in' => $sv->photo_path,
+                    'photo_out' => $sv->photo_path_out,
+                    'notes_in' => $noteText,
+                    'notes_out' => $sv->notes_out,
+                    'status_in' => 'normal',
+                    'status_out' => $sv->visit_time_out ? 'normal' : null,
+                    'shift' => null,
+                    'sort_time' => ($dateStr ?: '') . ' ' . ($sv->visit_time ?: '00:00:00')
+                ];
+            });
+
+            $items = $items->concat($visits);
         }
 
-        $query->orderBy('date', 'desc');
+        // 3. Fetch any Attendance records with attendance_type = 'kunjungan' or 'client' that don't overlap with sales_visits
+        if (in_array($type, ['all', 'client', 'sales', 'kunjungan'])) {
+            $otherAttQuery = Attendance::with('shift')->where('user_id', $userId)
+                ->whereIn('attendance_type', ['kunjungan', 'sales', 'client']);
 
-        // If page parameter is present, return server-side paginated results
+            if ($type === 'client') {
+                $otherAttQuery->where(function ($q) {
+                    $q->where('attendance_type', 'client')
+                      ->orWhere('notes_in', 'like', '%Klien%');
+                });
+            } elseif ($type === 'sales' || $type === 'kunjungan') {
+                $otherAttQuery->where(function ($q) {
+                    $q->whereIn('attendance_type', ['kunjungan', 'sales'])
+                      ->where('notes_in', 'not like', '%Klien%');
+                });
+            }
+
+            if ($date) {
+                $otherAttQuery->where('date', $date);
+            } elseif ($month && $year) {
+                $otherAttQuery->whereMonth('date', $month)->whereYear('date', $year);
+            }
+
+            $visitDates = $items->pluck('date')->unique()->filter()->values()->toArray();
+            $otherAttendances = $otherAttQuery->get()
+                ->reject(function ($att) use ($visitDates) {
+                    $dStr = is_string($att->date) ? $att->date : ($att->date ? $att->date->format('Y-m-d') : null);
+                    return in_array($dStr, $visitDates);
+                })
+                ->map(function ($att) {
+                    $dateStr = is_string($att->date) ? $att->date : ($att->date ? $att->date->format('Y-m-d') : null);
+                    return [
+                        'id' => 'att_' . $att->id,
+                        'date' => $dateStr,
+                        'attendance_type' => $att->attendance_type,
+                        'clock_in' => $att->clock_in,
+                        'clock_out' => $att->clock_out,
+                        'latitude_in' => $att->latitude_in,
+                        'longitude_in' => $att->longitude_in,
+                        'latitude_out' => $att->latitude_out,
+                        'longitude_out' => $att->longitude_out,
+                        'photo_in' => $att->photo_in,
+                        'photo_out' => $att->photo_out,
+                        'notes_in' => $att->notes_in,
+                        'notes_out' => $att->notes_out,
+                        'status_in' => $att->status_in,
+                        'status_out' => $att->status_out,
+                        'shift_start_time' => $att->shift_start_time,
+                        'shift_end_time' => $att->shift_end_time,
+                        'shift' => $att->shift ? [
+                            'name' => $att->shift->name,
+                            'start_time' => $att->shift->start_time,
+                            'end_time' => $att->shift->end_time,
+                        ] : null,
+                        'sort_time' => ($dateStr ?: '') . ' ' . ($att->clock_in ?: '00:00:00')
+                    ];
+                });
+
+            $items = $items->concat($otherAttendances);
+        }
+
+        // Sort descending by sort_time
+        $sorted = $items->sortByDesc('sort_time')->values();
+
+        // Pagination
         if ($request->has('page')) {
-            $limit = $request->input('limit', 10);
-            $paginated = $query->paginate($limit);
+            $page = (int) $request->input('page', 1);
+            $perPage = (int) $request->input('limit', 10);
+            $total = $sorted->count();
+            $lastPage = (int) ceil($total / $perPage);
+            $offset = ($page - 1) * $perPage;
+            $slicedData = $sorted->slice($offset, $perPage)->values();
 
             return response()->json([
                 'status' => 'success',
-                'data' => $paginated->items(),
+                'data' => $slicedData,
                 'pagination' => [
-                    'current_page' => $paginated->currentPage(),
-                    'last_page' => $paginated->lastPage(),
-                    'per_page' => $paginated->perPage(),
-                    'total' => $paginated->total(),
+                    'current_page' => $page,
+                    'last_page' => max(1, $lastPage),
+                    'per_page' => $perPage,
+                    'total' => $total,
                 ]
             ]);
         }
 
-        // Default: return recent 30 records for dashboard stats compatibility
-        $history = $query->with('shift')->limit(30)->get();
-
         return response()->json([
             'status' => 'success',
-            'data' => $history
+            'data' => $sorted->take(30)
         ]);
     }
 

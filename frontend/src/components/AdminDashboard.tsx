@@ -33,6 +33,7 @@ const AdminReimbursement = lazy(() => import('./admin/operasional/AdminReimburse
 const AdminBonus = lazy(() => import('./admin/payroll/AdminBonus'))
 const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
 const KelolaShift = lazy(() => import('./admin/pengaturan/KelolaShift'))
+const AdminKelolaJadwalKhusus = lazy(() => import('./admin/pengaturan/AdminKelolaJadwalKhusus'))
 
 const AddEmployeeModal = lazy(() => import('./admin/dataKaryawan/AddEmployeeModal'))
 const EditEmployeeModal = lazy(() => import('./admin/dataKaryawan/EditEmployeeModal'))
@@ -1062,6 +1063,14 @@ ${window.location.origin}/director/karyawan`
               path="shifts" 
               element={
                 <KelolaShift
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="jadwalKhusus" 
+              element={
+                <AdminKelolaJadwalKhusus
                   token={token}
                 />
               } 

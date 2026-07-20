@@ -1,11 +1,11 @@
 import React from 'react'
 import Swal from 'sweetalert2'
 import axios from 'axios'
-import { Eye, ShieldAlert, Filter, Loader2 } from 'lucide-react'
+import { Eye, ShieldAlert, Filter, Loader2, Building2, Briefcase, Handshake, Layers } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
 
 interface Attendance {
-  id: number
+  id: number | string
   date: string
   attendance_type?: string | null
   clock_in: string | null
@@ -40,6 +40,7 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
 
   // State for filtering
   const [filterType, setFilterType] = React.useState<'all' | 'month-year' | 'date'>('all')
+  const [attendanceTypeFilter, setAttendanceTypeFilter] = React.useState<'all' | 'kantor' | 'client' | 'sales'>('all')
   const [selectedMonth, setSelectedMonth] = React.useState<number>(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = React.useState<number>(new Date().getFullYear())
   const [selectedDate, setSelectedDate] = React.useState<string>('')
@@ -58,6 +59,9 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
         url += `&month=${selectedMonth}&year=${selectedYear}`
       } else if (filterType === 'date' && selectedDate) {
         url += `&date=${selectedDate}`
+      }
+      if (attendanceTypeFilter !== 'all') {
+        url += `&attendance_type=${attendanceTypeFilter}`
       }
       
       const response = await axios.get(url, {
@@ -82,11 +86,37 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
 
   React.useEffect(() => {
     fetchHistoryData()
-  }, [currentPage, itemsPerPage, filterType, selectedMonth, selectedYear, selectedDate])
+  }, [currentPage, itemsPerPage, filterType, attendanceTypeFilter, selectedMonth, selectedYear, selectedDate])
 
   const safeCurrentPage = Math.min(currentPage, totalPages)
   const startIndex = (safeCurrentPage - 1) * itemsPerPage
   const endIndex = startIndex + history.length
+
+  const renderAttendanceTypeBadge = (type?: string | null) => {
+    const t = (type || 'kantor').toLowerCase()
+    if (t === 'client') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 border border-amber-200 text-amber-700 shadow-xs font-quicksand">
+          <Handshake className="w-3.5 h-3.5 text-amber-600" />
+          Presensi Client
+        </span>
+      )
+    }
+    if (t === 'kunjungan' || t === 'sales') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-xs font-quicksand">
+          <Briefcase className="w-3.5 h-3.5 text-emerald-600" />
+          Presensi Sales
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-700 shadow-xs font-quicksand">
+        <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+        Presensi Kantor
+      </span>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -95,7 +125,7 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-slate-800 font-quicksand">Riwayat Presensi Mandiri</h3>
-            <p className="text-xs text-slate-500 font-quicksand mt-1">Daftar rekaman absensi Anda yang tercatat di sistem.</p>
+            <p className="text-xs text-slate-500 font-quicksand mt-1">Daftar rekaman absensi Kantor, Client, dan Sales yang tercatat di sistem.</p>
           </div>
           
           {/* Row limit selector */}
@@ -117,40 +147,95 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
         <div className="space-y-4 border-b border-orange-50/50 pb-5">
           <div className="flex items-center gap-2 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest font-quicksand">
             <Filter className="w-3.5 h-3.5 text-orange-500" />
-            <span>Filter Data Riwayat</span>
+            <span>Filter Data Presensi</span>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => { setFilterType('all'); setCurrentPage(1); }}
-              className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
-                filterType === 'all'
-                  ? 'bg-gradient-to-br from-red-500 to-orange-600 border-red-500 text-white shadow-md shadow-red-500/10'
-                  : 'bg-white border-orange-100 hover:border-orange-200 hover:bg-orange-50/25 text-slate-600'
-              }`}
-            >
-              Semua Riwayat
-            </button>
-            <button
-              onClick={() => { setFilterType('month-year'); setCurrentPage(1); }}
-              className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
-                filterType === 'month-year'
-                  ? 'bg-gradient-to-br from-red-500 to-orange-600 border-red-500 text-white shadow-md shadow-red-500/10'
-                  : 'bg-white border-orange-100 hover:border-orange-200 hover:bg-orange-50/25 text-slate-600'
-              }`}
-            >
-              Pilih Bulan & Tahun
-            </button>
-            <button
-              onClick={() => { setFilterType('date'); setCurrentPage(1); }}
-              className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
-                filterType === 'date'
-                  ? 'bg-gradient-to-br from-red-500 to-orange-600 border-red-500 text-white shadow-md shadow-red-500/10'
-                  : 'bg-white border-orange-100 hover:border-orange-200 hover:bg-orange-50/25 text-slate-600'
-              }`}
-            >
-              Pilih Tanggal Spesifik
-            </button>
+          {/* Filter Tipe Presensi */}
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Tipe Presensi</div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => { setAttendanceTypeFilter('all'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
+                  attendanceTypeFilter === 'all'
+                    ? 'bg-slate-800 border-slate-800 text-white shadow-sm'
+                    : 'bg-white border-orange-100 hover:border-orange-200 text-slate-600 hover:bg-orange-50/20'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Semua Tipe
+              </button>
+              <button
+                onClick={() => { setAttendanceTypeFilter('kantor'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
+                  attendanceTypeFilter === 'kantor'
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                    : 'bg-white border-indigo-100 text-indigo-700 hover:bg-indigo-50/30'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                Absen Kantor
+              </button>
+              <button
+                onClick={() => { setAttendanceTypeFilter('client'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
+                  attendanceTypeFilter === 'client'
+                    ? 'bg-amber-600 border-amber-600 text-white shadow-sm'
+                    : 'bg-white border-amber-100 text-amber-700 hover:bg-amber-50/30'
+                }`}
+              >
+                <Handshake className="w-3.5 h-3.5" />
+                Absen Client
+              </button>
+              <button
+                onClick={() => { setAttendanceTypeFilter('sales'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
+                  attendanceTypeFilter === 'sales'
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                    : 'bg-white border-emerald-100 text-emerald-700 hover:bg-emerald-50/30'
+                }`}
+              >
+                <Briefcase className="w-3.5 h-3.5" />
+                Absen Sales / Kunjungan
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Periode Waktu */}
+          <div className="space-y-1.5 pt-1">
+            <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand">Periode Waktu</div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => { setFilterType('all'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
+                  filterType === 'all'
+                    ? 'bg-gradient-to-br from-red-500 to-orange-600 border-red-500 text-white shadow-md shadow-red-500/10'
+                    : 'bg-white border-orange-100 hover:border-orange-200 hover:bg-orange-50/25 text-slate-600'
+                }`}
+              >
+                Semua Tanggal
+              </button>
+              <button
+                onClick={() => { setFilterType('month-year'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
+                  filterType === 'month-year'
+                    ? 'bg-gradient-to-br from-red-500 to-orange-600 border-red-500 text-white shadow-md shadow-red-500/10'
+                    : 'bg-white border-orange-100 hover:border-orange-200 hover:bg-orange-50/25 text-slate-600'
+                }`}
+              >
+                Pilih Bulan & Tahun
+              </button>
+              <button
+                onClick={() => { setFilterType('date'); setCurrentPage(1); }}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer font-quicksand ${
+                  filterType === 'date'
+                    ? 'bg-gradient-to-br from-red-500 to-orange-600 border-red-500 text-white shadow-md shadow-red-500/10'
+                    : 'bg-white border-orange-100 hover:border-orange-200 hover:bg-orange-50/25 text-slate-600'
+                }`}
+              >
+                Pilih Tanggal Spesifik
+              </button>
+            </div>
           </div>
 
           {/* Expanded month & year filter inputs */}
@@ -268,15 +353,14 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
                         )}
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize ${
-                          record.attendance_type === 'kunjungan' 
-                            ? 'text-emerald-700 bg-emerald-50 border-emerald-250' 
-                            : record.attendance_type === 'client' 
-                            ? 'text-amber-700 bg-amber-50 border-amber-250' 
-                            : 'text-indigo-700 bg-indigo-50 border-indigo-250'
-                        }`}>
-                          {record.attendance_type || 'kantor'}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          {renderAttendanceTypeBadge(record.attendance_type)}
+                          {record.notes_in && (
+                            <span className="text-[11px] text-slate-500 italic max-w-xs font-quicksand line-clamp-2">
+                              Catatan: {record.notes_in}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-6">
                         {record.clock_in ? (

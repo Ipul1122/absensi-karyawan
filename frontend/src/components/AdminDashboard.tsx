@@ -114,6 +114,19 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   
   const [loading, setLoading] = useState(true)
   const [attendanceLoading, setAttendanceLoading] = useState(true)
+
+  const fetchSidebarCounts = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/sidebar/counts', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setSidebarCounts(response.data.data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch sidebar counts:', err)
+    }
+  }
   const [showModal, setShowModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [time, setTime] = useState(new Date())
@@ -294,13 +307,12 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     fetchAttendances()
     fetchOfficeSetting()
     fetchLeaves()
-    fetchPermits()
-    fetchProfile()
+    fetchSidebarCounts()
   }, [])
 
   useEffect(() => {
     fetchSidebarCounts()
-    const interval = setInterval(fetchSidebarCounts, 60000)
+    const interval = setInterval(fetchSidebarCounts, 15000)
     return () => clearInterval(interval)
   }, [token])
 
@@ -415,6 +427,7 @@ ${window.location.origin}/director/karyawan`
 
         setShowModal(false)
         fetchEmployees()
+        fetchSidebarCounts()
       }
     } catch (err: any) {
       console.error(err)
@@ -487,6 +500,7 @@ ${window.location.origin}/director/karyawan`
               color: '#f8fafc'
             })
             fetchEmployees()
+            fetchSidebarCounts()
           }
         } catch (err: any) {
           console.error(err)

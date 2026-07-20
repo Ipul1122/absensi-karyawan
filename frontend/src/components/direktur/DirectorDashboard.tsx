@@ -41,15 +41,15 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
   const fetchPendingCounts = async () => {
     if (document.hidden) return
     try {
-      const res = await axios.get('http://localhost:8000/api/sidebar/notification-counts', {
+      const res = await axios.get('http://localhost:8000/api/sidebar/counts', {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.data.status === 'success') {
-        const counts = res.data.data
-        setPendingKaryawanCount(counts.pendingKaryawanCount || 0)
-        setPendingGajiCount(counts.pendingGajiCount || 0)
-        setPendingPayrollCount(counts.pendingPayrollCount || 0)
-        setPendingOperasionalCount(counts.pendingOperasionalCount || 0)
+        const d = res.data.data
+        setPendingKaryawanCount(d.pendingKaryawanCount || 0)
+        setPendingGajiCount(d.pendingGajiCount || 0)
+        setPendingPayrollCount(d.pendingPayrollCount || 0)
+        setPendingOperasionalCount(d.pendingOperasionalCount || 0)
       }
     } catch (err) {
       console.error('Failed to fetch pending counts:', err)
@@ -73,7 +73,6 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
 
   return (
     <div className="flex min-h-screen text-slate-800" style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}>
-      {/* Sidebar - Desktop */}
       {/* Sidebar - Desktop */}
       <aside className="hidden md:block w-64 bg-white border-r border-orange-100/80 p-6 flex-shrink-0 shadow-sm sticky top-0 h-screen overflow-y-auto">
         <DirectorSidebar 
@@ -125,6 +124,7 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
               pendingPayrollCount={pendingPayrollCount}
               pendingOperasionalCount={pendingOperasionalCount}
             />
+
           </div>
         </div>
 

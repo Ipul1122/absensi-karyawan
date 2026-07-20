@@ -15,12 +15,12 @@ use App\Http\Controllers\ReimbursementController;
 use App\Http\Controllers\BonusController;
 use App\Http\Controllers\SalesVisitController;
 use App\Http\Controllers\OvertimeController;
+use App\Http\Controllers\SidebarNotificationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DirectorController;
 use App\Http\Controllers\PushNotificationController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\PermitController;
-
 
 Route::get('/health-check', function () {
     try {
@@ -250,7 +250,8 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     // Employee Payroll routes
     Route::get('/payroll/my-slips', [PayrollController::class, 'getEmployeePayrolls']);
 
-    // Sidebar Notification routes
+    // Sidebar counts route
+    Route::get('/sidebar/counts', [SidebarNotificationController::class, 'getCounts']);
     Route::get('/sidebar/notification-counts', [NotificationController::class, 'getCounts']);
 
     // Push Notification routes
@@ -258,3 +259,4 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     Route::post('/push-subscriptions/unsubscribe', [PushNotificationController::class, 'unsubscribe']);
     Route::post('/push-subscriptions/test', [PushNotificationController::class, 'sendTestNotification']);
 });
+

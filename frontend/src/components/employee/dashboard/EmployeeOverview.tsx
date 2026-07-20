@@ -24,7 +24,9 @@ interface User {
   id: number
   name: string
   email: string
-  role: 'admin' | 'employee'
+  role: 'admin' | 'employee' | 'director'
+  saturday_off?: boolean | number
+  sunday_off?: boolean | number
 }
 
 interface Attendance {
@@ -129,6 +131,7 @@ export default function EmployeeOverview({
   const navigate = useNavigate()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [payrolls, setPayrolls] = useState<PayrollRecord[]>([])
+  const [scheduleOverrides, setScheduleOverrides] = useState<any[]>([])
   const [statsLoading, setStatsLoading] = useState(true)
   const [activeMobileTab, setActiveMobileTab] = useState<'pintasan' | 'presensi' | 'profil'>('pintasan')
   const [currentSlide, setCurrentSlide] = useState(0)
@@ -258,9 +261,10 @@ export default function EmployeeOverview({
       setStatsLoading(true)
       const headers = { Authorization: `Bearer ${token}` }
       try {
-        const [profileRes, payrollsRes] = await Promise.allSettled([
+        const [profileRes, payrollsRes, overridesRes] = await Promise.allSettled([
           axios.get('http://localhost:8000/api/user/profile', { headers }),
-          axios.get('http://localhost:8000/api/payroll/my-slips', { headers })
+          axios.get('http://localhost:8000/api/payroll/my-slips', { headers }),
+          axios.get('http://localhost:8000/api/schedule-overrides/my', { headers })
         ])
 
         if (profileRes.status === 'fulfilled' && profileRes.value.data.status === 'success') {
@@ -268,6 +272,9 @@ export default function EmployeeOverview({
         }
         if (payrollsRes.status === 'fulfilled' && payrollsRes.value.data.status === 'success') {
           setPayrolls(payrollsRes.value.data.data)
+        }
+        if (overridesRes.status === 'fulfilled' && overridesRes.value.data.status === 'success') {
+          setScheduleOverrides(overridesRes.value.data.data)
         }
       } catch (err) {
         console.error('Gagal mengambil data ringkasan dashboard:', err)
@@ -307,8 +314,55 @@ export default function EmployeeOverview({
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear
   })
 
-  const workDays = monthlyHistory.filter(a => a.clock_in).length
-  const lateDays = monthlyHistory.filter(a => a.status_in === 'late').length
+  // Count unique attendance days (jumlah hari unik karyawan melakukan presensi di bulan ini)
+  const uniqueAttendedDates = new Set(
+    monthlyHistory.filter(a => a.clock_in).map(a => a.date)
+  )
+  const workDays = uniqueAttendedDates.size
+
+  const uniqueLateDates = new Set(
+    monthlyHistory.filter(a => a.status_in === 'late').map(a => a.date)
+  )
+  const lateDays = uniqueLateDates.size
+
+  // Calculate total working days in the current month based on employee's weekend off settings + date-specific overrides
+  const targetWorkingDays = (() => {
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+    const satOffRaw = profile?.saturday_off ?? user?.saturday_off
+    const sunOffRaw = profile?.sunday_off ?? user?.sunday_off
+
+    const isSatOff = Number(satOffRaw) === 1 || satOffRaw === true
+    const isSunOff = sunOffRaw === undefined || sunOffRaw === null ? true : (Number(sunOffRaw) === 1 || sunOffRaw === true)
+
+    let count = 0
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(currentYear, currentMonth, day)
+      const yyyy = d.getFullYear()
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(day).padStart(2, '0')
+      const dateStr = `${yyyy}-${mm}-${dd}`
+
+      // Check if there is an explicit schedule override for this date
+      const override = scheduleOverrides.find(so => {
+        const oDate = typeof so.override_date === 'string' ? so.override_date.substring(0, 10) : ''
+        return oDate === dateStr
+      })
+
+      if (override) {
+        if (override.status === 'day_off') continue
+        if (override.status === 'work_day') {
+          count++
+          continue
+        }
+      }
+
+      const dayOfWeek = d.getDay() // 0 = Sunday, 6 = Saturday
+      if (dayOfWeek === 6 && isSatOff) continue
+      if (dayOfWeek === 0 && isSunOff) continue
+      count++
+    }
+    return count || 22
+  })()
 
   const sortedPayrolls = [...payrolls].sort((a, b) => b.period_month.localeCompare(a.period_month))
   const latestPayroll = sortedPayrolls[0] || null
@@ -955,19 +1009,19 @@ export default function EmployeeOverview({
           <div className="mt-6 pt-4 border-t border-slate-200">
             <div className="flex justify-between items-end mb-1.5">
               <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider font-mono">Total Absen Bulan Ini</span>
-              <span className="text-[11px] font-black text-slate-800 font-mono">{workDays}/22 Hari</span>
+              <span className="text-[11px] font-black text-slate-800 font-mono">{workDays}/{targetWorkingDays} Hari</span>
             </div>
             
             {/* Progress track */}
             <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full transition-all duration-500" 
-                style={{ width: `${workDays > 0 ? Math.min(100, (workDays / 22) * 100) : 0}%` }}
+                style={{ width: `${workDays > 0 ? Math.min(100, (workDays / targetWorkingDays) * 100) : 0}%` }}
               ></div>
             </div>
 
             <p className="text-[10px] text-slate-400 font-bold mt-1.5 text-right font-mono">
-              {workDays > 0 ? Math.round((workDays / 22) * 100) : 0}% kehadiran
+              {workDays > 0 ? Math.round((workDays / targetWorkingDays) * 100) : 0}% kehadiran
             </p>
           </div>
         </section>

@@ -81,6 +81,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       '/admin/biodata',
       '/admin/hariLibur',
       '/admin/shifts',
+      '/admin/jadwalKhusus',
       '/admin/backup'
     ].includes(location.pathname)
   })
@@ -119,6 +120,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
           '/admin/biodata',
           '/admin/hariLibur',
           '/admin/shifts',
+          '/admin/jadwalKhusus',
           '/admin/backup'
         ].includes(location.pathname)
       ) {
@@ -164,6 +166,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
         { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin },
         { to: '/admin/hariLibur', label: 'Kelola Hari Libur', icon: CalendarDays },
         { to: '/admin/shifts', label: 'Shift Kerja', icon: Clock },
+        { to: '/admin/jadwalKhusus', label: 'Jadwal Khusus Tanggal', icon: CalendarDays },
         { to: '/admin/keamanan', label: 'Akun & Keamanan', icon: KeyRound },
         { to: '/admin/biodata', label: 'Biodata Pribadi', icon: UserCircle2 },
         { to: '/admin/backup', label: 'Backup & Restore', icon: Database },

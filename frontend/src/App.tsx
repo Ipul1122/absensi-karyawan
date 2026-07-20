@@ -12,13 +12,6 @@ const PrivacyPolicy = lazy(() => import('./components/public/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./components/public/TermsOfService'))
 const SecurityCompliance = lazy(() => import('./components/public/SecurityCompliance'))
 
-// Lazy load error pages
-const Error404 = lazy(() => import('./components/errors/Error404'))
-const Error401 = lazy(() => import('./components/errors/Error401'))
-const Error408 = lazy(() => import('./components/errors/Error408'))
-const Error500 = lazy(() => import('./components/errors/Error500'))
-
-
 interface HealthResponse {
   status: string
   message: string
@@ -34,13 +27,9 @@ interface User {
   company?: string | null
 }
 
-// Exclude static, login, and error pages from redirect_to capture
+// Exclude static and login pages from redirect_to capture
 const EXCLUDED_REDIRECT_PATHS = [
   '/',
-  '/404',
-  '/401',
-  '/408',
-  '/500',
   '/privacy-policy',
   '/terms-of-service',
   '/security-compliance'
@@ -207,11 +196,11 @@ function App() {
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/security-compliance" element={<SecurityCompliance />} />
           
-          {/* Error Page Routes */}
-          <Route path="/404" element={<Error404 />} />
-          <Route path="/401" element={<Error401 />} />
-          <Route path="/408" element={<Error408 />} />
-          <Route path="/500" element={<Error500 />} />
+          {/* Auto Redirect Error Paths */}
+          <Route path="/500" element={<Navigate to="/" replace />} />
+          <Route path="/404" element={<Navigate to="/" replace />} />
+          <Route path="/401" element={<Navigate to="/" replace />} />
+          <Route path="/408" element={<Navigate to="/" replace />} />
 
           {token && user ? (
             user.role === 'admin' ? (
@@ -225,7 +214,7 @@ function App() {
                   } 
                   />
                 <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
+                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
               </>
             ) : user.role === 'director' ? (
               <>
@@ -236,7 +225,7 @@ function App() {
                   } 
                   />
                 <Route path="/" element={<Navigate to="/director/dashboard" replace />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
+                <Route path="*" element={<Navigate to="/director/dashboard" replace />} />
               </>
             ) : (
               <>
@@ -247,7 +236,7 @@ function App() {
                   } 
                 />
                 <Route path="/" element={<Navigate to="/employee/dashboard" replace />} />
-                <Route path="*" element={<Navigate to="/404" replace />} />
+                <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
               </>
             )
           ) : (
@@ -261,7 +250,7 @@ function App() {
                   />
                 }
               />
-              <Route path="*" element={<Navigate to="/404" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </>
           )}
         </Routes>

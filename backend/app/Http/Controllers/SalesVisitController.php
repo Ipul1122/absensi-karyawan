@@ -52,7 +52,8 @@ class SalesVisitController extends Controller
                 ->first();
 
             if (!$existingAttendance) {
-                $attType = ($visitType === 'sales') ? 'kunjungan' : 'client';
+                $attType = ($visitType === 'client') ? 'client' : 'kunjungan';
+                $defaultNote = ($visitType === 'client') ? 'Absen Masuk Klien: ' : 'Absen Masuk via Kunjungan: ';
                 Attendance::create([
                     'user_id' => $user->id,
                     'date' => $today,
@@ -61,10 +62,17 @@ class SalesVisitController extends Controller
                     'latitude_in' => $request->latitude,
                     'longitude_in' => $request->longitude,
                     'photo_in' => $photoPath,
-                    'notes_in' => $request->notes ?: 'Absen Masuk via Kunjungan: ' . $request->client_name,
+                    'notes_in' => $request->notes ?: ($defaultNote . $request->client_name),
                     'status_in' => 'normal',
                     'approval_status' => 'approved',
                 ]);
+            } else {
+                if ($visitType === 'client' && $existingAttendance->attendance_type !== 'client') {
+                    $existingAttendance->update([
+                        'attendance_type' => 'client',
+                        'notes_in' => $request->notes ?: ('Absen Masuk Klien: ' . $request->client_name)
+                    ]);
+                }
             }
 
             return response()->json([

@@ -1,15 +1,15 @@
 import { NavLink } from 'react-router-dom'
 import { 
   LogOut, 
-  UserCheck, 
   ShieldCheck, 
   LayoutDashboard, 
   FileCheck,
   Wallet,
   Coins,
   ChevronRight,
-  Crown,
-  Clock
+  Clock,
+  Users,
+  Settings
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -18,6 +18,7 @@ interface User {
   name: string
   email: string
   role: 'admin' | 'employee' | 'director'
+  company?: string
 }
 
 interface DirectorSidebarProps {
@@ -32,11 +33,12 @@ interface DirectorSidebarProps {
 
 const menuItems = [
   { to: '/director/dashboard', label: 'Overview', icon: LayoutDashboard, description: 'Ringkasan persetujuan' },
-  { to: '/director/karyawan', label: 'Persetujuan Karyawan', icon: UserCheck, description: 'Registrasi & hapus akun' },
-  { to: '/director/gaji', label: 'Persetujuan Gaji', icon: Wallet, description: 'Penyesuaian kompensasi' },
-  { to: '/director/payroll', label: 'Persetujuan Payroll', icon: Coins, description: 'Rollout gaji bulanan' },
-  { to: '/director/operasional', label: 'Persetujuan Operasional', icon: FileCheck, description: 'Cuti, lembur & klaim' },
+  { to: '/director/karyawan', label: 'Kelola Karyawan', icon: Users, description: 'Daftar & persetujuan staf' },
+  { to: '/director/gaji', label: 'Informasi Gaji', icon: Wallet, description: 'Penyesuaian kompensasi' },
+  { to: '/director/payroll', label: 'Bayar Gaji', icon: Coins, description: 'Rollout gaji bulanan' },
+  { to: '/director/operasional', label: 'Operasional', icon: FileCheck, description: 'Cuti, lembur & klaim' },
   { to: '/director/log-kehadiran', label: 'Log Kehadiran', icon: Clock, description: 'Aktivitas absensi staf' },
+  { to: '/director/pengaturan', label: 'Pengaturan', icon: Settings, description: 'Profil & kata sandi' },
 ]
 
 export default function DirectorSidebar({ 
@@ -55,7 +57,7 @@ export default function DirectorSidebar({
       <div className="flex flex-col flex-1 min-h-0">
         {/* Header Brand */}
         <div className="flex items-center gap-3 px-3 py-2 border-b border-orange-100 pb-5 shrink-0">
-          <Logo />
+          <Logo company={user.company} />
         </div>
 
         {/* Scrollable Container for Profile & Menu Items */}
@@ -67,7 +69,6 @@ export default function DirectorSidebar({
             </div>
             <div className="overflow-hidden flex-1">
               <div className="flex items-center gap-1">
-                <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest truncate">Direktur Utama</p>
               </div>
               <h4 className="text-xs font-bold text-slate-800 truncate mt-0.5">{user.name}</h4>
@@ -104,9 +105,9 @@ export default function DirectorSidebar({
                   onClick={handleLinkClick}
                   end={item.to === '/director/dashboard'}
                   className={({ isActive }) =>
-                    `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer group ${
+                    `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.97] duration-150 ${
                       isActive
-                        ? 'bg-gradient-to-r from-red-100/60 to-orange-50/60 border border-orange-100/80 text-red-600 shadow-sm'
+                        ? 'bg-gradient-to-r from-red-100/60 to-orange-50/60 border border-orange-100/80 text-red-600 shadow-sm scale-[1.01]'
                         : 'text-slate-600 hover:text-red-500 hover:bg-orange-50/30 border border-transparent'
                     }`
                   }
@@ -140,7 +141,7 @@ export default function DirectorSidebar({
         </div>
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand active:scale-95 duration-150"
         >
           <LogOut className="w-4 h-4" />
           Keluar Aplikasi

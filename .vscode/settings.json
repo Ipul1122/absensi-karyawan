@@ -1,3 +1,29 @@
 {
-  "css.lint.unknownAtRules": "ignore"
+  "css.lint.unknownAtRules": "ignore",
+  "cSpell.ignorePaths": [
+    "**/composer.lock",
+    "**/package-lock.json",
+    "**/node_modules/**",
+    "**/vendor/**",
+    "**/.git/**"
+  ],
+  "cSpell.language": "en,id-id",
+  "cSpell.words": [
+    "barang",
+    "baru",
+    "berhasil",
+    "ditambahkan",
+    "foto",
+    "gagal",
+    "harga",
+    "inventaris",
+    "kondisi",
+    "lokasi",
+    "mengunggah",
+    "menyimpan",
+    "pemakai",
+    "pembelian",
+    "struk",
+    "tanggal"
+  ]
 }

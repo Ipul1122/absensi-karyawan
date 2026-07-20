@@ -18,8 +18,12 @@ import {
   X,
   MapPin,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Compass
 } from 'lucide-react'
+import SalesVisitsLog from '../../admin/absensi/SalesVisitsLog'
+import { getAssetUrl } from '../../../utils/api'
+
 
 interface AttendanceRecord {
   id: number
@@ -73,6 +77,17 @@ const getIndonesianDayNameFull = (dateStr: string) => {
 export default function LogKehadiran({ token }: LogKehadiranProps) {
   const [attendances, setAttendances] = useState<AttendanceRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'sales_visits' | 'client_visits'>('attendance')
+
+  const formatDate = (dateString: string) => {
+    const d = new Date(dateString)
+    return d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+  }
+
   
   // Selected Month (YYYY-MM)
   const [selectedMonth, setSelectedMonth] = useState('')
@@ -162,15 +177,17 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
     }
   }
 
-  // Monthly stats calculations (based on all logs in the selected month)
+  // Monthly data helper
   const monthlyData = attendances.filter(record => record.date.startsWith(selectedMonth))
-  const totalAbsen = monthlyData.length
-  const totalTepatWaktu = monthlyData.filter(r => r.clock_in && r.status_in !== 'late').length
-  const totalTerlambat = monthlyData.filter(r => r.status_in === 'late').length
-  const totalLembur = monthlyData.filter(r => r.status_out === 'overtime').length
+
+  // Daily stats calculations (based on selectedDate)
+  const dailyLogs = monthlyData.filter(record => record.date === selectedDate)
+  const totalAbsen = dailyLogs.length
+  const totalTepatWaktu = dailyLogs.filter(r => r.clock_in && r.status_in !== 'late').length
+  const totalTerlambat = dailyLogs.filter(r => r.status_in === 'late').length
+  const totalLembur = dailyLogs.filter(r => r.status_out === 'overtime').length
 
   // Filter daily logs based on selectedDate and filters
-  const dailyLogs = monthlyData.filter(record => record.date === selectedDate)
   const filteredDailyLogs = dailyLogs.filter(record => {
     const userObj = record.user
     if (!userObj) return false
@@ -279,6 +296,45 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
 
   return (
     <div className="space-y-6" style={S}>
+      {/* Tab Selector */}
+      <div className="flex overflow-x-auto scrollbar-none bg-orange-50/30 border border-orange-100 rounded-2xl p-1.5 backdrop-blur-md gap-1">
+        <button
+          onClick={() => setActiveSubTab('attendance')}
+          className={`flex-1 shrink-0 sm:shrink flex items-center justify-center gap-2 py-3 px-4 sm:px-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
+            activeSubTab === 'attendance'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              : 'text-slate-500 hover:text-red-500 border border-transparent'
+          }`}
+        >
+          <Clock className="w-4.5 h-4.5" />
+          Log Absensi Harian
+        </button>
+        <button
+          onClick={() => setActiveSubTab('sales_visits')}
+          className={`flex-1 shrink-0 sm:shrink flex items-center justify-center gap-2 py-3 px-4 sm:px-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
+            activeSubTab === 'sales_visits'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              : 'text-slate-500 hover:text-red-500 border border-transparent'
+          }`}
+        >
+          <Compass className="w-4.5 h-4.5" />
+          Kunjungan Lapangan / Sales
+        </button>
+        <button
+          onClick={() => setActiveSubTab('client_visits')}
+          className={`flex-1 shrink-0 sm:shrink flex items-center justify-center gap-2 py-3 px-4 sm:px-2 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
+            activeSubTab === 'client_visits'
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
+              : 'text-slate-500 hover:text-red-500 border border-transparent'
+          }`}
+        >
+          <Compass className="w-4.5 h-4.5" />
+          Kunjungan Klien
+        </button>
+      </div>
+
+      {activeSubTab === 'attendance' ? (
+        <>
       {/* Top Banner and Month Selector */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -335,49 +391,56 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
         </div>
       </div>
 
-      {/* Monthly Statistics Overview cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Absen */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50/80 flex items-center justify-center text-blue-500 shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Absensi</p>
-            <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalAbsen} Absen</h4>
-          </div>
+      {/* Daily Statistics Overview cards */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider">
+            Statistik Kehadiran Harian ({selectedDate ? formatDate(selectedDate) : ''})
+          </h3>
         </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Total Absen */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50/80 flex items-center justify-center text-blue-500 shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Absen Hari Ini</p>
+              <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalAbsen} Karyawan</h4>
+            </div>
+          </div>
 
-        {/* Card 2: Tepat Waktu */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-50/80 flex items-center justify-center text-teal-600 shrink-0">
-            <Clock className="w-5 h-5" />
+          {/* Card 2: Tepat Waktu */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-50/80 flex items-center justify-center text-teal-600 shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tepat Waktu</p>
+              <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalTepatWaktu} Orang</h4>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tepat Waktu</p>
-            <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalTepatWaktu} Hari</h4>
-          </div>
-        </div>
 
-        {/* Card 3: Terlambat */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-50/80 flex items-center justify-center text-rose-600 shrink-0">
-            <AlertTriangle className="w-5 h-5" />
+          {/* Card 3: Terlambat */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-50/80 flex items-center justify-center text-rose-600 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Terlambat</p>
+              <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalTerlambat} Orang</h4>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Terlambat</p>
-            <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalTerlambat} Kali</h4>
-          </div>
-        </div>
 
-        {/* Card 4: Lembur */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50/80 flex items-center justify-center text-purple-700 shrink-0">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lembur</p>
-            <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalLembur} Hari</h4>
+          {/* Card 4: Lembur */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-50/80 flex items-center justify-center text-purple-700 shrink-0">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lembur</p>
+              <h4 className="text-sm font-black text-slate-800 mt-0.5">{totalLembur} Orang</h4>
+            </div>
           </div>
         </div>
       </div>
@@ -579,7 +642,7 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
                     <div className="flex items-center gap-2">
                       {record.user?.photo ? (
                         <img
-                          src={record.user.photo.startsWith('http') ? record.user.photo : `http://localhost:8000/storage/${record.user.photo}`}
+                          src={getAssetUrl(record.user.photo.startsWith('http') ? record.user.photo : `storage/${record.user.photo}`)}
                           alt={record.user.name}
                           className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
                         />
@@ -654,10 +717,9 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
             </button>
 
             {/* Modal Header: User info & date */}
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-              {selectedDetail.user?.photo ? (
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">              {selectedDetail.user?.photo ? (
                 <img
-                  src={selectedDetail.user.photo.startsWith('http') ? selectedDetail.user.photo : `http://localhost:8000/storage/${selectedDetail.user.photo}`}
+                  src={getAssetUrl(selectedDetail.user.photo.startsWith('http') ? selectedDetail.user.photo : `storage/${selectedDetail.user.photo}`)}
                   alt={selectedDetail.user.name}
                   className="w-11 h-11 rounded-full object-cover border border-slate-200"
                 />
@@ -707,12 +769,12 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
                   {selectedDetail.photo_in ? (
                     <div className="relative group rounded-xl overflow-hidden border border-slate-200">
                       <img 
-                        src={`http://localhost:8000${selectedDetail.photo_in}`} 
+                        src={getAssetUrl(selectedDetail.photo_in)} 
                         alt="Foto Masuk" 
                         className="w-full h-24 object-cover"
                       />
                       <a 
-                        href={`http://localhost:8000${selectedDetail.photo_in}`} 
+                        href={getAssetUrl(selectedDetail.photo_in)} 
                         target="_blank" 
                         rel="noreferrer"
                         className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-[10px] text-white font-bold"
@@ -744,12 +806,12 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
                   {selectedDetail.photo_out ? (
                     <div className="relative group rounded-xl overflow-hidden border border-slate-200">
                       <img 
-                        src={`http://localhost:8000${selectedDetail.photo_out}`} 
+                        src={getAssetUrl(selectedDetail.photo_out)} 
                         alt="Foto Keluar" 
                         className="w-full h-24 object-cover"
                       />
                       <a 
-                        href={`http://localhost:8000${selectedDetail.photo_out}`} 
+                        href={getAssetUrl(selectedDetail.photo_out)} 
                         target="_blank" 
                         rel="noreferrer"
                         className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-[10px] text-white font-bold"
@@ -822,6 +884,24 @@ export default function LogKehadiran({ token }: LogKehadiranProps) {
 
           </div>
         </div>
+      )}
+        </>
+      ) : activeSubTab === 'sales_visits' ? (
+        <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
+          <SalesVisitsLog 
+            token={token} 
+            formatDate={formatDate} 
+            visitType="sales"
+          />
+        </section>
+      ) : (
+        <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
+          <SalesVisitsLog 
+            token={token} 
+            formatDate={formatDate} 
+            visitType="client"
+          />
+        </section>
       )}
     </div>
   )

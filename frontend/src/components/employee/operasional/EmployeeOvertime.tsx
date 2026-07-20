@@ -24,6 +24,7 @@ interface Overtime {
   status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
+  updated_at: string
 }
 
 interface Summary {
@@ -33,6 +34,9 @@ interface Summary {
   approved_count: number
   rejected_count: number
 }
+
+const hoursOptions = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+const minutesOptions = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
 
 interface EmployeeOvertimeProps {
   token: string
@@ -52,10 +56,26 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
+  // Helper to get Asia/Jakarta date (YYYY-MM-DD)
+  const getJakartaDate = () => {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date())
+  }
+
+  // Helper to get Asia/Jakarta time (HH:MM) in 24-hour format
+  const getJakartaTime = (offsetHours = 0) => {
+    const d = new Date(Date.now() + offsetHours * 60 * 60 * 1000)
+    return new Intl.DateTimeFormat('en-GB', { 
+      timeZone: 'Asia/Jakarta', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    }).format(d)
+  }
+
   // Form states
-  const [date, setDate] = useState('')
-  const [startTime, setStartTime] = useState('')
-  const [endTime, setEndTime] = useState('')
+  const [date, setDate] = useState(getJakartaDate())
+  const [startTime, setStartTime] = useState(getJakartaTime())
+  const [endTime, setEndTime] = useState(getJakartaTime(2))
   const [reason, setReason] = useState('')
 
   // Filter & Pagination States
@@ -142,9 +162,9 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
         })
 
         // Reset form
-        setDate('')
-        setStartTime('')
-        setEndTime('')
+        setDate(getJakartaDate())
+        setStartTime(getJakartaTime())
+        setEndTime(getJakartaTime(2))
         setReason('')
         setShowForm(false)
 
@@ -219,22 +239,25 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
     })
   }
 
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
+  }
+
   const formatTime = (timeString: string) => {
     if (!timeString) return ''
     const cleanTime = timeString.substring(0, 5)
-    const [hourStr] = cleanTime.split(':')
-    const hour = parseInt(hourStr, 10)
-    
-    let period = 'malam'
-    if (hour >= 4 && hour < 11) {
-      period = 'pagi'
-    } else if (hour >= 11 && hour < 15) {
-      period = 'siang'
-    } else if (hour >= 15 && hour < 18) {
-      period = 'sore'
-    }
-    
-    return `${cleanTime} ${period}`
+    return `${cleanTime} WIB`
   }
 
   const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
@@ -423,6 +446,9 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
     document.body.removeChild(link)
   }
 
+  const [startHour, startMinute] = (startTime || '00:00').split(':')
+  const [endHour, endMinute] = (endTime || '00:00').split(':')
+
   const isFilterModified = statusFilter !== 'all' || monthFilter !== new Date().toISOString().slice(0, 7)
 
   return (
@@ -532,29 +558,57 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
               {/* Start Time */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-quicksand">
-                  2. Jam Mulai
+                  2. Jam Mulai (WIB)
                 </label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-semibold font-quicksand shadow-sm"
-                  required
-                />
+                <div className="flex items-center gap-2">
+                  <select
+                    value={startHour}
+                    onChange={(e) => setStartTime(`${e.target.value}:${startMinute}`)}
+                    className="flex-grow bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold font-quicksand shadow-sm cursor-pointer"
+                  >
+                    {hoursOptions.map((h) => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                  <span className="text-slate-400 font-extrabold">:</span>
+                  <select
+                    value={startMinute}
+                    onChange={(e) => setStartTime(`${startHour}:${e.target.value}`)}
+                    className="flex-grow bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold font-quicksand shadow-sm cursor-pointer"
+                  >
+                    {minutesOptions.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* End Time */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-quicksand">
-                  3. Jam Selesai
+                  3. Jam Selesai (WIB)
                 </label>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-semibold font-quicksand shadow-sm"
-                  required
-                />
+                <div className="flex items-center gap-2">
+                  <select
+                    value={endHour}
+                    onChange={(e) => setEndTime(`${e.target.value}:${endMinute}`)}
+                    className="flex-grow bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold font-quicksand shadow-sm cursor-pointer"
+                  >
+                    {hoursOptions.map((h) => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                  <span className="text-slate-400 font-extrabold">:</span>
+                  <select
+                    value={endMinute}
+                    onChange={(e) => setEndTime(`${endHour}:${e.target.value}`)}
+                    className="flex-grow bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold font-quicksand shadow-sm cursor-pointer"
+                  >
+                    {minutesOptions.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
             </div>
@@ -680,6 +734,8 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
                 <thead>
                   <tr className="border-b border-orange-50 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                     <th className="pb-3 px-3">Tanggal</th>
+                    <th className="pb-3 px-3">Dibuat</th>
+                    <th className="pb-3 px-3">Diterima</th>
                     <th className="pb-3 px-3">Waktu</th>
                     <th className="pb-3 px-3">Durasi</th>
                     <th className="pb-3 px-3">Rincian Pekerjaan</th>
@@ -692,8 +748,20 @@ export default function EmployeeOvertime({ token }: EmployeeOvertimeProps) {
                   {overtimes.map((item) => (
                     <tr key={item.id} className="hover:bg-orange-50/10 transition-colors">
                       {/* Date */}
-                      <td className="py-4 px-3 text-slate-800 font-bold">
-                        {formatDate(item.date)}
+                      <td className="py-4 px-3">
+                        <span className="block text-slate-800 font-bold">{formatDate(item.date)}</span>
+                      </td>
+
+                      {/* Dibuat */}
+                      <td className="py-4 px-3 text-slate-750">
+                        {formatDateTime(item.created_at)}
+                      </td>
+
+                      {/* Diterima */}
+                      <td className="py-4 px-3 text-slate-750">
+                        {item.status === 'approved' || item.status === 'rejected'
+                          ? formatDateTime(item.updated_at)
+                          : '-'}
                       </td>
 
                       {/* Time */}

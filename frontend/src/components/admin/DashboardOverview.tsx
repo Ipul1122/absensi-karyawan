@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { API_BASE_URL } from '../../utils/api'
 import { 
   Users, 
   CheckCircle2, 
@@ -23,10 +24,10 @@ import {
   DollarSign,
   ArrowRight,
   ExternalLink,
-  Map,
   ShieldAlert,
   Search,
-  CheckCircle
+  CheckCircle,
+  FlipHorizontal2
 } from 'lucide-react'
 
 interface Attendance {
@@ -45,6 +46,8 @@ interface Attendance {
   notes_out: string | null
   status_in: string | null
   status_out: string | null
+  shift_start_time?: string | null
+  shift_end_time?: string | null
   user: {
     id: number
     name: string
@@ -124,9 +127,11 @@ export default function DashboardOverview({
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   // ---------- Additional Local States for Monitoring & Sync ----------
   const navigate = useNavigate()
@@ -167,9 +172,9 @@ export default function DashboardOverview({
   const getFullPhotoUrl = (path: string | null | undefined) => {
     if (!path) return null
     if (path.startsWith('http')) return path
-    if (path.startsWith('/storage/')) return `http://localhost:8000${path}`
-    if (path.startsWith('storage/')) return `http://localhost:8000/${path}`
-    return `http://localhost:8000/storage/${path}`
+    if (path.startsWith('/storage/')) return `${API_BASE_URL}${path}`
+    if (path.startsWith('storage/')) return `${API_BASE_URL}/${path}`
+    return `${API_BASE_URL}/storage/${path}`
   }
 
   // Dynamic statistics calculations (fully synced!)
@@ -189,7 +194,7 @@ export default function DashboardOverview({
 
   const absentTodayList = activeEmployees.filter(
     (emp) => 
-      !presentTodayList.some(att => att.user.id === emp.id) &&
+      !presentTodayList.some(att => att.user?.id === emp.id) &&
       !cutiTodayList.some(l => l.user_id === emp.id)
   )
   const absentTodayCount = absentTodayList.length
@@ -206,7 +211,7 @@ export default function DashboardOverview({
 
   // Filtered lists for the tabs based on query search
   const filteredPresentList = presentTodayList.filter(att => 
-    att.user.name.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
+    att.user && att.user.name.toLowerCase().includes(searchEmployeeQuery.toLowerCase())
   )
 
   const filteredCutiList = cutiTodayList.map(l => {
@@ -281,12 +286,17 @@ export default function DashboardOverview({
   }
 
   // Start Camera Stream
-  const startCamera = async () => {
+  const startCamera = async (mode?: 'user' | 'environment') => {
+    const currentMode = mode ?? facingMode
     setCameraError(null)
     try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+      }
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' }
+        video: { width: 640, height: 480, facingMode: { ideal: currentMode } }
       })
+      streamRef.current = mediaStream
       setStream(mediaStream)
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream
@@ -297,12 +307,19 @@ export default function DashboardOverview({
     }
   }
 
+  const flipCamera = async () => {
+    const newMode = facingMode === 'user' ? 'environment' : 'user'
+    setFacingMode(newMode)
+    await startCamera(newMode)
+  }
+
   // Stop Camera Stream
   const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop())
-      setStream(null)
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
     }
+    setStream(null)
   }
 
   // Bind video stream
@@ -312,16 +329,30 @@ export default function DashboardOverview({
     }
   }, [showCheckInModal, stream])
 
+  useEffect(() => {
+    return () => {
+      stopCamera()
+    }
+  }, [])
+
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current
       const canvas = canvasRef.current
-      canvas.width = video.videoWidth || 640
-      canvas.height = video.videoHeight || 480
+      
+      // Tentukan ukuran maksimal gambar di sisi client (lebar maks 640px)
+      const maxClientWidth = 640
+      const originalWidth = video.videoWidth || 640
+      const originalHeight = video.videoHeight || 480
+      const scaleFactor = originalWidth > maxClientWidth ? maxClientWidth / originalWidth : 1
+      canvas.width = originalWidth * scaleFactor
+      canvas.height = originalHeight * scaleFactor
+
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        setCapturedPhoto(canvas.toDataURL('image/jpeg'))
+        // Kompresi gambar langsung di client dengan kualitas 0.6 (60%)
+        setCapturedPhoto(canvas.toDataURL('image/jpeg', 0.6))
         stopCamera()
       }
     }
@@ -337,8 +368,22 @@ export default function DashboardOverview({
     if (!file) return
     const reader = new FileReader()
     reader.onload = (event) => {
-      setCapturedPhoto(event.target?.result as string)
-      stopCamera()
+      const img = new Image()
+      img.src = event.target?.result as string
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const maxClientWidth = 640
+        const scaleFactor = img.width > maxClientWidth ? maxClientWidth / img.width : 1
+        canvas.width = img.width * scaleFactor
+        canvas.height = img.height * scaleFactor
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6)
+          setCapturedPhoto(compressedDataUrl)
+          stopCamera()
+        }
+      }
     }
     reader.readAsDataURL(file)
   }
@@ -445,17 +490,23 @@ export default function DashboardOverview({
     <div className="space-y-6 animate-fade-in font-quicksand">
       
       {/* 1. GREETING BANNER */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-red-600 to-orange-600 rounded-[32px] p-8 text-white shadow-lg shadow-red-500/10">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+      <div className="relative overflow-hidden rounded-[32px] p-8 text-white shadow-lg shadow-orange-500/5 transition-all duration-500"
+        style={{ background: 'linear-gradient(135deg, #7c2d12 0%, #b45309 60%, #d97706 100%)' }}>
+        
+        {/* Abstract futuristic glowing elements */}
+        <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full opacity-20 blur-3xl bg-amber-500 pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-48 h-48 rounded-full opacity-15 blur-3xl bg-orange-500 pointer-events-none" />
+        <div className="absolute top-1/2 right-1/4 w-32 h-32 rounded-full opacity-15 blur-2xl bg-yellow-400 pointer-events-none animate-pulse" />
+
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10 select-none">
+            <span className="text-white/80 text-[10px] font-black uppercase tracking-widest bg-black/10 px-3.5 py-1.5 rounded-full border border-white/20 select-none">
               Akses Admin Utama HR
             </span>
             <h1 className="text-3xl font-black mt-3 font-quicksand capitalize">
               {getGreeting()}, {user.name}!
             </h1>
-            <p className="text-xs text-orange-50 font-medium mt-1">
+            <p className="text-xs text-white/90 font-medium mt-1">
               Kelola dan pantau seluruh aktivitas absensi serta perizinan staf Anda secara realtime.
             </p>
           </div>
@@ -497,7 +548,7 @@ export default function DashboardOverview({
             </div>
           </div>
           <div className="mt-3.5 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden select-none">
-            <div className="h-full bg-gradient-to-r from-red-500 to-orange-500 rounded-full transition-all duration-1000" style={{ width: `${presencePercentage}%` }}></div>
+            <div className="h-full bg-gradient-to-r from-amber-600 to-orange-500 rounded-full transition-all duration-1000" style={{ width: `${presencePercentage}%` }}></div>
           </div>
         </div>
 
@@ -643,8 +694,8 @@ export default function DashboardOverview({
       {/* 4. MAIN MONITORING & SELF CHECK-IN GRID (2 Columns) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Left Column: Workforce Presence Monitor (7 Columns) */}
-        <section className="lg:col-span-7 bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 min-h-[520px] flex flex-col justify-between">
+        {/* Left Column: Workforce Presence Monitor (7 Columns) - Appears second on mobile */}
+        <section className="lg:col-span-7 order-2 lg:order-1 bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 min-h-[520px] flex flex-col justify-between">
           <div className="space-y-5">
             {/* Header + Search bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 pb-4">
@@ -710,7 +761,7 @@ export default function DashboardOverview({
                   </div>
                 ) : (
                   filteredPresentList.map((att) => {
-                    const photoUrl = getFullPhotoUrl(att.user.photo)
+                    const photoUrl = getFullPhotoUrl(att.user?.photo)
                     const checkinPhoto = getFullPhotoUrl(att.photo_in)
 
                     return (
@@ -720,14 +771,14 @@ export default function DashboardOverview({
                             <img src={photoUrl} alt="Foto" className="w-10 h-10 rounded-full border border-slate-100 object-cover shrink-0 shadow-inner" />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-400 to-red-500 border border-slate-100 flex items-center justify-center text-white font-extrabold text-xs shadow-inner shrink-0 select-none">
-                              {att.user.name.charAt(0).toUpperCase()}
+                              {att.user?.name ? att.user.name.charAt(0).toUpperCase() : '?'}
                             </div>
                           )}
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="text-xs font-black text-slate-800">{att.user.name}</h4>
+                              <h4 className="text-xs font-black text-slate-800">{att.user?.name || 'Karyawan'}</h4>
                               <span className="px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded text-[8px] font-bold uppercase font-mono tracking-wider">
-                                {employees.find(e => e.id === att.user.id)?.division || 'Umum'}
+                                {att.user ? employees.find(e => e.id === att.user.id)?.division || 'Umum' : 'Umum'}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
@@ -750,7 +801,7 @@ export default function DashboardOverview({
                             <button
                               onClick={() => {
                                 Swal.fire({
-                                  title: `Bukti Foto Check-In: ${att.user.name}`,
+                                  title: `Bukti Foto Check-In: ${att.user?.name || 'Karyawan'}`,
                                   imageUrl: checkinPhoto,
                                   imageAlt: 'Check-In Foto Wajah',
                                   confirmButtonColor: '#ea580c',
@@ -861,8 +912,8 @@ export default function DashboardOverview({
           </div>
         </section>
 
-        {/* Right Column: Admin Self Presence & Radius Widget (5 Columns) */}
-        <section className="lg:col-span-5 space-y-6">
+        {/* Right Column: Admin Self Presence & Radius Widget (5 Columns) - Appears first on mobile */}
+        <section className="lg:col-span-5 order-1 lg:order-2 space-y-6">
           
           {/* Admin Self Check-In Circular Dial */}
           <div className="relative bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
@@ -949,40 +1000,6 @@ export default function DashboardOverview({
             </div>
           </div>
 
-          {/* Active Radius Peta Mini / GPS Information */}
-          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="flex items-center gap-2 border-b border-slate-50 pb-3 mb-3">
-              <Map className="w-4.5 h-4.5 text-orange-600" />
-              <h4 className="text-xs font-bold text-slate-800">Status GPS & Radius Kantor</h4>
-            </div>
-
-            <div className="space-y-3 font-semibold text-xs text-slate-700">
-              <div className="p-3 bg-orange-50/20 border border-orange-100/50 rounded-2xl space-y-2">
-                {officeSetting ? (
-                  <>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-400">Koordinat Kantor:</span>
-                      <span className="font-mono text-slate-700 font-bold">{parseFloat(officeSetting.latitude).toFixed(4)}, {parseFloat(officeSetting.longitude).toFixed(4)}</span>
-                    </div>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-slate-400">Radius Batas Absen:</span>
-                      <span className="font-mono text-slate-700 font-bold">{officeSetting.radius} meter</span>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-[10px] text-slate-400 text-center italic">Lokasi kantor belum dikonfigurasi.</p>
-                )}
-              </div>
-              <button
-                onClick={() => navigate('/admin/lokasiKantor')}
-                className="w-full py-2 bg-slate-50 hover:bg-orange-50/50 border border-slate-200 hover:border-orange-200 text-slate-600 hover:text-red-700 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs select-none"
-              >
-                Atur Koordinat & Radius Kantor
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-
         </section>
 
       </div>
@@ -990,10 +1007,10 @@ export default function DashboardOverview({
       {/* 5. WEBCAM CAMERA MODAL */}
       {showCheckInModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-fade-in p-4">
-          <div className="bg-white border border-slate-100 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-scale-up">
+          <div className="bg-white border border-slate-100 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl animate-scale-up max-h-[90vh] flex flex-col">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
               <div>
                 <h3 className="text-base font-black text-slate-800 capitalize">
                   Formulir Presensi Mandiri Admin: {modalType === 'check-in' ? 'Masuk' : 'Keluar'}
@@ -1009,7 +1026,7 @@ export default function DashboardOverview({
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 overflow-y-auto flex-grow">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* Camera Section */}
@@ -1028,8 +1045,19 @@ export default function DashboardOverview({
                           autoPlay
                           playsInline
                           muted
-                          className="w-full h-full object-cover transform -scale-x-100"
+                          className={`w-full h-full object-cover ${facingMode === 'user' ? 'transform -scale-x-100' : ''}`}
                         />
+                        {/* Flip Camera Button */}
+                        {!cameraError && (
+                          <button
+                            type="button"
+                            onClick={flipCamera}
+                            title={facingMode === 'user' ? 'Ganti ke Kamera Belakang' : 'Ganti ke Kamera Depan'}
+                            className="absolute top-2 right-2 z-10 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl transition-all cursor-pointer backdrop-blur-sm"
+                          >
+                            <FlipHorizontal2 className="w-4 h-4" />
+                          </button>
+                        )}
                         {cameraError && (
                           <div className="absolute inset-0 bg-slate-50 flex flex-col items-center justify-center p-4 text-center text-rose-600 gap-2">
                             <AlertCircle className="w-7 h-7 text-rose-500" />
@@ -1137,7 +1165,7 @@ export default function DashboardOverview({
                     3. Kategori Tipe Presensi
                   </label>
                   
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[
                       { id: 'kantor', label: 'Kantor Utama', icon: Building, desc: 'Radius GPS dihitung' },
                       { id: 'kunjungan', label: 'Dinas Luar', icon: Compass, desc: 'Bebas radius kantor' },
@@ -1189,7 +1217,7 @@ export default function DashboardOverview({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 flex-shrink-0">
               <button
                 type="button"
                 onClick={handleCloseCheckInModal}

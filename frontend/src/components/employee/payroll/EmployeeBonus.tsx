@@ -17,6 +17,7 @@ interface Bonus {
   bonus_date: string
   description: string | null
   created_at: string
+  updated_at: string
 }
 
 interface EmployeeBonusProps {
@@ -97,6 +98,21 @@ export default function EmployeeBonus({ token }: EmployeeBonusProps) {
       month: 'long',
       year: 'numeric'
     })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
   const toggleSortOrder = () => {
@@ -195,7 +211,9 @@ export default function EmployeeBonus({ token }: EmployeeBonusProps) {
                 <thead>
                   <tr className="border-b border-orange-50 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                     <th className="pb-3 px-4">No.</th>
-                    <th className="pb-3 px-4">Tanggal Diterima</th>
+                    <th className="pb-3 px-4">Tanggal Pembagian</th>
+                    <th className="pb-3 px-4">Dibuat</th>
+                    <th className="pb-3 px-4">Disetujui</th>
                     <th className="pb-3 px-4">Jumlah Bonus</th>
                     <th className="pb-3 px-4">Keterangan / Alasan</th>
                   </tr>
@@ -211,11 +229,21 @@ export default function EmployeeBonus({ token }: EmployeeBonusProps) {
                       {/* Date */}
                       <td className="py-4 px-4 text-slate-800">
                         <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-orange-50 rounded-lg text-orange-600">
+                          <div className="p-1.5 bg-orange-50 rounded-lg text-orange-600 shrink-0">
                             <CalendarDays className="w-3.5 h-3.5" />
                           </div>
-                          <span>{formatDate(item.bonus_date)}</span>
+                          <span className="font-semibold">{formatDate(item.bonus_date)}</span>
                         </div>
+                      </td>
+
+                      {/* Dibuat */}
+                      <td className="py-4 px-4 text-slate-700">
+                        {formatDateTime(item.created_at)}
+                      </td>
+
+                      {/* Disetujui */}
+                      <td className="py-4 px-4 text-slate-700">
+                        {formatDateTime(item.updated_at)}
                       </td>
 
                       {/* Amount */}

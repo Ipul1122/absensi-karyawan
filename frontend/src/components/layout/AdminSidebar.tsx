@@ -15,7 +15,12 @@ import {
   Gift,
   Coins,
   Wallet,
-  ClipboardList
+  ClipboardList,
+  MapPin,
+  KeyRound,
+  UserCircle2,
+  UserCheck,
+  Database
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -32,6 +37,7 @@ interface AdminSidebarProps {
   onClose?: () => void
   counts?: {
     pendingCutiCount: number
+    pendingIzinCount: number
     pendingReimburseCount: number
     pendingLemburCount: number
     unpaidPayrollCount: number
@@ -53,6 +59,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
   const [isOperasionalOpen, setIsOperasionalOpen] = useState(() => {
     return [
       '/admin/cuti',
+      '/admin/izin',
       '/admin/inventaris',
       '/admin/reimbursement',
       '/admin/bonus',
@@ -67,6 +74,17 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
     ].includes(location.pathname)
   })
 
+  const [isPengaturanOpen, setIsPengaturanOpen] = useState(() => {
+    return [
+      '/admin/lokasiKantor',
+      '/admin/keamanan',
+      '/admin/biodata',
+      '/admin/hariLibur',
+      '/admin/shifts',
+      '/admin/backup'
+    ].includes(location.pathname)
+  })
+
   useEffect(() => {
     if (
       location.pathname === '/admin/akunKaryawan' ||
@@ -77,6 +95,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
     if (
       [
         '/admin/cuti',
+        '/admin/izin',
         '/admin/inventaris',
         '/admin/reimbursement',
         '/admin/bonus',
@@ -93,10 +112,23 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
     ) {
       setIsGajiOpen(true)
     }
+    if (
+        [
+          '/admin/lokasiKantor',
+          '/admin/keamanan',
+          '/admin/biodata',
+          '/admin/hariLibur',
+          '/admin/shifts',
+          '/admin/backup'
+        ].includes(location.pathname)
+      ) {
+        setIsPengaturanOpen(true)
+      }
   }, [location.pathname])
 
   const menuItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/admin/absen-mandiri', label: 'Absen', icon: UserCheck },
     {
       label: 'Data Karyawan',
       icon: Users,
@@ -110,6 +142,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       icon: ClipboardList,
       children: [
         { to: '/admin/cuti', label: 'Cuti', icon: CalendarDays },
+        { to: '/admin/izin', label: 'Izin', icon: ClipboardList },
         { to: '/admin/inventaris', label: 'Inventaris', icon: Package },
         { to: '/admin/reimbursement', label: 'Reimburse', icon: ReceiptText },
         { to: '/admin/bonus', label: 'Bonus', icon: Gift },
@@ -124,7 +157,18 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
         { to: '/admin/payroll', label: 'Bayar Gaji', icon: Coins },
       ]
     },
-    { to: '/admin/lokasiKantor', label: 'Pengaturan', icon: Settings },
+    {
+      label: 'Pengaturan',
+      icon: Settings,
+      children: [
+        { to: '/admin/lokasiKantor', label: 'Lokasi Kantor', icon: MapPin },
+        { to: '/admin/hariLibur', label: 'Kelola Hari Libur', icon: CalendarDays },
+        { to: '/admin/shifts', label: 'Shift Kerja', icon: Clock },
+        { to: '/admin/keamanan', label: 'Akun & Keamanan', icon: KeyRound },
+        { to: '/admin/biodata', label: 'Biodata Pribadi', icon: UserCircle2 },
+        { to: '/admin/backup', label: 'Backup & Restore', icon: Database },
+      ]
+    },
   ]
 
   const handleLinkClick = () => {
@@ -138,14 +182,14 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       <div className="flex flex-col flex-1 min-h-0">
         {/* Brand Logo */}
         <div className="flex items-center gap-3 px-3 py-2 border-b border-orange-100 pb-5 shrink-0">
-          <Logo />
+          <Logo company="PT Cakrawala Parama Internasional" />
         </div>
 
         {/* Scrollable Container for Profile & Menu Items */}
         <div className="flex-1 overflow-y-auto pr-1 py-4 space-y-6 min-h-0 sidebar-scrollbar">
           {/* User profile brief */}
-          <div className="bg-gradient-to-tr from-red-50/5 to-orange-50/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-red-500/10">
+          <div className="bg-gradient-to-tr from-amber-500/5 to-orange-500/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-orange-500/10">
               AD
             </div>
             <div className="overflow-hidden">
@@ -173,38 +217,41 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                 } else if (item.label === 'Gaji') {
                   isOpen = isGajiOpen
                   toggleOpen = () => setIsGajiOpen(!isGajiOpen)
+                } else if (item.label === 'Pengaturan') {
+                  isOpen = isPengaturanOpen
+                  toggleOpen = () => setIsPengaturanOpen(!isPengaturanOpen)
                 }
                 
                 return (
                   <div key={item.label} className="space-y-1">
                     <button
                       onClick={toggleOpen}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group border border-transparent ${
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group border border-transparent active:scale-[0.97] ${
                         isChildActive
-                          ? 'text-red-600 bg-orange-50/30'
-                          : 'text-slate-600 hover:text-red-600 hover:bg-orange-50/40'
+                          ? 'text-amber-700 bg-orange-50/30'
+                          : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40'
                       }`}
                     >
                       <span className="flex items-center gap-3">
-                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isChildActive ? 'text-red-600' : 'text-slate-400 group-hover:text-red-500'}`} />
+                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isChildActive ? 'text-amber-700' : 'text-slate-400 group-hover:text-amber-600'}`} />
                         <span>{item.label}</span>
                         {item.label === 'Data Karyawan' && (counts?.pendingKaryawanCount ?? 0) > 0 && (
                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
-                            {counts.pendingKaryawanCount}
+                            {counts?.pendingKaryawanCount}
                           </span>
                         )}
                         {item.label === 'Operasional' && (counts?.operasionalCount ?? 0) > 0 && (
                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
-                            {counts.operasionalCount}
+                            {counts?.operasionalCount}
                           </span>
                         )}
                         {item.label === 'Gaji' && (counts?.unpaidPayrollCount ?? 0) > 0 && (
                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
-                            {counts.unpaidPayrollCount}
+                            {counts?.unpaidPayrollCount}
                           </span>
                         )}
                       </span>
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-red-600' : 'text-slate-400 group-hover:text-red-500'}`} />
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-amber-700' : 'text-slate-400'}`} />
                     </button>
                     
                     <div 
@@ -221,6 +268,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                             childBadge = counts?.pendingKaryawanCount ?? 0
                           } else if (child.to === '/admin/cuti') {
                             childBadge = counts?.pendingCutiCount ?? 0
+                          } else if (child.to === '/admin/izin') {
+                            childBadge = counts?.pendingIzinCount ?? 0
                           } else if (child.to === '/admin/reimbursement') {
                             childBadge = counts?.pendingReimburseCount ?? 0
                           } else if (child.to === '/admin/lembur') {
@@ -234,20 +283,20 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                               key={child.to}
                               to={child.to}
                               onClick={handleLinkClick}
-                              className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
+                              className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] duration-150 ${
                                 isActive 
-                                  ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md shadow-red-500/15' 
-                                  : 'text-slate-600 hover:text-red-600 hover:bg-orange-50/40 border border-transparent'
+                                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15 scale-[1.01]' 
+                                  : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 border border-transparent'
                               }`}
                             >
                               {({ isActive }) => (
                                 <>
                                   <span className="flex items-center gap-2.5">
-                                    <ChildIcon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`} />
+                                    <ChildIcon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-amber-600'}`} />
                                     <span>{child.label}</span>
                                     {childBadge > 0 && (
                                       <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none min-w-[16px] h-4 flex items-center justify-center ${
-                                        isActive ? 'bg-white text-red-600' : 'bg-red-500 text-white'
+                                        isActive ? 'bg-white text-amber-700' : 'bg-amber-600 text-white'
                                       }`}>
                                         {childBadge}
                                       </span>
@@ -271,16 +320,16 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                   key={item.to}
                   to={item.to!}
                   onClick={handleLinkClick}
-                  className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group ${
+                  className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] duration-150 ${
                     isActive 
-                      ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md shadow-red-500/15' 
-                      : 'text-slate-600 hover:text-red-600 hover:bg-orange-50/40 border border-transparent'
+                      ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15 scale-[1.01]' 
+                      : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 border border-transparent'
                   }`}
                 >
                   {({ isActive }) => (
                     <>
                       <span className="flex items-center gap-3">
-                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-red-500'}`} />
+                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-amber-600'}`} />
                         {item.label}
                       </span>
                       <ChevronRight className={`w-4 h-4 transition-all ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
@@ -296,12 +345,12 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       {/* Bottom Actions */}
       <div className="pt-4 border-t border-orange-100 space-y-3 shrink-0">
         <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold px-3 font-quicksand">
-          <ShieldCheck className="w-4.5 h-4.5 text-red-600 animate-pulse" />
+          <ShieldCheck className="w-4.5 h-4.5 text-amber-700 animate-pulse" />
           <span className="uppercase tracking-wider text-[9px]">Akses Admin Utama</span>
         </div>
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand active:scale-95 duration-150"
         >
           <LogOut className="w-4 h-4" />
           Keluar Aplikasi

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class AttendanceController extends Controller
@@ -17,7 +18,7 @@ class AttendanceController extends Controller
         $userId = $request->user()->id;
         $today = Carbon::today()->toDateString();
 
-        $attendance = Attendance::where('user_id', $userId)
+        $attendance = Attendance::with('shift')->where('user_id', $userId)
             ->where('date', $today)
             ->first();
 
@@ -38,6 +39,7 @@ class AttendanceController extends Controller
             'photo' => 'required|string', // base64 string
             'notes' => 'nullable|string',
             'attendance_type' => 'nullable|string|in:kantor,kunjungan,client',
+            'shift_id' => 'nullable|integer',
         ]);
 
         $user = $request->user();
@@ -47,17 +49,27 @@ class AttendanceController extends Controller
         // Check office setting radius limit
         $office = \App\Models\OfficeSetting::first();
         if ($office && $attendanceType === 'kantor') {
+            $officeLat = $office->latitude;
+            $officeLng = $office->longitude;
+            $officeRad = $office->radius;
+            
+            if ($user->office_location === 'bogor') {
+                $officeLat = $office->bogor_latitude ?? $office->latitude;
+                $officeLng = $office->bogor_longitude ?? $office->longitude;
+                $officeRad = $office->bogor_radius ?? $office->radius;
+            }
+            
             $distance = $this->getDistance(
                 floatval($request->latitude),
                 floatval($request->longitude),
-                floatval($office->latitude),
-                floatval($office->longitude)
+                floatval($officeLat),
+                floatval($officeLng)
             );
             
-            if ($distance > $office->radius) {
+            if ($distance > $officeRad) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Gagal melakukan absen masuk! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $office->radius . ' meter).'
+                    'message' => 'Gagal melakukan absen masuk! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $officeRad . ' meter).'
                 ], 422);
             }
         }
@@ -85,8 +97,27 @@ class AttendanceController extends Controller
             // Rules:
             // - Before or equal to 09:00: normal (Normal)
             // - After 09:00: late (Terlambat)
+            $shiftId = $request->shift_id;
+            $shift = $shiftId ? \App\Models\Shift::find($shiftId) : null;
+
             $status = 'normal';
-            if ($timeStr > '09:00:00') {
+            $limitIn = '08:30:00';
+            $shiftStart = null;
+            $shiftEnd = null;
+
+            if ($shift) {
+                $shiftStart = $shift->start_time;
+                $shiftEnd = $shift->end_time;
+                
+                // Override jam pulang untuk Shift Reguler di hari Sabtu menjadi 14:00:00
+                if (Carbon::now()->isSaturday() && $shift->name === 'Shift Reguler') {
+                    $shiftEnd = '14:00:00';
+                }
+                
+                $limitIn = Carbon::parse($shift->start_time)->addMinutes($shift->grace_period)->format('H:i:s');
+            }
+
+            if ($timeStr > $limitIn) {
                 $status = ($attendanceType === 'kantor') ? 'late' : 'normal';
             }
 
@@ -101,6 +132,9 @@ class AttendanceController extends Controller
                     'notes_in' => $request->notes,
                     'status_in' => $status,
                     'approval_status' => 'approved',
+                    'shift_id' => $shiftId,
+                    'shift_start_time' => $shiftStart,
+                    'shift_end_time' => $shiftEnd,
                 ]);
                 $attendance = $existing;
             } else {
@@ -115,6 +149,9 @@ class AttendanceController extends Controller
                     'notes_in' => $request->notes,
                     'status_in' => $status,
                     'approval_status' => 'approved',
+                    'shift_id' => $shiftId,
+                    'shift_start_time' => $shiftStart,
+                    'shift_end_time' => $shiftEnd,
                 ]);
             }
 
@@ -187,17 +224,27 @@ class AttendanceController extends Controller
         // Check office setting radius limit (only if attendance was kantor type)
         $office = \App\Models\OfficeSetting::first();
         if ($office && $attendance->attendance_type === 'kantor') {
+            $officeLat = $office->latitude;
+            $officeLng = $office->longitude;
+            $officeRad = $office->radius;
+            
+            if ($user->office_location === 'bogor') {
+                $officeLat = $office->bogor_latitude ?? $office->latitude;
+                $officeLng = $office->bogor_longitude ?? $office->longitude;
+                $officeRad = $office->bogor_radius ?? $office->radius;
+            }
+            
             $distance = $this->getDistance(
                 floatval($request->latitude),
                 floatval($request->longitude),
-                floatval($office->latitude),
-                floatval($office->longitude)
+                floatval($officeLat),
+                floatval($officeLng)
             );
             
-            if ($distance > $office->radius) {
+            if ($distance > $officeRad) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Gagal melakukan absen keluar! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $office->radius . ' meter).'
+                    'message' => 'Gagal melakukan absen keluar! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $officeRad . ' meter).'
                 ], 422);
             }
         }
@@ -209,15 +256,32 @@ class AttendanceController extends Controller
             // Determine status based on server time
             $now = Carbon::now();
             $timeStr = $now->format('H:i:s');
+            $isSaturday = $now->isSaturday();
             
             // Rules:
-            // - Before 17:00: early_departure (Pulang Cepat)
-            // - 17:00 - 18:00: normal (Normal)
-            // - After 18:00: overtime (Lembur)
+            // - Saturday:
+            //   - Before 14:00: early_departure (Pulang Cepat)
+            //   - 14:00 - 15:00: normal (Normal)
+            //   - After 15:00: overtime (Lembur)
+            // - Other days:
+            //   - Before 17:30: early_departure (Pulang Cepat)
+            //   - 17:30 - 18:30: normal (Normal)
+            //   - After 18:30: overtime (Lembur)
+            $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+
             $status = 'normal';
-            if ($timeStr < '17:00:00') {
+            if ($attendance->shift_end_time) {
+                $limitEarly = $attendance->shift_end_time;
+                $limitOvertime = Carbon::parse($attendance->shift_end_time)->addHour()->format('H:i:s');
+            } else {
+                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+            }
+
+            if ($timeStr < $limitEarly) {
                 $status = 'early_departure';
-            } elseif ($timeStr > '18:00:00') {
+            } elseif ($timeStr > $limitOvertime) {
                 $status = 'overtime';
             }
 
@@ -250,11 +314,39 @@ class AttendanceController extends Controller
     public function getHistory(Request $request)
     {
         $userId = $request->user()->id;
+        $query = Attendance::where('user_id', $userId);
 
-        $history = Attendance::where('user_id', $userId)
-            ->orderBy('date', 'desc')
-            ->limit(30)
-            ->get();
+        // Filter by specific date if provided
+        if ($request->filled('date')) {
+            $query->where('date', $request->date);
+        }
+        // Filter by specific month and year if provided
+        elseif ($request->filled('month') && $request->filled('year')) {
+            $query->whereMonth('date', $request->month)
+                  ->whereYear('date', $request->year);
+        }
+
+        $query->orderBy('date', 'desc');
+
+        // If page parameter is present, return server-side paginated results
+        if ($request->has('page')) {
+            $limit = $request->input('limit', 10);
+            $paginated = $query->paginate($limit);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $paginated->items(),
+                'pagination' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                    'per_page' => $paginated->perPage(),
+                    'total' => $paginated->total(),
+                ]
+            ]);
+        }
+
+        // Default: return recent 30 records for dashboard stats compatibility
+        $history = $query->with('shift')->limit(30)->get();
 
         return response()->json([
             'status' => 'success',
@@ -267,10 +359,77 @@ class AttendanceController extends Controller
      */
     public function getAllAttendances(Request $request)
     {
-        $attendances = Attendance::with('user:id,name,email,photo,role')
-            ->orderBy('date', 'desc')
-            ->orderBy('clock_in', 'desc')
-            ->get();
+        $user = auth('sanctum')->user();
+        $query = Attendance::with(['user:id,name,email,photo,role,join_date,employee_number,division,company', 'shift']);
+        
+        if ($user && $user->role !== 'director' && $user->role !== 'admin' && $user->company) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $q->where('company', $user->company);
+            });
+        }
+        
+        // Filter by exact date (e.g. YYYY-MM-DD)
+        if ($request->filled('date')) {
+            $query->where('date', $request->date);
+        }
+
+        // Filter by month and year
+        if ($request->filled('month') && $request->filled('year')) {
+            $query->whereMonth('date', $request->month)
+                  ->whereYear('date', $request->year);
+        } elseif ($request->filled('month')) {
+            $parts = explode('-', $request->month);
+            if (count($parts) === 2) {
+                $query->whereYear('date', $parts[0])
+                      ->whereMonth('date', $parts[1]);
+            } else {
+                $query->whereMonth('date', $request->month);
+            }
+        }
+
+        // Filter by specific company
+        if ($request->filled('company') && $request->company !== 'all') {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('company', $request->company);
+            });
+        }
+
+        // Filter by search query (user name or email)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        
+        $query->orderBy('date', 'desc')
+            ->orderBy('clock_in', 'desc');
+
+        // Support pagination if explicitly requested via page or paginate parameter
+        if ($request->has('page') || $request->filled('paginate')) {
+            $limit = $request->input('limit', 15);
+            $paginated = $query->paginate($limit);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $paginated->items(),
+                'pagination' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                    'per_page' => $paginated->perPage(),
+                    'total' => $paginated->total(),
+                ]
+            ]);
+        }
+
+        // Default query limit optimization: if no filters or pagination are requested,
+        // default to loading only the last 60 days of attendances to avoid memory bloat.
+        if (!$request->filled('date') && !$request->filled('month') && !$request->filled('year') && !$request->filled('all')) {
+            $query->where('date', '>=', Carbon::now()->subDays(60)->toDateString());
+        }
+
+        $attendances = $query->get();
 
         return response()->json([
             'status' => 'success',
@@ -287,8 +446,8 @@ class AttendanceController extends Controller
             'user_id' => 'required|integer|exists:users,id',
             'date' => 'required|date',
             'attendance_type' => 'required|string|in:kantor,kunjungan,client',
-            'clock_in' => 'required|string',
-            'clock_out' => 'nullable|string',
+            'clock_in' => 'required_without:clock_out|nullable|string',
+            'clock_out' => 'required_without:clock_in|nullable|string',
             'notes' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
@@ -298,34 +457,44 @@ class AttendanceController extends Controller
         $userId = $request->user_id;
         $date = Carbon::parse($request->date)->toDateString();
 
+        // Check if employee is active
+        $user = \App\Models\User::findOrFail($userId);
+        if ($user->status !== 'active') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tidak dapat membuat absensi untuk karyawan yang belum aktif atau belum disetujui oleh Direktur!'
+            ], 422);
+        }
+
         // Check if attendance already exists for this employee on this date
         $existing = Attendance::where('user_id', $userId)
             ->where('date', $date)
             ->first();
 
-        if ($existing) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Catatan absensi untuk karyawan tersebut pada tanggal yang dipilih sudah ada!'
-            ], 422);
-        }
-
         // Calculate status_in
-        $clockIn = Carbon::parse($request->clock_in)->format('H:i:s');
-        $statusIn = 'normal';
-        if ($clockIn > '09:00:00') {
-            $statusIn = ($request->attendance_type === 'kantor') ? 'late' : 'normal';
+        $clockIn = null;
+        $statusIn = null;
+        if ($request->filled('clock_in')) {
+            $clockIn = Carbon::parse($request->clock_in)->format('H:i:s');
+            $statusIn = 'normal';
+            if ($clockIn > '08:30:00') {
+                $statusIn = ($request->attendance_type === 'kantor') ? 'late' : 'normal';
+            }
         }
 
         // Calculate status_out
         $clockOut = null;
         $statusOut = null;
-        if ($request->clock_out) {
+        if ($request->filled('clock_out')) {
             $clockOut = Carbon::parse($request->clock_out)->format('H:i:s');
+            $isSaturday = Carbon::parse($date)->isSaturday();
+            $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+
             $statusOut = 'normal';
-            if ($clockOut < '17:00:00') {
+            if ($clockOut < $limitEarly) {
                 $statusOut = 'early_departure';
-            } elseif ($clockOut > '18:00:00') {
+            } elseif ($clockOut > $limitOvertime) {
                 $statusOut = 'overtime';
             }
         }
@@ -347,41 +516,138 @@ class AttendanceController extends Controller
             }
         }
 
-        $attendance = Attendance::create([
-            'user_id' => $userId,
-            'date' => $date,
-            'attendance_type' => $request->attendance_type,
-            'clock_in' => $clockIn,
-            'status_in' => $statusIn,
-            'notes_in' => $notesText,
-            'latitude_in' => $latitude,
-            'longitude_in' => $longitude,
-            'photo_in' => $photoPath,
-            'clock_out' => $clockOut,
-            'status_out' => $statusOut,
-            'notes_out' => $clockOut ? $notesText : null,
-            'latitude_out' => $clockOut ? $latitude : null,
-            'longitude_out' => $clockOut ? $longitude : null,
-            'photo_out' => $clockOut ? $photoPath : null,
-            'approval_status' => 'approved',
-        ]);
+        if ($existing) {
+            // Update existing record
+            $updateData = [
+                'attendance_type' => $request->attendance_type,
+                'approval_status' => 'approved',
+            ];
+
+            if ($clockIn) {
+                $updateData['clock_in'] = $clockIn;
+                $updateData['status_in'] = $statusIn;
+                $updateData['notes_in'] = $notesText;
+                $updateData['latitude_in'] = $latitude;
+                $updateData['longitude_in'] = $longitude;
+                if ($request->photo) {
+                    $updateData['photo_in'] = $photoPath;
+                }
+            }
+
+            if ($clockOut) {
+                $updateData['clock_out'] = $clockOut;
+                $updateData['status_out'] = $statusOut;
+                $updateData['notes_out'] = $notesText;
+                $updateData['latitude_out'] = $latitude;
+                $updateData['longitude_out'] = $longitude;
+                if ($request->photo) {
+                    $updateData['photo_out'] = $photoPath;
+                }
+            }
+
+            $existing->update($updateData);
+            $attendance = $existing;
+            $msg = 'Absensi manual karyawan berhasil diperbarui!';
+        } else {
+            // Create new record
+            $insertData = [
+                'user_id' => $userId,
+                'date' => $date,
+                'attendance_type' => $request->attendance_type,
+                'approval_status' => 'approved',
+            ];
+
+            if ($clockIn) {
+                $insertData['clock_in'] = $clockIn;
+                $insertData['status_in'] = $statusIn;
+                $insertData['notes_in'] = $notesText;
+                $insertData['latitude_in'] = $latitude;
+                $insertData['longitude_in'] = $longitude;
+                $insertData['photo_in'] = $photoPath;
+            }
+
+            if ($clockOut) {
+                $insertData['clock_out'] = $clockOut;
+                $insertData['status_out'] = $statusOut;
+                $insertData['notes_out'] = $notesText;
+                $insertData['latitude_out'] = $latitude;
+                $insertData['longitude_out'] = $longitude;
+                $insertData['photo_out'] = $photoPath;
+            }
+
+            $attendance = Attendance::create($insertData);
+            $msg = 'Absensi manual karyawan berhasil dibuat!';
+        }
 
         if ($request->attendance_type === 'kunjungan' || $request->attendance_type === 'client') {
             $clientName = $request->attendance_type === 'client' ? 'Kunjungan Klien Pertama' : 'Kunjungan Lapangan Pertama';
             if ($request->notes) {
                 $clientName = $request->notes;
             }
-            \App\Models\SalesVisit::create([
-                'user_id' => $userId,
-                'date' => $date,
-                'visit_time' => $clockIn,
-                'client_name' => $clientName,
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'photo_path' => $photoPath ?: '',
-                'notes' => 'Absen Masuk Manual oleh Admin',
-                'visit_type' => $request->attendance_type === 'client' ? 'client' : 'sales',
-            ]);
+            
+            $visitType = $request->attendance_type === 'client' ? 'client' : 'sales';
+            
+            // Check if there is already a visit log for this date, user, and type
+            $existingVisit = \App\Models\SalesVisit::where('user_id', $userId)
+                ->where('date', $date)
+                ->where('visit_type', $visitType)
+                ->first();
+
+            if ($existingVisit) {
+                $visitData = [];
+                if ($clockIn) {
+                    $visitData['visit_time'] = $clockIn;
+                    $visitData['client_name'] = $clientName;
+                    $visitData['latitude'] = $latitude;
+                    $visitData['longitude'] = $longitude;
+                    if ($photoPath) {
+                        $visitData['photo_path'] = $photoPath;
+                    }
+                    $visitData['notes'] = $notesText;
+                }
+                if ($clockOut) {
+                    $visitData['visit_time_out'] = $clockOut;
+                    $visitData['latitude_out'] = $latitude;
+                    $visitData['longitude_out'] = $longitude;
+                    if ($photoPath) {
+                        $visitData['photo_path_out'] = $photoPath;
+                    }
+                    $visitData['notes_out'] = $notesText;
+                }
+                $existingVisit->update($visitData);
+            } else {
+                $visitData = [
+                    'user_id' => $userId,
+                    'date' => $date,
+                    'visit_type' => $visitType,
+                ];
+
+                if ($clockIn) {
+                    $visitData['visit_time'] = $clockIn;
+                    $visitData['client_name'] = $clientName;
+                    $visitData['latitude'] = $latitude;
+                    $visitData['longitude'] = $longitude;
+                    $visitData['photo_path'] = $photoPath ?: '';
+                    $visitData['notes'] = $notesText;
+                } else {
+                    $visitData['visit_time'] = $clockOut ?: '08:00:00';
+                    $visitData['client_name'] = $clientName;
+                    $visitData['latitude'] = $latitude;
+                    $visitData['longitude'] = $longitude;
+                    $visitData['photo_path'] = $photoPath ?: '';
+                    $visitData['notes'] = $notesText;
+                }
+
+                if ($clockOut) {
+                    $visitData['visit_time_out'] = $clockOut;
+                    $visitData['latitude_out'] = $latitude;
+                    $visitData['longitude_out'] = $longitude;
+                    $visitData['photo_path_out'] = $photoPath;
+                    $visitData['notes_out'] = $notesText;
+                }
+
+                \App\Models\SalesVisit::create($visitData);
+            }
         }
 
         // Load the relationship for response format consistency
@@ -389,7 +655,7 @@ class AttendanceController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Absensi manual karyawan berhasil dibuat!',
+            'message' => $msg,
             'data' => $attendance
         ]);
     }
@@ -412,7 +678,8 @@ class AttendanceController extends Controller
         if ($clockIn) {
             $clockIn = Carbon::parse($clockIn)->format('H:i:s');
             $statusIn = 'normal';
-            if ($clockIn > '09:00:00') {
+            $limitIn = $attendance->shift_start_time ?: '09:00:00';
+            if ($clockIn > $limitIn) {
                 $statusIn = ($attendance->attendance_type === 'kantor') ? 'late' : 'normal';
             }
             $attendance->clock_in = $clockIn;
@@ -424,10 +691,19 @@ class AttendanceController extends Controller
 
         if ($clockOut) {
             $clockOut = Carbon::parse($clockOut)->format('H:i:s');
+            if ($attendance->shift_end_time) {
+                $limitEarly = $attendance->shift_end_time;
+                $limitOvertime = Carbon::parse($attendance->shift_end_time)->addHour()->format('H:i:s');
+            } else {
+                $isSaturday = Carbon::parse($attendance->date)->isSaturday();
+                $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+            }
+
             $statusOut = 'normal';
-            if ($clockOut < '17:00:00') {
+            if ($clockOut < $limitEarly) {
                 $statusOut = 'early_departure';
-            } elseif ($clockOut > '18:00:00') {
+            } elseif ($clockOut > $limitOvertime) {
                 $statusOut = 'overtime';
             }
             $attendance->clock_out = $clockOut;
@@ -453,6 +729,23 @@ class AttendanceController extends Controller
     public function getOfficeSetting(Request $request)
     {
         $office = \App\Models\OfficeSetting::first();
+        $user = $request->user();
+        
+        if ($office && $user && $user->role === 'employee' && $user->office_location === 'bogor') {
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'id' => $office->id,
+                    'latitude' => $office->bogor_latitude ?? $office->latitude,
+                    'longitude' => $office->bogor_longitude ?? $office->longitude,
+                    'radius' => $office->bogor_radius ?? $office->radius,
+                    'bogor_latitude' => $office->bogor_latitude,
+                    'bogor_longitude' => $office->bogor_longitude,
+                    'bogor_radius' => $office->bogor_radius,
+                ]
+            ]);
+        }
+        
         return response()->json([
             'status' => 'success',
             'data' => $office
@@ -468,6 +761,9 @@ class AttendanceController extends Controller
             'latitude' => 'required|string',
             'longitude' => 'required|string',
             'radius' => 'required|integer|min:1',
+            'bogor_latitude' => 'required|string',
+            'bogor_longitude' => 'required|string',
+            'bogor_radius' => 'required|integer|min:1',
         ]);
 
         $office = \App\Models\OfficeSetting::first();
@@ -478,7 +774,12 @@ class AttendanceController extends Controller
         $office->latitude = $request->latitude;
         $office->longitude = $request->longitude;
         $office->radius = $request->radius;
+        $office->bogor_latitude = $request->bogor_latitude;
+        $office->bogor_longitude = $request->bogor_longitude;
+        $office->bogor_radius = $request->bogor_radius;
         $office->save();
+
+        Cache::forget('office_setting');
 
         return response()->json([
             'status' => 'success',
@@ -530,6 +831,7 @@ class AttendanceController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Koreksi absensi ditolak.']);
     }
 
+
     /**
      * Helper to decode and save base64 image.
      */
@@ -543,23 +845,152 @@ class AttendanceController extends Controller
                 throw new \Exception('Tipe gambar tidak valid.');
             }
 
-            $image = base64_decode($imageData);
+            $imageBytes = base64_decode($imageData);
 
-            if ($image === false) {
+            if ($imageBytes === false) {
                 throw new \Exception('Gagal mendecode base64.');
             }
         } else {
             throw new \Exception('Format data URI gambar tidak sesuai.');
         }
 
-        $fileName = $prefix . '_' . time() . '_' . uniqid() . '.' . $type;
+        // Tentukan ekstensi dan nama file default (webp jika menggunakan kompresi)
+        $useWebp = extension_loaded('gd');
+        $extension = $useWebp ? 'webp' : $type;
+        $fileName = $prefix . '_' . time() . '_' . uniqid() . '.' . $extension;
         $filePath = 'attendances/' . $fileName;
 
         // Ensure directories exist
         Storage::disk('public')->makeDirectory('attendances');
 
-        Storage::disk('public')->put($filePath, $image);
+        if ($useWebp) {
+            try {
+                // Buat GD image object dari raw bytes
+                $srcImage = imagecreatefromstring($imageBytes);
+                if ($srcImage !== false) {
+                    $origWidth = imagesx($srcImage);
+                    $origHeight = imagesy($srcImage);
+
+                    // Tentukan ukuran baru (maksimal lebar 800px)
+                    $maxWidth = 800;
+                    $webpData = false;
+
+                    if ($origWidth > $maxWidth) {
+                        $newWidth = $maxWidth;
+                        $newHeight = (int) (($origHeight / $origWidth) * $maxWidth);
+
+                        // Buat canvas baru
+                        $dstImage = imagecreatetruecolor($newWidth, $newHeight);
+
+                        // Tangani transparansi untuk PNG/GIF
+                        imagealphablending($dstImage, false);
+                        imagesavealpha($dstImage, true);
+                        
+                        // Lakukan resize
+                        imagecopyresampled($dstImage, $srcImage, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+                        
+                        // Siapkan output buffer untuk menangkap raw webp bytes
+                        ob_start();
+                        imagewebp($dstImage, null, 75); // kualitas 75%
+                        $webpData = ob_get_clean();
+                    } else {
+                        // Tidak perlu resize, langsung kompres ke WebP
+                        ob_start();
+                        imagewebp($srcImage, null, 75);
+                        $webpData = ob_get_clean();
+                    }
+
+                    if ($webpData !== false) {
+                        $imageBytes = $webpData;
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Fallback ke data asli jika ada error pemrosesan GD
+            }
+        }
+
+        Storage::disk('public')->put($filePath, $imageBytes);
 
         return '/storage/' . $filePath;
+    }
+
+    /**
+     * Get list of all shifts.
+     */
+    public function getShifts()
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => \App\Models\Shift::orderBy('start_time', 'asc')->get()
+        ]);
+    }
+
+    /**
+     * Store a new shift (Admin only).
+     */
+    public function storeShift(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string',
+            'start_time' => 'required|string',
+            'end_time' => 'required|string',
+            'grace_period' => 'required|integer|min:0'
+        ]);
+
+        $shift = \App\Models\Shift::create([
+            'name' => $request->name,
+            'start_time' => Carbon::parse($request->start_time)->format('H:i:s'),
+            'end_time' => Carbon::parse($request->end_time)->format('H:i:s'),
+            'grace_period' => $request->grace_period
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Shift berhasil dibuat',
+            'data' => $shift
+        ]);
+    }
+
+    /**
+     * Update an existing shift (Admin only).
+     */
+    public function updateShift(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string',
+            'start_time' => 'required|string',
+            'end_time' => 'required|string',
+            'grace_period' => 'required|integer|min:0'
+        ]);
+
+        $shift = \App\Models\Shift::findOrFail($id);
+        $shift->update([
+            'name' => $request->name,
+            'start_time' => Carbon::parse($request->start_time)->format('H:i:s'),
+            'end_time' => Carbon::parse($request->end_time)->format('H:i:s'),
+            'grace_period' => $request->grace_period
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Shift berhasil diubah',
+            'data' => $shift
+        ]);
+    }
+
+    /**
+     * Delete a shift (Admin only).
+     */
+    public function deleteShift($id)
+    {
+        $shift = \App\Models\Shift::findOrFail($id);
+        
+        // Prevent deletion if in use? Better to just set onDelete cascade/set null, which we did.
+        $shift->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Shift berhasil dihapus'
+        ]);
     }
 }

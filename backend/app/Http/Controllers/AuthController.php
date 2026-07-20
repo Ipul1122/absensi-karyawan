@@ -8,6 +8,10 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+use App\Mail\ResetPasswordMail;
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
@@ -38,10 +42,15 @@ class AuthController extends Controller
             'status' => 'success',
             'token' => $token,
             'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
+                'id'      => $user->id,
+                'name'    => $user->name,
+                'email'   => $user->email,
+                'role'    => $user->role,
+                'company' => $user->company,
+                'photo'   => $user->photo ? asset('storage/' . $user->photo) : null,
+                'saturday_off' => (bool)$user->saturday_off,
+                'sunday_off' => (bool)$user->sunday_off,
+                'vapid_public_key' => env('VAPID_PUBLIC_KEY'),
             ]
         ]);
     }
@@ -107,6 +116,11 @@ class AuthController extends Controller
                 'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
                 'no_rekening'     => $user->no_rekening,
                 'company'         => $user->company,
+                'whatsapp'        => $user->whatsapp,
+                'saturday_off'    => (bool)$user->saturday_off,
+                'sunday_off'      => (bool)$user->sunday_off,
+                'password_plain'  => $user->password_plain,
+                'vapid_public_key' => env('VAPID_PUBLIC_KEY'),
             ]
         ]);
     }
@@ -124,6 +138,8 @@ class AuthController extends Controller
             'division'        => 'nullable|string|max:100',
             'photo'           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            'no_rekening'     => 'nullable|string|max:50',
+            'whatsapp'        => 'nullable|string|max:30',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -135,7 +151,7 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
-        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division']);
+        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'no_rekening', 'whatsapp', 'company']);
 
         // Handle photo upload
         if ($request->hasFile('photo')) {
@@ -175,7 +191,109 @@ class AuthController extends Controller
                 'gender'          => $user->gender,
                 'division'        => $user->division,
                 'cv'              => $user->cv ? asset('storage/' . $user->cv) : null,
+                'no_rekening'     => $user->no_rekening,
+                'company'         => $user->company,
+                'whatsapp'        => $user->whatsapp,
             ]
         ]);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Alamat email tidak terdaftar di sistem kami.'
+            ], 404);
+        }
+
+        // Generate 6 digit random OTP
+        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        // Store or update OTP in password_reset_tokens table
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            [
+                'token' => $otp,
+                'created_at' => Carbon::now()
+            ]
+        );
+
+        try {
+            Mail::to($request->email)->send(new ResetPasswordMail($otp));
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengirim email OTP: ' . $e->getMessage()
+            ], 500);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Kode OTP berhasil dikirim ke email Anda.'
+        ]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'otp' => 'required|string|size:6',
+            'password' => 'required|string|min:6',
+        ], [
+            'otp.size' => 'Kode OTP harus terdiri dari 6 karakter.',
+            'password.min' => 'Kata sandi baru minimal harus terdiri dari 6 karakter.'
+        ]);
+
+        $reset = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->where('token', $request->otp)
+            ->first();
+
+        if (!$reset) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Kode OTP salah atau tidak cocok.'
+            ], 400);
+        }
+
+        // Check if OTP has expired (15 minutes expiration)
+        $createdAt = Carbon::parse($reset->created_at);
+        if ($createdAt->addMinutes(15)->isPast()) {
+            // Delete expired OTP
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Kode OTP telah kedaluwarsa. Silakan ajukan ulang.'
+            ], 400);
+        }
+
+        // Update password in users table
+        $user = User::where('email', $request->email)->first();
+        if ($user) {
+            $user->update([
+                'password' => Hash::make($request->password),
+                'password_plain' => $request->password,
+            ]);
+
+            // Delete verified OTP token
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Kata sandi Anda berhasil diatur ulang. Silakan masuk kembali.'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Karyawan tidak ditemukan.'
+        ], 404);
     }
 }

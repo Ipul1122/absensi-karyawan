@@ -20,6 +20,7 @@ import {
   FileUp,
   Building2
 } from 'lucide-react'
+import { getAssetUrl } from '../../../utils/api'
 
 interface EmployeeProfile {
   id: number
@@ -33,6 +34,9 @@ interface EmployeeProfile {
   gender: string | null
   division: string | null
   cv: string | null
+  no_rekening: string | null
+  company: string | null
+  whatsapp: string | null
   created_at: string
 }
 
@@ -66,6 +70,9 @@ export default function ViewEmployeeModal({
       gender: null,
       division: null,
       cv: null,
+      no_rekening: null,
+      company: null,
+      whatsapp: null,
       created_at: ''
     }
   )
@@ -334,7 +341,7 @@ export default function ViewEmployeeModal({
                 <div className="relative shrink-0">
                   {photoPreview ? (
                     <img
-                      src={photoPreview}
+                      src={getAssetUrl(photoPreview)}
                       alt="Foto"
                       className="w-14 h-14 rounded-xl object-cover border border-orange-200 shadow-sm"
                     />
@@ -372,9 +379,9 @@ export default function ViewEmployeeModal({
               </div>
 
               {/* Form Grid */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Nama */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Nama Lengkap *</label>
                   <div className="relative">
                     <User className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
@@ -390,7 +397,7 @@ export default function ViewEmployeeModal({
                 </div>
 
                 {/* Email */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Email *</label>
                   <div className="relative">
                     <Mail className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
@@ -466,7 +473,7 @@ export default function ViewEmployeeModal({
                 </div>
 
                 {/* Division */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Divisi / Departemen</label>
                   <div className="relative">
                     <Building2 className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
@@ -501,7 +508,7 @@ export default function ViewEmployeeModal({
                 </div>
 
                 {/* Address */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Alamat</label>
                   <div className="relative">
                     <MapPin className="absolute top-2.5 left-0 pl-3 w-4 h-4 text-slate-400" />
@@ -586,7 +593,7 @@ export default function ViewEmployeeModal({
               <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
                 {localProfile.photo ? (
                   <img
-                    src={localProfile.photo}
+                    src={getAssetUrl(localProfile.photo)}
                     alt="Foto"
                     className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-200 shadow-sm shrink-0"
                   />
@@ -615,7 +622,7 @@ export default function ViewEmployeeModal({
               </div>
 
               {/* Info Grid */}
-              <div className="grid grid-cols-2 gap-3 shrink-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
                 {[
                   {
                     label: 'Jenis Kelamin',
@@ -638,7 +645,8 @@ export default function ViewEmployeeModal({
                     label: 'Terdaftar Sistem',
                     value: formatDate(localProfile.created_at),
                     icon: <Hash className="w-3 h-3" />
-                  }
+                  },
+
                 ].map((item) => (
                   <div key={item.label} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <div className="flex items-center gap-1 text-slate-400 mb-1">
@@ -678,7 +686,7 @@ export default function ViewEmployeeModal({
                       Dokumen CV Karyawan
                     </span>
                     <a
-                      href={localProfile.cv}
+                      href={getAssetUrl(localProfile.cv)}
                       target="_blank"
                       rel="noreferrer"
                       className="px-2.5 py-1 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-lg text-[10px] font-bold transition-all hover:brightness-110 cursor-pointer"
@@ -702,7 +710,10 @@ export default function ViewEmployeeModal({
                   localProfile.employee_number,
                   localProfile.join_date,
                   localProfile.gender,
-                  localProfile.cv
+                  localProfile.cv,
+                  localProfile.no_rekening,
+                  localProfile.company,
+                  localProfile.whatsapp
                 ]
                 const filled = fields.filter(Boolean).length
                 const pct = Math.round((filled / fields.length) * 100)

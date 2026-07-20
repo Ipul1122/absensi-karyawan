@@ -13,13 +13,15 @@ import {
   FileDown,
   Printer,
   CalendarDays,
-  Users
+  Users,
+  Trash2
 } from 'lucide-react'
 
 interface UserDetails {
   id: number
   name: string
   email: string
+  company?: string | null
 }
 
 interface Overtime {
@@ -33,6 +35,7 @@ interface Overtime {
   status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
+  updated_at: string
   user: UserDetails
 }
 
@@ -48,6 +51,12 @@ interface EmployeeRecap {
 interface AdminOvertimeProps {
   token: string
 }
+
+const WhatsAppIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.458 5.704 1.459h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+);
 
 export default function AdminOvertime({ token }: AdminOvertimeProps) {
   const [activeTab, setActiveTab] = useState<'logs' | 'recap'>('logs')
@@ -241,6 +250,85 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
     })
   }
 
+  const handleDelete = async (id: number, name: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Pengajuan Lembur?',
+      text: `Apakah Anda yakin ingin menghapus pengajuan lembur untuk ${name}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        const response = await axios.delete(`http://localhost:8000/api/overtimes/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.data.status === 'success') {
+          Swal.fire({
+            title: 'Terhapus!',
+            text: response.data.message,
+            icon: 'success',
+            background: '#fffdfb',
+            color: '#3c1105'
+          })
+          fetchOvertimes()
+        }
+      } catch (err: any) {
+        Swal.fire('Gagal', err.response?.data?.message || 'Gagal menghapus pengajuan.', 'error')
+      }
+    }
+  }
+
+  const handleWhatsAppShare = (item: Overtime) => {
+    const company = item.user.company;
+    const isYpi = company === 'PT Yasodana Parvez Internasional';
+    const directorName = isYpi ? 'Pak Andre' : 'Bu Dian';
+    const phone = isYpi ? '6289656931184' : '628170038421';
+
+    Swal.fire({
+      title: 'Kirim WhatsApp ke Direktur',
+      text: `Kirim rincian lembur untuk ${item.user.name} ke ${directorName}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#22c55e',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Kirim!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const statusText = item.status === 'approved' 
+          ? 'Disetujui' 
+          : item.status === 'rejected' 
+            ? 'Ditolak' 
+            : item.status === 'pending_director' 
+              ? 'Menunggu Direktur' 
+              : 'Menunggu Admin';
+
+        const message = `Halo ${directorName}, mohon verifikasi pengajuan lembur berikut:
+
+Nama: ${item.user.name}
+Tanggal: ${formatDate(item.date)}
+Waktu: ${formatTime(item.start_time)} - ${formatTime(item.end_time)}
+Durasi: ${item.duration} jam
+Tugas: ${item.reason}
+Status: ${statusText}
+
+Terima kasih.`;
+
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+      }
+    });
+  }
+
   const formatDate = (dateString: string) => {
     const d = new Date(dateString)
     return d.toLocaleDateString('id-ID', {
@@ -248,6 +336,21 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
   const formatTime = (timeString: string) => {
@@ -778,6 +881,8 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
                     <tr className="bg-orange-50/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
                       <th className="py-4 px-5">Karyawan</th>
                       <th className="py-4 px-5">Tanggal</th>
+                      <th className="py-4 px-5">Dibuat</th>
+                      <th className="py-4 px-5">Diterima</th>
                       <th className="py-4 px-5">Jam Lembur</th>
                       <th className="py-4 px-5">Durasi</th>
                       <th className="py-4 px-5">Rincian Tugas / Pekerjaan</th>
@@ -803,8 +908,20 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
                         </td>
 
                         {/* Date */}
-                        <td className="py-4 px-5 text-slate-800 font-bold">
-                          {formatDate(item.date)}
+                        <td className="py-4 px-5">
+                          <span className="block text-slate-800 font-bold">{formatDate(item.date)}</span>
+                        </td>
+
+                        {/* Dibuat */}
+                        <td className="py-4 px-5 text-slate-700">
+                          {formatDateTime(item.created_at)}
+                        </td>
+
+                        {/* Diterima */}
+                        <td className="py-4 px-5 text-slate-700">
+                          {item.status === 'approved' || item.status === 'rejected'
+                            ? formatDateTime(item.updated_at)
+                            : '-'}
                         </td>
 
                         {/* Time */}
@@ -838,8 +955,8 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
 
                         {/* Actions */}
                         <td className="py-4 px-5 text-right">
-                          {item.status === 'pending' ? (
-                            <div className="flex justify-end gap-1.5">
+                          <div className="flex justify-end gap-1.5 items-center">
+                            {(item.status === 'pending' || item.status === 'rejected') && (
                               <button
                                 onClick={() => handleApprove(item.id, item.user.name, item.duration)}
                                 className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
@@ -847,6 +964,8 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
                               >
                                 <Check className="w-4 h-4" />
                               </button>
+                            )}
+                            {(item.status === 'pending' || item.status === 'approved' || item.status === 'pending_director') && (
                               <button
                                 onClick={() => handleReject(item.id, item.user.name)}
                                 className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
@@ -854,10 +973,22 @@ export default function AdminOvertime({ token }: AdminOvertimeProps) {
                               >
                                 <X className="w-4 h-4" />
                               </button>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-bold">-</span>
-                          )}
+                            )}
+                            <button
+                              onClick={() => handleDelete(item.id, item.user.name)}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-800 rounded-lg transition-all cursor-pointer shadow-sm"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleWhatsAppShare(item)}
+                              className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-600 hover:text-green-700 rounded-lg transition-all cursor-pointer shadow-sm flex items-center justify-center"
+                              title="Kirim WhatsApp ke Direktur"
+                            >
+                              <WhatsAppIcon className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

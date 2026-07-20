@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { Menu, Bell, ChevronDown, LogOut, Shield } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Menu, Bell, ChevronDown, LogOut, Shield, Settings } from 'lucide-react'
 import Logo from './Logo'
+
+import { getAssetUrl } from '../../utils/api'
 
 interface User {
   id: number
@@ -8,15 +11,17 @@ interface User {
   email: string
   role: 'admin' | 'employee' | 'director'
   photo?: string | null
+  company?: string
 }
 
 interface DirectorNavbarProps {
   user: User
   title: string
   subtitle?: string
+  onLogout?: () => void
 }
 
-export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbarProps) {
+export default function DirectorNavbar({ user, title, subtitle, onLogout }: DirectorNavbarProps) {
   const [showDropdown, setShowDropdown] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -72,7 +77,7 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
           >
             {user.photo ? (
               <img
-                src={user.photo.startsWith('http') ? user.photo : `http://localhost:8000/storage/${user.photo}`}
+                src={getAssetUrl(user.photo.startsWith('http') ? user.photo : `storage/${user.photo}`)}
                 alt="Avatar"
                 className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
               />
@@ -104,12 +109,20 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
                   <span className="text-[9px] font-black text-orange-600 uppercase tracking-wider">Direktur Utama</span>
                 </div>
               </div>
-              <div className="p-2">
-                <button
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 transition-all cursor-pointer"
-                  onClick={() => { window.location.href = '/' }}
+              <div className="p-2 space-y-1">
+                <Link
+                  to="/director/pengaturan"
+                  onClick={() => setShowDropdown(false)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-orange-50/50 hover:text-orange-700 transition-all flex"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <Settings className="w-3.5 h-3.5 text-slate-400 group-hover:text-orange-600 mr-1 shrink-0" />
+                  Pengaturan Profil
+                </Link>
+                <button
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 transition-all cursor-pointer flex"
+                  onClick={onLogout || (() => { window.location.href = '/' })}
+                >
+                  <LogOut className="w-3.5 h-3.5 mr-1 shrink-0" />
                   Keluar dari Aplikasi
                 </button>
               </div>
@@ -124,9 +137,10 @@ export default function DirectorNavbar({ user, title, subtitle }: DirectorNavbar
 interface DirectorMobileNavbarProps {
   onMenuClick: () => void
   pendingCount?: number
+  company?: string
 }
 
-export function DirectorMobileNavbar({ onMenuClick, pendingCount = 0 }: DirectorMobileNavbarProps) {
+export function DirectorMobileNavbar({ onMenuClick, pendingCount = 0, company }: DirectorMobileNavbarProps) {
   return (
     <header
       className="md:hidden flex items-center justify-between px-5 py-3.5 border-b"
@@ -149,7 +163,7 @@ export function DirectorMobileNavbar({ onMenuClick, pendingCount = 0 }: Director
             </span>
           )}
         </button>
-        <Logo />
+        <Logo company={company} />
       </div>
     </header>
   )

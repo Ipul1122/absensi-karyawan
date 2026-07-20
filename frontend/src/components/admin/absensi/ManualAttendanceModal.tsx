@@ -8,6 +8,7 @@ interface Employee {
   id: number
   name: string
   email: string
+  status?: 'active' | 'pending' | 'pending_delete'
 }
 
 interface ManualAttendanceModalProps {
@@ -33,6 +34,7 @@ export default function ManualAttendanceModal({
   const [selectedUserId, setSelectedUserId] = useState('')
   const [manualDate, setManualDate] = useState(() => new Date().toISOString().split('T')[0])
   const [manualType, setManualType] = useState<'kantor' | 'kunjungan' | 'client'>('kantor')
+  const [manualInputMode, setManualInputMode] = useState<'in' | 'out'>('in')
   const [manualClockIn, setManualClockIn] = useState('08:00') // default jam masuk
   const [manualClockOut, setManualClockOut] = useState('17:00') // default jam keluar
   const [manualLat, setManualLat] = useState(-6.1942189)
@@ -53,6 +55,7 @@ export default function ManualAttendanceModal({
     setSelectedUserId('')
     setManualDate(new Date().toISOString().split('T')[0])
     setManualType('kantor')
+    setManualInputMode('in')
     setManualClockIn('08:00')
     setManualClockOut('17:00')
     setManualLat(-6.1942189)
@@ -199,20 +202,29 @@ export default function ManualAttendanceModal({
     }
 
     setSubmittingManual(true)
+
+    const payload: any = {
+      user_id: parseInt(selectedUserId, 10),
+      date: manualDate,
+      attendance_type: manualType,
+      latitude: String(manualLat),
+      longitude: String(manualLng),
+      notes: manualNotes,
+      photo: manualPhoto || null,
+    }
+
+    if (manualInputMode === 'in') {
+      payload.clock_in = manualClockIn
+      payload.clock_out = null
+    } else {
+      payload.clock_in = null
+      payload.clock_out = manualClockOut
+    }
+
     try {
       const response = await axios.post(
         'http://localhost:8000/api/admin/attendances',
-        {
-          user_id: parseInt(selectedUserId, 10),
-          date: manualDate,
-          attendance_type: manualType,
-          clock_in: manualClockIn,
-          clock_out: manualClockOut || null,
-          latitude: String(manualLat),
-          longitude: String(manualLng),
-          notes: manualNotes,
-          photo: manualPhoto || null, // send photo base64 string
-        },
+        payload,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -285,9 +297,11 @@ export default function ManualAttendanceModal({
               required
             >
               <option value="">-- Pilih Karyawan --</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>{emp.name} ({emp.email})</option>
-              ))}
+              {employees
+                .filter(emp => emp.status === 'active')
+                .map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.name} ({emp.email})</option>
+                ))}
             </select>
           </div>
 
@@ -401,31 +415,67 @@ export default function ManualAttendanceModal({
             </div>
           </div>
 
+          {/* Pilihan Jam Absensi */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Pilihan Jam Absensi *
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setManualInputMode('in')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer text-center ${
+                  manualInputMode === 'in'
+                    ? 'bg-orange-600 border-orange-600 text-white shadow-sm'
+                    : 'bg-white border-orange-100 text-slate-600 hover:bg-orange-50/50'
+                }`}
+              >
+                Hanya Masuk
+              </button>
+              <button
+                type="button"
+                onClick={() => setManualInputMode('out')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer text-center ${
+                  manualInputMode === 'out'
+                    ? 'bg-orange-600 border-orange-600 text-white shadow-sm'
+                    : 'bg-white border-orange-100 text-slate-600 hover:bg-orange-50/50'
+                }`}
+              >
+                Hanya Keluar
+              </button>
+            </div>
+          </div>
+
           {/* Clock In & Clock Out Times */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Jam Masuk *
-              </label>
-              <input
-                type="time"
-                value={manualClockIn}
-                onChange={(e) => setManualClockIn(e.target.value)}
-                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Jam Keluar (Opsional)
-              </label>
-              <input
-                type="time"
-                value={manualClockOut}
-                onChange={(e) => setManualClockOut(e.target.value)}
-                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-4">
+            {manualInputMode === 'in' && (
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Jam Masuk *
+                </label>
+                <input
+                  type="time"
+                  value={manualClockIn}
+                  onChange={(e) => setManualClockIn(e.target.value)}
+                  className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
+                  required
+                />
+              </div>
+            )}
+            {manualInputMode === 'out' && (
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Jam Keluar *
+                </label>
+                <input
+                  type="time"
+                  value={manualClockOut}
+                  onChange={(e) => setManualClockOut(e.target.value)}
+                  className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* Notes */}

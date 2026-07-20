@@ -1,6 +1,8 @@
 import { Menu } from 'lucide-react'
 import Logo from './Logo'
 
+import { getAssetUrl } from '../../utils/api'
+
 interface User {
   id: number
   name: string
@@ -28,7 +30,7 @@ export default function AdminNavbar({ user, title }: AdminNavbarProps) {
         <div className="flex items-center gap-3">
           {user.photo ? (
             <img
-              src={user.photo.startsWith('http') ? user.photo : `http://localhost:8000/storage/${user.photo}`}
+              src={getAssetUrl(user.photo.startsWith('http') ? user.photo : `storage/${user.photo}`)}
               alt="Avatar"
               className="w-10 h-10 rounded-full border border-slate-200 object-cover shadow-sm shrink-0"
             />
@@ -69,7 +71,7 @@ export function AdminMobileNavbar({ onMenuClick, pendingCount = 0 }: AdminMobile
             </span>
           )}
         </button>
-        <Logo className="w-8 h-8" />
+        <Logo className="w-8 h-8" company="PT Cakrawala Parama Internasional" />
       </div>
     </header>
   )

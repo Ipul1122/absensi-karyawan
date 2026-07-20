@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   Upload, 
   Trash2, 
@@ -27,6 +28,7 @@ interface Reimbursement {
   status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
+  updated_at: string
 }
 
 interface EmployeeReimbursementProps {
@@ -165,8 +167,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
           title: 'Berhasil!',
           text: response.data.message || 'Pengajuan reimbursement berhasil dikirim.',
           icon: 'success',
-          timer: 2000,
-          showConfirmButton: false,
+          confirmButtonColor: '#ea580c',
           background: '#fffdfb',
           color: '#3c1105'
         })
@@ -246,7 +247,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
   const handleShowReceipt = (path: string) => {
     Swal.fire({
       title: 'Bukti Pembayaran / Nota',
-      imageUrl: `http://localhost:8000${path}`,
+      imageUrl: getAssetUrl(path),
       imageAlt: 'Bukti Nota',
       background: '#fffdfb',
       color: '#3c1105',
@@ -262,6 +263,21 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
   const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
@@ -390,7 +406,7 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                 </div>
 
                 {/* Amount and Expense Date */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-quicksand">
                       3. Jumlah Klaim (Rp)
@@ -539,6 +555,8 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                 <thead>
                   <tr className="border-b border-orange-50 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                     <th className="pb-3 pt-3 pl-4">Klaim / Deskripsi</th>
+                    <th className="pb-3 pt-3">Dibuat</th>
+                    <th className="pb-3 pt-3">Diterima</th>
                     <th className="pb-3 pt-3">Kategori</th>
                     <th className="pb-3 pt-3">Jumlah Uang</th>
                     <th className="pb-3 pt-3">Tanggal Nota</th>
@@ -552,11 +570,23 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                   {paginatedItems.map((item) => (
                     <tr key={item.id} className="hover:bg-orange-50/10 transition-colors">
                       {/* Title & Desc */}
-                      <td className="py-4 pl-4">
-                        <span className="block font-bold text-slate-800">{item.title}</span>
-                        <span className="text-[10px] text-slate-400 font-medium max-w-[200px] truncate block">
+                      <td className="py-4 pl-4 max-w-[240px]">
+                        <span className="block font-bold text-slate-800 break-words whitespace-normal leading-normal">{item.title}</span>
+                        <span className="text-[10px] text-slate-400 font-medium max-w-[220px] truncate block">
                           {item.description || '-'}
                         </span>
+                      </td>
+
+                      {/* Dibuat */}
+                      <td className="py-4 text-slate-750">
+                        {formatDateTime(item.created_at)}
+                      </td>
+
+                      {/* Diterima */}
+                      <td className="py-4 text-slate-750">
+                        {item.status === 'approved' || item.status === 'rejected'
+                          ? formatDateTime(item.updated_at)
+                          : '-'}
                       </td>
 
                       {/* Category */}
@@ -624,14 +654,14 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
             <div className="space-y-4 md:hidden">
               {paginatedItems.map((item) => (
                 <div key={item.id} className="bg-orange-50/5 border border-orange-100/80 rounded-2xl p-4 space-y-3 shadow-sm hover:border-orange-200 transition-colors">
-                  <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <span className="block font-bold text-slate-800 text-sm">{item.title}</span>
-                      <span className="text-[10px] text-slate-400 font-medium mt-0.5 block line-clamp-2">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="block font-bold text-slate-800 text-sm break-words leading-snug">{item.title}</span>
+                      <span className="text-[10px] text-slate-400 font-medium mt-1 block break-words">
                         {item.description || 'Tidak ada deskripsi'}
                       </span>
                     </div>
-                    <div className="shrink-0">
+                    <div className="shrink-0 self-start">
                       {getStatusBadge(item.status)}
                     </div>
                   </div>
@@ -676,6 +706,14 @@ export default function EmployeeReimbursement({ token }: EmployeeReimbursementPr
                       <strong>Catatan Admin:</strong> "{item.admin_notes}"
                     </div>
                   )}
+
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-[10px] text-slate-500 font-medium space-y-1 mt-2">
+                    <div><strong>Dibuat:</strong> {formatDateTime(item.created_at)}</div>
+                    <div>
+                      <strong>Diterima:</strong> {item.status === 'approved' ? formatDateTime(item.updated_at) :
+                       item.status === 'rejected' ? `Ditolak pada ${formatDateTime(item.updated_at)}` : '-'}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

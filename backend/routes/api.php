@@ -16,6 +16,11 @@ use App\Http\Controllers\BonusController;
 use App\Http\Controllers\SalesVisitController;
 use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\SidebarNotificationController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\DirectorController;
+use App\Http\Controllers\PushNotificationController;
+use App\Http\Controllers\BackupController;
+use App\Http\Controllers\PermitController;
 
 Route::get('/health-check', function () {
     try {
@@ -36,8 +41,12 @@ Route::get('/health-check', function () {
 });
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::get('/payroll/verify/{id}/{hash}', [PayrollController::class, 'verifySlip']);
+
+Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('/user/change-password', [AuthController::class, 'changePassword']);
     Route::get('/user/profile', [AuthController::class, 'getProfile']);
@@ -60,11 +69,30 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
     Route::get('/attendance/history', [AttendanceController::class, 'getHistory']);
     Route::get('/office-setting', [AttendanceController::class, 'getOfficeSetting']);
+    Route::get('/holidays/upcoming', [PayrollController::class, 'getUpcomingHolidays']);
+    Route::get('/shifts', [AttendanceController::class, 'getShifts']);
+
+    // Public contact info (admin WhatsApp) - accessible by all roles
+    Route::get('/admin-contact', function (Request $request) {
+        $admin = \App\Models\User::where('role', 'admin')
+            ->whereNotNull('whatsapp')
+            ->where('status', 'active')
+            ->first(['name', 'whatsapp']);
+        return response()->json([
+            'status' => 'success',
+            'data'   => $admin ? ['name' => $admin->name, 'whatsapp' => $admin->whatsapp] : null
+        ]);
+    });
 
     // Leave routes for employee
     Route::get('/leaves', [LeaveController::class, 'index']);
     Route::post('/leaves', [LeaveController::class, 'store']);
     Route::delete('/leaves/{id}', [LeaveController::class, 'destroy']);
+
+    // Permit routes for employee
+    Route::get('/permits', [PermitController::class, 'index']);
+    Route::post('/permits', [PermitController::class, 'store']);
+    Route::delete('/permits/{id}', [PermitController::class, 'destroy']);
 
     // Employee Reimbursement routes
     Route::get('/reimbursements', [ReimbursementController::class, 'index']);
@@ -77,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Employee Sales Visit routes
     Route::post('/sales-visits', [SalesVisitController::class, 'store']);
     Route::get('/sales-visits/today', [SalesVisitController::class, 'getTodayVisits']);
+    Route::put('/sales-visits/{id}/checkout', [SalesVisitController::class, 'checkout']);
 
     // Employee Overtime routes
     Route::get('/overtimes', [OvertimeController::class, 'index']);
@@ -85,12 +114,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin or Director routes (Read only for Director)
     Route::middleware('admin_or_director')->group(function () {
+        Route::get('/admin/employees/backup', [BackupController::class, 'backup']);
         Route::get('/employees', [EmployeeController::class, 'index']);
         Route::get('/employees/{id}/profile', [EmployeeController::class, 'getEmployeeProfile']);
         Route::get('/admin/attendances', [AttendanceController::class, 'getAllAttendances']);
         Route::get('/admin/sales-visits', [SalesVisitController::class, 'getAllVisits']);
         Route::get('/admin/leaves', [LeaveController::class, 'getAllRequests']);
+        Route::get('/admin/permits', [PermitController::class, 'getAllRequests']);
         Route::get('/admin/payroll/configurations', [PayrollController::class, 'indexConfigurations']);
+        Route::get('/admin/directors', [EmployeeController::class, 'getDirectorsList']);
         Route::get('/admin/payroll', [PayrollController::class, 'indexPayrolls']);
         Route::get('/admin/inventories', [InventoryController::class, 'index']);
         Route::get('/admin/inventories/{id}', [InventoryController::class, 'show']);
@@ -100,6 +132,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/overtimes', [OvertimeController::class, 'indexAdmin']);
         Route::get('/admin/overtimes/recap', [OvertimeController::class, 'recapAdmin']);
         Route::get('/admin/holidays', [PayrollController::class, 'indexHolidays']);
+        Route::delete('/admin/bonuses/{id}', [BonusController::class, 'destroy']);
+        Route::delete('/admin/inventories/{id}', [InventoryController::class, 'destroy']);
     });
 
     // Admin only modifying routes
@@ -111,15 +145,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/attendances', [AttendanceController::class, 'storeManualAttendance']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);
         Route::put('/admin/office-setting', [AttendanceController::class, 'updateOfficeSetting']);
+        Route::put('/admin/sales-visits/{id}', [SalesVisitController::class, 'updateVisit']);
         
         // Admin Leave routes
         Route::put('/admin/leaves/{id}/approve', [LeaveController::class, 'approve']);
         Route::put('/admin/leaves/{id}/reject', [LeaveController::class, 'reject']);
 
+        // Admin Permit routes
+        Route::put('/admin/permits/{id}/approve', [PermitController::class, 'approve']);
+        Route::put('/admin/permits/{id}/reject', [PermitController::class, 'reject']);
+
         // Admin Payroll routes
         Route::post('/admin/payroll/configurations', [PayrollController::class, 'updateConfiguration']);
         Route::post('/admin/payroll/generate', [PayrollController::class, 'generatePayroll']);
-        Route::put('/admin/payroll/{id}/pay', [PayrollController::class, 'updatePayrollStatus']);
         Route::put('/admin/payroll/{id}/update', [PayrollController::class, 'updatePayrollManual']);
         Route::delete('/admin/payroll/{id}', [PayrollController::class, 'destroyPayroll']);
         Route::post('/admin/payroll/{id}/submit-approval', [PayrollController::class, 'submitPayrollApproval']);
@@ -131,7 +169,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Admin Inventory routes
         Route::post('/admin/inventories', [InventoryController::class, 'store']);
         Route::post('/admin/inventories/{id}/update', [InventoryController::class, 'update']);
-        Route::delete('/admin/inventories/{id}', [InventoryController::class, 'destroy']);
 
         // Admin Reimbursement routes
         Route::put('/admin/reimbursements/{id}/approve', [ReimbursementController::class, 'approve']);
@@ -140,15 +177,29 @@ Route::middleware('auth:sanctum')->group(function () {
         // Admin Bonus routes
         Route::post('/admin/bonuses', [BonusController::class, 'store']);
         Route::put('/admin/bonuses/{id}', [BonusController::class, 'update']);
-        Route::delete('/admin/bonuses/{id}', [BonusController::class, 'destroy']);
 
         // Admin Overtime routes
         Route::put('/admin/overtimes/{id}/approve', [OvertimeController::class, 'approve']);
         Route::put('/admin/overtimes/{id}/reject', [OvertimeController::class, 'reject']);
+
+        // Admin Shift routes
+        Route::post('/admin/shifts', [AttendanceController::class, 'storeShift']);
+        Route::put('/admin/shifts/{id}', [AttendanceController::class, 'updateShift']);
+        Route::delete('/admin/shifts/{id}', [AttendanceController::class, 'deleteShift']);
+
+        // Admin Backup routes
+        Route::get('/admin/backup/export', [BackupController::class, 'exportDatabase']);
+        Route::post('/admin/backup/import', [BackupController::class, 'importDatabase']);
+
+        // Admin Recycle Bin routes
+        Route::get('/admin/recycle-bin', [\App\Http\Controllers\RecycleBinController::class, 'index']);
+        Route::post('/admin/recycle-bin/{id}/restore', [\App\Http\Controllers\RecycleBinController::class, 'restore']);
+        Route::delete('/admin/recycle-bin/{id}', [\App\Http\Controllers\RecycleBinController::class, 'destroy']);
     });
 
     // Director only approval routes
     Route::middleware('director')->group(function () {
+        Route::get('/director/dashboard-summary', [DirectorController::class, 'getDashboardSummary']);
         // Employee approvals
         Route::put('/director/employees/{id}/approve', [EmployeeController::class, 'approveEmployee']);
         Route::put('/director/employees/{id}/reject', [EmployeeController::class, 'rejectEmployee']);
@@ -165,10 +216,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/director/payroll/{id}/reject', [PayrollController::class, 'rejectPayroll']);
         Route::post('/director/payroll/approve-all', [PayrollController::class, 'approveAllPayroll']);
         Route::post('/director/payroll/reject-all', [PayrollController::class, 'rejectAllPayroll']);
+        Route::put('/director/payroll/{id}/pay', [PayrollController::class, 'updatePayrollStatus']);
 
         // Leave approvals
         Route::put('/director/leaves/{id}/approve', [LeaveController::class, 'directorApprove']);
         Route::put('/director/leaves/{id}/reject', [LeaveController::class, 'directorReject']);
+
+        // Permit approvals
+        Route::put('/director/permits/{id}/approve', [PermitController::class, 'directorApprove']);
+        Route::put('/director/permits/{id}/reject', [PermitController::class, 'directorReject']);
 
         // Overtime approvals
         Route::put('/director/overtimes/{id}/approve', [OvertimeController::class, 'directorApprove']);
@@ -196,5 +252,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Sidebar counts route
     Route::get('/sidebar/counts', [SidebarNotificationController::class, 'getCounts']);
+    Route::get('/sidebar/notification-counts', [NotificationController::class, 'getCounts']);
+
+    // Push Notification routes
+    Route::post('/push-subscriptions', [PushNotificationController::class, 'subscribe']);
+    Route::post('/push-subscriptions/unsubscribe', [PushNotificationController::class, 'unsubscribe']);
+    Route::post('/push-subscriptions/test', [PushNotificationController::class, 'sendTestNotification']);
 });
 

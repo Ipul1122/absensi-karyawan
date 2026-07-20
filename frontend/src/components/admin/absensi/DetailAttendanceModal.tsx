@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { X, Clock, MapPin, FileText, Compass, RefreshCw } from 'lucide-react'
 import axios from 'axios'
+import { API_BASE_URL } from '../../../utils/api'
 import AttendanceMap from './AttendanceMap'
 
 interface Attendance {
@@ -25,6 +26,8 @@ interface Attendance {
     email: string
     photo?: string | null
   }
+  shift_start_time?: string | null
+  shift_end_time?: string | null
 }
 
 interface DetailAttendanceModalProps {
@@ -154,6 +157,14 @@ export default function DetailAttendanceModal({
               }`}>
                 Tipe: {attendance.attendance_type || 'kantor'}
               </span>
+              {attendance.shift_start_time && attendance.shift_end_time && (
+                <>
+                  <span>&bull;</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border text-blue-700 bg-blue-50 border-blue-200">
+                    Shift Kustom: {attendance.shift_start_time.substring(0, 5)} - {attendance.shift_end_time.substring(0, 5)}
+                  </span>
+                </>
+              )}
             </p>
           </div>
           <button
@@ -224,7 +235,7 @@ export default function DetailAttendanceModal({
               <div className="aspect-video w-full rounded-xl overflow-hidden border border-orange-100 bg-orange-50/20 mt-4">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Foto Selfie Masuk</span>
                 <img 
-                  src={`http://localhost:8000${attendance.photo_in}`} 
+                  src={`${API_BASE_URL}${attendance.photo_in}`} 
                   alt="Selfie Check-In" 
                   className="w-full h-full object-cover"
                 />
@@ -289,7 +300,7 @@ export default function DetailAttendanceModal({
               <div className="aspect-video w-full rounded-xl overflow-hidden border border-orange-100 bg-orange-50/20 mt-4">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Foto Selfie Keluar</span>
                 <img 
-                  src={`http://localhost:8000${attendance.photo_out}`} 
+                  src={`${API_BASE_URL}${attendance.photo_out}`} 
                   alt="Selfie Check-Out" 
                   className="w-full h-full object-cover"
                 />
@@ -321,7 +332,7 @@ export default function DetailAttendanceModal({
                     {visit.photo_path && (
                       <div className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
                         <img 
-                          src={`http://localhost:8000${visit.photo_path}`} 
+                          src={`${API_BASE_URL}${visit.photo_path}`} 
                           alt="Selfie Kunjungan" 
                           className="w-full h-full object-cover"
                         />

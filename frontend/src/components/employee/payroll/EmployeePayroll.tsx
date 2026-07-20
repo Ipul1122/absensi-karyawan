@@ -12,6 +12,7 @@ import {
   Info,
   Calendar
 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface PayrollRecord {
   id: number
@@ -25,6 +26,8 @@ interface PayrollRecord {
   allowance_transport: number
   allowance_fixed: number
   allowance_position: number
+  allowance_overtime?: number
+  allowance_bonus?: number
   deduction_late: number
   deduction_fixed: number
   deduction_absence: number
@@ -33,11 +36,22 @@ interface PayrollRecord {
   paid_at: string | null
   notes: string | null
   updated_at: string
+  verification_hash?: string
+  user?: {
+    id: number
+    name: string
+    email: string
+    no_rekening?: string | null
+    company?: string | null
+    division?: string | null
+    employee_number?: string | null
+  }
 }
 
 interface EmployeePayrollProps {
   token: string
   user?: { name: string; email: string }
+  company?: string
 }
 
 const getPaymentStatusLabel = (status: PayrollRecord['status']) => {
@@ -51,12 +65,18 @@ const getPaymentStatusLabel = (status: PayrollRecord['status']) => {
   }
 }
 
-export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
+export default function EmployeePayroll({ token, user, company }: EmployeePayrollProps) {
   const [payrolls, setPayrolls] = useState<PayrollRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [showSlipModal, setShowSlipModal] = useState(false)
   const [selectedSlip, setSelectedSlip] = useState<PayrollRecord | null>(null)
   const [filterMonth, setFilterMonth] = useState('')
+  const [hrManagerName, setHrManagerName] = useState('HRD Department')
+
+  const isYPI = company === 'PT Yasodana Parvez Internasional'
+  const logoSrc = isYPI ? '/logo/LOGO-YPI.png' : '/logo/LOGO-CPI.png'
+  const logoAlt = isYPI ? 'PT Yasodana Parvez Internasional' : 'PT Cakrawala Parama Internasional'
+  const fullLogoUrl = `${window.location.origin}${logoSrc}`
 
   const fetchMyPayrolls = async () => {
     setLoading(true)
@@ -69,6 +89,9 @@ export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
       })
       if (response.data.status === 'success') {
         setPayrolls(response.data.data)
+        if (response.data.hr_manager_name) {
+          setHrManagerName(response.data.hr_manager_name)
+        }
       }
     } catch (err) {
       console.error(err)
@@ -151,27 +174,59 @@ export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
           <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; }
             .slip-card { border: 2px solid #e2e8f0; border-radius: 16px; padding: 30px; background-color: #ffffff; max-width: 650px; margin: 0 auto; }
-            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #fed7aa; padding-bottom: 20px; margin-bottom: 25px; }
-            .logo img { height: 48px; width: auto; object-fit: contain; }
+            .header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; border-bottom: 2px solid #000000; padding-bottom: 16px; margin-bottom: 20px; }
+            .logo img { height: 52px; width: auto; object-fit: contain; }
             .title { text-align: right; }
-            .title h2 { margin: 0; color: #0f172a; font-size: 18px; font-weight: 800; text-transform: uppercase; }
-            .title p { margin: 4px 0 0 0; font-size: 11px; color: #64748b; font-weight: 600; }
+            .title h2 { margin: 0; color: #0f172a; font-size: 16px; font-weight: 800; text-transform: uppercase; }
+            .title p { margin: 4px 0 0 0; font-size: 10px; color: #ea580c; font-weight: 700; }
             .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 11px; margin-bottom: 30px; background-color: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
             .meta div { margin-bottom: 4px; }
             .section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; }
             .grid-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
             .item-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 8px; }
             .item-row.bold { font-weight: 700; color: #0f172a; border-top: 1px dashed #e2e8f0; padding-top: 8px; margin-top: 10px; }
-            .total-section { background: linear-gradient(to right, #fff7ed, #ffedd5); border: 1px solid #fed7aa; border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-            .total-label { font-size: 12px; font-weight: 800; color: #c2410c; text-transform: uppercase; }
+            .total-section { background: #ffffff; border: 1px solid #000000; border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+            .total-label { font-size: 12px; font-weight: 800; color: #000000; text-transform: uppercase; }
             .total-value { font-size: 18px; font-weight: 800; color: #000000; }
-            .footer { display: flex; justify-content: space-between; margin-top: 50px; font-size: 11px; }
+            .footer { display: flex; justify-content: space-between; margin-top: 40px; font-size: 11px; }
             .signature { text-align: center; width: 150px; }
             .signature .line { border-bottom: 1px solid #94a3b8; height: 50px; margin-bottom: 6px; }
             .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; text-transform: uppercase; background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+            @page {
+              size: A5 landscape;
+              margin: 0;
+            }
             @media print {
-              body { padding: 0; }
-              .slip-card { border: none; padding: 0; max-width: 100%; }
+              body { margin: 0.3cm; padding: 0; background-color: #ffffff; font-size: 9px; }
+              .slip-card { border: none; padding: 0; max-width: 100%; box-shadow: none; break-inside: avoid; page-break-inside: avoid; }
+              
+              .header { margin-bottom: 6px !important; padding-bottom: 6px !important; border-bottom: 1.5px solid #000000 !important; }
+              .header .logo img { height: 38px !important; }
+              .header h1 { font-size: 11px !important; }
+              .header p { font-size: 7.5px !important; max-width: 250px !important; line-height: 1.2 !important; }
+              .header .title h2 { font-size: 13px !important; }
+              .header .title p { font-size: 8px !important; }
+              
+              .meta { margin-bottom: 8px !important; padding: 6px 10px !important; gap: 4px 12px !important; font-size: 9px !important; border-radius: 8px !important; }
+              .meta div { margin-bottom: 1px !important; }
+              
+              .section-title { font-size: 8px !important; padding-bottom: 2px !important; margin-bottom: 6px !important; }
+              .grid-cols { gap: 15px !important; margin-bottom: 8px !important; }
+              .item-row { font-size: 8.5px !important; margin-bottom: 3px !important; }
+              .item-row.bold { margin-top: 4px !important; padding-top: 3px !important; }
+              
+              .total-section { padding: 6px 10px !important; margin-bottom: 8px !important; border-radius: 8px !important; }
+              .total-label { font-size: 9.5px !important; }
+              .total-value { font-size: 13px !important; }
+              
+              .footer { margin-top: 10px !important; font-size: 8.5px !important; break-inside: avoid; page-break-inside: avoid; }
+              .signature { width: 130px !important; break-inside: avoid; page-break-inside: avoid; }
+              .signature .line { height: 25px !important; margin-bottom: 2px !important; }
+              .signature p { margin: 1px 0 !important; }
+              
+              .verification-seal { padding: 4px 6px !important; margin: 0 auto !important; border-radius: 8px !important; max-width: 150px !important; gap: 4px !important; break-inside: avoid; page-break-inside: avoid; }
+              .verification-seal span { font-size: 7px !important; }
+              .verification-seal svg { width: 34px !important; height: 34px !important; }
             }
           </style>
         </head>
@@ -406,7 +461,7 @@ export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
                 <Coins className="w-4 h-4 text-orange-500" />
-                Slip Gaji Resmi Anda
+                Slip Gaji Anda
               </h3>
               <div className="flex gap-2">
                 <button
@@ -426,32 +481,70 @@ export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
 
             {/* Slip Printable area */}
             <div id="employee-slip-print-area" className="border border-slate-200 rounded-2xl p-5 space-y-5 bg-white text-slate-700">
+              <style dangerouslySetInnerHTML={{ __html: `
+                #employee-slip-print-area { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; line-height: 1.5; }
+                #employee-slip-print-area .header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; border-bottom: 2px solid #000000; padding-bottom: 16px; margin-bottom: 20px; }
+                #employee-slip-print-area .logo img { height: 52px; width: auto; object-fit: contain; }
+                #employee-slip-print-area .title { text-align: right; }
+                #employee-slip-print-area .title h2 { margin: 0; color: #0f172a; font-size: 16px; font-weight: 800; text-transform: uppercase; }
+                #employee-slip-print-area .title p { margin: 4px 0 0 0; font-size: 10px; color: #ea580c; font-weight: 700; }
+                #employee-slip-print-area .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 11px; margin-bottom: 30px; background-color: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
+                #employee-slip-print-area .meta div { margin-bottom: 4px; }
+                #employee-slip-print-area .section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #475569; letter-spacing: 0.5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; }
+                #employee-slip-print-area .grid-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+                #employee-slip-print-area .item-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 8px; }
+                #employee-slip-print-area .item-row.bold { font-weight: 700; color: #0f172a; border-top: 1px dashed #e2e8f0; padding-top: 8px; margin-top: 10px; }
+                #employee-slip-print-area .total-section { background: #ffffff; border: 1px solid #000000; border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+                #employee-slip-print-area .total-label { font-size: 12px; font-weight: 800; color: #000000; text-transform: uppercase; }
+                #employee-slip-print-area .total-value { font-size: 18px; font-weight: 800; color: #000000; }
+                #employee-slip-print-area .footer { display: flex; justify-content: space-between; margin-top: 50px; font-size: 11px; }
+                #employee-slip-print-area .signature { text-align: center; width: 150px; }
+                #employee-slip-print-area .signature .line { border-bottom: 1px solid #94a3b8; height: 50px; margin-bottom: 6px; }
+                #employee-slip-print-area .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; text-transform: uppercase; background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+              ` }} />
+
               <div className="header">
-                <div className="logo">
-                  <img src="/logo-perusahaan.png" alt="PT. Cakrawala Parama Internasional" />
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <div className="logo" style={{ flexShrink: 0 }}>
+                    <img src={fullLogoUrl} alt={logoAlt} />
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <h1 style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>{logoAlt}</h1>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '9px', color: '#64748b', fontWeight: 600, maxWidth: '280px', lineHeight: '1.3' }}>
+                      Thamrin City, Jl. Kebon Kacang Raya Lantai 2 Blok C9a No.5, Kb. Melati, Kec. Tanah Abang, Kota Jakarta Pusat, DKI Jakarta 10230
+                      <br />
+                      Telp: {isYPI ? '(021) 719-1234' : '(021) 536-5678'} | Email: {isYPI ? 'hr@yasodana.co.id' : 'hr@cakrawala.co.id'}
+                    </p>
+                  </div>
                 </div>
                 <div className="title">
-                  <h2>SLIP GAJI RESMI</h2>
                   <p>Periode: {getIndonesianMonthLabel(selectedSlip.period_month)}</p>
                 </div>
               </div>
 
               <div className="meta">
                 <div>
-                  <strong>Nama Karyawan:</strong> {getEmployeeDisplayName()}
+                  <strong>Nama:</strong> {selectedSlip.user?.name || getEmployeeDisplayName()}
                 </div>
                 <div>
-                  <strong>Email Karyawan:</strong> {getEmployeeDisplayEmail()}
+                  <strong>Jabatan:</strong> {selectedSlip.user?.division || '-'}
                 </div>
                 <div>
-                  <strong>Status Pembayaran:</strong>{' '}
-                  <span className="badge">{getPaymentStatusLabel(selectedSlip.status)}</span>
+                  <strong>NIP:</strong> {selectedSlip.user?.employee_number || '-'}
                 </div>
+                <div>
+                  <strong>Email:</strong> {selectedSlip.user?.email || getEmployeeDisplayEmail()}
+                </div>
+
                 <div>
                   <strong>Tanggal Proses:</strong>{' '}
                   {selectedSlip.status === 'paid' && selectedSlip.paid_at
                     ? new Date(selectedSlip.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
                     : new Date(selectedSlip.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+                <div>
+                  <strong>Status Pembayaran:</strong>{' '}
+                  <span className="badge">{getPaymentStatusLabel(selectedSlip.status)}</span>
                 </div>
               </div>
 
@@ -480,6 +573,18 @@ export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
                       <strong>{formatRupiah(selectedSlip.allowance_fixed)}</strong>
                     </div>
                   )}
+                  {(selectedSlip.allowance_overtime ?? 0) > 0 && (
+                    <div className="item-row">
+                      <span>Lembur (Overtime)</span>
+                      <strong>{formatRupiah(selectedSlip.allowance_overtime ?? 0)}</strong>
+                    </div>
+                  )}
+                  {(selectedSlip.allowance_bonus ?? 0) > 0 && (
+                    <div className="item-row">
+                      <span>Bonus Kinerja</span>
+                      <strong>{formatRupiah(selectedSlip.allowance_bonus ?? 0)}</strong>
+                    </div>
+                  )}
                   <div className="item-row">
                     <span>Hari Kerja Aktif</span>
                     <strong>{selectedSlip.days_present} Hari</strong>
@@ -491,7 +596,9 @@ export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
                       (selectedSlip.allowance_meal ?? 0) + 
                       (selectedSlip.allowance_transport ?? 0) + 
                       (selectedSlip.allowance_position ?? 0) + 
-                      (selectedSlip.allowance_fixed ?? 0)
+                      (selectedSlip.allowance_fixed ?? 0) +
+                      (selectedSlip.allowance_overtime ?? 0) +
+                      (selectedSlip.allowance_bonus ?? 0)
                     )}</span>
                   </div>
                 </div>
@@ -526,22 +633,34 @@ export default function EmployeePayroll({ token, user }: EmployeePayrollProps) {
                 <span className="total-value">{formatRupiah(selectedSlip.net_salary)}</span>
               </div>
 
-              {selectedSlip.notes && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] text-slate-500 font-semibold italic">
-                  <strong>Catatan Gaji:</strong> {selectedSlip.notes}
-                </div>
-              )}
 
-              <div className="footer">
+              <div className="footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '40px' }}>
                 <div className="signature">
                   <p>Penerima,</p>
                   <div className="line"></div>
                   <p><strong>{getEmployeeDisplayName()}</strong></p>
                 </div>
+
+                {/* QR Code Digital Seal */}
+                <div className="verification-seal" style={{ display: 'flex', gap: '8px', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '8px', backgroundColor: '#f8fafc', maxWidth: '200px', margin: '0 auto 10px auto', alignItems: 'center' }}>
+                  <div style={{ flexShrink: 0, padding: '2px', backgroundColor: '#ffffff', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                    <QRCodeSVG 
+                      value={`${window.location.origin}/verify-slip/${selectedSlip.id}/${selectedSlip.verification_hash || ''}`} 
+                      size={44}
+                      level="M"
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left' }}>
+                    <span style={{ fontSize: '8px', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.3px', lineHeight: 1.1 }}>Verified</span>
+                    <span style={{ fontSize: '6px', fontWeight: 700, color: '#0f172a', marginTop: '2px', wordBreak: 'break-all', lineHeight: 1.1 }}>Ref: {selectedSlip.id}-{selectedSlip.period_month}</span>
+                    <span style={{ fontSize: '5px', fontWeight: 600, color: '#64748b', marginTop: '1px', lineHeight: 1 }}>Digitally Signed</span>
+                  </div>
+                </div>
+
                 <div className="signature">
                   <p>Manajer HRD,</p>
                   <div className="line"></div>
-                  <p><strong>HRD Department</strong></p>
+                  <p><strong>{hrManagerName}</strong></p>
                 </div>
               </div>
             </div>

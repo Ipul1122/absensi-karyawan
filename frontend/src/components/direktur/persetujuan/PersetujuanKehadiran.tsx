@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   CalendarRange, 
   Loader2, 
@@ -171,7 +172,7 @@ export default function PersetujuanKehadiran({ token }: PersetujuanKehadiranProp
                 </div>
 
                 {/* Time Details */}
-                <div className="px-5 py-4 grid grid-cols-2 gap-3">
+                <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="rounded-xl p-3 border" style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Clock className="w-3 h-3 text-emerald-500" />
@@ -179,7 +180,7 @@ export default function PersetujuanKehadiran({ token }: PersetujuanKehadiranProp
                     </div>
                     <p className="text-sm font-black text-slate-800">{record.clock_in || '-'}</p>
                     {record.photo_in && (
-                      <a href={`http://localhost:8000${record.photo_in}`} target="_blank" rel="noreferrer"
+                      <a href={getAssetUrl(record.photo_in)} target="_blank" rel="noreferrer"
                         className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:underline mt-1.5">
                         <Camera className="w-3 h-3" /> Foto Masuk
                       </a>
@@ -192,7 +193,7 @@ export default function PersetujuanKehadiran({ token }: PersetujuanKehadiranProp
                     </div>
                     <p className="text-sm font-black text-slate-800">{record.clock_out || '-'}</p>
                     {record.photo_out && (
-                      <a href={`http://localhost:8000${record.photo_out}`} target="_blank" rel="noreferrer"
+                      <a href={getAssetUrl(record.photo_out)} target="_blank" rel="noreferrer"
                         className="flex items-center gap-1 text-[10px] font-bold text-red-500 hover:underline mt-1.5">
                         <Camera className="w-3 h-3" /> Foto Pulang
                       </a>

@@ -5,9 +5,10 @@ import {
   Search,
   UserPlus,
   Loader2,
+  Download,
   Trash2,
   Eye,
-  EyeOff,
+  // EyeOff,
   Edit,
   X,
   User,
@@ -20,19 +21,34 @@ import {
   Save,
   FileText,
   FileUp,
-  Building2
+  Building2,
+  Phone,
+  // RefreshCw,
+  Key,
+  Users,
+  UserCheck,
+  Clock,
+  ExternalLink
 } from 'lucide-react'
+import { getAssetUrl } from '../../../utils/api'
 
 interface Employee {
   id: number
   name: string
   email: string
+  role?: string
   password_plain?: string
   photo?: string | null
+  employee_number?: string | null
   division?: string | null
+  no_rekening?: string | null
+  company?: string | null
+  join_date?: string | null
+  whatsapp?: string | null
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
+  office_location?: string
 }
 
 interface EmployeeProfile {
@@ -49,6 +65,7 @@ interface EmployeeProfile {
   cv: string | null
   no_rekening: string | null
   company: string | null
+  whatsapp: string | null
   created_at: string
 }
 
@@ -77,7 +94,8 @@ export default function AkunKaryawan({
   token,
   onRefresh,
 }: AkunKaryawanProps) {
-  const [showPasswords, setShowPasswords] = useState<Record<number, boolean>>({})
+  const [] = useState<Record<number, boolean>>({})
+  const [selectedCompany, setSelectedCompany] = useState<string>('all')
 
 
 
@@ -93,8 +111,195 @@ export default function AkunKaryawan({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cvInputRef = useRef<HTMLInputElement>(null)
 
-  const togglePassword = (id: number) => {
-    setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
+  const [backingUp, setBackingUp] = useState(false)
+
+  const handleBackupData = async () => {
+    setBackingUp(true)
+    Swal.fire({
+      title: 'Menyiapkan Backup...',
+      html: 'Sistem sedang mengompilasi data dan berkas karyawan menjadi arsip ZIP.<br>Proses ini mungkin memakan waktu beberapa detik.',
+      allowOutsideClick: false,
+      background: '#fffdfb',
+      color: '#3c1105',
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    try {
+      const response = await axios.get('http://localhost:8000/api/admin/employees/backup', {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      })
+
+      Swal.close()
+
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      
+      const contentDisposition = response.headers['content-disposition']
+      let filename = `Backup_Karyawan_${new Date().toISOString().slice(0,10)}.zip`
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1]
+        }
+      }
+      
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      link.parentNode?.removeChild(link)
+
+      Swal.fire({
+        title: 'Berhasil!',
+        text: 'Arsip backup data karyawan berhasil diunduh.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+    } catch (err: any) {
+      console.error(err)
+      Swal.close()
+      
+      let errMsg = 'Gagal melakukan backup data karyawan.'
+      if (err.response && err.response.data) {
+        try {
+          const text = await err.response.data.text()
+          const parsed = JSON.parse(text)
+          if (parsed && parsed.message) {
+            errMsg = parsed.message
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      Swal.fire({
+        title: 'Gagal Backup',
+        text: errMsg,
+        icon: 'error',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+    } finally {
+      setBackingUp(false)
+    }
+  }
+
+  // const togglePassword = (id: number) => {
+  //   setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }))
+  // }
+
+  const handleResetPasswordDirect = (emp: Employee) => {
+    const newPassword = Math.random().toString(36).substring(2, 8);
+    
+    Swal.fire({
+      title: 'Reset Kata Sandi Karyawan?',
+      text: `Kata sandi baru akan di-generate secara acak untuk ${emp.name}. Tindakan ini akan mengubah kata sandi aktif mereka.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#475569',
+      confirmButtonText: 'Ya, Reset Sandi!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await axios.put(`http://localhost:8000/api/employees/${emp.id}`, {
+            name: emp.name,
+            password: newPassword,
+            no_rekening: emp.no_rekening,
+            company: emp.company,
+            whatsapp: emp.whatsapp
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+
+          if (response.data.status === 'success') {
+            let cleanPhone = emp.whatsapp?.trim().replace(/\D/g, '') || ''
+            if (cleanPhone.startsWith('0')) {
+              cleanPhone = '62' + cleanPhone.substring(1)
+            }
+
+            const messageText = `Halo ${emp.name}, kata sandi akun goodpeople-hcms Anda telah direset oleh Admin. 
+
+Kata sandi baru Anda: ${newPassword}
+
+Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
+
+            const encodedText = encodeURIComponent(messageText)
+            const waUrl = cleanPhone 
+              ? `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`
+              : `https://api.whatsapp.com/send?text=${encodedText}`
+
+            Swal.fire({
+              title: 'Sandi Berhasil Direset!',
+              html: `Kata sandi baru untuk <b>${emp.name}</b> adalah:<br><br><span class="font-mono text-lg font-black bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-lg text-orange-600">${newPassword}</span><br><br>Klik tombol di bawah untuk mengirimkan kata sandi baru melalui WhatsApp.`,
+              icon: 'success',
+              confirmButtonText: 'Kirim ke WhatsApp',
+              confirmButtonColor: '#ea580c',
+              background: '#fffdfb',
+              color: '#3c1105'
+            }).then((waResult) => {
+              if (waResult.isConfirmed) {
+                window.open(waUrl, '_blank')
+              }
+            })
+            
+            onRefresh?.()
+          }
+        } catch (err: any) {
+          console.error(err)
+          Swal.fire({
+            title: 'Gagal',
+            text: err.response?.data?.message || 'Gagal mereset kata sandi karyawan.',
+            icon: 'error',
+            background: '#fffdfb',
+            color: '#3c1105'
+          })
+        }
+      }
+    })
+  }
+
+  const handleShowPassword = (emp: Employee) => {
+    const pwd = emp.password_plain;
+    const isAvailable = pwd && pwd.trim() !== '';
+    const displayPwd = isAvailable ? pwd : 'Sandi Terenkripsi (Silakan Reset)';
+
+    Swal.fire({
+      title: 'Kata Sandi Karyawan',
+      html: `Kata sandi untuk <b>${emp.name}</b> adalah:<br><br><span class="font-mono text-lg font-black ${isAvailable ? 'bg-orange-50 border border-orange-200 text-orange-600' : 'bg-slate-100 border border-slate-300 text-slate-505'} px-3 py-1.5 rounded-lg block text-center">${displayPwd}</span>`,
+      icon: isAvailable ? 'info' : 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Salin Sandi',
+      cancelButtonText: 'Tutup',
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#475569',
+      showConfirmButton: isAvailable ? true : false,
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then((result) => {
+      if (result.isConfirmed && isAvailable && pwd) {
+        navigator.clipboard.writeText(pwd)
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Kata sandi disalin!',
+          showConfirmButton: false,
+          timer: 1500,
+          background: '#fffdfb',
+          color: '#3c1105'
+        })
+      }
+    })
   }
 
   const fetchEmployeeProfile = async (id: number) => {
@@ -197,8 +402,9 @@ export default function AkunKaryawan({
       if (editProfile.gender) formData.append('gender', editProfile.gender)
       const finalDivision = divisionSelect === '__custom__' ? divisionCustom.trim() : divisionSelect
       if (finalDivision) formData.append('division', finalDivision)
-      if (editProfile.no_rekening) formData.append('no_rekening', editProfile.no_rekening)
-      if (editProfile.company) formData.append('company', editProfile.company)
+      formData.append('no_rekening', editProfile.no_rekening || '')
+      formData.append('company', editProfile.company || '')
+      formData.append('whatsapp', editProfile.whatsapp || '')
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
 
@@ -221,22 +427,68 @@ export default function AkunKaryawan({
     }
   }
 
+  const getDivisionBadgeStyle = (division: string | null | undefined) => {
+    if (!division) return 'bg-slate-50 text-slate-500 border-slate-100'
+    const div = division.toLowerCase()
+    if (div.includes('it') || div.includes('tekno') || div.includes('dev')) return 'bg-indigo-50 text-indigo-700 border-indigo-100'
+    if (div.includes('keuangan') || div.includes('akuntan') || div.includes('finance')) return 'bg-emerald-50 text-emerald-700 border-emerald-100'
+    if (div.includes('sdm') || div.includes('hr')) return 'bg-violet-50 text-violet-750 border-violet-100'
+    if (div.includes('pemasaran') || div.includes('sales') || div.includes('marketing') || div.includes('pemasar')) return 'bg-blue-50 text-blue-700 border-blue-100'
+    if (div.includes('operasional') || div.includes('ops')) return 'bg-amber-50 text-amber-700 border-amber-100'
+    if (div.includes('produksi')) return 'bg-rose-50 text-rose-700 border-rose-100'
+    if (div.includes('hukum') || div.includes('legal')) return 'bg-slate-100 text-slate-700 border-slate-200'
+    return 'bg-slate-50 text-slate-650 border-slate-200'
+  }
 
+  const getWhatsAppUrl = (phone: string | null | undefined) => {
+    if (!phone) return '#'
+    let clean = phone.replace(/[^0-9]/g, '')
+    if (clean.startsWith('0')) {
+      clean = '62' + clean.slice(1)
+    }
+    return `https://wa.me/${clean}`
+  }
+
+  // const handleCopyPassword = (password: string | undefined) => {
+  //   if (!password) return
+  //   navigator.clipboard.writeText(password)
+  //   Swal.fire({
+  //     toast: true,
+  //     position: 'top-end',
+  //     icon: 'success',
+  //     title: 'Kata sandi disalin',
+  //     showConfirmButton: false,
+  //     timer: 1500,
+  //     background: '#fffdfb',
+  //     color: '#3c1105'
+  //   })
+  // }
+
+  const displayedEmployees = filteredEmployees.filter(emp => {
+    if (selectedCompany === 'all') return true
+    return emp.company === selectedCompany
+  })
+
+  // Stats calculations based on current employees
+  const totalEmployees = displayedEmployees.length
+  const activeEmployees = displayedEmployees.filter(emp => !emp.status || emp.status === 'active').length
+  const pendingEmployees = displayedEmployees.filter(emp => emp.status === 'pending').length
+  const totalDivisions = new Set(displayedEmployees.map(emp => emp.division).filter(Boolean)).size
 
   const inputClass = "w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-3 outline-none transition-all text-xs font-medium font-quicksand focus:ring-2 focus:ring-red-100"
   const labelClass = "block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1 font-quicksand"
 
   return (
     <>
-      <section className="bg-white/80 border border-orange-100 rounded-3xl p-6 shadow-sm backdrop-blur-md space-y-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <section className="bg-white/80 border border-orange-100 rounded-3xl p-4 sm:p-6 shadow-sm backdrop-blur-md space-y-6 animate-fade-in">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-bold text-slate-800 font-quicksand">Daftar Akun Karyawan</h3>
             <p className="text-xs text-slate-500 font-quicksand font-medium">Total karyawan yang memiliki hak akses login ke sistem portal.</p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative max-w-xs w-full sm:w-64">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <div className="relative w-full sm:w-60">
               <Search className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-slate-400" />
               <input
                 type="text"
@@ -246,144 +498,298 @@ export default function AkunKaryawan({
                 className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-4 outline-none transition-all text-xs"
               />
             </div>
-            {onRefresh && (
-              <button
-                onClick={onRefresh}
-                disabled={loading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs shrink-0 font-quicksand disabled:opacity-50"
+            <div className="relative w-full sm:w-56">
+              <Building2 className="absolute inset-y-0 left-0 pl-3.5 w-4 h-4 my-auto text-slate-400 pointer-events-none" />
+              <select
+                value={selectedCompany}
+                onChange={(e) => setSelectedCompany(e.target.value)}
+                className="w-full bg-orange-50/20 border border-orange-100 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-700 placeholder-slate-400 rounded-xl py-2 pl-9 pr-8 outline-none transition-all text-xs font-semibold cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2523475569%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%25205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:8px_10px] bg-[right_12px_center] bg-no-repeat font-quicksand"
               >
-                <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Segarkan
+                <option value="all">Semua Perusahaan</option>
+                <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama</option>
+                <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez</option>
+              </select>
+            </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start flex-wrap">
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={loading}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand disabled:opacity-50 shrink-0 whitespace-nowrap"
+                >
+                  <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Segarkan
+                </button>
+              )}
+              <button
+                onClick={handleBackupData}
+                disabled={backingUp || loading}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand shrink-0 whitespace-nowrap"
+              >
+                {backingUp ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Backup Data (ZIP)
               </button>
-            )}
-            <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs shrink-0 font-quicksand"
-            >
-              <UserPlus className="w-4 h-4" />
-              Tambah Karyawan
-            </button>
+              <button
+                onClick={() => setShowModal(true)}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-sm cursor-pointer text-xs font-quicksand shrink-0 whitespace-nowrap"
+              >
+                <UserPlus className="w-4 h-4" />
+                Tambah Karyawan
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Table Container */}
-        <div className="border border-orange-100 rounded-2xl overflow-hidden bg-white">
+        {/* Panel Statistik Ringkasan */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Card 1: Total Karyawan */}
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-red-500">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-red-550/5 flex items-center justify-center text-red-600 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block truncate" title="Total Karyawan">Total Karyawan</span>
+              <h4 className="text-lg sm:text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{totalEmployees}</h4>
+              <p className="text-[9px] text-slate-400 font-quicksand mt-1 font-medium truncate">Pengguna terdaftar</p>
+            </div>
+          </div>
+          
+          {/* Card 2: Karyawan Aktif */}
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-emerald-500">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-550/5 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+              <UserCheck className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block truncate" title="Karyawan Aktif">Karyawan Aktif</span>
+              <h4 className="text-lg sm:text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{activeEmployees}</h4>
+              <p className="text-[9px] text-emerald-600 font-quicksand mt-1 font-semibold flex items-center gap-1 truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse block shrink-0"></span>
+                <span className="truncate">Siap presensi</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Card 3: Pending Approval */}
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-amber-500">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-550/5 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block truncate" title="Pending Approval">Pending Approval</span>
+              <h4 className="text-lg sm:text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{pendingEmployees}</h4>
+              <p className="text-[9px] text-amber-600 font-quicksand mt-1 font-semibold flex items-center gap-1 truncate">
+                {pendingEmployees > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping block shrink-0"></span>}
+                <span className="truncate">Menunggu aktivasi</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Card 4: Total Divisi */}
+          <div className="bg-white/95 border border-slate-100 rounded-2xl p-3.5 sm:p-4 shadow-sm flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all duration-300 group border-l-4 border-l-blue-500">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-550/5 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shadow-inner shrink-0">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] sm:text-[10px] font-extrabold text-slate-400 uppercase tracking-wider font-quicksand block truncate" title="Departemen/Divisi">Departemen/Divisi</span>
+              <h4 className="text-lg sm:text-xl font-bold text-slate-800 font-montserrat mt-0.5 leading-none">{totalDivisions}</h4>
+              <p className="text-[9px] text-slate-400 font-quicksand mt-1 font-medium truncate">Struktur operasional</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Table Container (Desktop View) */}
+        <div className="hidden md:block border border-orange-100/80 rounded-2xl overflow-hidden bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-orange-50/40 text-orange-950/80 text-xs font-bold uppercase tracking-wider border-b border-orange-100 font-quicksand">
-                  <th className="py-4 px-5">Nama</th>
-                  <th className="py-4 px-5">Email</th>
-                  <th className="py-4 px-5">Kata Sandi</th>
+                  <th className="py-4 px-5">Karyawan</th>
+                  <th className="py-4 px-5">Kontak & Email</th>
+                  <th className="py-4 px-5">Penempatan</th>
+                  <th className="py-4 px-5">Rekening & Join</th>
                   <th className="py-4 px-5">Status</th>
-                  <th className="py-4 px-5">Terdaftar</th>
                   <th className="py-4 px-5 text-center">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-orange-50 text-sm text-slate-700">
+              <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-500 font-medium">
+                    <td colSpan={6} className="py-12 text-center text-slate-500 font-medium">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin text-red-500" />
                         Memuat data karyawan...
                       </div>
                     </td>
                   </tr>
-                ) : filteredEmployees.length === 0 ? (
+                ) : displayedEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold">
-                      {searchQuery ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-semibold font-quicksand">
+                      {searchQuery || selectedCompany !== 'all' ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
                     </td>
                   </tr>
                 ) : (
-                  filteredEmployees.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-orange-50/20 transition-colors">
+                  displayedEmployees.map((emp) => (
+                    <tr key={emp.id} className="hover:bg-slate-50/60 hover:shadow-[inset_4px_0_0_0_#dc2626] transition-all duration-200">
+                      {/* Column 1: Karyawan (Name, Avatar, NIK) */}
                       <td className="py-4 px-5 font-semibold text-slate-800">
                         <div className="flex items-center gap-3">
                           {emp.photo ? (
                             <img
-                              src={emp.photo}
+                              src={getAssetUrl(emp.photo)}
                               alt={emp.name}
-                              className="w-9 h-9 rounded-xl object-cover border-2 border-orange-100 shadow-sm shrink-0"
+                              className="w-10 h-10 rounded-full object-cover border-2 border-orange-100 shadow-sm shrink-0"
                             />
                           ) : (
-                            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-100 to-orange-100 text-red-500 flex items-center justify-center font-bold text-xs uppercase font-quicksand shrink-0 border border-orange-100">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm uppercase font-quicksand shrink-0 border border-orange-200/50 shadow-md">
                               {emp.name.substring(0, 2)}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <span className="font-quicksand text-sm font-semibold text-slate-800 block truncate">{emp.name}</span>
-                            {emp.division && (
-                              <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-600 border border-violet-100">
-                                <Building2 className="w-2.5 h-2.5" />
-                                {emp.division}
-                              </span>
-                            )}
+                            <span className="font-quicksand text-sm font-bold text-slate-800 block truncate leading-snug">
+                              {emp.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono tracking-wider block mt-0.5">
+                              {emp.employee_number || 'NIK: -'}
+                            </span>
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-5 font-mono text-xs text-slate-600">{emp.email}</td>
+
+                      {/* Column 2: Kontak & Email */}
                       <td className="py-4 px-5">
-                        <div className="flex items-center gap-2 max-w-[140px]">
-                          <span className="font-mono text-xs text-slate-700 select-all block truncate">
-                            {showPasswords[emp.id] ? emp.password_plain || 'N/A' : '••••••••'}
+                        <div className="space-y-1">
+                          <span className="text-xs text-slate-500 font-mono block truncate max-w-[180px]">
+                            {emp.email}
                           </span>
-                          <button
-                            onClick={() => togglePassword(emp.id)}
-                            className="p-1 hover:bg-orange-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors cursor-pointer shrink-0"
-                            title={showPasswords[emp.id] ? 'Sembunyikan' : 'Tampilkan'}
-                          >
-                            {showPasswords[emp.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
+                          {emp.whatsapp ? (
+                            <a
+                              href={getWhatsAppUrl(emp.whatsapp)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:text-emerald-800 transition-colors font-quicksand"
+                            >
+                              <Phone className="w-2.5 h-2.5 shrink-0" />
+                              {emp.whatsapp}
+                              <ExternalLink className="w-2 h-2 opacity-50" />
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-medium italic block">WA: -</span>
+                          )}
                         </div>
                       </td>
-                      {/* Status */}
-                      <td className="py-4 px-5">
-                        {(!emp.status || emp.status === 'active') && (
-                          <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-600 border border-emerald-100">
-                            Aktif
-                          </span>
-                        )}
-                        {emp.status === 'pending' && (
-                          <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-600 border border-amber-100 animate-pulse">
-                            Menunggu Direktur
-                          </span>
-                        )}
-                        {emp.status === 'pending_delete' && (
-                          <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-600 border border-rose-100 animate-pulse">
-                            Proses Hapus
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-5 text-xs text-slate-500 font-quicksand">{formatDate(emp.created_at)}</td>
-                      <td className="py-4 px-5">
-                        <div className="flex items-center justify-center gap-1">
 
-                          {/* Edit Akun Credentials */}
+                      {/* Column 3: Penempatan */}
+                      <td className="py-4 px-5">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${getDivisionBadgeStyle(emp.division)}`}>
+                              {emp.division || 'Umum'}
+                            </span>
+                            {emp.office_location && (
+                              <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${
+                                emp.office_location === 'bogor' 
+                                  ? 'bg-blue-550/5 text-blue-600 border-blue-100' 
+                                  : 'bg-red-550/5 text-red-600 border-red-100'
+                              }`}>
+                                {emp.office_location === 'bogor' ? 'Bogor' : 'Jakarta'}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium block truncate max-w-[180px]" title={emp.company || ''}>
+                            {emp.company || 'Tanpa Perusahaan'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Column 4: Rekening & Join */}
+                      <td className="py-4 px-5">
+                        <div className="space-y-0.5 font-quicksand">
+                          <span className="text-xs text-slate-700 font-mono font-bold block">
+                            {emp.no_rekening || '-'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            Masuk: {emp.join_date ? formatDate(emp.join_date) : '-'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Column 5: Status & Terdaftar */}
+                      <td className="py-4 px-5">
+                        <div className="space-y-1">
+                          {(!emp.status || emp.status === 'active') && (
+                            <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 shadow-sm font-quicksand">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              Aktif
+                            </span>
+                          )}
+                          {emp.status === 'pending' && (
+                            <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 shadow-sm font-quicksand">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                              Pending
+                            </span>
+                          )}
+                          {emp.status === 'pending_delete' && (
+                            <span className="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-100 shadow-sm font-quicksand">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                              Proses Hapus
+                            </span>
+                          )}
+                          <span className="text-[9px] text-slate-400 block pl-1">
+                            Reg: {formatDate(emp.created_at)}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Column 6: Aksi */}
+                      <td className="py-4 px-5 text-center">
+                        <div className="flex items-center justify-center gap-2">
                           <button
-                            onClick={() => onEditClick(emp)}
-                            className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                            title="Edit Akun Login"
+                            onClick={() => handleResetPasswordDirect(emp)}
+                            className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-[10px] transition-all cursor-pointer font-quicksand flex items-center gap-1 active:scale-95 shadow-sm"
+                            title="Reset Kata Sandi Karyawan"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Key className="w-3 h-3 text-orange-500" />
+                            Reset Sandi
                           </button>
-                          {/* Edit Biodata */}
-                          <button
-                            onClick={() => handleOpenEditBio(emp)}
-                            className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                            title="Edit Biodata Lengkap"
-                          >
-                            <FileText className="w-4 h-4" />
-                          </button>
-                          {/* Hapus */}
-                          <button
-                            onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                            title="Hapus Karyawan"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          
+                          <div className="flex items-center border-l border-slate-100 pl-2">
+                            {/* Lihat Sandi */}
+                            <button
+                              onClick={() => handleShowPassword(emp)}
+                              className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                              title="Lihat Kata Sandi"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            {/* Edit Akun Credentials */}
+                            <button
+                              onClick={() => onEditClick(emp)}
+                              className="p-1.5 text-slate-400 hover:text-red-650 hover:bg-red-550/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                              title="Edit Akun Login"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            {/* Edit Biodata */}
+                            <button
+                              onClick={() => handleOpenEditBio(emp)}
+                              className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                              title="Edit Biodata Lengkap"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                            </button>
+                            {/* Hapus */}
+                            <button
+                              onClick={() => handleDeleteEmployee(emp.id, emp.name)}
+                              className="p-1.5 text-slate-450 hover:text-red-750 hover:bg-red-550/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                              title="Hapus Karyawan"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -392,6 +798,180 @@ export default function AkunKaryawan({
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Card Container (Mobile View) */}
+        <div className="block md:hidden space-y-4">
+          {loading ? (
+            <div className="py-12 text-center text-slate-500 font-medium bg-white border border-orange-100 rounded-2xl">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-red-500" />
+                <span className="text-xs font-quicksand font-bold">Memuat data karyawan...</span>
+              </div>
+            </div>
+          ) : displayedEmployees.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 font-bold bg-white border border-orange-100 rounded-2xl font-quicksand text-xs">
+              {searchQuery || selectedCompany !== 'all' ? 'Karyawan tidak ditemukan.' : 'Belum ada akun karyawan yang terdaftar.'}
+            </div>
+          ) : (
+            displayedEmployees.map((emp) => (
+              <div key={emp.id} className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-red-200 transition-all duration-300 space-y-3.5 relative overflow-hidden">
+                {/* Accent Top Bar */}
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-red-500 to-orange-500" />
+                
+                {/* Header: Photo, Name & Status */}
+                <div className="flex items-start justify-between gap-3 pt-1">
+                  <div className="flex items-center gap-3">
+                    {emp.photo ? (
+                      <img
+                        src={getAssetUrl(emp.photo)}
+                        alt={emp.name}
+                        className="w-11 h-11 rounded-xl object-cover border border-orange-100 shadow-sm shrink-0"
+                      />
+                    ) : (
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 text-white flex items-center justify-center font-bold text-xs uppercase font-quicksand shrink-0 border border-orange-100 shadow-sm">
+                        {emp.name.substring(0, 2)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-quicksand text-sm font-bold text-slate-800 truncate block max-w-[150px]">{emp.name}</span>
+                        {emp.role === 'admin' && (
+                          <span className="inline-block text-[8px] font-black px-1.5 py-0.5 bg-red-50 text-red-650 border border-red-150 rounded shrink-0 font-quicksand uppercase">
+                            Admin HR
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-mono truncate">{emp.email}</p>
+                    </div>
+                  </div>
+ 
+                  {/* Status */}
+                  <div className="shrink-0">
+                    {(!emp.status || emp.status === 'active') && (
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-100 font-quicksand shadow-sm">
+                        <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Aktif
+                      </span>
+                    )}
+                    {emp.status === 'pending' && (
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100 font-quicksand shadow-sm">
+                        <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse"></span>
+                        Pending
+                      </span>
+                    )}
+                    {emp.status === 'pending_delete' && (
+                      <span className="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-100 font-quicksand shadow-sm">
+                        <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse"></span>
+                        Hapus
+                      </span>
+                    )}
+                  </div>
+                </div>
+ 
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-2 text-xs border-y border-slate-50 py-3 font-quicksand">
+                  <div>
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block">Penempatan</span>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${getDivisionBadgeStyle(emp.division)}`}>
+                        {emp.division || 'Umum'}
+                      </span>
+                      {emp.office_location && (
+                        <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold border ${
+                          emp.office_location === 'bogor' 
+                            ? 'bg-blue-550/5 text-blue-600 border-blue-100' 
+                            : 'bg-red-550/5 text-red-600 border-red-100'
+                        }`}>
+                          {emp.office_location === 'bogor' ? 'Bogor' : 'Jakarta'}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-medium block mt-1 truncate">
+                      {emp.company ? emp.company.replace('PT ', '') : 'Tanpa Perusahaan'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block">Kontak & WA</span>
+                    {emp.whatsapp ? (
+                      <a
+                        href={getWhatsAppUrl(emp.whatsapp)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 hover:text-emerald-800 transition-colors mt-1 font-quicksand"
+                      >
+                        <Phone className="w-2.5 h-2.5 shrink-0" />
+                        {emp.whatsapp}
+                        <ExternalLink className="w-2 h-2 opacity-50" />
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-slate-405 font-medium block mt-1 italic">WA: -</span>
+                    )}
+                  </div>
+
+                  <div className="mt-1">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block font-quicksand">No. Rekening</span>
+                    <span className="text-[10px] text-slate-600 font-mono font-bold block mt-1">
+                      {emp.no_rekening || '-'}
+                    </span>
+                  </div>
+
+                  <div className="mt-1">
+                    <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wide block font-quicksand">Tanggal Masuk</span>
+                    <span className="text-[10px] text-slate-600 font-bold block mt-1">
+                      {emp.join_date ? formatDate(emp.join_date) : '-'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Reset Sandi Button */}
+                <button
+                  onClick={() => handleResetPasswordDirect(emp)}
+                  className="w-full py-2.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-xs transition-all cursor-pointer font-quicksand flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Key className="w-3.5 h-3.5 text-orange-500" />
+                  Reset Kata Sandi Karyawan
+                </button>
+
+                {/* Actions & Registered Date */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-50 font-quicksand">
+                  <span className="text-[9px] text-slate-400 font-bold uppercase">Reg: {formatDate(emp.created_at)}</span>
+                  
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleShowPassword(emp)}
+                      className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer"
+                      title="Lihat Kata Sandi"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onEditClick(emp)}
+                      className="p-2 text-slate-400 hover:text-red-650 hover:bg-red-550/5 rounded-xl transition-all cursor-pointer"
+                      title="Edit Akun Login"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleOpenEditBio(emp)}
+                      className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer"
+                      title="Edit Biodata Lengkap"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEmployee(emp.id, emp.name)}
+                      className="p-2 text-slate-400 hover:text-red-750 hover:bg-red-550/5 rounded-xl transition-all cursor-pointer"
+                      title="Hapus Karyawan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
 
@@ -423,7 +1003,7 @@ export default function AkunKaryawan({
               <div className="flex items-center gap-4 p-4 bg-orange-50/30 border border-orange-100 rounded-2xl">
                 <div className="relative shrink-0">
                   {photoPreview ? (
-                    <img src={photoPreview} alt="Foto"
+                    <img src={getAssetUrl(photoPreview)} alt="Foto"
                       className="w-16 h-16 rounded-xl object-cover border-2 border-orange-200 shadow-sm" />
                   ) : (
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-red-100 to-orange-100 border-2 border-orange-200 flex items-center justify-center">
@@ -448,9 +1028,9 @@ export default function AkunKaryawan({
               </div>
 
               {/* Form Fields */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Nama */}
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1">
                   <label className={labelClass}>Nama Lengkap *</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><User className="w-3.5 h-3.5" /></div>
@@ -460,7 +1040,7 @@ export default function AkunKaryawan({
                   </div>
                 </div>
                 {/* Email */}
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1">
                   <label className={labelClass}>Email *</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Mail className="w-3.5 h-3.5" /></div>
@@ -494,7 +1074,7 @@ export default function AkunKaryawan({
                   </div>
                 </div>
                 {/* Divisi */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Divisi / Departemen</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Building2 className="w-3.5 h-3.5" /></div>
@@ -543,7 +1123,7 @@ export default function AkunKaryawan({
                   </div>
                 </div>
                 {/* Alamat */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Alamat</label>
                   <div className="relative">
                     <div className="absolute top-2.5 left-0 pl-2.5 pointer-events-none text-slate-400"><MapPin className="w-3.5 h-3.5" /></div>
@@ -579,8 +1159,19 @@ export default function AkunKaryawan({
                   </div>
                 </div>
 
+                {/* WhatsApp */}
+                <div className="col-span-1 sm:col-span-2">
+                  <label className={labelClass}>No. WhatsApp / Telepon</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400"><Phone className="w-3.5 h-3.5" /></div>
+                    <input type="text" value={editProfile.whatsapp ?? ''}
+                      onChange={e => setEditProfile(p => p ? { ...p, whatsapp: e.target.value } : p)}
+                      placeholder="Contoh: 08123456789" className={inputClass} />
+                  </div>
+                </div>
+
                 {/* CV Upload */}
-                <div className="col-span-2">
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>Dokumen CV (Curriculum Vitae)</label>
                   <div className="p-3 bg-orange-50/20 border border-dashed border-orange-200 rounded-xl flex items-center justify-between gap-3 font-quicksand">
                     <div className="flex items-center gap-2 min-w-0">
@@ -596,7 +1187,7 @@ export default function AkunKaryawan({
                     <div className="flex items-center gap-1.5 shrink-0">
                       {editProfile.cv && (
                         <a
-                          href={editProfile.cv}
+                          href={getAssetUrl(editProfile.cv)}
                           target="_blank"
                           rel="noreferrer"
                           className="p-1.5 bg-white border border-orange-200 text-orange-600 rounded-lg text-[10px] font-bold hover:bg-orange-50 transition-all font-quicksand"

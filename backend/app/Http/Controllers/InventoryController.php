@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Inventory;
 use Illuminate\Support\Facades\Storage;
+use App\Helpers\ImageHelper;
 
 class InventoryController extends Controller
 {
@@ -57,10 +58,8 @@ class InventoryController extends Controller
         $fotoPath = null;
         if ($request->hasFile('foto')) {
             try {
-                $file = $request->file('foto');
-                $filename = 'inv_photo_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('inventories/photos', $filename, 'public');
-                $fotoPath = '/storage/inventories/photos/' . $filename;
+                $path = ImageHelper::compressAndSaveWebp($request->file('foto'), 'inventories/photos');
+                $fotoPath = '/storage/' . $path;
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => 'error',
@@ -72,10 +71,8 @@ class InventoryController extends Controller
         $strukPath = null;
         if ($request->hasFile('struk_pembelian')) {
             try {
-                $file = $request->file('struk_pembelian');
-                $filename = 'inv_receipt_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('inventories/receipts', $filename, 'public');
-                $strukPath = '/storage/inventories/receipts/' . $filename;
+                $path = ImageHelper::compressAndSaveWebp($request->file('struk_pembelian'), 'inventories/receipts');
+                $strukPath = '/storage/' . $path;
             } catch (\Exception $e) {
                 // Clean up photo if upload receipt fails
                 if ($fotoPath) {
@@ -142,13 +139,6 @@ class InventoryController extends Controller
     {
         $inventory = Inventory::findOrFail($id);
 
-        if ($inventory->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Data inventaris yang sudah diproses (disetujui/ditolak) tidak dapat diubah lagi.'
-            ], 422);
-        }
-
         $request->validate([
             'nama_barang' => 'required|string|max:255',
             'tanggal_pembelian' => 'required|date',
@@ -169,10 +159,8 @@ class InventoryController extends Controller
                     Storage::disk('public')->delete($oldStoragePath);
                 }
                 
-                $file = $request->file('foto');
-                $filename = 'inv_photo_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('inventories/photos', $filename, 'public');
-                $fotoPath = '/storage/inventories/photos/' . $filename;
+                $path = ImageHelper::compressAndSaveWebp($request->file('foto'), 'inventories/photos');
+                $fotoPath = '/storage/' . $path;
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => 'error',
@@ -190,10 +178,8 @@ class InventoryController extends Controller
                     Storage::disk('public')->delete($oldStoragePath);
                 }
 
-                $file = $request->file('struk_pembelian');
-                $filename = 'inv_receipt_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('inventories/receipts', $filename, 'public');
-                $strukPath = '/storage/inventories/receipts/' . $filename;
+                $path = ImageHelper::compressAndSaveWebp($request->file('struk_pembelian'), 'inventories/receipts');
+                $strukPath = '/storage/' . $path;
             } catch (\Exception $e) {
                 return response()->json([
                     'status' => 'error',
@@ -234,25 +220,17 @@ class InventoryController extends Controller
     {
         $inventory = Inventory::findOrFail($id);
 
-        if ($inventory->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Data inventaris yang sudah diproses (disetujui/ditolak) tidak dapat dihapus.'
-            ], 422);
-        }
-
         try {
-            // Delete photo from storage if exists
-            if ($inventory->foto) {
-                $storagePath = str_replace('/storage/', '', $inventory->foto);
-                Storage::disk('public')->delete($storagePath);
-            }
+            // Physical file deletion is now handled by model forceDeleted event
+            // if ($inventory->foto) {
+            //     $storagePath = str_replace('/storage/', '', $inventory->foto);
+            //     Storage::disk('public')->delete($storagePath);
+            // }
 
-            // Delete receipt from storage if exists
-            if ($inventory->struk_pembelian) {
-                $storagePath = str_replace('/storage/', '', $inventory->struk_pembelian);
-                Storage::disk('public')->delete($storagePath);
-            }
+            // if ($inventory->struk_pembelian) {
+            //     $storagePath = str_replace('/storage/', '', $inventory->struk_pembelian);
+            //     Storage::disk('public')->delete($storagePath);
+            // }
 
             $inventory->delete();
 

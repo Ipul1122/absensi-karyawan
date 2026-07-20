@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   Check, 
   X, 
@@ -14,13 +15,15 @@ import {
   FileDown,
   Printer,
   // Calendar,
-  DollarSign
+  DollarSign,
+  Trash2
 } from 'lucide-react'
 
 interface UserDetails {
   id: number
   name: string
   email: string
+  company?: string
 }
 
 interface Reimbursement {
@@ -35,12 +38,19 @@ interface Reimbursement {
   status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
+  updated_at: string
   user: UserDetails
 }
 
 interface AdminReimbursementProps {
   token: string
 }
+
+const WhatsAppIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.458 5.704 1.459h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+);
 
 export default function AdminReimbursement({ token }: AdminReimbursementProps) {
   const [reimbursements, setReimbursements] = useState<Reimbursement[]>([])
@@ -121,14 +131,33 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
           )
 
           if (response.data.status === 'success') {
+            const item = reimbursements.find((r) => r.id === id)
+            const companyName = item?.user?.company || 'PT Cakrawala Parama Internasional'
+            const targetPhone = companyName.toLowerCase().includes('yasodana') ? '6289656931184' : '628170038421'
+            const titleText = item?.title || ''
+            const categoryText = item?.category || ''
+            const amountText = item ? displayRupiah(item.amount) : ''
+            const expenseDateText = item ? formatDate(item.expense_date) : ''
+
+            const appUrl = import.meta.env.VITE_APP_URL || window.location.origin
+            const waMessage = `Halo Direktur, terdapat pengajuan reimbursement baru yang membutuhkan persetujuan Anda.\n\nDetail Pengajuan:\n- Nama Karyawan: ${employeeName}\n- Perusahaan: ${companyName}\n- Keperluan: ${titleText}\n- Kategori: ${categoryText}\n- Nominal: ${amountText}\n- Tanggal Nota: ${expenseDateText}\n\nSilakan buka tautan berikut untuk memproses persetujuan:\n${appUrl}/director/karyawan`
+            const waUrl = `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(waMessage)}`
+
             Swal.fire({
               title: 'Disetujui!',
-              text: 'Klaim reimbursement berhasil disetujui.',
+              text: 'Klaim reimbursement berhasil disetujui. Ingin mengirim notifikasi WhatsApp ke Direktur?',
               icon: 'success',
-              timer: 1500,
-              showConfirmButton: false,
+              showCancelButton: true,
+              confirmButtonText: 'Ya, Kirim WhatsApp',
+              cancelButtonText: 'Tidak, Tutup',
+              confirmButtonColor: '#ea580c',
+              cancelButtonColor: '#94a3b8',
               background: '#fffdfb',
               color: '#3c1105'
+            }).then((waResult) => {
+              if (waResult.isConfirmed) {
+                window.open(waUrl, '_blank')
+              }
             })
             loadData()
           }
@@ -203,10 +232,90 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
     })
   }
 
+  const handleDelete = async (id: number, name: string) => {
+    const result = await Swal.fire({
+      title: 'Hapus Pengajuan Reimburse?',
+      text: `Apakah Anda yakin ingin menghapus pengajuan reimburse untuk ${name}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Hapus!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        const response = await axios.delete(`http://localhost:8000/api/reimbursements/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.data.status === 'success') {
+          Swal.fire({
+            title: 'Terhapus!',
+            text: response.data.message,
+            icon: 'success',
+            background: '#fffdfb',
+            color: '#3c1105'
+          })
+          loadData()
+        }
+      } catch (err: any) {
+        Swal.fire('Gagal', err.response?.data?.message || 'Gagal menghapus pengajuan.', 'error')
+      }
+    }
+  }
+
+  const handleWhatsAppShare = (item: Reimbursement) => {
+    const company = item.user.company;
+    const isYpi = company === 'PT Yasodana Parvez Internasional';
+    const directorName = isYpi ? 'Pak Andre' : 'Bu Dian';
+    const phone = isYpi ? '6289656931184' : '628170038421';
+
+    Swal.fire({
+      title: 'Kirim WhatsApp ke Direktur',
+      text: `Kirim rincian reimbursement untuk ${item.user.name} ke ${directorName}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#22c55e',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Ya, Kirim!',
+      cancelButtonText: 'Batal',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const statusText = item.status === 'approved' 
+          ? 'Disetujui' 
+          : item.status === 'rejected' 
+            ? 'Ditolak' 
+            : item.status === 'pending_director' 
+              ? 'Menunggu Direktur' 
+              : 'Menunggu Admin';
+
+        const message = `Halo ${directorName}, mohon verifikasi pengajuan reimbursement berikut:
+
+Nama Karyawan: ${item.user.name}
+Keperluan: ${item.title}
+Kategori: ${item.category}
+Tanggal Nota: ${formatDate(item.expense_date)}
+Nominal: ${displayRupiah(item.amount)}
+Keterangan: ${item.description || '-'}
+Status: ${statusText}
+
+Terima kasih.`;
+
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+      }
+    });
+  }
+
   const viewProofImage = (imageUrl: string, name: string) => {
     Swal.fire({
       title: `Bukti Nota - ${name}`,
-      imageUrl: `http://localhost:8000${imageUrl}`,
+      imageUrl: getAssetUrl(imageUrl),
       imageAlt: 'Bukti Nota Belanja',
       confirmButtonColor: '#ea580c',
       confirmButtonText: 'Tutup',
@@ -222,6 +331,21 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
   const displayRupiah = (number: number) => {
@@ -619,6 +743,8 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                     <tr className="bg-orange-50/30 text-slate-600 text-[10px] font-extrabold uppercase tracking-wider border-b border-orange-100">
                       <th className="py-4 px-5">Karyawan</th>
                       <th className="py-4 px-5">Keperluan / Keterangan</th>
+                      <th className="py-4 px-5">Dibuat</th>
+                      <th className="py-4 px-5">Diterima</th>
                       <th className="py-4 px-5">Kategori</th>
                       <th className="py-4 px-5">Nominal Klaim</th>
                       <th className="py-4 px-5">Tanggal Nota</th>
@@ -645,11 +771,23 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                         </td>
 
                         {/* Title & Desc */}
-                        <td className="py-4 px-5">
-                          <span className="block font-bold text-slate-800">{item.title}</span>
-                          <span className="text-[10px] text-slate-400 font-medium max-w-[200px] truncate block">
+                        <td className="py-4 px-5 max-w-[240px]">
+                          <span className="block font-bold text-slate-800 break-words whitespace-normal leading-normal">{item.title}</span>
+                          <span className="text-[10px] text-slate-400 font-medium max-w-[220px] truncate block">
                             {item.description || '-'}
                           </span>
+                        </td>
+
+                        {/* Dibuat */}
+                        <td className="py-4 px-5 text-slate-700">
+                          {formatDateTime(item.created_at)}
+                        </td>
+
+                        {/* Diterima */}
+                        <td className="py-4 px-5 text-slate-700">
+                          {item.status === 'approved' || item.status === 'rejected'
+                            ? formatDateTime(item.updated_at)
+                            : '-'}
                         </td>
 
                         {/* Category */}
@@ -696,26 +834,33 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
 
                         {/* Actions */}
                         <td className="py-4 px-5 text-right">
-                          {item.status === 'pending' ? (
-                            <div className="flex justify-end gap-1.5">
-                              <button
-                                onClick={() => handleApprove(item.id, item.user.name, item.amount)}
-                                className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
-                                title="Setujui"
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleReject(item.id, item.user.name)}
-                                className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
-                                title="Tolak"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-bold">-</span>
-                          )}
+                          <div className="flex justify-end gap-1.5 items-center">
+                            {item.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleApprove(item.id, item.user.name, item.amount)}
+                                  className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                  title="Setujui"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleReject(item.id, item.user.name)}
+                                  className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                  title="Tolak"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => handleWhatsAppShare(item)}
+                              className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-600 hover:text-green-700 rounded-lg transition-all cursor-pointer shadow-sm flex items-center justify-center"
+                              title="Kirim WhatsApp ke Direktur"
+                            >
+                              <WhatsAppIcon className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -744,8 +889,8 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                   </div>
 
                   <div className="border-t border-orange-100/55 pt-2">
-                    <span className="block font-bold text-slate-800 text-sm">{item.title}</span>
-                    <span className="text-[10px] text-slate-400 font-medium mt-0.5 block line-clamp-2">
+                    <span className="block font-bold text-slate-800 text-sm break-words leading-snug">{item.title}</span>
+                    <span className="text-[10px] text-slate-400 font-medium mt-1 block break-words">
                       {item.description || 'Tidak ada deskripsi'}
                     </span>
                   </div>
@@ -774,8 +919,8 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                       >
                         <Eye className="w-3.5 h-3.5" /> Nota
                       </button>
-                      {item.status === 'pending' && (
-                        <div className="flex gap-1">
+                      <div className="flex gap-1 items-center">
+                        {(item.status === 'pending' || item.status === 'rejected') && (
                           <button
                             onClick={() => handleApprove(item.id, item.user.name, item.amount)}
                             className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
@@ -783,6 +928,8 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                           >
                             <Check className="w-4 h-4" />
                           </button>
+                        )}
+                        {(item.status === 'pending' || item.status === 'approved' || item.status === 'pending_director') && (
                           <button
                             onClick={() => handleReject(item.id, item.user.name)}
                             className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
@@ -790,8 +937,22 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                           >
                             <X className="w-4 h-4" />
                           </button>
-                        </div>
-                      )}
+                        )}
+                        <button
+                          onClick={() => handleDelete(item.id, item.user.name)}
+                          className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-800 rounded-lg transition-all cursor-pointer shadow-sm"
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleWhatsAppShare(item)}
+                          className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-600 hover:text-green-700 rounded-lg transition-all cursor-pointer shadow-sm flex items-center justify-center"
+                          title="Kirim WhatsApp ke Direktur"
+                        >
+                          <WhatsAppIcon className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -800,6 +961,14 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
                       <strong>Catatan Admin:</strong> "{item.admin_notes}"
                     </div>
                   )}
+
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 text-[10px] text-slate-500 font-medium space-y-1 mt-2">
+                    <div><strong>Dibuat:</strong> {formatDateTime(item.created_at)}</div>
+                    <div>
+                      <strong>Diterima:</strong> {item.status === 'approved' ? formatDateTime(item.updated_at) :
+                       item.status === 'rejected' ? `Ditolak pada ${formatDateTime(item.updated_at)}` : '-'}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

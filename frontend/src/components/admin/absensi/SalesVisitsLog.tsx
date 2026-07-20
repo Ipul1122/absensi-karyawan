@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
-import { Search, Calendar, RefreshCw, MapPin, Image, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
+import { Search, Calendar, RefreshCw, MapPin, Image, FileDown, Compass, SlidersHorizontal, Edit2 } from 'lucide-react'
+import { getAssetUrl } from '../../../utils/api'
+import EditVisitModal from './EditVisitModal'
 
 interface User {
   id: number
   name: string
   email: string
   photo?: string | null
+  company?: string | null
 }
 
 interface Visit {
@@ -23,6 +26,11 @@ interface Visit {
   visit_type?: string | null
   created_at: string
   user: User
+  visit_time_out?: string | null
+  latitude_out?: string | null
+  longitude_out?: string | null
+  photo_path_out?: string | null
+  notes_out?: string | null
 }
 
 interface SalesVisitsLogProps {
@@ -43,6 +51,7 @@ export default function SalesVisitsLog({
   const [visits, setVisits] = useState<Visit[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [selectedCompany, setSelectedCompany] = useState('all')
   const [filterDate, setFilterDate] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(15) // Default to 15 (> 10)
@@ -50,7 +59,16 @@ export default function SalesVisitsLog({
   // Mobile Filters Collapsible State
   const [showFilters, setShowFilters] = useState(false)
   
-  const [resolvedAddresses, setResolvedAddresses] = useState<Record<number, string>>({})
+  const [resolvedAddresses, setResolvedAddresses] = useState<Record<string, string>>({})
+
+  // Edit Visit states
+  const [selectedVisitForEdit, setSelectedVisitForEdit] = useState<Visit | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  const handleEditClick = (visit: Visit) => {
+    setSelectedVisitForEdit(visit)
+    setIsEditModalOpen(true)
+  }
 
   const fetchVisits = async () => {
     setLoading(true)
@@ -83,7 +101,7 @@ export default function SalesVisitsLog({
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, filterDate, itemsPerPage])
+  }, [search, selectedCompany, filterDate, itemsPerPage])
 
   const isClient = visitType === 'client'
   const titleText = isClient ? 'Kunjungan Klien' : 'Kunjungan Lapangan / Sales'
@@ -104,11 +122,13 @@ export default function SalesVisitsLog({
 
     const matchesDate = !filterDate || visit.date === filterDate
 
-    return matchesType && matchesSearch && matchesDate
+    const matchesCompany = selectedCompany === 'all' || visit.user.company === selectedCompany
+
+    return matchesType && matchesSearch && matchesDate && matchesCompany
   })
 
   // Count active filters
-  const activeFilterCount = (search ? 1 : 0) + (filterDate ? 1 : 0)
+  const activeFilterCount = (search ? 1 : 0) + (filterDate ? 1 : 0) + (selectedCompany !== 'all' ? 1 : 0)
 
   // Pagination Logic
   const totalItems = filteredVisits.length
@@ -116,58 +136,65 @@ export default function SalesVisitsLog({
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginatedVisits = filteredVisits.slice(startIndex, startIndex + itemsPerPage)
 
-  // Address Resolver Function (Nominatim Reverse Geocoding)
-  const resolveAddress = async (id: number, lat: string, lng: string) => {
-    if (resolvedAddresses[id]) return
-    
-    // Check presets first
+  const fetchSingleAddress = async (lat: string, lng: string) => {
     const latitude = parseFloat(lat)
     const longitude = parseFloat(lng)
+    
     if (Math.abs(latitude - (-6.1942189)) < 0.0001 && Math.abs(longitude - 106.815998) < 0.0001) {
-      setResolvedAddresses(prev => ({ ...prev, [id]: 'Mall Thamrin City' }))
-      return
+      return 'Mall Thamrin City'
     }
+    
     const officeLat = parseFloat(officeLatitude)
     const officeLng = parseFloat(officeLongitude)
-    if (!isNaN(officeLat) && !isNaN(officeLng)) {
-      if (Math.abs(latitude - officeLat) < 0.0005 && Math.abs(longitude - officeLng) < 0.0005) {
-        setResolvedAddresses(prev => ({ ...prev, [id]: 'Kantor Pusat' }))
-        return
-      }
+    if (!isNaN(officeLat) && !isNaN(officeLng) && Math.abs(latitude - officeLat) < 0.0005 && Math.abs(longitude - officeLng) < 0.0005) {
+      return 'Kantor Pusat'
     }
-
-    // Call Nominatim API for reverse geocoding
+    
     try {
       const response = await axios.get(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`,
         { headers: { 'Accept-Language': 'id-ID' } }
       )
       if (response.data && response.data.display_name) {
-        const addressObj = response.data.address;
-        const street = addressObj.road || addressObj.suburb || addressObj.village || '';
-        const city = addressObj.city || addressObj.town || addressObj.municipality || addressObj.county || '';
-        const displayName = street && city ? `${street}, ${city}` : response.data.display_name.split(',').slice(0, 3).join(',');
-        setResolvedAddresses(prev => ({ ...prev, [id]: displayName }))
-      } else {
-        setResolvedAddresses(prev => ({ ...prev, [id]: `Luar Kantor` }))
+        const addressObj = response.data.address
+        const street = addressObj.road || addressObj.suburb || addressObj.village || ''
+        const city = addressObj.city || addressObj.town || addressObj.municipality || addressObj.county || ''
+        return street && city ? `${street}, ${city}` : response.data.display_name.split(',').slice(0, 3).join(',')
       }
     } catch (err) {
-      setResolvedAddresses(prev => ({ ...prev, [id]: `Luar Kantor` }))
+      // Ignored
     }
+    return 'Luar Kantor'
+  }
+
+  // Address Resolver Function (Nominatim Reverse Geocoding)
+  const resolveAddress = async (id: number, lat: string, lng: string, type: 'in' | 'out') => {
+    const cacheKey = `${id}_${type}`
+    if (resolvedAddresses[cacheKey]) return
+    
+    const address = await fetchSingleAddress(lat, lng)
+    setResolvedAddresses(prev => ({ ...prev, [cacheKey]: address }))
   }
 
   // Fetch addresses only for paginated visible visits to optimize API limits
   useEffect(() => {
     paginatedVisits.forEach(visit => {
-      resolveAddress(visit.id, visit.latitude, visit.longitude)
+      resolveAddress(visit.id, visit.latitude, visit.longitude, 'in')
+      if (visit.latitude_out && visit.longitude_out) {
+        resolveAddress(visit.id, visit.latitude_out, visit.longitude_out, 'out')
+      }
     })
   }, [paginatedVisits])
 
-  const showPhoto = (visit: Visit) => {
+  const showPhoto = (visit: Visit, isCheckout = false) => {
+    const photoPath = isCheckout ? visit.photo_path_out : visit.photo_path
+    const timeStr = isCheckout ? visit.visit_time_out : visit.visit_time
+    const label = isCheckout ? 'Absen Keluar' : 'Absen Masuk'
+    if (!photoPath) return
     Swal.fire({
-      title: visit.client_name,
-      text: `Dilaporkan oleh: ${visit.user.name} pada ${formatDate(visit.date)} pukul ${visit.visit_time.substring(0, 5)}`,
-      imageUrl: `http://localhost:8000${visit.photo_path}`,
+      title: `${visit.client_name} (${label})`,
+      text: `Dilaporkan oleh: ${visit.user.name} pada ${formatDate(visit.date)} pukul ${timeStr ? timeStr.substring(0, 5) : '-'}`,
+      imageUrl: getAssetUrl(photoPath),
       imageAlt: 'Bukti Kunjungan',
       background: '#1e293b',
       color: '#f8fafc',
@@ -177,8 +204,78 @@ export default function SalesVisitsLog({
     })
   }
 
+  // Address Resolver Helper to ensure all addresses are resolved before exporting
+  const ensureAllAddressesResolved = async (visitsToExport: Visit[]) => {
+    // Check if we even need to geocode anything
+    const needsGeocoding = visitsToExport.some(v => 
+      !resolvedAddresses[`${v.id}_in`] || (v.latitude_out && !resolvedAddresses[`${v.id}_out`])
+    )
+    
+    if (!needsGeocoding) {
+      return resolvedAddresses
+    }
+
+    // Show a loading popup so the user knows geocoding is happening
+    Swal.fire({
+      title: 'Menyiapkan Data Lokasi',
+      html: 'Sedang menerjemahkan koordinat GPS ke nama lokasi...<br/><span style="font-size: 11px; color: #94a3b8;">Proses ini memerlukan waktu beberapa saat untuk mematuhi batas limit API.</span><br/><br/><div style="font-weight: bold; font-size: 16px;"><span id="geocode-progress">0</span> / ' + visitsToExport.length + '</div>',
+      allowOutsideClick: false,
+      background: '#1e293b',
+      color: '#f8fafc',
+      didOpen: () => {
+        Swal.showLoading()
+      }
+    })
+
+    const currentAddresses = { ...resolvedAddresses }
+    let updated = false
+
+    try {
+      for (let i = 0; i < visitsToExport.length; i++) {
+        const visit = visitsToExport[i]
+        
+        // Update Swal progress text
+        const progressEl = document.getElementById('geocode-progress')
+        if (progressEl) {
+          progressEl.innerText = String(i + 1)
+        }
+
+        const keyIn = `${visit.id}_in`
+        if (!currentAddresses[keyIn]) {
+          const lat = visit.latitude
+          const lng = visit.longitude
+          const address = await fetchSingleAddress(lat, lng)
+          currentAddresses[keyIn] = address
+          updated = true
+        }
+
+        if (visit.latitude_out && visit.longitude_out) {
+          const keyOut = `${visit.id}_out`
+          if (!currentAddresses[keyOut]) {
+            const lat = visit.latitude_out
+            const lng = visit.longitude_out
+            const address = await fetchSingleAddress(lat, lng)
+            currentAddresses[keyOut] = address
+            updated = true
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error during batch geocoding:', error)
+    }
+
+    if (updated) {
+      setResolvedAddresses(currentAddresses)
+    }
+
+    Swal.close()
+    return currentAddresses
+  }
+
   // Export to PDF (Rekapan Absensi Kunjungan)
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    const addresses = await ensureAllAddressesResolved(filteredVisits)
+
     const printWindow = window.open('', '_blank')
     if (!printWindow) return
 
@@ -208,17 +305,20 @@ export default function SalesVisitsLog({
               <tr>
                 <th style="width: 5%; text-align: center;">No</th>
                 <th>Karyawan</th>
-                <th>Tanggal & Waktu</th>
+                <th>Waktu Masuk</th>
+                <th>Waktu Keluar</th>
                 <th>Nama Klien / Tujuan</th>
-                <th>Lokasi Kunjungan</th>
-                <th>Catatan Lapangan</th>
+                <th>Lokasi Masuk</th>
+                <th>Lokasi Keluar</th>
+                <th>Catatan Masuk</th>
+                <th>Catatan Keluar</th>
               </tr>
             </thead>
             <tbody>
               ${filteredVisits.length === 0 ? `
                 <tr>
-                  <td colspan="6" style="text-align: center; padding: 20px; color: #64748b;">
-                    Tidak ada data kunjungan sales yang tersedia.
+                  <td colspan="9" style="text-align: center; padding: 20px; color: #64748b;">
+                    Tidak ada data kunjungan yang tersedia.
                   </td>
                 </tr>
               ` : filteredVisits.map((visit, idx) => `
@@ -226,9 +326,12 @@ export default function SalesVisitsLog({
                   <td style="text-align: center;">${idx + 1}</td>
                   <td><strong>${visit.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${visit.user.email}</span></td>
                   <td>${formatDate(visit.date)} - ${visit.visit_time.substring(0, 5)} WIB</td>
+                  <td>${visit.visit_time_out ? `${visit.visit_time_out.substring(0, 5)} WIB` : '-'}</td>
                   <td><strong>${visit.client_name}</strong></td>
-                  <td>${resolvedAddresses[visit.id] || 'Luar Kantor'}</td>
+                  <td>${addresses[`${visit.id}_in`] || 'Luar Kantor'}</td>
+                  <td>${visit.latitude_out ? (addresses[`${visit.id}_out`] || 'Luar Kantor') : '-'}</td>
                   <td>${visit.notes || '-'}</td>
+                  <td>${visit.notes_out || '-'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -247,7 +350,9 @@ export default function SalesVisitsLog({
   }
 
   // Export to Excel (Rekapan Absensi Kunjungan)
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const addresses = await ensureAllAddressesResolved(filteredVisits)
+
     let excelContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -266,10 +371,13 @@ export default function SalesVisitsLog({
               <th>Nama Karyawan</th>
               <th>Email</th>
               <th>Tanggal Kunjungan</th>
-              <th>Jam Kunjungan</th>
+              <th>Jam Masuk</th>
+              <th>Jam Keluar</th>
               <th>Nama Klien / Tujuan</th>
-              <th>Lokasi Kunjungan</th>
-              <th>Catatan Lapangan</th>
+              <th>Lokasi Masuk</th>
+              <th>Lokasi Keluar</th>
+              <th>Catatan Masuk</th>
+              <th>Catatan Keluar</th>
             </tr>
           </thead>
           <tbody>
@@ -283,9 +391,12 @@ export default function SalesVisitsLog({
           <td>${visit.user.email}</td>
           <td>${formatDate(visit.date)}</td>
           <td>${visit.visit_time.substring(0, 5)}</td>
+          <td>${visit.visit_time_out ? visit.visit_time_out.substring(0, 5) : '-'}</td>
           <td>${visit.client_name}</td>
-          <td>${resolvedAddresses[visit.id] || 'Luar Kantor'}</td>
+          <td>${addresses[`${visit.id}_in`] || 'Luar Kantor'}</td>
+          <td>${visit.latitude_out ? (addresses[`${visit.id}_out`] || 'Luar Kantor') : '-'}</td>
           <td>${visit.notes || '-'}</td>
+          <td>${visit.notes_out || '-'}</td>
         </tr>
       `
     })
@@ -293,7 +404,7 @@ export default function SalesVisitsLog({
     if (filteredVisits.length === 0) {
       excelContent += `
         <tr>
-          <td colspan="8" style="text-align: center; padding: 20px;">Tidak ada data kunjungan.</td>
+          <td colspan="11" style="text-align: center; padding: 20px;">Tidak ada data kunjungan.</td>
         </tr>
       `
     }
@@ -375,7 +486,7 @@ export default function SalesVisitsLog({
       </div>
 
       {/* Filters Panel */}
-      <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl ${
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-orange-50/15 p-5 border border-orange-100/60 rounded-2xl ${
         showFilters ? 'grid' : 'hidden md:grid'
       }`}>
         {/* Search */}
@@ -393,6 +504,20 @@ export default function SalesVisitsLog({
           </div>
         </div>
 
+        {/* Perusahaan Filter */}
+        <div className="space-y-1">
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Perusahaan</label>
+          <select
+            value={selectedCompany}
+            onChange={(e) => setSelectedCompany(e.target.value)}
+            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2.5 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
+          >
+            <option value="all">Semua Perusahaan</option>
+            <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
+            <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
+          </select>
+        </div>
+
         {/* Date Filter */}
         <div className="space-y-1">
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
@@ -403,7 +528,7 @@ export default function SalesVisitsLog({
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
-            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm"
+            className="w-full bg-white border border-slate-200 focus:border-red-500 text-slate-800 rounded-xl py-2 px-3 outline-none transition-all text-xs font-semibold shadow-sm cursor-pointer"
           />
         </div>
 
@@ -413,9 +538,10 @@ export default function SalesVisitsLog({
             onClick={() => {
               setSearch('')
               setFilterDate('')
+              setSelectedCompany('all')
             }}
-            disabled={!search && !filterDate}
-            className="w-full py-2.5 bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 font-bold rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow"
+            disabled={!search && !filterDate && selectedCompany === 'all'}
+            className="w-full py-2.5 bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-650 font-bold rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow h-[38px]"
           >
             Bersihkan Filter
           </button>
@@ -471,12 +597,13 @@ export default function SalesVisitsLog({
                 <th className="py-4 px-6 text-center">Foto Bukti</th>
                 <th className="py-4 px-6">Lokasi Kunjungan</th>
                 <th className="py-4 px-6">Catatan Lapangan</th>
+                <th className="py-4 px-6 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-orange-100 text-sm text-slate-600">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw className="w-5 h-5 animate-spin text-orange-500" />
                       Memuat data kunjungan...
@@ -485,7 +612,7 @@ export default function SalesVisitsLog({
                 </tr>
               ) : paginatedVisits.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 font-semibold">
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-semibold">
                     Tidak ada log kunjungan sales yang ditemukan.
                   </td>
                 </tr>
@@ -497,15 +624,35 @@ export default function SalesVisitsLog({
                       <div>
                         <p className="font-extrabold text-slate-800">{visit.user.name}</p>
                         <p className="text-[11px] text-slate-400 font-medium mt-0.5">{visit.user.email}</p>
+                        {visit.user.company && (
+                          <div className="mt-1">
+                            <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                              visit.user.company.includes('Cakrawala') 
+                                ? 'text-red-750 bg-red-50 border-red-200' 
+                                : 'text-blue-755 bg-blue-50 border-blue-200'
+                            }`}>
+                              {visit.user.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </td>
 
                     {/* Date Time */}
                     <td className="py-4 px-6">
                       <p className="font-extrabold text-slate-700 text-xs">{formatDate(visit.date)}</p>
-                      <p className="font-mono text-[11px] text-orange-600 font-bold mt-1">
-                        {visit.visit_time.substring(0, 5)} WIB
-                      </p>
+                      <div className="space-y-1 mt-1 text-[11px] font-medium">
+                        <p className="flex items-center gap-1">
+                          <span className="text-orange-500 font-bold font-mono">Masuk:</span>
+                          <span className="font-mono text-slate-650">{visit.visit_time.substring(0, 5)} WIB</span>
+                        </p>
+                        <p className="flex items-center gap-1">
+                          <span className="text-emerald-505 font-bold font-mono">Keluar:</span>
+                          <span className="font-mono text-slate-650">
+                            {visit.visit_time_out ? `${visit.visit_time_out.substring(0, 5)} WIB` : '-'}
+                          </span>
+                        </p>
+                      </div>
                     </td>
 
                     {/* Client Name */}
@@ -515,52 +662,115 @@ export default function SalesVisitsLog({
 
                     {/* Photo Bukti */}
                     <td className="py-4 px-6 text-center">
-                      <div className="flex justify-center">
+                      <div className="flex flex-col gap-2 justify-center items-center">
                         <button
-                          onClick={() => showPhoto(visit)}
-                          className="p-2 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl transition-all cursor-pointer"
-                          title="Lihat Foto Bukti"
+                          onClick={() => showPhoto(visit, false)}
+                          className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                          title="Lihat Foto Masuk"
                         >
-                          <Image className="w-4 h-4" />
+                          <Image className="w-3.5 h-3.5" />
+                          <span>Masuk</span>
                         </button>
+                        {visit.photo_path_out ? (
+                          <button
+                            onClick={() => showPhoto(visit, true)}
+                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-600 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                            title="Lihat Foto Keluar"
+                          >
+                            <Image className="w-3.5 h-3.5" />
+                            <span>Keluar</span>
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 italic font-medium">Belum Keluar</span>
+                        )}
                       </div>
                     </td>
 
                     {/* GPS Location (Resolved Location Name) */}
                     <td className="py-4 px-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-bold text-slate-800 text-xs leading-tight">
-                          {resolvedAddresses[visit.id] ? (
-                            resolvedAddresses[visit.id]
-                          ) : (
-                            <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
-                              Mencari nama lokasi...
+                      <div className="space-y-3">
+                        {/* Location In */}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Lokasi Masuk</span>
+                          <span className="font-bold text-slate-800 text-xs leading-tight">
+                            {resolvedAddresses[`${visit.id}_in`] ? (
+                              resolvedAddresses[`${visit.id}_in`]
+                            ) : (
+                              <span className="text-slate-400 italic text-[10px] font-medium flex items-center gap-1">
+                                <RefreshCw className="w-3 animate-spin text-orange-500" />
+                                Mencari...
+                              </span>
+                            )}
+                          </span>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 font-semibold w-fit"
+                            title="Buka di Google Maps"
+                          >
+                            <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                            <span>Peta</span>
+                          </a>
+                        </div>
+
+                        {/* Location Out */}
+                        {visit.latitude_out && (
+                          <div className="flex flex-col gap-0.5 border-t border-slate-100 pt-1.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Lokasi Keluar</span>
+                            <span className="font-bold text-slate-800 text-xs leading-tight">
+                              {resolvedAddresses[`${visit.id}_out`] ? (
+                                resolvedAddresses[`${visit.id}_out`]
+                              ) : (
+                                <span className="text-slate-400 italic text-[10px] font-medium flex items-center gap-1">
+                                  <RefreshCw className="w-3 animate-spin text-orange-500" />
+                                  Mencari...
+                                </span>
+                              )}
                             </span>
-                          )}
-                        </span>
-                        <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-semibold"
-                          title="Buka di Google Maps"
-                        >
-                          <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                          <span>Buka Peta</span>
-                        </a>
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude_out},${visit.longitude_out}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-700 font-semibold w-fit"
+                              title="Buka di Google Maps"
+                            >
+                              <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
+                              <span>Peta</span>
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </td>
 
                     {/* Notes */}
-                    <td className="py-4 px-6">
-                      {visit.notes ? (
-                        <p className="text-xs text-slate-600 font-medium max-w-xs leading-relaxed truncate hover:text-clip hover:whitespace-normal" title={visit.notes}>
-                          {visit.notes}
-                        </p>
-                      ) : (
-                        <span className="text-xs text-slate-400 italic">-</span>
-                      )}
+                    <td className="py-4 px-6 text-xs">
+                      <div className="space-y-2">
+                        {visit.notes && (
+                          <div>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block">Catatan Masuk</span>
+                            <p className="text-slate-650 font-medium leading-relaxed max-w-xs">{visit.notes}</p>
+                          </div>
+                        )}
+                        {visit.notes_out && (
+                          <div className="border-t border-slate-100 pt-1.5">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase block">Catatan Keluar</span>
+                            <p className="text-slate-650 font-medium leading-relaxed max-w-xs">{visit.notes_out}</p>
+                          </div>
+                        )}
+                        {!visit.notes && !visit.notes_out && (
+                          <span className="text-slate-400 italic">-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      <button
+                        onClick={() => handleEditClick(visit)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-205 text-orange-700 rounded-xl transition-all cursor-pointer text-xs font-bold shadow-sm active:scale-[0.98]"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-orange-600" />
+                        <span>Edit</span>
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -595,6 +805,15 @@ export default function SalesVisitsLog({
                   <div>
                     <h4 className="font-extrabold text-slate-805 text-sm">{visit.user.name}</h4>
                     <p className="text-[11px] text-slate-400 font-medium">{visit.user.email}</p>
+                    {visit.user.company && (
+                      <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border mt-1 ${
+                        visit.user.company.includes('Cakrawala') 
+                          ? 'text-red-750 bg-red-50 border-red-200' 
+                          : 'text-blue-755 bg-blue-50 border-blue-200'
+                      }`}>
+                        {visit.user.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end gap-1.5 shrink-0">
@@ -608,59 +827,120 @@ export default function SalesVisitsLog({
               </div>
 
               {/* Card Body: Client details & Maps */}
-              <div className="bg-orange-50/10 p-3 border border-orange-100/50 rounded-xl space-y-2">
+              <div className="bg-orange-50/10 p-3 border border-orange-100/50 rounded-xl space-y-3">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Klien / Tujuan</span>
-                  <span className="text-xs font-bold text-slate-800 block">{visit.client_name}</span>
+                  <span className="text-xs font-bold text-slate-805 block">{visit.client_name}</span>
                 </div>
                 
-                <div className="border-t border-orange-100/30 pt-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lokasi Kunjungan</span>
-                  <div className="flex flex-col gap-1 mt-0.5">
-                    <span className="text-xs font-semibold text-slate-700 leading-tight">
-                      {resolvedAddresses[visit.id] ? (
-                        resolvedAddresses[visit.id]
-                      ) : (
-                        <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
-                          Mencari nama lokasi...
-                        </span>
-                      )}
-                    </span>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-bold w-fit"
-                      title="Buka di Google Maps"
-                    >
-                      <MapPin className="w-3 h-3 text-red-500 shrink-0" />
-                      <span>Buka Peta</span>
-                    </a>
+                <div className="border-t border-orange-100/30 pt-2 grid grid-cols-1 gap-3">
+                  {/* Location In */}
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lokasi Masuk</span>
+                    <div className="flex flex-col gap-1 mt-0.5">
+                      <span className="text-xs font-semibold text-slate-700 leading-tight">
+                        {resolvedAddresses[`${visit.id}_in`] ? (
+                          resolvedAddresses[`${visit.id}_in`]
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
+                            Mencari...
+                          </span>
+                        )}
+                      </span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude},${visit.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-bold w-fit"
+                        title="Buka di Google Maps"
+                      >
+                        <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                        <span>Buka Peta</span>
+                      </a>
+                    </div>
                   </div>
+
+                  {/* Location Out */}
+                  {visit.latitude_out && (
+                    <div className="border-t border-orange-50 pt-2">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lokasi Keluar</span>
+                      <div className="flex flex-col gap-1 mt-0.5">
+                        <span className="text-xs font-semibold text-slate-700 leading-tight">
+                          {resolvedAddresses[`${visit.id}_out`] ? (
+                            resolvedAddresses[`${visit.id}_out`]
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px] font-medium flex items-center gap-1">
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-orange-500" />
+                              Mencari...
+                            </span>
+                          )}
+                        </span>
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${visit.latitude_out},${visit.longitude_out}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-[10px] text-blue-500 hover:text-blue-700 font-bold w-fit"
+                          title="Buka di Google Maps"
+                        >
+                          <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
+                          <span>Buka Peta</span>
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Notes */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Catatan Lapangan</span>
-                {visit.notes ? (
-                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                    {visit.notes}
-                  </p>
-                ) : (
+              <div className="space-y-2 bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                {visit.notes && (
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Catatan Masuk</span>
+                    <p className="text-xs text-slate-650 font-medium leading-relaxed">{visit.notes}</p>
+                  </div>
+                )}
+                {visit.notes_out && (
+                  <div className="space-y-0.5 border-t border-slate-200/60 pt-2 mt-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Catatan Keluar</span>
+                    <p className="text-xs text-slate-650 font-medium leading-relaxed">{visit.notes_out}</p>
+                  </div>
+                )}
+                {!visit.notes && !visit.notes_out && (
                   <span className="text-xs text-slate-400 italic block">-</span>
                 )}
               </div>
 
               {/* Actions Footer */}
-              <div className="pt-2 border-t border-orange-50">
+              <div className="pt-2 border-t border-orange-50 space-y-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => showPhoto(visit, false)}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                  >
+                    <Image className="w-3.5 h-3.5 text-orange-500" />
+                    <span>Foto Masuk</span>
+                  </button>
+                  {visit.photo_path_out ? (
+                    <button
+                      onClick={() => showPhoto(visit, true)}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                    >
+                      <Image className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>Foto Keluar</span>
+                    </button>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center py-2 border border-dashed border-slate-250 text-slate-400 rounded-xl text-xs font-bold select-none bg-slate-50/50">
+                      Belum Keluar
+                    </div>
+                  )}
+                </div>
                 <button
-                  onClick={() => showPhoto(visit)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-100 text-orange-600 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                  onClick={() => handleEditClick(visit)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 px-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer active:scale-[0.98]"
                 >
-                  <Image className="w-4 h-4 text-orange-500" />
-                  <span>Lihat Foto Bukti</span>
+                  <Edit2 className="w-3.5 h-3.5 text-white" />
+                  <span>Edit Kunjungan</span>
                 </button>
               </div>
             </div>
@@ -739,6 +1019,18 @@ export default function SalesVisitsLog({
           )}
         </div>
       )}
+      {/* Edit Visit Modal */}
+      <EditVisitModal
+        show={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setSelectedVisitForEdit(null)
+        }}
+        onSuccess={fetchVisits}
+        visit={selectedVisitForEdit}
+        token={token}
+        formatDate={formatDate}
+      />
     </div>
   )
 }

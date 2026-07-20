@@ -41,11 +41,10 @@ export default function AddEmployeeModal({
   const [address, setAddress] = useState('')
   const [division, setDivision] = useState('')
   const [divisionCustom, setDivisionCustom] = useState('')
-  const [noRekening, setNoRekening] = useState('')
-  const [company, setCompany] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [cvFile, setCvFile] = useState<File | null>(null)
+  const [officeLocation, setOfficeLocation] = useState('jakarta')
 
   const photoInputRef = useRef<HTMLInputElement>(null)
   const cvInputRef = useRef<HTMLInputElement>(null)
@@ -63,11 +62,10 @@ export default function AddEmployeeModal({
       setAddress('')
       setDivision('')
       setDivisionCustom('')
-      setNoRekening('')
-      setCompany('')
       setPhotoFile(null)
       setPhotoPreview(null)
       setCvFile(null)
+      setOfficeLocation('jakarta')
     }
   }, [show])
 
@@ -159,10 +157,9 @@ export default function AddEmployeeModal({
     if (address) formData.append('address', address)
     const finalDivision = division === '__custom__' ? divisionCustom.trim() : division
     if (finalDivision) formData.append('division', finalDivision)
-    if (noRekening) formData.append('no_rekening', noRekening)
-    if (company) formData.append('company', company)
     if (photoFile) formData.append('photo', photoFile)
     if (cvFile) formData.append('cv', cvFile)
+    formData.append('office_location', officeLocation)
 
     onSubmit(formData)
   }
@@ -199,15 +196,15 @@ export default function AddEmployeeModal({
             </h4>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="col-span-1 sm:col-span-2">
               <label className={labelClass}>Nama Lengkap *</label>
               <div className="relative">
                 <User className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Syaiful"
+                  placeholder=""
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className={inputClass}
@@ -215,14 +212,14 @@ export default function AddEmployeeModal({
               </div>
             </div>
 
-            <div className="col-span-2 sm:col-span-1">
+            <div className="col-span-1">
               <label className={labelClass}>Email Karyawan *</label>
               <div className="relative">
                 <Mail className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
                 <input
                   type="email"
                   required
-                  placeholder="syaiful@perusahaan.com"
+                  placeholder=""
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className={inputClass}
@@ -230,7 +227,7 @@ export default function AddEmployeeModal({
               </div>
             </div>
 
-            <div className="col-span-2 sm:col-span-1">
+            <div className="col-span-1">
               <label className={labelClass}>Password Login *</label>
               <div className="relative">
                 <Lock className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
@@ -276,7 +273,7 @@ export default function AddEmployeeModal({
             <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>No. Karyawan (NIP)</label>
               <div className="relative">
@@ -334,7 +331,7 @@ export default function AddEmployeeModal({
             </div>
 
             {/* Division */}
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <label className={labelClass}>Divisi / Departemen</label>
               <div className="relative">
                 <Building2 className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
@@ -368,7 +365,22 @@ export default function AddEmployeeModal({
               )}
             </div>
 
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
+              <label className={labelClass}>Lokasi Kantor Penempatan</label>
+              <div className="relative">
+                <Building2 className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
+                <select
+                  value={officeLocation}
+                  onChange={(e) => setOfficeLocation(e.target.value)}
+                  className={`${inputClass} appearance-none cursor-pointer`}
+                >
+                  <option value="jakarta">Jakarta (Pusat)</option>
+                  <option value="bogor">Bogor (Cabang)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="col-span-1 sm:col-span-2">
               <label className={labelClass}>Alamat Rumah</label>
               <div className="relative">
                 <MapPin className="absolute top-2.5 left-0 pl-3 w-4 h-4 text-orange-400/80" />
@@ -383,37 +395,6 @@ export default function AddEmployeeModal({
             </div>
           </div>
 
-          {/* No. Rekening & Perusahaan */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>No. Rekening</label>
-              <div className="relative">
-                <Hash className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
-                <input
-                  type="text"
-                  placeholder="Nomor rekening bank..."
-                  value={noRekening}
-                  onChange={(e) => setNoRekening(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
-            </div>
-            <div>
-              <label className={labelClass}>Perusahaan</label>
-              <div className="relative">
-                <Building2 className="absolute inset-y-0 left-0 pl-3 w-4 h-4 my-auto text-orange-400/80" />
-                <select
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  className={`${inputClass} appearance-none cursor-pointer`}
-                >
-                  <option value="">-- Pilih Perusahaan --</option>
-                  <option value="PT Cakrawala Parama Internasional">PT Cakrawala Parama Internasional</option>
-                  <option value="PT Yasodana Parvez Internasional">PT Yasodana Parvez Internasional</option>
-                </select>
-              </div>
-            </div>
-          </div>
 
           {/* CV File picker */}
           <div>

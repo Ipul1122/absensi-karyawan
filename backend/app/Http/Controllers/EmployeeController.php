@@ -7,20 +7,22 @@ use Illuminate\Http\Request;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Helpers\ImageHelper;
 
 class EmployeeController extends Controller
 {
 
     public function index()
     {
-        $employees = User::where('role', 'employee')->orderBy('id', 'desc')->get();
+        $user = auth('sanctum')->user();
+        $query = User::whereIn('role', ['employee', 'admin']);
+        $employees = $query->orderBy('id', 'desc')->get();
 
-        $data = $employees->map(function ($emp) {
+        $data = $employees->map(function (User $emp) {
             return [
                 'id'              => $emp->id,
                 'name'            => $emp->name,
                 'email'           => $emp->email,
-                'password_plain'  => $emp->password_plain,
                 'role'            => $emp->role,
                 'status'          => $emp->status,
                 'photo'           => $emp->photo ? asset('storage/' . $emp->photo) : null,
@@ -28,6 +30,13 @@ class EmployeeController extends Controller
                 'division'        => $emp->division,
                 'gender'          => $emp->gender,
                 'join_date'       => $emp->join_date,
+                'no_rekening'     => $emp->no_rekening,
+                'company'         => $emp->company,
+                'whatsapp'        => $emp->whatsapp,
+                'password_plain'  => $emp->password_plain,
+                'saturday_off'    => (bool)$emp->saturday_off,
+                'sunday_off'      => (bool)$emp->sunday_off,
+                'office_location' => $emp->office_location,
                 'created_at'      => $emp->created_at,
                 'updated_at'      => $emp->updated_at,
             ];
@@ -55,6 +64,10 @@ class EmployeeController extends Controller
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'no_rekening'     => 'nullable|string|max:50',
             'company'         => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
+            'whatsapp'        => 'nullable|string|max:30',
+            'saturday_off'    => 'nullable',
+            'sunday_off'      => 'nullable',
+            'office_location' => 'nullable|in:jakarta,bogor',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -79,10 +92,14 @@ class EmployeeController extends Controller
             'address'         => $request->address,
             'no_rekening'     => $request->no_rekening,
             'company'         => $request->company,
+            'whatsapp'        => $request->whatsapp,
+            'saturday_off'    => $request->has('saturday_off') ? filter_var($request->saturday_off, FILTER_VALIDATE_BOOLEAN) : false,
+            'sunday_off'      => $request->has('sunday_off') ? filter_var($request->sunday_off, FILTER_VALIDATE_BOOLEAN) : true,
+            'office_location' => $request->office_location ?: 'jakarta',
         ];
 
         if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('photos', 'public');
+            $path = ImageHelper::compressAndSaveWebp($request->file('photo'), 'photos');
             $data['photo'] = $path;
         }
 
@@ -102,7 +119,7 @@ class EmployeeController extends Controller
 
     public function destroy($id)
     {
-        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        $employee = $this->getEmployeeById($id);
 
         if (!$employee) {
             return response()->json([
@@ -129,7 +146,7 @@ class EmployeeController extends Controller
 
     public function approveEmployee($id)
     {
-        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        $employee = $this->getEmployeeById($id);
         if (!$employee) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
         }
@@ -139,7 +156,7 @@ class EmployeeController extends Controller
 
     public function rejectEmployee($id)
     {
-        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        $employee = $this->getEmployeeById($id);
         if (!$employee) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
         }
@@ -149,7 +166,7 @@ class EmployeeController extends Controller
 
     public function approveDeleteEmployee($id)
     {
-        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        $employee = $this->getEmployeeById($id);
         if (!$employee) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
         }
@@ -159,7 +176,7 @@ class EmployeeController extends Controller
 
     public function rejectDeleteEmployee($id)
     {
-        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        $employee = $this->getEmployeeById($id);
         if (!$employee) {
             return response()->json(['status' => 'error', 'message' => 'Karyawan tidak ditemukan.'], 404);
         }
@@ -169,7 +186,7 @@ class EmployeeController extends Controller
 
     public function update(Request $request, $id)
     {
-        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        $employee = $this->getEmployeeById($id);
 
         if (!$employee) {
             return response()->json([
@@ -180,6 +197,12 @@ class EmployeeController extends Controller
 
         $rules = [
             'name' => 'required|string|max:255',
+            'no_rekening' => 'nullable|string|max:50',
+            'company' => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
+            'whatsapp' => 'nullable|string|max:30',
+            'saturday_off' => 'nullable',
+            'sunday_off' => 'nullable',
+            'office_location' => 'nullable|in:jakarta,bogor',
         ];
 
         if ($request->filled('password')) {
@@ -187,11 +210,18 @@ class EmployeeController extends Controller
         }
 
         $request->validate($rules, [
-            'password.min' => 'Kata sandi baru minimal harus terdiri dari 6 karakter.'
+            'password.min' => 'Kata sandi baru minimal harus terdiri dari 6 karakter.',
+            'company.in' => 'Perusahaan tidak valid.',
         ]);
 
         $updateData = [
-            'name' => $request->name,
+            'name'        => $request->name,
+            'no_rekening' => $request->no_rekening ?: null,
+            'company'     => $request->company ?: null,
+            'whatsapp'    => $request->whatsapp ?: null,
+            'saturday_off' => $request->has('saturday_off') ? filter_var($request->saturday_off, FILTER_VALIDATE_BOOLEAN) : false,
+            'sunday_off' => $request->has('sunday_off') ? filter_var($request->sunday_off, FILTER_VALIDATE_BOOLEAN) : true,
+            'office_location' => $request->office_location ?: 'jakarta',
         ];
 
         if ($request->filled('password')) {
@@ -213,7 +243,7 @@ class EmployeeController extends Controller
      */
     public function getEmployeeProfile($id)
     {
-        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        $employee = $this->getEmployeeById($id);
 
         if (!$employee) {
             return response()->json([
@@ -238,6 +268,10 @@ class EmployeeController extends Controller
                 'cv'              => $employee->cv ? asset('storage/' . $employee->cv) : null,
                 'no_rekening'     => $employee->no_rekening,
                 'company'         => $employee->company,
+                'whatsapp'        => $employee->whatsapp,
+                'saturday_off'    => (bool)$employee->saturday_off,
+                'sunday_off'      => (bool)$employee->sunday_off,
+                'office_location' => $employee->office_location,
                 'created_at'      => $employee->created_at,
             ]
         ]);
@@ -248,7 +282,7 @@ class EmployeeController extends Controller
      */
     public function updateEmployeeProfile(Request $request, $id)
     {
-        $employee = User::where('id', $id)->where('role', 'employee')->first();
+        $employee = $this->getEmployeeById($id);
 
         if (!$employee) {
             return response()->json([
@@ -270,6 +304,10 @@ class EmployeeController extends Controller
             'cv'              => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'no_rekening'     => 'nullable|string|max:50',
             'company'         => 'nullable|in:PT Cakrawala Parama Internasional,PT Yasodana Parvez Internasional',
+            'whatsapp'        => 'nullable|string|max:30',
+            'saturday_off'    => 'nullable',
+            'sunday_off'      => 'nullable',
+            'office_location' => 'nullable|in:jakarta,bogor',
         ], [
             'email.unique'           => 'Email ini sudah digunakan oleh akun lain.',
             'employee_number.unique' => 'Nomor karyawan sudah digunakan oleh karyawan lain.',
@@ -279,14 +317,31 @@ class EmployeeController extends Controller
             'company.in'             => 'Perusahaan tidak valid.',
         ]);
 
-        $data = $request->only(['name', 'email', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'no_rekening', 'company']);
+        $data = [
+            'name'            => $request->name,
+            'email'           => $request->email,
+            'date_of_birth'   => $request->date_of_birth ?: null,
+            'address'         => $request->address ?: null,
+            'employee_number' => $request->employee_number ?: null,
+            'join_date'       => $request->join_date ?: null,
+            'gender'          => $request->gender ?: null,
+            'division'        => $request->division ?: null,
+            'no_rekening'     => $request->no_rekening ?: null,
+            'company'         => $request->company ?: null,
+            'whatsapp'        => $request->whatsapp ?: null,
+            'saturday_off'    => $request->has('saturday_off') ? filter_var($request->saturday_off, FILTER_VALIDATE_BOOLEAN) : false,
+            'sunday_off'      => $request->has('sunday_off') ? filter_var($request->sunday_off, FILTER_VALIDATE_BOOLEAN) : true,
+            'office_location' => $request->office_location ?: 'jakarta',
+        ];
+
+        $employee->update($data);
 
         if ($request->hasFile('photo')) {
             if ($employee->photo) {
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($employee->photo);
             }
-            $path = $request->file('photo')->store('photos', 'public');
-            $data['photo'] = $path;
+            $path = ImageHelper::compressAndSaveWebp($request->file('photo'), 'photos');
+            $employee->update(['photo' => $path]);
         }
 
         if ($request->hasFile('cv')) {
@@ -294,10 +349,10 @@ class EmployeeController extends Controller
                 \Illuminate\Support\Facades\Storage::disk('public')->delete($employee->cv);
             }
             $path = $request->file('cv')->store('cvs', 'public');
-            $data['cv'] = $path;
+            $employee->update(['cv' => $path]);
         }
 
-        $employee->update($data);
+        $employee->refresh();
 
         return response()->json([
             'status'  => 'success',
@@ -316,7 +371,26 @@ class EmployeeController extends Controller
                 'cv'              => $employee->cv ? asset('storage/' . $employee->cv) : null,
                 'no_rekening'     => $employee->no_rekening,
                 'company'         => $employee->company,
+                'whatsapp'        => $employee->whatsapp,
+                'saturday_off'    => (bool)$employee->saturday_off,
+                'sunday_off'      => (bool)$employee->sunday_off,
+                'office_location' => $employee->office_location,
             ]
+        ]);
+    }
+
+    private function getEmployeeById($id)
+    {
+        $query = User::where('id', $id)->whereIn('role', ['employee', 'admin']);
+        return $query->first();
+    }
+
+    public function getDirectorsList()
+    {
+        $directors = User::where('role', 'director')->get(['id', 'name', 'email', 'company', 'whatsapp', 'last_seen_at']);
+        return response()->json([
+            'status' => 'success',
+            'data' => $directors
         ]);
     }
 }

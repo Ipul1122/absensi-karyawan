@@ -10,6 +10,7 @@ import PersetujuanGaji from './persetujuan/PersetujuanGaji'
 import PersetujuanPayroll from './persetujuan/PersetujuanPayroll'
 import PersetujuanOperational from './persetujuan/PersetujuanOperational'
 import LogKehadiran from './kehadiran/LogKehadiran'
+import DirectorSettings from './pengaturan/DirectorSettings'
 
 interface User {
   id: number
@@ -17,15 +18,17 @@ interface User {
   email: string
   role: 'admin' | 'employee' | 'director'
   photo?: string | null
+  company?: string
 }
 
 interface DirectorDashboardProps {
   user: User
   token: string
   onLogout: () => void
+  onProfileUpdate: (updatedFields: { name: string; email: string; photo?: string | null }) => void
 }
 
-export default function DirectorDashboard({ user, token, onLogout }: DirectorDashboardProps) {
+export default function DirectorDashboard({ user, token, onLogout, onProfileUpdate }: DirectorDashboardProps) {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const location = useLocation()
   const path = location.pathname
@@ -36,6 +39,7 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
   const [pendingOperasionalCount, setPendingOperasionalCount] = useState(0)
 
   const fetchPendingCounts = async () => {
+    if (document.hidden) return
     try {
       const res = await axios.get('http://localhost:8000/api/sidebar/counts', {
         headers: { Authorization: `Bearer ${token}` }
@@ -54,17 +58,18 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
 
   useEffect(() => {
     fetchPendingCounts()
-    const interval = setInterval(fetchPendingCounts, 15000)
+    const interval = setInterval(fetchPendingCounts, 60000)
     return () => clearInterval(interval)
   }, [token])
 
   let pageTitle = 'Dashboard Utama'
   let pageSubtitle = 'Selamat datang, pantau semua persetujuan yang menunggu tindakan Anda'
-  if (path.includes('/karyawan')) { pageTitle = 'Persetujuan Karyawan'; pageSubtitle = 'Kelola pendaftaran karyawan baru dan pengajuan penghapusan akun' }
+  if (path.includes('/karyawan')) { pageTitle = 'Kelola Karyawan'; pageSubtitle = 'Pantau direktori lengkap serta kelola persetujuan registrasi/penghapusan akun' }
   else if (path.includes('/gaji')) { pageTitle = 'Persetujuan Gaji'; pageSubtitle = 'Setujui atau tolak penyesuaian nominal gaji dan tunjangan karyawan' }
   else if (path.includes('/payroll')) { pageTitle = 'Persetujuan Payroll Bulanan'; pageSubtitle = 'Validasi dan sahkan rekap slip gaji karyawan sebelum ditransfer' }
   else if (path.includes('/operasional')) { pageTitle = 'Persetujuan Operasional'; pageSubtitle = 'Proses pengajuan cuti, lembur, klaim biaya, bonus, dan inventaris barang' }
   else if (path.includes('/log-kehadiran')) { pageTitle = 'Log Kehadiran'; pageSubtitle = 'Pantau riwayat aktivitas absensi harian karyawan dan admin' }
+  else if (path.includes('/pengaturan')) { pageTitle = 'Pengaturan Akun'; pageSubtitle = 'Ubah biodata nama dan kata sandi login Anda' }
 
   return (
     <div className="flex min-h-screen text-slate-800" style={{ fontFamily: "'Inter', 'system-ui', sans-serif" }}>
@@ -82,38 +87,46 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        <DirectorNavbar user={user} title={pageTitle} subtitle={pageSubtitle} />
+        <DirectorNavbar user={user} title={pageTitle} subtitle={pageSubtitle} onLogout={onLogout} />
         <DirectorMobileNavbar 
           onMenuClick={() => setShowMobileSidebar(true)} 
           pendingCount={pendingKaryawanCount + pendingGajiCount + pendingPayrollCount + pendingOperasionalCount} 
+          company={user.company}
         />
         
         {/* Mobile Sidebar Drawer */}
-        {showMobileSidebar && (
-          <div className="fixed inset-0 z-50 flex md:hidden">
-            <div
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+        <div 
+          className={`fixed inset-0 z-50 flex md:hidden bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${
+            showMobileSidebar ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <div
+            className="fixed inset-0"
+            onClick={() => setShowMobileSidebar(false)}
+          />
+          <div 
+            className={`relative w-64 max-w-xs h-full flex flex-col p-6 bg-white border-r border-orange-100 shadow-2xl overflow-y-auto transition-transform duration-300 ease-out ${
+              showMobileSidebar ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
+            <button
               onClick={() => setShowMobileSidebar(false)}
+              className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer z-10 active:scale-90"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <DirectorSidebar 
+              user={user} 
+              onLogout={onLogout} 
+              onClose={() => setShowMobileSidebar(false)} 
+              pendingKaryawanCount={pendingKaryawanCount} 
+              pendingGajiCount={pendingGajiCount} 
+              pendingPayrollCount={pendingPayrollCount}
+              pendingOperasionalCount={pendingOperasionalCount}
             />
-            <div className="relative w-64 max-w-xs h-full flex flex-col p-6 bg-white border-r border-orange-100 shadow-2xl overflow-y-auto">
-              <button
-                onClick={() => setShowMobileSidebar(false)}
-                className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer z-10"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <DirectorSidebar 
-                user={user} 
-                onLogout={onLogout} 
-                onClose={() => setShowMobileSidebar(false)} 
-                pendingKaryawanCount={pendingKaryawanCount} 
-                pendingGajiCount={pendingGajiCount} 
-                pendingPayrollCount={pendingPayrollCount}
-                pendingOperasionalCount={pendingOperasionalCount}
-              />
-            </div>
+
           </div>
-        )}
+        </div>
 
         <main
           className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto"
@@ -126,7 +139,9 @@ export default function DirectorDashboard({ user, token, onLogout }: DirectorDas
             <Route path="payroll" element={<PersetujuanPayroll token={token} />} />
             <Route path="operasional" element={<PersetujuanOperational token={token} />} />
             <Route path="log-kehadiran" element={<LogKehadiran token={token} />} />
-            <Route path="*" element={<Navigate to="dashboard" replace />} />
+            <Route path="pengaturan" element={<DirectorSettings user={user} token={token} onProfileUpdate={onProfileUpdate} />} />
+            <Route path="" element={<Navigate to="dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         </main>
       </div>

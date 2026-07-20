@@ -31,7 +31,7 @@ class BonusController extends Controller
      */
     public function indexAdmin(Request $request)
     {
-        $query = Bonus::with('user:id,name,email');
+        $query = Bonus::with('user:id,name,email,company');
 
         if ($request->has('user_id') && $request->user_id != 'all') {
             $query->where('user_id', $request->user_id);
@@ -77,7 +77,7 @@ class BonusController extends Controller
             ]);
 
             // Load user info for response
-            $bonus->load('user:id,name,email');
+            $bonus->load('user:id,name,email,company');
 
             return response()->json([
                 'status' => 'success',
@@ -99,13 +99,6 @@ class BonusController extends Controller
     {
         $bonus = Bonus::findOrFail($id);
 
-        if ($bonus->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Bonus yang sudah diproses (disetujui/ditolak) tidak dapat diubah lagi.'
-            ], 422);
-        }
-
         $request->validate([
             'bonus_amount' => 'required|numeric|min:1',
             'bonus_date' => 'required|date',
@@ -125,7 +118,7 @@ class BonusController extends Controller
                 'description' => $request->description,
             ]);
 
-            $bonus->load('user:id,name,email');
+            $bonus->load('user:id,name,email,company');
 
             return response()->json([
                 'status' => 'success',
@@ -146,13 +139,6 @@ class BonusController extends Controller
     public function destroy($id)
     {
         $bonus = Bonus::findOrFail($id);
-
-        if ($bonus->status !== 'pending') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Bonus yang sudah diproses (disetujui/ditolak) tidak dapat dihapus.'
-            ], 422);
-        }
 
         try {
             $bonus->delete();

@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import RecycleBin from './RecycleBin'
 import L from 'leaflet'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import {
   Loader2,
   MapPin,
@@ -18,7 +21,13 @@ import {
   FileUp,
   Lock,
   ShieldAlert,
-  CheckCircle2
+  CheckCircle2,
+  CreditCard,
+  Phone,
+  Database,
+  UploadCloud,
+  DownloadCloud,
+  Info
 } from 'lucide-react'
 
 interface UserProp {
@@ -28,18 +37,7 @@ interface UserProp {
   role: 'admin' | 'employee'
 }
 
-interface LokasiKantorProps {
-  officeLatitude: string
-  setOfficeLatitude: (v: string) => void
-  officeLongitude: string
-  setOfficeLongitude: (v: string) => void
-  officeRadius: number
-  setOfficeRadius: (v: number) => void
-  savingOffice: boolean
-  handleOfficeSettingSubmit: (e: React.FormEvent) => void
-  user: UserProp
-  token: string
-}
+
 
 interface ProfileData {
   name: string
@@ -52,9 +50,32 @@ interface ProfileData {
   gender: string
   cv: string | null
   division: string
+  no_rekening: string
+  whatsapp: string
 }
 
-type ActiveTab = 'lokasi' | 'akun' | 'biodata'
+type ActiveTab = 'lokasi' | 'akun' | 'biodata' | 'backup'
+
+interface LokasiKantorProps {
+  officeLatitude: string
+  setOfficeLatitude: (v: string) => void
+  officeLongitude: string
+  setOfficeLongitude: (v: string) => void
+  officeRadius: number
+  setOfficeRadius: (v: number) => void
+  bogorLatitude: string
+  setBogorLatitude: (v: string) => void
+  bogorLongitude: string
+  setBogorLongitude: (v: string) => void
+  bogorRadius: number
+  setBogorRadius: (v: number) => void
+  savingOffice: boolean
+  handleOfficeSettingSubmit: (e: React.FormEvent) => void
+  user: UserProp
+  token: string
+  onProfileUpdate?: (updatedFields: { name: string; email: string; photo?: string | null }) => void
+  initialTab?: ActiveTab
+}
 
 export default function LokasiKantor({
   officeLatitude,
@@ -63,12 +84,20 @@ export default function LokasiKantor({
   setOfficeLongitude,
   officeRadius,
   setOfficeRadius,
+  bogorLatitude,
+  setBogorLatitude,
+  bogorLongitude,
+  setBogorLongitude,
+  bogorRadius,
+  setBogorRadius,
   savingOffice,
   handleOfficeSettingSubmit,
   user,
-  token
+  token,
+  onProfileUpdate,
+  initialTab = 'lokasi'
 }: LokasiKantorProps) {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('lokasi')
+  const activeTab: ActiveTab = initialTab
 
   // ---------- Profile / Biodata States ----------
   const [profile, setProfile] = useState<ProfileData>({
@@ -81,7 +110,9 @@ export default function LokasiKantor({
     join_date: '',
     gender: '',
     cv: null,
-    division: ''
+    division: '',
+    no_rekening: '',
+    whatsapp: ''
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -96,11 +127,193 @@ export default function LokasiKantor({
   const [confirmPassword, setConfirmPassword] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
 
+  // ---------- Backup & Restore States ----------
+  const [backupSubTab, setBackupSubTab] = useState<'db' | 'recycle'>('db')
+  const [importing, setImporting] = useState(false)
+  const [backupFile, setBackupFile] = useState<File | null>(null)
+  const fileInputBackupRef = useRef<HTMLInputElement>(null)
+
+  const handleExportBackup = async () => {
+    Swal.fire({
+      title: 'Unduh Backup Database?',
+      text: 'Proses ini akan mengunduh semua data tabel saat ini ke dalam file .sql.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Unduh',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#64748b',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        Swal.fire({
+          title: 'Memproses...',
+          text: 'Sedang menyiapkan berkas backup...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading()
+          }
+        })
+        
+        try {
+          const response = await axios.get('http://localhost:8000/api/admin/backup/export', {
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: 'blob'
+          })
+          
+          const url = window.URL.createObjectURL(new Blob([response.data]))
+          const link = document.createElement('a')
+          link.href = url
+          
+          const filename = `backup_goodpeople_hcms_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}_${Math.floor(Date.now() / 1000)}.sql`
+          link.setAttribute('download', filename)
+          document.body.appendChild(link)
+          link.click()
+          
+          link.parentNode?.removeChild(link)
+          window.URL.revokeObjectURL(url)
+          
+          Swal.fire({
+            title: 'Berhasil!',
+            text: 'File backup basis data berhasil diunduh.',
+            icon: 'success',
+            background: '#fffdfb',
+            color: '#3c1105',
+            confirmButtonColor: '#ea580c'
+          })
+        } catch (err: any) {
+          console.error(err)
+          Swal.fire({
+            title: 'Ekspor Gagal',
+            text: 'Gagal mengunduh file backup basis data.',
+            icon: 'error',
+            background: '#fffdfb',
+            color: '#3c1105',
+            confirmButtonColor: '#ef4444'
+          })
+        }
+      }
+    })
+  }
+
+  const handleImportBackup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!backupFile) {
+      Swal.fire({
+        title: 'File Belum Dipilih',
+        text: 'Silakan pilih file backup .sql terlebih dahulu.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105',
+        confirmButtonColor: '#ea580c'
+      })
+      return
+    }
+
+    Swal.fire({
+      title: 'Pulihkan Basis Data?',
+      text: 'PERINGATAN: Tindakan ini akan menghapus semua data tabel saat ini dan menggantinya dengan data dari file backup. Tindakan ini tidak dapat dibatalkan!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Pulihkan!',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#475569',
+      background: '#fffdfb',
+      color: '#3c1105'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setImporting(true)
+        Swal.fire({
+          title: 'Memulihkan Data...',
+          text: 'Harap tunggu, jangan menutup halaman ini.',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading()
+          }
+        })
+
+        const formData = new FormData()
+        formData.append('backup_file', backupFile)
+
+        try {
+          const res = await axios.post('http://localhost:8000/api/admin/backup/import', formData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          })
+
+          if (res.data.status === 'success') {
+            setBackupFile(null)
+            if (fileInputBackupRef.current) {
+              fileInputBackupRef.current.value = ''
+            }
+            
+            Swal.fire({
+              title: 'Pemulihan Berhasil!',
+              text: 'Basis data berhasil dipulihkan ke kondisi backup.',
+              icon: 'success',
+              background: '#fffdfb',
+              color: '#3c1105',
+              confirmButtonColor: '#ea580c'
+            }).then(() => {
+              window.location.reload()
+            })
+          }
+        } catch (err: any) {
+          console.error(err)
+          const msg = err.response?.data?.message || 'Gagal memulihkan basis data dari file SQL.'
+          Swal.fire({
+            title: 'Pemulihan Gagal',
+            text: msg,
+            icon: 'error',
+            background: '#fffdfb',
+            color: '#3c1105',
+            confirmButtonColor: '#ef4444'
+          })
+        } finally {
+          setImporting(false)
+        }
+      }
+    })
+  }
+
+  const handleBackupFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (ext !== 'sql') {
+      Swal.fire({
+        title: 'Format File Salah',
+        text: 'Hanya file dengan ekstensi .sql yang diperbolehkan.',
+        icon: 'warning',
+        background: '#fffdfb',
+        color: '#3c1105',
+        confirmButtonColor: '#ea580c'
+      })
+      if (fileInputBackupRef.current) {
+        fileInputBackupRef.current.value = ''
+      }
+      return
+    }
+
+    setBackupFile(file)
+  }
+
+
   // Leaflet Map Refs
   const configMapRef = useRef<HTMLDivElement | null>(null)
   const configMapInstance = useRef<L.Map | null>(null)
   const configMarkerRef = useRef<L.Marker | null>(null)
   const configCircleRef = useRef<L.Circle | null>(null)
+
+  const bogorMapRef = useRef<HTMLDivElement | null>(null)
+  const bogorMapInstance = useRef<L.Map | null>(null)
+  const bogorMarkerRef = useRef<L.Marker | null>(null)
+  const bogorCircleRef = useRef<L.Circle | null>(null)
 
   useEffect(() => {
     fetchProfile()
@@ -124,7 +337,9 @@ export default function LokasiKantor({
           join_date: d.join_date ?? '',
           gender: d.gender ?? '',
           cv: d.cv ?? null,
-          division: d.division ?? ''
+          division: d.division ?? '',
+          no_rekening: d.no_rekening ?? '',
+          whatsapp: d.whatsapp ?? ''
         })
         if (d.photo) setPhotoPreview(d.photo)
       }
@@ -137,7 +352,7 @@ export default function LokasiKantor({
 
   // Initialize and update Office Settings Config Map
   useEffect(() => {
-    if (activeTab !== 'lokasi') {
+    if (initialTab !== 'lokasi') {
       if (configMapInstance.current) {
         configMapInstance.current.remove()
         configMapInstance.current = null
@@ -218,7 +433,84 @@ export default function LokasiKantor({
     return () => {
       clearTimeout(timer)
     }
-  }, [officeLatitude, officeLongitude, officeRadius, activeTab])
+  }, [officeLatitude, officeLongitude, officeRadius, initialTab])
+
+  // Initialize and update Bogor Settings Map
+  useEffect(() => {
+    if (initialTab !== 'lokasi') {
+      if (bogorMapInstance.current) {
+        bogorMapInstance.current.remove()
+        bogorMapInstance.current = null
+        bogorMarkerRef.current = null
+        bogorCircleRef.current = null
+      }
+      return
+    }
+
+    if (!bogorMapRef.current) return
+
+    const lat = parseFloat(bogorLatitude)
+    const lng = parseFloat(bogorLongitude)
+    if (isNaN(lat) || isNaN(lng)) return
+
+    // Setup map instance if not exists
+    if (!bogorMapInstance.current) {
+      const map = L.map(bogorMapRef.current).setView([lat, lng], 16)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map)
+
+      bogorMapInstance.current = map
+
+      // Map click handler to relocate office
+      map.on('click', (e) => {
+        setBogorLatitude(e.latlng.lat.toFixed(6))
+        setBogorLongitude(e.latlng.lng.toFixed(6))
+      })
+    }
+
+    const map = bogorMapInstance.current
+
+    // Update/Create config marker
+    if (bogorMarkerRef.current) {
+      bogorMarkerRef.current.setLatLng([lat, lng])
+    } else {
+      bogorMarkerRef.current = L.marker([lat, lng], { draggable: true })
+        .addTo(map)
+        .bindPopup('Lokasi Kantor Bogor (Seret pin atau klik peta untuk memindahkan)')
+        .openPopup()
+
+      bogorMarkerRef.current.on('dragend', (e) => {
+        const latLng = e.target.getLatLng()
+        setBogorLatitude(latLng.lat.toFixed(6))
+        setBogorLongitude(latLng.lng.toFixed(6))
+      })
+    }
+
+    // Update/Create config radius circle
+    if (bogorCircleRef.current) {
+      bogorCircleRef.current.setLatLng([lat, lng])
+      bogorCircleRef.current.setRadius(bogorRadius)
+    } else {
+      bogorCircleRef.current = L.circle([lat, lng], {
+        color: '#3b82f6', // blue color for Bogor
+        fillColor: '#60a5fa',
+        fillOpacity: 0.15,
+        radius: bogorRadius
+      }).addTo(map)
+    }
+
+    map.setView([lat, lng])
+
+    // Workaround to draw Leaflet correctly on render
+    const timer = setTimeout(() => {
+      map.invalidateSize()
+    }, 200)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [bogorLatitude, bogorLongitude, bogorRadius, initialTab])
 
   // Cleanup config map on unmount
   useEffect(() => {
@@ -228,6 +520,12 @@ export default function LokasiKantor({
         configMapInstance.current = null
         configMarkerRef.current = null
         configCircleRef.current = null
+      }
+      if (bogorMapInstance.current) {
+        bogorMapInstance.current.remove()
+        bogorMapInstance.current = null
+        bogorMarkerRef.current = null
+        bogorCircleRef.current = null
       }
     }
   }, [])
@@ -302,6 +600,8 @@ export default function LokasiKantor({
       if (profile.gender) formData.append('gender', profile.gender)
       if (photoFile) formData.append('photo', photoFile)
       if (cvFile) formData.append('cv', cvFile)
+      formData.append('no_rekening', profile.no_rekening)
+      formData.append('whatsapp', profile.whatsapp || '')
 
       const res = await axios.post('http://localhost:8000/api/user/profile', formData, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
@@ -311,8 +611,18 @@ export default function LokasiKantor({
         setPhotoFile(null)
         setCvFile(null)
         if (res.data.data.photo) setPhotoPreview(res.data.data.photo)
-        if (res.data.data.cv) {
-          setProfile(p => ({ ...p, cv: res.data.data.cv }))
+        setProfile(p => ({
+          ...p,
+          cv: res.data.data.cv ?? p.cv,
+          no_rekening: res.data.data.no_rekening ?? '',
+          whatsapp: res.data.data.whatsapp ?? ''
+        }))
+        if (onProfileUpdate) {
+          onProfileUpdate({
+            name: res.data.data.name,
+            email: res.data.data.email,
+            photo: res.data.data.photo
+          })
         }
       }
     } catch (err: any) {
@@ -358,54 +668,62 @@ export default function LokasiKantor({
   const inputClass = "w-full bg-slate-50 border border-slate-200 hover:border-orange-200 focus:border-red-400 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none transition-all text-xs font-semibold focus:ring-2 focus:ring-red-100 font-quicksand"
   const labelClass = "block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand"
 
-  const tabs = [
-    { key: 'lokasi' as const, label: 'Lokasi Kantor', icon: MapPin, desc: 'Koordinat & Radius Absen' },
-    { key: 'akun' as const, label: 'Akun & Keamanan', icon: KeyRound, desc: 'Email & Kata Sandi' },
-    { key: 'biodata' as const, label: 'Biodata Pribadi', icon: UserCircle2, desc: 'Profil & CV Admin' },
-  ]
-
   // Completeness indicator calculation
-  const biodataFields = [profile.photo, profile.date_of_birth, profile.address, profile.employee_number, profile.join_date, profile.gender, profile.cv]
+  const biodataFields = [profile.photo, profile.date_of_birth, profile.address, profile.employee_number, profile.join_date, profile.gender, profile.cv, profile.no_rekening, profile.whatsapp]
   const filled = biodataFields.filter(Boolean).length
   const percent = Math.round((filled / biodataFields.length) * 100)
 
   return (
     <div className="space-y-6">
-      {/* ===== TAB SWITCHER ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-quicksand">
-        {tabs.map(tab => {
-          const Icon = tab.icon
-          const isActive = activeTab === tab.key
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`relative flex items-center gap-3 p-4 rounded-3xl border-2 text-left transition-all cursor-pointer group ${
-                isActive
-                  ? 'bg-gradient-to-br from-red-50 to-orange-50 border-red-300 shadow-md shadow-red-500/10'
-                  : 'bg-white border-orange-100 hover:border-orange-200 hover:bg-orange-50/30'
-              }`}
-            >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-                isActive
-                  ? 'bg-gradient-to-br from-red-500 to-orange-600 text-white shadow-md shadow-red-350'
-                  : 'bg-orange-50 text-orange-400 group-hover:bg-orange-100'
+
+      {/* ===== SETTINGS TAB SWITCHER ===== */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-orange-50/20 border border-orange-100 p-2 rounded-2xl font-quicksand shadow-xs shrink-0 max-w-3xl mx-auto">
+        <Link
+          to="/admin/lokasiKantor"
+          className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl text-center text-[10px] sm:text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.98] ${activeTab === 'lokasi'
+              ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-md shadow-orange-500/15'
+              : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 bg-white/70 border border-orange-100/40'
+            }`}
+        >
+          <MapPin className="w-4 h-4 shrink-0" />
+          <span className="truncate">Lokasi & Radius</span>
+        </Link>
+        <Link
+          to="/admin/keamanan"
+          className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl text-center text-[10px] sm:text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.98] ${activeTab === 'akun'
+              ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-md shadow-orange-500/15'
+              : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 bg-white/70 border border-orange-100/40'
+            }`}
+        >
+          <KeyRound className="w-4 h-4 shrink-0" />
+          <span className="truncate">Akun & Keamanan</span>
+        </Link>
+        <Link
+          to="/admin/biodata"
+          className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl text-center text-[10px] sm:text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.98] relative ${activeTab === 'biodata'
+              ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-md shadow-orange-500/15'
+              : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 bg-white/70 border border-orange-100/40'
+            }`}
+        >
+          <UserCircle2 className="w-4 h-4 shrink-0" />
+          <span className="truncate">Biodata Pribadi</span>
+          {percent < 100 && (
+            <span className={`absolute top-1.5 right-1.5 sm:relative sm:top-0 sm:right-0 px-1 py-0.5 rounded text-[8px] font-black leading-none ${activeTab === 'biodata' ? 'bg-white/20 text-white' : 'bg-orange-100 text-orange-700'
               }`}>
-                <Icon className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex-grow min-w-0">
-                <p className={`text-xs font-extrabold truncate ${isActive ? 'text-red-700 font-black' : 'text-slate-700'}`}>
-                  {tab.label}
-                </p>
-                <p className="text-[10px] text-slate-400 truncate mt-0.5">{tab.desc}</p>
-              </div>
-              {isActive && (
-                <div className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              )}
-            </button>
-          )
-        })}
+              {percent}%
+            </span>
+          )}
+        </Link>
+        <Link
+          to="/admin/backup"
+          className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-3 py-3 rounded-xl text-center text-[10px] sm:text-xs font-bold transition-all duration-200 cursor-pointer group active:scale-[0.98] ${activeTab === 'backup'
+              ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-md shadow-orange-500/15'
+              : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 bg-white/70 border border-orange-100/40'
+            }`}
+        >
+          <Database className="w-4 h-4 shrink-0" />
+          <span className="truncate">Backup Data</span>
+        </Link>
       </div>
 
       {/* ===== TAB: LOKASI KANTOR ===== */}
@@ -418,98 +736,175 @@ export default function LokasiKantor({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Form Config */}
-            <div className="lg:col-span-4 space-y-4">
-              <form onSubmit={handleOfficeSettingSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Latitude Kantor
+          <form onSubmit={handleOfficeSettingSubmit} className="space-y-8">
+            {/* KANTOR JAKARTA */}
+            <div className="border-b border-orange-100/60 pb-8">
+              <h4 className="text-sm font-extrabold text-red-650 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span> Kantor Jakarta (Pusat)
+              </h4>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Form Config */}
+                <div className="lg:col-span-4 space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Latitude Kantor
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="-6.2088"
+                      value={officeLatitude}
+                      onChange={(e) => setOfficeLatitude(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Longitude Kantor
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="106.8456"
+                      value={officeLongitude}
+                      onChange={(e) => setOfficeLongitude(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Radius Jangkauan (Meter)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="5"
+                      max="1000000"
+                      placeholder="100"
+                      value={officeRadius}
+                      onChange={(e) => setOfficeRadius(parseInt(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+                </div>
+
+                {/* Map Config View */}
+                <div className="lg:col-span-8 space-y-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
+                    Visualisasi Peta Kantor Jakarta & Radius Batas Absen
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="-6.2088"
-                    value={officeLatitude}
-                    onChange={(e) => setOfficeLatitude(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
-                  />
+                  <div className="relative w-full h-[320px] rounded-3xl bg-white border border-orange-100 overflow-hidden shadow-inner">
+                    <div
+                      ref={configMapRef}
+                      id="office-map-config"
+                      className="w-full h-full z-10"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* KANTOR BOGOR */}
+            <div className="border-b border-orange-100/60 pb-8">
+              <h4 className="text-sm font-extrabold text-blue-600 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span> Kantor Bogor (Cabang)
+              </h4>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Form Config */}
+                <div className="lg:col-span-4 space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Latitude Kantor
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="-6.5971"
+                      value={bogorLatitude}
+                      onChange={(e) => setBogorLatitude(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand">
+                      Longitude Kantor
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="106.7973"
+                      value={bogorLongitude}
+                      onChange={(e) => setBogorLongitude(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Radius Jangkauan (Meter)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="5"
+                      max="500000"
+                      placeholder="100"
+                      value={bogorRadius}
+                      onChange={(e) => setBogorRadius(parseInt(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Longitude Kantor
+                {/* Map Config View */}
+                <div className="lg:col-span-8 space-y-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
+                    Visualisasi Peta Kantor Bogor & Radius Batas Absen
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="106.8456"
-                    value={officeLongitude}
-                    onChange={(e) => setOfficeLongitude(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
-                  />
+                  <div className="relative w-full h-[320px] rounded-3xl bg-white border border-orange-100 overflow-hidden shadow-inner">
+                    <div
+                      ref={bogorMapRef}
+                      id="bogor-map-config"
+                      className="w-full h-full z-10"
+                    />
+                  </div>
                 </div>
+              </div>
+            </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Radius Jangkauan (Meter)
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="5"
-                    max="10000"
-                    placeholder="100"
-                    value={officeRadius}
-                    onChange={(e) => setOfficeRadius(parseInt(e.target.value) || 0)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-red-400 text-slate-800 rounded-xl py-2.5 px-4 outline-none transition-all text-xs font-mono font-semibold"
-                  />
-                </div>
+            {/* Submit Button & Guide */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6 border-t border-orange-100">
+              <div className="lg:col-span-4">
+                <button
+                  type="submit"
+                  disabled={savingOffice}
+                  className="w-full px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed font-quicksand font-semibold"
+                >
+                  {savingOffice ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan Lokasi & Radius'
+                  )}
+                </button>
+              </div>
 
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={savingOffice}
-                    className="w-full px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {savingOffice ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Menyimpan...
-                      </>
-                    ) : (
-                      'Simpan Lokasi & Radius'
-                    )}
-                  </button>
-                </div>
-              </form>
-
-              <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-2xl space-y-2 text-[11px] text-slate-600 leading-normal">
-                <p className="font-bold text-red-600 flex items-center gap-1.5">
+              <div className="lg:col-span-8 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl space-y-2 text-[11px] text-slate-600 leading-normal font-quicksand font-semibold">
+                <p className="font-bold text-red-650 flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-red-500 shrink-0" /> Petunjuk Penggunaan Peta:
                 </p>
-                <ul className="list-disc pl-4 space-y-1 font-medium">
-                  <li>Klik di bagian mana pun pada peta untuk memindahkan lokasi pin kantor secara instan.</li>
+                <ul className="list-disc pl-4 space-y-1 font-medium text-slate-550">
+                  <li>Klik di bagian mana pun pada peta untuk memindahkan lokasi pin kantor Jakarta atau Bogor secara instan.</li>
                   <li>Atau, seret (drag) pin untuk menyempurnakan posisi koordinat.</li>
                   <li>Sesuaikan jangkauan radius dengan memasukkan nilai meter (misal: 100).</li>
                 </ul>
               </div>
             </div>
-
-            {/* Map Config View */}
-            <div className="lg:col-span-8 space-y-2">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Visualisasi Peta Lokasi Kantor & Radius Batas Absen
-              </label>
-              <div className="relative w-full h-[400px] rounded-3xl bg-white border border-orange-100 overflow-hidden shadow-inner">
-                <div
-                  ref={configMapRef}
-                  id="office-map-config"
-                  className="w-full h-full z-10"
-                />
-              </div>
-            </div>
-          </div>
+          </form>
         </section>
       )}
 
@@ -530,7 +925,7 @@ export default function LokasiKantor({
           <div className="flex items-center gap-4 p-3.5 bg-orange-50/40 border border-orange-100 rounded-2xl">
             {photoPreview ? (
               <img
-                src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : `http://localhost:8000${photoPreview}`}
+                src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : getAssetUrl(photoPreview)}
                 alt="Foto"
                 className="w-10 h-10 rounded-xl object-cover border-2 border-orange-200 shrink-0"
               />
@@ -665,7 +1060,7 @@ export default function LokasiKantor({
                 <div className="relative shrink-0">
                   {photoPreview ? (
                     <img
-                      src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : `http://localhost:8000${photoPreview}`}
+                      src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : getAssetUrl(photoPreview)}
                       alt="Foto Profil"
                       className="w-20 h-20 rounded-2xl object-cover border-2 border-orange-200 shadow-md shadow-orange-100"
                     />
@@ -744,9 +1139,10 @@ export default function LokasiKantor({
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Hash className="w-4 h-4" /></div>
                     <input
                       type="text"
-                      value={profile.employee_number || 'Belum Diatur'}
+                      value={profile.employee_number}
+                      onChange={e => setProfile(p => ({ ...p, employee_number: e.target.value }))}
+                      placeholder="Belum Diatur"
                       className={inputClass}
-                      disabled={true}
                     />
                   </div>
                 </div>
@@ -800,10 +1196,44 @@ export default function LokasiKantor({
                     <input
                       type="date"
                       value={profile.join_date}
+                      onChange={e => setProfile(p => ({ ...p, join_date: e.target.value }))}
                       className={inputClass}
-                      disabled={true}
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* ---- Nomor Rekening ---- */}
+              <div>
+                <label className={labelClass}>Nomor Rekening</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.no_rekening}
+                    onChange={e => setProfile(p => ({ ...p, no_rekening: e.target.value }))}
+                    placeholder="Masukkan nomor rekening bank..."
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              {/* ---- Nomor WhatsApp ---- */}
+              <div>
+                <label className={labelClass}>Nomor WhatsApp</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={profile.whatsapp}
+                    onChange={e => setProfile(p => ({ ...p, whatsapp: e.target.value }))}
+                    placeholder="Contoh: 08123456789"
+                    className={inputClass}
+                  />
                 </div>
               </div>
 
@@ -884,6 +1314,135 @@ export default function LokasiKantor({
             </form>
           )}
         </section>
+      )}
+
+      {/* ===== TAB: BACKUP & RESTORE DATA ===== */}
+      {activeTab === 'backup' && (
+        <div className="space-y-6 animate-fade-in font-quicksand">
+          {/* Sub-tab Selection */}
+          <div className="flex border-b border-orange-100 pb-px">
+            <button
+              type="button"
+              onClick={() => setBackupSubTab('db')}
+              className={`pb-2.5 px-4 font-bold text-sm cursor-pointer transition-all border-b-2 -mb-px ${
+                backupSubTab === 'db'
+                  ? 'border-orange-600 text-orange-600 font-extrabold'
+                  : 'border-transparent text-slate-500 hover:text-orange-600'
+              }`}
+            >
+              Backup & Restore Database
+            </button>
+            <button
+              type="button"
+              onClick={() => setBackupSubTab('recycle')}
+              className={`pb-2.5 px-4 font-bold text-sm cursor-pointer transition-all border-b-2 -mb-px ${
+                backupSubTab === 'recycle'
+                  ? 'border-orange-600 text-orange-600 font-extrabold'
+                  : 'border-transparent text-slate-500 hover:text-orange-600'
+              }`}
+            >
+              Tempat Sampah (Recycle Bin)
+            </button>
+          </div>
+
+          {backupSubTab === 'db' && (
+            <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 font-quicksand">
+              <div className="border-b border-orange-100 pb-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-md shadow-red-200">
+                  <Database className="w-4 h-4 text-white animate-pulse" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-800 font-quicksand">Backup & Restore Basis Data</h2>
+                  <p className="text-[11px] text-slate-500">Ekspor basis data Anda untuk pengamanan, atau pulihkan data dari berkas cadangan (.sql).</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Export Section */}
+                <div className="border border-orange-100/70 rounded-2xl p-5 space-y-4 bg-orange-50/5 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                      <DownloadCloud className="w-4 h-4 text-orange-600" /> Ekspor Data (Backup)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                      Buat cadangan data lengkap dari sistem HCMS GoodPeople. Sistem akan mengumpulkan data seluruh tabel dan mengunduh berkas berupa SQL file.
+                    </p>
+                    <div className="p-3 bg-orange-50/40 rounded-xl border border-orange-100/50 text-[10px] text-slate-550 font-medium space-y-1">
+                      <div className="flex justify-between"><span>Sistem Database:</span> <span className="font-bold text-slate-700">MySQL</span></div>
+                      <div className="flex justify-between"><span>Format File:</span> <span className="font-bold text-slate-700">.sql</span></div>
+                      <div className="flex justify-between"><span>Kompresi:</span> <span className="font-bold text-slate-700">Tidak ada (Raw SQL)</span></div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExportBackup}
+                    className="w-full mt-3 py-2.5 px-4 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-650 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-orange-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <DownloadCloud className="w-4 h-4" /> Unduh Backup Database (.sql)
+                  </button>
+                </div>
+
+                {/* Import Section */}
+                <div className="border border-orange-100/70 rounded-2xl p-5 space-y-4 bg-orange-50/5 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                      <UploadCloud className="w-4 h-4 text-red-650" /> Pulihkan Data (Restore)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
+                      Unggah file cadangan `.sql` yang telah diunduh sebelumnya untuk mengembalikan basis data ke keadaan semula.
+                    </p>
+                    <div className="flex items-start gap-2.5 p-3.5 bg-rose-50/30 border border-rose-100/50 rounded-xl">
+                      <Info className="w-4.5 h-4.5 text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-[9.5px] text-red-700 font-semibold leading-normal">
+                        <strong>PERHATIAN:</strong> Tindakan ini bersifat destruktif. Data saat ini akan diganti seluruhnya oleh isi berkas backup. Pastikan berkas SQL valid dan tidak korup.
+                      </p>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleImportBackup} className="space-y-3">
+                    <div className="relative">
+                      <input
+                        ref={fileInputBackupRef}
+                        type="file"
+                        accept=".sql"
+                        onChange={handleBackupFileChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputBackupRef.current?.click()}
+                        className="w-full py-2 bg-slate-50 border border-dashed border-slate-350 hover:border-orange-300 rounded-xl text-[11px] font-bold text-slate-600 cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        {backupFile ? 'Ganti File Backup' : 'Pilih File Backup (.sql)'}
+                      </button>
+                    </div>
+                    {backupFile && (
+                      <p className="text-[10px] text-emerald-600 font-bold text-center bg-emerald-50 border border-emerald-100 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1">
+                        <span>✓</span> Terpilih: {backupFile.name} ({Math.round(backupFile.size / 1024)} KB)
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={importing || !backupFile}
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-red-650 to-orange-700 hover:from-red-700 hover:to-orange-850 text-white font-bold rounded-xl transition-all shadow-md shadow-orange-500/10 cursor-pointer text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {importing ? (
+                        <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" /> Memulihkan...</>
+                      ) : (
+                        <><UploadCloud className="w-4 h-4" /> Pulihkan Database sekarang</>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {backupSubTab === 'recycle' && (
+            <RecycleBin />
+          )}
+        </div>
       )}
     </div>
   )

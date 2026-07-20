@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import { getAssetUrl } from '../../../utils/api'
 import { 
   Upload, 
   Trash2, 
@@ -26,6 +27,7 @@ interface LeaveRequest {
   status: 'pending' | 'pending_director' | 'approved' | 'rejected'
   admin_notes: string | null
   created_at: string
+  updated_at: string
 }
 
 interface EmployeeCutiProps {
@@ -37,6 +39,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [adminWhatsapp, setAdminWhatsapp] = useState<string | null>(null)
 
   // Form states
   const [category, setCategory] = useState('Cuti Sakit')
@@ -90,6 +93,24 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
   useEffect(() => {
     fetchLeaves()
   }, [])
+
+  // Fetch nomor WhatsApp admin dari database (endpoint tersedia untuk semua role)
+  useEffect(() => {
+    const fetchAdminWhatsapp = async () => {
+      try {
+        const res = await axios.get('http://localhost:8000/api/admin-contact', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (res.data.status === 'success' && res.data.data?.whatsapp) {
+          setAdminWhatsapp(res.data.data.whatsapp)
+        }
+      } catch (err) {
+        // Jika gagal fetch, biarkan null (tombol WA tetap muncul tanpa pre-fill nomor)
+        console.error('Gagal fetch nomor WA admin:', err)
+      }
+    }
+    fetchAdminWhatsapp()
+  }, [token])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -181,12 +202,29 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
       if (response.data.status === 'success') {
         Swal.fire({
           title: 'Berhasil!',
-          text: response.data.message || 'Pengajuan cuti berhasil dikirim.',
+          text: `${response.data.message || 'Pengajuan cuti berhasil dikirim.'} Ingin mengirim notifikasi WhatsApp ke Admin?`,
           icon: 'success',
-          timer: 2000,
-          showConfirmButton: false,
+          // showCancelButton: true,
+          confirmButtonText: 'Ya, Kirim WhatsApp',
+          // cancelButtonText: 'Tidak, Tutup',
+          confirmButtonColor: '#ea580c',
+          // cancelButtonColor: '#94a3b8',
           background: '#fffdfb',
           color: '#3c1105'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            const savedUser = sessionStorage.getItem('auth_user')
+            const userObj = savedUser ? JSON.parse(savedUser) : null
+            const employeeName = userObj ? userObj.name : 'Karyawan'
+            const categoryName = category === 'LAINNYA' ? customCategory : category
+            const formattedStartDate = formatDate(startDate)
+            const formattedEndDate = formatDate(endDate)
+            const message = `Halo admin / HR, Saya ${employeeName} mengajukan cuti ${categoryName} pada tanggal ${formattedStartDate} s/d ${formattedEndDate}.\n\nLink: ${window.location.origin}/admin/cuti`
+            const waUrl = adminWhatsapp
+              ? `https://api.whatsapp.com/send?phone=${adminWhatsapp.replace(/\D/g, '').replace(/^0/, '62')}&text=${encodeURIComponent(message)}`
+              : `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`
+            window.open(waUrl, '_blank')
+          }
         })
 
         // Reset form
@@ -221,7 +259,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
       title: 'Batalkan Pengajuan?',
       text: 'Apakah Anda yakin ingin membatalkan pengajuan cuti ini?',
       icon: 'warning',
-      showCancelButton: true,
+      // showCancelButton: true,
       confirmButtonColor: '#ea580c',
       cancelButtonColor: '#94a3b8',
       confirmButtonText: 'Ya, Batalkan!',
@@ -276,6 +314,21 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
       month: 'short',
       year: 'numeric'
     })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-'
+    const d = new Date(dateString)
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+    const timeFormatted = d.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return `${dateFormatted}, ${timeFormatted} WIB`
   }
 
   const getStatusBadge = (status: 'pending' | 'pending_director' | 'approved' | 'rejected') => {
@@ -404,7 +457,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                 )}
 
                 {/* Date Ranges */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-quicksand">
                       2. Tanggal Mulai
@@ -554,6 +607,8 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                 <thead>
                   <tr className="border-b border-orange-50 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                     <th className="pb-3">Kategori</th>
+                    <th className="pb-3">Dibuat</th>
+                    <th className="pb-3">Diterima</th>
                     <th className="pb-3">Durasi</th>
                     <th className="pb-3">Keterangan / Alasan</th>
                     <th className="pb-3">Bukti</th>
@@ -572,9 +627,18 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                           <span className="block font-bold text-slate-800">
                             {leave.category === 'LAINNYA' ? leave.custom_category : leave.category}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-medium">
-                            Diajukan: {formatDate(leave.created_at)}
-                          </span>
+                        </td>
+
+                        {/* Dibuat */}
+                        <td className="py-4 text-slate-750">
+                          {formatDateTime(leave.created_at)}
+                        </td>
+
+                        {/* Diterima */}
+                        <td className="py-4 text-slate-750">
+                          {leave.status === 'approved' || leave.status === 'rejected'
+                            ? formatDateTime(leave.updated_at)
+                            : '-'}
                         </td>
 
                         {/* Dates / Duration */}
@@ -594,7 +658,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
                         <td className="py-4">
                           {leave.image ? (
                             <a 
-                              href={`http://localhost:8000${leave.image}`} 
+                              href={getAssetUrl(leave.image)} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-[11px] font-bold text-red-500 hover:text-red-700 hover:underline"

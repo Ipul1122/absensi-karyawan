@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, lazy, Suspense, useCallback } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { 
@@ -15,24 +15,30 @@ import {
 // Import layout components
 import AdminSidebar from './layout/AdminSidebar'
 import AdminNavbar, { AdminMobileNavbar } from './layout/AdminNavbar'
+import { API_BASE_URL } from '../utils/api'
 
-// Import sub-components
-import DashboardOverview from './admin/dashboard/DashboardOverview'
-import RekapAbsensi from './admin/absensi/RekapAbsensi'
-import AkunKaryawan from './admin/dataKaryawan/AkunKaryawan'
-import LokasiKantor from './admin/pengaturan/LokasiKantor'
-import AdminCuti from './admin/operasional/AdminCuti'
-import AdminPayroll from './admin/payroll/AdminPayroll'
-import AdminSalaryConfig from './admin/payroll/AdminSalaryConfig'
-import AdminInventaris from './admin/operasional/AdminInventaris'
-import AdminReimbursement from './admin/operasional/AdminReimbursement'
-import AdminBonus from './admin/payroll/AdminBonus'
-import AdminOvertime from './admin/operasional/AdminOvertime'
-import AddEmployeeModal from './admin/dataKaryawan/AddEmployeeModal'
-import EditEmployeeModal from './admin/dataKaryawan/EditEmployeeModal'
-import ViewEmployeeModal from './admin/dataKaryawan/ViewEmployeeModal'
-import DetailAttendanceModal from './admin/absensi/DetailAttendanceModal'
-import EditTimeModal from './admin/absensi/EditTimeModal'
+// Import sub-components (Lazy loaded for optimal code splitting & chunk sizing)
+const DashboardOverview = lazy(() => import('./admin/dashboard/DashboardOverview'))
+const RekapAbsensi = lazy(() => import('./admin/absensi/RekapAbsensi'))
+const AbsenMandiriAdmin = lazy(() => import('./admin/absensi/AbsenMandiriAdmin'))
+const AkunKaryawan = lazy(() => import('./admin/dataKaryawan/AkunKaryawan'))
+const LokasiKantor = lazy(() => import('./admin/pengaturan/LokasiKantor'))
+const AdminCuti = lazy(() => import('./admin/operasional/AdminCuti'))
+const AdminIzin = lazy(() => import('./admin/operasional/AdminIzin'))
+const AdminPayroll = lazy(() => import('./admin/payroll/AdminPayroll'))
+const AdminKelolaHariLibur = lazy(() => import('./admin/pengaturan/AdminKelolaHariLibur'))
+const AdminSalaryConfig = lazy(() => import('./admin/payroll/AdminSalaryConfig'))
+const AdminInventaris = lazy(() => import('./admin/operasional/AdminInventaris'))
+const AdminReimbursement = lazy(() => import('./admin/operasional/AdminReimbursement'))
+const AdminBonus = lazy(() => import('./admin/payroll/AdminBonus'))
+const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
+const KelolaShift = lazy(() => import('./admin/pengaturan/KelolaShift'))
+
+const AddEmployeeModal = lazy(() => import('./admin/dataKaryawan/AddEmployeeModal'))
+const EditEmployeeModal = lazy(() => import('./admin/dataKaryawan/EditEmployeeModal'))
+const ViewEmployeeModal = lazy(() => import('./admin/dataKaryawan/ViewEmployeeModal'))
+const DetailAttendanceModal = lazy(() => import('./admin/absensi/DetailAttendanceModal'))
+const EditTimeModal = lazy(() => import('./admin/absensi/EditTimeModal'))
 
 interface Employee {
   id: number
@@ -40,10 +46,17 @@ interface Employee {
   email: string
   password_plain?: string
   photo?: string | null
+  employee_number?: string | null
   division?: string | null
+  no_rekening?: string | null
+  company?: string | null
+  whatsapp?: string | null
+  saturday_off?: boolean | number
+  sunday_off?: boolean | number
   created_at: string
   updated_at: string
   status?: 'active' | 'pending' | 'pending_delete'
+  office_location?: string
 }
 
 interface Attendance {
@@ -80,24 +93,27 @@ interface AdminDashboardProps {
   }
   token: string
   onLogout: () => void
+  onProfileUpdate?: (updatedFields: { name: string; email: string; photo?: string | null }) => void
 }
 
-export default function AdminDashboard({ user, token, onLogout }: AdminDashboardProps) {
+export default function AdminDashboard({ user, token, onLogout, onProfileUpdate }: AdminDashboardProps) {
+  const baseUrl = API_BASE_URL || 'http://localhost:8000'
   const location = useLocation()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [attendances, setAttendances] = useState<Attendance[]>([])
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [sidebarCounts, setSidebarCounts] = useState({
+    pendingKaryawanCount: 0,
+    pendingCutiCount: 0,
+    pendingIzinCount: 0,
+    pendingLemburCount: 0,
+    pendingReimburseCount: 0,
+    unpaidPayrollCount: 0,
+    operasionalCount: 0,
+  })
   
   const [loading, setLoading] = useState(true)
   const [attendanceLoading, setAttendanceLoading] = useState(true)
-  const [sidebarCounts, setSidebarCounts] = useState<{
-    pendingCutiCount: number
-    pendingReimburseCount: number
-    pendingLemburCount: number
-    unpaidPayrollCount: number
-    operasionalCount: number
-    pendingKaryawanCount: number
-  } | undefined>(undefined)
 
   const fetchSidebarCounts = async () => {
     try {
@@ -116,8 +132,18 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [time, setTime] = useState(new Date())
 
   // Admin's own attendance & leaves states
-  const [adminAttendance, setAdminAttendance] = useState<Attendance | null>(null)
   const [leaves, setLeaves] = useState<any[]>([])
+  const [permits, setPermits] = useState<any[]>([])
+
+  const fetchProfile = async () => {
+    try {
+      await axios.get(`${baseUrl}/api/user/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    } catch (err) {
+      console.error('Gagal mengambil data profil admin:', err)
+    }
+  }
 
   // Details Modal States
   const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null)
@@ -133,6 +159,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [officeLatitude, setOfficeLatitude] = useState('-6.2088')
   const [officeLongitude, setOfficeLongitude] = useState('106.8456')
   const [officeRadius, setOfficeRadius] = useState(100)
+  const [bogorLatitude, setBogorLatitude] = useState('-6.5971')
+  const [bogorLongitude, setBogorLongitude] = useState('106.7973')
+  const [bogorRadius, setBogorRadius] = useState(100)
   const [savingOffice, setSavingOffice] = useState(false)
 
   // New Employee Form States
@@ -148,7 +177,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editPassword, setEditPassword] = useState('')
+  const [editNoRekening, setEditNoRekening] = useState('')
+  const [editCompany, setEditCompany] = useState('')
+  const [editWhatsapp, setEditWhatsapp] = useState('')
+
+  const [editSaturdayOff, setEditSaturdayOff] = useState(false)
+  const [editSundayOff, setEditSundayOff] = useState(true)
   const [submittingEdit, setSubmittingEdit] = useState(false)
+  const [editOfficeLocation, setEditOfficeLocation] = useState('jakarta')
 
   useEffect(() => {
     const clock = setInterval(() => {
@@ -157,22 +193,9 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     return () => clearInterval(clock)
   }, [])
 
-  const fetchAdminAttendance = async () => {
+  const fetchLeaves = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/attendance/today', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (response.data.status === 'success') {
-        setAdminAttendance(response.data.data)
-      }
-    } catch (err) {
-      console.error('Gagal mengambil data absensi admin hari ini:', err)
-    }
-  }
-
-  const fetchLeaves = async () => {
-    try {
-      const response = await axios.get('http://localhost:8000/api/admin/leaves', {
+      const response = await axios.get(`${baseUrl}/api/admin/leaves`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -181,12 +204,39 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     } catch (err) {
       console.error('Gagal mengambil data cuti:', err)
     }
+  }, [baseUrl, token])
+
+  const fetchPermits = useCallback(async () => {
+    try {
+      const response = await axios.get(`${baseUrl}/api/admin/permits`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setPermits(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data izin:', err)
+    }
+  }, [baseUrl, token])
+
+  const fetchSidebarCounts = async () => {
+    if (document.hidden) return
+    try {
+      const response = await axios.get(`${baseUrl}/api/sidebar/notification-counts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.status === 'success') {
+        setSidebarCounts(response.data.data)
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data counts sidebar:', err)
+    }
   }
 
   const fetchEmployees = async () => {
     setLoading(true)
     try {
-      const response = await axios.get('http://localhost:8000/api/employees', {
+      const response = await axios.get(`${baseUrl}/api/employees`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
@@ -209,11 +259,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   const fetchAttendances = async () => {
     setAttendanceLoading(true)
     try {
-      const response = await axios.get('http://localhost:8000/api/admin/attendances', {
+      const response = await axios.get(`${baseUrl}/api/admin/attendances`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success') {
-        setAttendances(response.data.data)
+        const validAttendances = (response.data.data || []).filter(
+          (att: any) => att && att.user && att.user.id
+        )
+        setAttendances(validAttendances)
       }
     } catch (err: any) {
       console.error(err)
@@ -231,13 +284,18 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
 
   const fetchOfficeSetting = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/office-setting', {
+      const response = await axios.get(`${baseUrl}/api/office-setting`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.status === 'success' && response.data.data) {
         setOfficeLatitude(response.data.data.latitude)
         setOfficeLongitude(response.data.data.longitude)
         setOfficeRadius(response.data.data.radius)
+        if (response.data.data.bogor_latitude) {
+          setBogorLatitude(response.data.data.bogor_latitude)
+          setBogorLongitude(response.data.data.bogor_longitude)
+          setBogorRadius(response.data.data.bogor_radius)
+        }
       }
     } catch (err) {
       console.error('Gagal memuat lokasi kantor:', err)
@@ -248,12 +306,12 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     fetchEmployees()
     fetchAttendances()
     fetchOfficeSetting()
-    fetchAdminAttendance()
     fetchLeaves()
     fetchSidebarCounts()
   }, [])
 
   useEffect(() => {
+    fetchSidebarCounts()
     const interval = setInterval(fetchSidebarCounts, 15000)
     return () => clearInterval(interval)
   }, [token])
@@ -296,15 +354,77 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
       )
 
       if (response.data.status === 'success') {
+        const emp = response.data.data
+        let salutation = 'Halo Pak/Bu,'
+        let phoneNum = ''
+
+        // Fetch director's phone number dynamically from database
+        try {
+          const directorsRes = await axios.get('http://localhost:8000/api/admin/directors', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+          if (directorsRes.data.status === 'success' && Array.isArray(directorsRes.data.data)) {
+            const directorsList = directorsRes.data.data
+            const matchedDirector = directorsList.find((d: any) => d.company === emp.company)
+            if (matchedDirector) {
+              salutation = `Halo Pak/Bu ${matchedDirector.name},`
+              if (matchedDirector.whatsapp) {
+                let cleanPhone = matchedDirector.whatsapp.trim().replace(/\D/g, '')
+                if (cleanPhone.startsWith('0')) {
+                  cleanPhone = '62' + cleanPhone.substring(1)
+                }
+                phoneNum = cleanPhone
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Gagal mengambil data direktur dari database, menggunakan data statis.', err)
+        }
+
+        // Fallback to static numbers if no database match is found
+        if (!phoneNum) {
+          if (emp.company === 'PT Yasodana Parvez Internasional') {
+            salutation = 'Halo Pak Andre,'
+            phoneNum = '6289656931184'
+          } else if (emp.company === 'PT Cakrawala Parama Internasional') {
+            salutation = 'Halo Bu Dian,'
+            phoneNum = '628170038421'
+          }
+        }
+
+        const messageText = `${salutation} mohon persetujuan untuk pengajuan pendaftaran karyawan baru:
+
+Nama: ${emp.name}
+Email: ${emp.email}
+WhatsApp: ${emp.whatsapp || '-'}
+Divisi: ${emp.division || '-'}
+Perusahaan: ${emp.company || '-'}
+
+Persetujuan dapat dilakukan langsung melalui tautan berikut:
+${window.location.origin}/director/karyawan`
+
+        const encodedText = encodeURIComponent(messageText)
+        const waUrl = phoneNum
+          ? `https://api.whatsapp.com/send?phone=${phoneNum}&text=${encodedText}`
+          : `https://api.whatsapp.com/send?text=${encodedText}`
+
         Swal.fire({
-          title: 'Berhasil!',
-          text: response.data.message || 'Akun karyawan baru berhasil dibuat dan menunggu persetujuan Direktur.',
+          title: 'Berhasil Dibuat!',
+          text: 'Akun karyawan baru berhasil dibuat. Klik tombol di bawah untuk mengirim data persetujuan ke WhatsApp Direktur.',
           icon: 'success',
+          // showCancelButton: true,
+          confirmButtonText: 'Kirim ke WhatsApp',
+          // cancelButtonText: 'Tutup',
+          confirmButtonColor: '#ea580c',
+          cancelButtonColor: '#64748b',
           background: '#fffdfb',
-          color: '#3c1105',
-          timer: 2500,
-          showConfirmButton: false
+          color: '#3c1105'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.open(waUrl, '_blank')
+          }
         })
+
         setShowModal(false)
         fetchEmployees()
         fetchSidebarCounts()
@@ -401,6 +521,13 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     setEditName(employee.name)
     setEditEmail(employee.email)
     setEditPassword('')
+    setEditNoRekening(employee.no_rekening || '')
+    setEditCompany(employee.company || '')
+    setEditWhatsapp(employee.whatsapp || '')
+    setEditOfficeLocation(employee.office_location || 'jakarta')
+
+    setEditSaturdayOff(!!employee.saturday_off)
+    setEditSundayOff(employee.sunday_off !== false)
     setShowEditEmployeeModal(true)
   }
 
@@ -438,7 +565,13 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         `http://localhost:8000/api/employees/${editingEmployee.id}`,
         {
           name: editName,
-          password: editPassword || null
+          password: editPassword || null,
+          no_rekening: editNoRekening || null,
+          company: editCompany || null,
+          whatsapp: editWhatsapp || null,
+          saturday_off: editSaturdayOff ? '1' : '0',
+          sunday_off: editSundayOff ? '1' : '0',
+          office_location: editOfficeLocation
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -461,6 +594,11 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         setEditName('')
         setEditEmail('')
         setEditPassword('')
+        setEditNoRekening('')
+        setEditCompany('')
+        setEditWhatsapp('')
+        setEditSaturdayOff(false)
+        setEditSundayOff(true)
         fetchEmployees() // Refresh employees list
       }
     } catch (err: any) {
@@ -495,7 +633,7 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     setUpdating(true)
     try {
       const response = await axios.put(
-        `http://localhost:8000/api/admin/attendances/${editingAttendance.id}`,
+        `${baseUrl}/api/admin/attendances/${editingAttendance.id}`,
         {
           clock_in: editClockIn || null,
           clock_out: editClockOut || null
@@ -540,11 +678,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     setSavingOffice(true)
     try {
       const response = await axios.put(
-        'http://localhost:8000/api/admin/office-setting',
+        `${baseUrl}/api/admin/office-setting`,
         {
           latitude: officeLatitude,
           longitude: officeLongitude,
-          radius: officeRadius
+          radius: officeRadius,
+          bogor_latitude: bogorLatitude,
+          bogor_longitude: bogorLongitude,
+          bogor_radius: bogorRadius
         },
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -629,11 +770,17 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   // Get current route info for headers
   const getRouteInfo = () => {
     const path = location.pathname
+    if (path.includes('absen-mandiri')) {
+      return { title: 'Presensi Mandiri Admin', subtitle: 'Self Check-In / Check-Out' }
+    }
     if (path.includes('rekapAbsensi')) {
       return { title: 'Rekap Absensi Karyawan', subtitle: 'Attendance Logs' }
     }
     if (path.includes('cuti')) {
       return { title: 'Persetujuan Cuti', subtitle: 'Leave Requests' }
+    }
+    if (path.includes('izin')) {
+      return { title: 'Persetujuan Izin', subtitle: 'Permit Requests' }
     }
     if (path.includes('akunKaryawan')) {
       return { title: 'Kelola Akun Karyawan', subtitle: 'Accounts Management' }
@@ -643,6 +790,21 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
     }
     if (path.includes('lokasiKantor')) {
       return { title: 'Konfigurasi Lokasi & Radius', subtitle: 'Location Configuration' }
+    }
+    if (path.includes('shifts')) {
+      return { title: 'Kelola Shift Kerja', subtitle: 'Shift Profiles Configuration' }
+    }
+    if (path.includes('keamanan')) {
+      return { title: 'Akun & Keamanan Admin', subtitle: 'Account Security' }
+    }
+    if (path.includes('biodata')) {
+      return { title: 'Biodata Pribadi Admin', subtitle: 'Admin Profile' }
+    }
+    if (path.includes('backup')) {
+      return { title: 'Backup & Restore Database', subtitle: 'Database Management' }
+    }
+    if (path.includes('hariLibur')) {
+      return { title: 'Kelola Hari Libur', subtitle: 'Holiday Settings' }
     }
     if (path.includes('payroll-config')) {
       return { title: 'Setelan Gaji Karyawan', subtitle: 'Salary Configuration' }
@@ -663,30 +825,29 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
   }
 
   const routeInfo = getRouteInfo()
+  const totalPending = sidebarCounts.pendingKaryawanCount + sidebarCounts.operasionalCount + sidebarCounts.unpaidPayrollCount
 
   return (
     <div className="w-full min-h-screen flex flex-col md:flex-row bg-[#f8fafc]">
       
       {/* Mobile Top Navbar Header */}
-      <AdminMobileNavbar 
-        onMenuClick={() => setMobileSidebarOpen(true)} 
-        pendingCount={
-          sidebarCounts 
-            ? (sidebarCounts.operasionalCount + sidebarCounts.unpaidPayrollCount + sidebarCounts.pendingKaryawanCount) 
-            : 0
-        } 
-      />
+      <AdminMobileNavbar onMenuClick={() => setMobileSidebarOpen(true)} pendingCount={totalPending} />
 
       {/* Floating Toggle Button on Left Middle Edge */}
-      {!mobileSidebarOpen && (
-        <button
-          onClick={() => setMobileSidebarOpen(true)}
-          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all cursor-pointer flex items-center"
-          title="Buka Menu"
-        >
-          <ChevronRight className="w-5 h-5 animate-pulse" />
-        </button>
-      )}
+      <button
+        onClick={() => setMobileSidebarOpen(true)}
+        className={`hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white p-2.5 py-3.5 rounded-r-2xl shadow-lg shadow-red-500/20 border border-l-0 border-orange-200/20 transition-all duration-300 cursor-pointer flex items-center active:scale-95 active:translate-x-1 ${
+          mobileSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+        title="Buka Menu"
+      >
+        <ChevronRight className="w-5 h-5 animate-pulse" />
+        {totalPending > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full text-[9px] font-black w-4.5 h-4.5 flex items-center justify-center border border-white animate-pulse">
+            {totalPending}
+          </span>
+        )}
+      </button>
 
       {/* Desktop Left Sidebar (Fixed) */}
       <aside className="hidden md:block w-64 bg-white border-r border-slate-100 p-6 flex-shrink-0 shadow-sm">
@@ -694,20 +855,26 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
       </aside>
 
       {/* Mobile Sidebar (Slide-over drawer) */}
-      {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden bg-slate-900/40 backdrop-blur-sm animate-fade-in flex">
-          <div className="w-64 bg-white border-r border-slate-200 p-6 h-full flex-shrink-0 relative animate-slide-right">
-            <button
-              onClick={() => setMobileSidebarOpen(false)}
-              className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <AdminSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} />
-          </div>
-          <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
+      <div 
+        className={`fixed inset-0 z-50 md:hidden bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${
+          mobileSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        } flex`}
+      >
+        <div 
+          className={`w-64 bg-white border-r border-slate-200 p-6 h-full flex-shrink-0 relative transition-transform duration-300 ease-out ${
+            mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <button
+            onClick={() => setMobileSidebarOpen(false)}
+            className="absolute top-4 right-4 p-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 rounded-lg transition-all cursor-pointer active:scale-90"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <AdminSidebar user={user} onLogout={handleLogoutClick} onClose={() => setMobileSidebarOpen(false)} counts={sidebarCounts} />
         </div>
-      )}
+        <div className="flex-grow h-full" onClick={() => setMobileSidebarOpen(false)}></div>
+      </div>
 
       {/* Main Area Wrapper */}
       <div className="flex-grow flex flex-col min-h-screen min-w-0">
@@ -716,9 +883,15 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
         <AdminNavbar user={user} title={routeInfo.title} />
 
         {/* Main page content container */}
-        <main className="flex-grow p-6 md:p-8 overflow-y-auto">
+        <main className="flex-grow p-4 md:p-8 overflow-y-auto">
           {/* Nested Routing Views */}
-          <Routes>
+          <Suspense fallback={
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500 font-sans text-xs">
+              <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-2 text-orange-500"></div>
+              Memuat halaman...
+            </div>
+          }>
+            <Routes>
             <Route 
               path="dashboard" 
               element={
@@ -737,9 +910,17 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                       ? { latitude: officeLatitude, longitude: officeLongitude, radius: officeRadius }
                       : null
                   }
-                  todayAttendance={adminAttendance}
-                  fetchTodayAttendance={fetchAdminAttendance}
                   leaves={leaves}
+                  fetchAttendances={fetchAttendances}
+                />
+              } 
+            />
+            <Route 
+              path="absen-mandiri" 
+              element={
+                <AbsenMandiriAdmin 
+                  token={token} 
+                  user={user} 
                 />
               } 
             />
@@ -752,11 +933,15 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                   attendanceLoading={attendanceLoading}
                   attendances={attendances}
                   fetchAttendances={fetchAttendances}
+                  fetchLeaves={fetchLeaves}
+                  fetchPermits={fetchPermits}
                   formatDate={formatDate}
                   getStatusBadge={getStatusBadge}
                   setSelectedAttendance={setSelectedAttendance}
                   officeLatitude={officeLatitude}
                   officeLongitude={officeLongitude}
+                  leaves={leaves}
+                  permits={permits}
                 />
               } 
             />
@@ -787,9 +972,108 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
                   setOfficeLongitude={setOfficeLongitude}
                   officeRadius={officeRadius}
                   setOfficeRadius={setOfficeRadius}
+                  bogorLatitude={bogorLatitude}
+                  setBogorLatitude={setBogorLatitude}
+                  bogorLongitude={bogorLongitude}
+                  setBogorLongitude={setBogorLongitude}
+                  bogorRadius={bogorRadius}
+                  setBogorRadius={setBogorRadius}
                   savingOffice={savingOffice}
                   handleOfficeSettingSubmit={handleOfficeSettingSubmit}
                   user={user}
+                  token={token}
+                  onProfileUpdate={onProfileUpdate}
+                  initialTab="lokasi"
+                />
+              } 
+            />
+            <Route 
+              path="keamanan" 
+              element={
+                <LokasiKantor
+                  officeLatitude={officeLatitude}
+                  setOfficeLatitude={setOfficeLatitude}
+                  officeLongitude={officeLongitude}
+                  setOfficeLongitude={setOfficeLongitude}
+                  officeRadius={officeRadius}
+                  setOfficeRadius={setOfficeRadius}
+                  bogorLatitude={bogorLatitude}
+                  setBogorLatitude={setBogorLatitude}
+                  bogorLongitude={bogorLongitude}
+                  setBogorLongitude={setBogorLongitude}
+                  bogorRadius={bogorRadius}
+                  setBogorRadius={setBogorRadius}
+                  savingOffice={savingOffice}
+                  handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                  user={user}
+                  token={token}
+                  onProfileUpdate={onProfileUpdate}
+                  initialTab="akun"
+                />
+              } 
+            />
+            <Route 
+              path="biodata" 
+              element={
+                <LokasiKantor
+                  officeLatitude={officeLatitude}
+                  setOfficeLatitude={setOfficeLatitude}
+                  officeLongitude={officeLongitude}
+                  setOfficeLongitude={setOfficeLongitude}
+                  officeRadius={officeRadius}
+                  setOfficeRadius={setOfficeRadius}
+                  bogorLatitude={bogorLatitude}
+                  setBogorLatitude={setBogorLatitude}
+                  bogorLongitude={bogorLongitude}
+                  setBogorLongitude={setBogorLongitude}
+                  bogorRadius={bogorRadius}
+                  setBogorRadius={setBogorRadius}
+                  savingOffice={savingOffice}
+                  handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                  user={user}
+                  token={token}
+                  onProfileUpdate={onProfileUpdate}
+                  initialTab="biodata"
+                />
+              } 
+            />
+            <Route 
+              path="backup" 
+              element={
+                <LokasiKantor
+                  officeLatitude={officeLatitude}
+                  setOfficeLatitude={setOfficeLatitude}
+                  officeLongitude={officeLongitude}
+                  setOfficeLongitude={setOfficeLongitude}
+                  officeRadius={officeRadius}
+                  setOfficeRadius={setOfficeRadius}
+                  bogorLatitude={bogorLatitude}
+                  setBogorLatitude={setBogorLatitude}
+                  bogorLongitude={bogorLongitude}
+                  setBogorLongitude={setBogorLongitude}
+                  bogorRadius={bogorRadius}
+                  setBogorRadius={setBogorRadius}
+                  savingOffice={savingOffice}
+                  handleOfficeSettingSubmit={handleOfficeSettingSubmit}
+                  user={user}
+                  token={token}
+                  onProfileUpdate={onProfileUpdate}
+                  initialTab="backup"
+                />
+              } 
+            />
+            <Route 
+              path="hariLibur" 
+              element={
+                <AdminKelolaHariLibur
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="shifts" 
+              element={
+                <KelolaShift
                   token={token}
                 />
               } 
@@ -798,6 +1082,14 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
               path="cuti" 
               element={
                 <AdminCuti
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="izin" 
+              element={
+                <AdminIzin
                   token={token}
                 />
               } 
@@ -851,73 +1143,107 @@ export default function AdminDashboard({ user, token, onLogout }: AdminDashboard
               } 
             />
             {/* Default fallback route */}
-            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="" element={<Navigate to="dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
-        </main>
+        </Suspense>
+      </main>
       </div>
 
       {/* Add Employee Modal */}
-      <AddEmployeeModal
-        show={showModal}
-        onClose={() => setShowModal(false)}
-        onSubmit={handleAddEmployee}
-        submitting={submitting}
-      />
+      {showModal && (
+        <Suspense fallback={null}>
+          <AddEmployeeModal
+            show={showModal}
+            onClose={() => setShowModal(false)}
+            onSubmit={handleAddEmployee}
+            submitting={submitting}
+          />
+        </Suspense>
+      )}
 
       {/* Edit Employee Modal */}
-      <EditEmployeeModal
-        show={showEditEmployeeModal}
-        onClose={() => setShowEditEmployeeModal(false)}
-        onSubmit={handleEditEmployee}
-        name={editName}
-        setName={setEditName}
-        email={editEmail}
-        password={editPassword}
-        setPassword={setEditPassword}
-        submitting={submittingEdit}
-        onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
-      />
+      {showEditEmployeeModal && (
+        <Suspense fallback={null}>
+          <EditEmployeeModal
+            show={showEditEmployeeModal}
+            onClose={() => setShowEditEmployeeModal(false)}
+            onSubmit={handleEditEmployee}
+            name={editName}
+            setName={setEditName}
+            email={editEmail}
+            password={editPassword}
+            setPassword={setEditPassword}
+            noRekening={editNoRekening}
+            setNoRekening={setEditNoRekening}
+            company={editCompany}
+            setCompany={setEditCompany}
+            whatsapp={editWhatsapp}
+            setWhatsapp={setEditWhatsapp}
+            saturdayOff={editSaturdayOff}
+            setSaturdayOff={setEditSaturdayOff}
+            sundayOff={editSundayOff}
+            setSundayOff={setEditSundayOff}
+            submitting={submittingEdit}
+            onViewBiodata={editingEmployee ? () => handleViewBiodata(editingEmployee.id) : undefined}
+            officeLocation={editOfficeLocation}
+            setOfficeLocation={setEditOfficeLocation}
+          />
+        </Suspense>
+      )}
 
       {/* View Biodata Modal (Admin) */}
-      <ViewEmployeeModal
-        show={showViewModal}
-        onClose={() => setShowViewModal(false)}
-        profile={viewProfile}
-        onRefresh={() => {
-          fetchEmployees()
-          setShowEditEmployeeModal(false)
-        }}
-        token={token}
-      />
+      {showViewModal && (
+        <Suspense fallback={null}>
+          <ViewEmployeeModal
+            show={showViewModal}
+            onClose={() => setShowViewModal(false)}
+            profile={viewProfile}
+            onRefresh={() => {
+              fetchEmployees()
+              setShowEditEmployeeModal(false)
+            }}
+            token={token}
+          />
+        </Suspense>
+      )}
 
       {/* Detail Attendance Modal */}
-      <DetailAttendanceModal
-        attendance={selectedAttendance}
-        onClose={() => setSelectedAttendance(null)}
-        formatDate={formatDate}
-        getStatusBadge={getStatusBadge}
-        token={token}
-        officeLatitude={officeLatitude}
-        officeLongitude={officeLongitude}
-        onEditClick={selectedAttendance ? () => {
-          handleOpenEditModal(selectedAttendance)
-          setSelectedAttendance(null)
-        } : undefined}
-      />
+      {selectedAttendance && (
+        <Suspense fallback={null}>
+          <DetailAttendanceModal
+            attendance={selectedAttendance}
+            onClose={() => setSelectedAttendance(null)}
+            formatDate={formatDate}
+            getStatusBadge={getStatusBadge}
+            token={token}
+            officeLatitude={officeLatitude}
+            officeLongitude={officeLongitude}
+            onEditClick={selectedAttendance ? () => {
+              handleOpenEditModal(selectedAttendance)
+              setSelectedAttendance(null)
+            } : undefined}
+          />
+        </Suspense>
+      )}
 
       {/* Edit Time Modal */}
-      <EditTimeModal
-        show={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSubmit={handleEditTimeSubmit}
-        attendance={editingAttendance}
-        editClockIn={editClockIn}
-        setEditClockIn={setEditClockIn}
-        editClockOut={editClockOut}
-        setEditClockOut={setEditClockOut}
-        updating={updating}
-        formatDate={formatDate}
-      />
+      {showEditModal && (
+        <Suspense fallback={null}>
+          <EditTimeModal
+            show={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            onSubmit={handleEditTimeSubmit}
+            attendance={editingAttendance}
+            editClockIn={editClockIn}
+            setEditClockIn={setEditClockIn}
+            editClockOut={editClockOut}
+            setEditClockOut={setEditClockOut}
+            updating={updating}
+            formatDate={formatDate}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

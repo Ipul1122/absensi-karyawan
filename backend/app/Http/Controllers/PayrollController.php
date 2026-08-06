@@ -173,8 +173,10 @@ class PayrollController extends Controller
             $allowanceMeal = $allowanceDays * $allowanceMealDaily;
             $allowanceTransport = $allowanceDays * $allowanceTransportDaily;
         } else {
-            $allowanceMeal = $daysPresent * $allowanceMealDaily;
-            $allowanceTransport = $daysPresent * $allowanceTransportDaily;
+            // Batasi hari tunjangan maksimal 26 dikurangi hari libur nasional untuk karyawan 6 hari kerja
+            $allowanceDays = min(26 - $holidaysCount, $daysPresent);
+            $allowanceMeal = $allowanceDays * $allowanceMealDaily;
+            $allowanceTransport = $allowanceDays * $allowanceTransportDaily;
         }
         $allowancePosition = $config ? $config->allowance_position : 0;
         $allowanceFixed = $config ? $config->allowance_fixed : 0;
@@ -199,8 +201,10 @@ class PayrollController extends Controller
 
         $deductionLate = $daysLate * $deductDailyLate;
 
-        // Mangkir = hari kerja aktif − hadir − cuti disetujui − libur nasional aktif
-        $daysAbsent = max(0, $activeWorkingDays - $daysPresent - $daysLeave - $holidaysInActivePeriod);
+        // Batasi hari kerja efektif maksimal 26 - hari libur nasional
+        $effectiveWorkingDays = min(26 - $holidaysCount, $activeWorkingDays);
+        // Mangkir = hari kerja efektif − hadir − cuti disetujui − libur nasional aktif
+        $daysAbsent = max(0, $effectiveWorkingDays - $daysPresent - $daysLeave - $holidaysInActivePeriod);
         $deductionAbsence = $daysAbsent * $deductAbsenceDaily;
 
         // Gaji bersih = semua penerimaan − semua potongan

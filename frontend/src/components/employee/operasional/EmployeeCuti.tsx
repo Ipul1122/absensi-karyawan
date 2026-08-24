@@ -384,14 +384,7 @@ export default function EmployeeCuti({ token }: EmployeeCutiProps) {
   return (
     <div className="space-y-6">
       
-      {/* Header and Toggle Button */}
-      <div className="flex justify-between items-center bg-white p-6 border border-orange-100/80 rounded-3xl shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800 font-quicksand">
-            Pengajuan Cuti Karyawan
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">Ajukan cuti dan pantau status persetujuan dari Admin di sini.</p>
-        </div>
+      <div className="flex justify-end">
         <button
           onClick={() => setShowForm(!showForm)}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer shadow-md ${

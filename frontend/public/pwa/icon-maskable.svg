@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HCMS Absensi">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF7020"/>
+      <stop offset="55%" stop-color="#FF5A00"/>
+      <stop offset="100%" stop-color="#E84000"/>
+    </linearGradient>
+  </defs>
+  <!-- Full bleed for Android adaptive / maskable safe zone -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g transform="translate(256 256)">
+    <circle r="96" fill="none" stroke="#fff" stroke-width="12"/>
+    <circle r="7" fill="#fff"/>
+    <line x1="0" y1="0" x2="0" y2="-58" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="42" y2="14" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+    <g transform="translate(62 62)">
+      <circle r="28" fill="#fff"/>
+      <path d="M-11 1 L-3 11 L14 -8" fill="none" stroke="#FF5A00" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

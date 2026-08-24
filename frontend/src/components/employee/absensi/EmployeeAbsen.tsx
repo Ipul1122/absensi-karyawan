@@ -3,7 +3,7 @@ import axios from 'axios'
 import Swal from 'sweetalert2'
 import L from 'leaflet'
 import { getAssetUrl } from '../../../utils/api'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useSearchParams } from 'react-router-dom'
 import { 
   Clock, 
   Camera, 
@@ -14,13 +14,25 @@ import {
   AlertTriangle, 
   FileText, 
   Check,
-  Building,
   Upload,
   X,
   SwitchCamera,
-  Circle
+  Circle,
+  Building,
+  Home,
 } from 'lucide-react'
 
+const BRAND_ORANGE = '#FF5A00'
+const CARD_SHADOW = '0 4px 16px rgba(0,0,0,0.06)'
+
+type AttendanceMode = 'kantor' | 'wfh'
+
+function getAttendanceTypeLabel(type?: string | null) {
+  if (type === 'wfh') return 'Work From Home'
+  if (type === 'kunjungan') return 'Kunjungan Kerja'
+  if (type === 'client') return 'Kunjungan Klien'
+  return 'Kantor'
+}
 
 interface Attendance {
   id: number
@@ -88,7 +100,11 @@ export default function EmployeeAbsen({
   fetchHistory,
   getStatusBadge
 }: EmployeeAbsenProps) {
+  const [searchParams] = useSearchParams()
   const [selectedTab, setSelectedTab] = useState<'in' | 'out'>('in')
+  const [attendanceMode, setAttendanceMode] = useState<AttendanceMode>(() =>
+    searchParams.get('mode') === 'wfh' ? 'wfh' : 'kantor'
+  )
   const [submitting, setSubmitting] = useState(false)
 
   // Camera & Location States
@@ -153,30 +169,52 @@ export default function EmployeeAbsen({
     }
   }, [todayAttendance])
 
+  useEffect(() => {
+    const mode = searchParams.get('mode')
+    if (mode === 'wfh' && (!todayAttendance || !todayAttendance.clock_in)) {
+      setAttendanceMode('wfh')
+    }
+  }, [searchParams, todayAttendance])
+
+  const lockedAttendanceType = todayAttendance?.clock_in
+    ? (todayAttendance.attendance_type || 'kantor')
+    : null
+  const isWfhMode = lockedAttendanceType ? lockedAttendanceType === 'wfh' : attendanceMode === 'wfh'
+  const requiresOfficeRadius = !isWfhMode
+
   const showFormForIn = selectedTab === 'in' && (!todayAttendance || !todayAttendance.clock_in)
   const showFormForOut = selectedTab === 'out' && todayAttendance && todayAttendance.clock_in && !todayAttendance.clock_out
   const needsForm = showFormForIn || showFormForOut
 
-  if (todayAttendance && todayAttendance.clock_in && todayAttendance.attendance_type !== 'kantor') {
+  if (
+    todayAttendance &&
+    todayAttendance.clock_in &&
+    todayAttendance.attendance_type !== 'kantor' &&
+    todayAttendance.attendance_type !== 'wfh'
+  ) {
     return (
-      <div className="space-y-6">
-        <section className="bg-white border border-orange-100 rounded-3xl p-8 text-center shadow-sm flex flex-col items-center justify-center gap-4">
-          <div className="p-4 bg-amber-50 rounded-full border border-amber-200 text-amber-600">
-            <Building className="w-10 h-10" />
+      <div className="w-full max-w-4xl mx-auto pb-4">
+        <section
+          className="bg-white border border-slate-100 rounded-[20px] p-6 sm:p-8 text-center flex flex-col items-center gap-4"
+          style={{ boxShadow: CARD_SHADOW }}
+        >
+          <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center border border-amber-100">
+            <Building className="w-7 h-7 text-amber-600" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800 font-quicksand">Absen Kantor Tidak Aktif</h3>
-            <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed font-medium font-quicksand">
-              Hari ini Anda tercatat melakukan absensi tipe <strong className="capitalize">{todayAttendance.attendance_type === 'kunjungan' ? 'Kunjungan Kerja / Lapangan' : 'Kunjungan Klien'}</strong>.
-              <br />
-              Silakan buka halaman absensi yang sesuai untuk melihat detail atau melakukan absen keluar.
+            <h3 className="text-lg font-bold text-slate-800">Absen Kantor Tidak Aktif</h3>
+            <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
+              Hari ini Anda tercatat absensi{' '}
+              <strong>{todayAttendance.attendance_type === 'kunjungan' ? 'kunjungan kerja' : 'kunjungan klien'}</strong>.
+              Buka halaman absensi yang sesuai untuk check-out atau detail.
             </p>
           </div>
           <NavLink
             to={todayAttendance.attendance_type === 'kunjungan' ? '/employee/sales' : '/employee/client'}
-            className="mt-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-700 text-white font-bold rounded-xl text-xs transition-all shadow-md cursor-pointer font-quicksand font-semibold"
+            className="px-6 h-11 inline-flex items-center justify-center bg-[#FF5A00] hover:bg-[#E04800] text-white font-semibold rounded-2xl text-sm transition-all cursor-pointer"
+            style={{ boxShadow: '0 6px 20px rgba(255,90,0,0.25)' }}
           >
-            Buka Absen {todayAttendance.attendance_type === 'kunjungan' ? 'Kunjungan Kerja' : 'Kunjungan Klien'}
+            Buka Absen {todayAttendance.attendance_type === 'kunjungan' ? 'Sales' : 'Klien'}
           </NavLink>
         </section>
       </div>
@@ -317,7 +355,7 @@ export default function EmployeeAbsen({
         icon: 'error',
         background: '#1e293b',
         color: '#f8fafc',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: BRAND_ORANGE
       })
     }
     reader.readAsDataURL(file)
@@ -508,8 +546,18 @@ export default function EmployeeAbsen({
           .openPopup()
       }
 
-      // Handle Office Location boundary circle and marker
-      if (officeSetting) {
+      // Handle Office Location boundary circle and marker (kantor mode only)
+      if (isWfhMode) {
+        if (officeMarkerRef.current) {
+          map.removeLayer(officeMarkerRef.current)
+          officeMarkerRef.current = null
+        }
+        if (boundaryCircleRef.current) {
+          map.removeLayer(boundaryCircleRef.current)
+          boundaryCircleRef.current = null
+        }
+        map.setView([latitude, longitude], 15)
+      } else if (officeSetting) {
         const officeLat = parseFloat(officeSetting.latitude)
         const officeLng = parseFloat(officeSetting.longitude)
 
@@ -529,9 +577,9 @@ export default function EmployeeAbsen({
             boundaryCircleRef.current.setRadius(officeSetting.radius)
           } else {
             boundaryCircleRef.current = L.circle([officeLat, officeLng], {
-              color: '#6366f1',
-              fillColor: '#818cf8',
-              fillOpacity: 0.15,
+              color: BRAND_ORANGE,
+              fillColor: '#FF5A00',
+              fillOpacity: 0.12,
               radius: officeSetting.radius
             }).addTo(map)
           }
@@ -559,7 +607,7 @@ export default function EmployeeAbsen({
     return () => {
       // Don't destroy on state updates, only cleanup on unmount
     }
-  }, [latitude, longitude, officeSetting, selectedTab])
+  }, [latitude, longitude, officeSetting, selectedTab, isWfhMode])
 
   // Cleanup map instance on unmount
   useEffect(() => {
@@ -583,7 +631,7 @@ export default function EmployeeAbsen({
         icon: 'warning',
         background: '#1e293b',
         color: '#f8fafc',
-        confirmButtonColor: '#6366f1'
+        confirmButtonColor: BRAND_ORANGE
       })
       return
     }
@@ -595,12 +643,12 @@ export default function EmployeeAbsen({
         icon: 'warning',
         background: '#1e293b',
         color: '#f8fafc',
-        confirmButtonColor: '#6366f1'
+        confirmButtonColor: BRAND_ORANGE
       })
       return
     }
 
-    const isKantor = true;
+    const isKantor = requiresOfficeRadius
     if (isKantor && officeSetting && !isWithinRadius) {
       Swal.fire({
         title: 'Di Luar Radius Kantor',
@@ -608,7 +656,7 @@ export default function EmployeeAbsen({
         icon: 'error',
         background: '#1e293b',
         color: '#f8fafc',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: BRAND_ORANGE
       })
       return
     }
@@ -623,7 +671,7 @@ export default function EmployeeAbsen({
         notes: notes,
       }
       if (type === 'check-in') {
-        payload.attendance_type = 'kantor';
+        payload.attendance_type = isWfhMode ? 'wfh' : 'kantor'
         if (selectedShiftId) {
           payload.shift_id = parseInt(selectedShiftId, 10);
         }
@@ -665,7 +713,7 @@ export default function EmployeeAbsen({
         icon: 'error',
         background: '#1e293b',
         color: '#f8fafc',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: BRAND_ORANGE
       })
     } finally {
       setSubmitting(false)
@@ -674,36 +722,80 @@ export default function EmployeeAbsen({
 
   return (
     <>
-    <div className="space-y-6">
+    <div className="w-full space-y-5 sm:space-y-6 pb-4">
+      {todayAttendance?.clock_in && (
+        <div className="flex flex-wrap gap-2 text-[12px] font-semibold">
+          <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100">
+            Masuk: {todayAttendance.clock_in.substring(0, 5)}
+          </span>
+          {todayAttendance.clock_out ? (
+            <span className="px-3 py-1.5 rounded-full bg-orange-50 text-[#C2410C] border border-orange-100">
+              Keluar: {todayAttendance.clock_out.substring(0, 5)}
+            </span>
+          ) : (
+            <span className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              Belum check-out
+            </span>
+          )}
+        </div>
+      )}
+
+      {showFormForIn && !todayAttendance?.clock_in && (
+        <div className="flex gap-2 p-1.5 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+          <button
+            type="button"
+            onClick={() => setAttendanceMode('kantor')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold transition-all cursor-pointer border ${
+              !isWfhMode
+                ? 'bg-white border-slate-200 text-[#FF5A00] shadow-sm'
+                : 'bg-transparent border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Building className="w-4 h-4" />
+            Absen Kantor
+          </button>
+          <button
+            type="button"
+            onClick={() => setAttendanceMode('wfh')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold transition-all cursor-pointer border ${
+              isWfhMode
+                ? 'bg-white border-slate-200 text-[#FF5A00] shadow-sm'
+                : 'bg-transparent border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Home className="w-4 h-4" />
+            Work From Home
+          </button>
+        </div>
+      )}
+
       {/* Tab Selector */}
-      <div className="flex bg-orange-50/30 border border-orange-100 rounded-2xl p-1.5 backdrop-blur-xl">
+      <div className="flex gap-2 p-1.5 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
         <button
+          type="button"
           onClick={() => setSelectedTab('in')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold transition-all cursor-pointer border ${
             selectedTab === 'in'
-              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
-              : 'text-slate-500 hover:text-red-500 border border-transparent'
+              ? 'bg-white border-slate-200 text-[#FF5A00] shadow-sm'
+              : 'bg-transparent border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          <Clock className="w-4.5 h-4.5" />
-          Absen Masuk
-          {todayAttendance?.clock_in && (
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          )}
+          <Clock className="w-4 h-4" />
+          Check In
+          {todayAttendance?.clock_in && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
         </button>
         <button
+          type="button"
           onClick={() => setSelectedTab('out')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-semibold transition-all cursor-pointer border ${
             selectedTab === 'out'
-              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/50 text-red-600 font-extrabold shadow-sm'
-              : 'text-slate-500 hover:text-red-500 border border-transparent'
+              ? 'bg-white border-slate-200 text-[#FF5A00] shadow-sm'
+              : 'bg-transparent border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          <Clock className="w-4.5 h-4.5" />
-          Absen Keluar 
-          {todayAttendance?.clock_out && (
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          )}
+          <Clock className="w-4 h-4" />
+          Check Out
+          {todayAttendance?.clock_out && <span className="w-2 h-2 rounded-full bg-emerald-500" />}
         </button>
       </div>
 
@@ -712,27 +804,29 @@ export default function EmployeeAbsen({
         // Check-In Tab
         !todayAttendance || !todayAttendance.clock_in ? (
           // Form for Check-In
-          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6">
-            <div className="border-b border-orange-100 pb-3 flex justify-between items-center">
+          <section className="bg-white border border-slate-100 rounded-[20px] p-4 sm:p-6 space-y-6" style={{ boxShadow: CARD_SHADOW }}>
+            <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div>
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 font-quicksand">
-                  <Camera className="w-5 h-5 text-red-500" />
-                  Formulir Presensi: Masuk (Check-In)
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-[#FF5A00]" />
+                  Check-In
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">Harap ambil foto wajah dan aktifkan lokasi GPS Anda.</p>
+                <p className="text-[13px] text-slate-500 mt-1">
+                  {isWfhMode
+                    ? 'Mode WFH — absensi dari lokasi manapun. Foto wajah dan GPS tetap wajib.'
+                    : 'Foto wajah dan lokasi GPS wajib diisi (harus dalam radius kantor).'}
+                </p>
               </div>
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-quicksand">
-                  Belum Masuk
-                </span>
-              </div>
+              <span className="self-start text-[12px] font-semibold uppercase tracking-wide text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
+                Belum masuk
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Column 1: Foto Presensi */}
               <div className="space-y-3">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
-                  1. Foto Wajah
+                <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wide">
+                  1. Foto wajah
                 </label>
 
                 {capturedPhoto ? (
@@ -764,24 +858,26 @@ export default function EmployeeAbsen({
                   </div>
                 ) : (
                   /* No photo yet — show camera launcher */
-                  <div className="rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/30 aspect-video flex flex-col items-center justify-center gap-4 p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/25">
+                  <div className="rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/40 flex flex-col p-5 sm:p-6 min-h-[260px] sm:min-h-[280px]">
+                    <div className="flex flex-col items-center justify-center gap-3 flex-1 text-center py-2">
+                    <div className="w-16 h-16 rounded-2xl bg-[#FF5A00] flex items-center justify-center shadow-lg shadow-orange-500/20">
                       <Camera className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-700 font-quicksand">Ambil Foto Wajah</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Kamera akan terbuka penuh di perangkat Anda</p>
+                      <p className="text-sm font-bold text-slate-700">Ambil foto wajah</p>
+                      <p className="text-[12px] text-slate-400 mt-0.5">Kamera fullscreen di perangkat Anda</p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs">
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2.5 w-full shrink-0 pt-1">
                       <button
                         type="button"
                         onClick={openCameraModal}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md shadow-red-500/25 active:scale-95"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 min-h-[44px] h-11 sm:h-12 w-full bg-[#FF5A00] hover:bg-[#E04800] text-white rounded-2xl text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] shrink-0"
                       >
-                        <Camera className="w-4 h-4" /> Buka Kamera
+                        <Camera className="w-4 h-4 shrink-0" /> Buka kamera
                       </button>
-                      <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95">
-                        <Upload className="w-4 h-4 text-slate-500" /> Galeri
+                      <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 min-h-[44px] h-11 sm:h-12 w-full bg-white border border-slate-200 text-slate-700 rounded-2xl text-sm font-semibold transition-all cursor-pointer hover:bg-slate-50 active:scale-[0.98] shrink-0">
+                        <Upload className="w-4 h-4 text-slate-500 shrink-0" /> Galeri
                         <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                       </label>
                     </div>
@@ -792,19 +888,24 @@ export default function EmployeeAbsen({
               {/* Column 2: Peta */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
-                    2. Lokasi Geolocation (GPS)
+                  <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wide">
+                    2. Lokasi GPS
                   </label>
-                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer font-quicksand">
-                    <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} /> Cari Ulang
+                  <button
+                    type="button"
+                    onClick={fetchLocation}
+                    disabled={locationLoading}
+                    className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF5A00] hover:text-[#E04800] cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} /> Refresh
                   </button>
                 </div>
 
-                <div className="relative w-full h-[220px] rounded-2xl bg-slate-50 border border-orange-100/60 overflow-hidden flex items-center justify-center">
+                <div className="relative w-full h-[220px] sm:h-[260px] rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden">
                   <div ref={setMapRef} id="employee-map-in" className="w-full h-full z-10" />
                   {locationLoading && (
                     <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-600 text-center gap-2">
-                      <RefreshCw className="w-7 h-7 animate-spin text-red-500" />
+                      <RefreshCw className="w-7 h-7 animate-spin text-[#FF5A00]" />
                       <p className="text-xs font-semibold">Mengunci sinyal koordinat GPS...</p>
                     </div>
                   )}
@@ -819,18 +920,25 @@ export default function EmployeeAbsen({
                 <div className="space-y-2">
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center text-xs font-mono">
                     <div className="flex items-center gap-1.5 text-slate-500">
-                      <MapPin className="w-3.5 h-3.5 text-red-500" />
-                      <span className="font-quicksand font-bold">Koordinat:</span>
+                      <MapPin className="w-3.5 h-3.5 text-[#FF5A00]" />
+                      <span className="font-semibold">Koordinat:</span>
                     </div>
                     {latitude && longitude ? (
                       <span className="text-slate-700 text-[11px] font-bold">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
                     ) : (
-                      <span className="text-slate-400 italic font-quicksand font-semibold">Lokasi belum dikunci</span>
+                      <span className="text-slate-400 italic font-medium">Lokasi belum dikunci</span>
                     )}
                   </div>
 
-                  {latitude && longitude && officeSetting && currentDistance !== null && (
-                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-250'}`}>
+                  {latitude && longitude && isWfhMode && (
+                    <div className="p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed text-sky-700 bg-sky-50 border-sky-200">
+                      <Home className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                      <span>Mode Work From Home aktif — lokasi GPS dicatat tanpa batas radius kantor.</span>
+                    </div>
+                  )}
+
+                  {latitude && longitude && !isWfhMode && officeSetting && currentDistance !== null && (
+                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}>
                       {isWithinRadius ? (
                         <>
                           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -846,117 +954,110 @@ export default function EmployeeAbsen({
                   )}
                 </div>
               </div>
-            </div>            {/* Shift Profile Selection */}
-            <div className="space-y-2 pt-3 border-t border-orange-100 font-quicksand">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-red-500" />
-                Shift Kerja Hari Ini
+            </div>
+            <div className="space-y-2 pt-3 border-t border-slate-100">
+              <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-[#FF5A00]" />
+                Shift hari ini
               </label>
-              <div className="relative">
-                <select
-                  value={selectedShiftId}
-                  onChange={(e) => setSelectedShiftId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 focus:ring-1 focus:ring-red-500 text-slate-800 rounded-xl py-2.5 px-4 outline-none text-xs font-semibold appearance-none cursor-pointer"
-                >
-                  <option value="">
-                    {new Date().getDay() === 6 ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:30)'}
-                  </option>
-                  {shifts.map((shift) => {
-                    const isRegulerSat = shift.name === 'Shift Reguler' && new Date().getDay() === 6;
-                    const displayEndTime = isRegulerSat ? '14:00' : shift.end_time.substring(0, 5);
-                    return (
-                      <option key={shift.id} value={shift.id}>
-                        {shift.name} ({shift.start_time.substring(0, 5)} - {displayEndTime})
-                      </option>
-                    );
-                  })}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                </div>
-              </div>
+              <select
+                value={selectedShiftId}
+                onChange={(e) => setSelectedShiftId(e.target.value)}
+                className="w-full h-11 bg-[#F8FAFC] border border-slate-200 focus:border-[#FF5A00] focus:ring-2 focus:ring-orange-100 text-slate-800 rounded-xl py-2 px-4 outline-none text-sm font-medium cursor-pointer"
+              >
+                <option value="">
+                  {new Date().getDay() === 6 ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:30)'}
+                </option>
+                {shifts.map((shift) => {
+                  const isRegulerSat = shift.name === 'Shift Reguler' && new Date().getDay() === 6
+                  const displayEndTime = isRegulerSat ? '14:00' : shift.end_time.substring(0, 5)
+                  return (
+                    <option key={shift.id} value={shift.id}>
+                      {shift.name} ({shift.start_time.substring(0, 5)} - {displayEndTime})
+                    </option>
+                  )
+                })}
+              </select>
             </div>
 
-            <div className="space-y-2 pt-3 border-t border-orange-100">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 font-quicksand">
-                <FileText className="w-3.5 h-3.5 text-red-500" />
-                Catatan Presensi (Opsional)
+            <div className="space-y-2 pt-3 border-t border-slate-100">
+              <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-[#FF5A00]" />
+                Catatan (opsional)
               </label>
-              <textarea placeholder="Tambahkan pesan atau keterangan jika diperlukan..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 px-4 outline-none transition-all text-xs resize-none font-medium font-quicksand" />
+              <textarea
+                placeholder="Keterangan tambahan jika diperlukan…"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-[#FF5A00] focus:ring-2 focus:ring-orange-100 text-slate-800 placeholder-slate-400 rounded-xl py-3 px-4 outline-none text-sm resize-none"
+              />
             </div>
 
-            <div className="pt-2 flex justify-end">
-              <button onClick={() => handleAttendanceSubmit('check-in')} disabled={submitting || !capturedPhoto || !latitude || !longitude || (officeSetting !== null && !isWithinRadius)} className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-orange-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
-                {submitting ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim Presensi...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" /> Kirim Absensi Masuk Sekarang
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleAttendanceSubmit('check-in')}
+              disabled={submitting || !capturedPhoto || !latitude || !longitude || (requiresOfficeRadius && officeSetting !== null && !isWithinRadius)}
+              className="w-full sm:w-auto sm:ml-auto flex h-[52px] px-8 bg-[#FF5A00] hover:bg-[#E04800] text-white font-bold rounded-2xl transition-all cursor-pointer text-sm items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ boxShadow: '0 6px 20px rgba(255,90,0,0.25)' }}
+            >
+              {submitting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim…
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" /> Kirim check-in
+                </>
+              )}
+            </button>
           </section>
         ) : (
           // Check-In Complete Details
-          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-transparent"></div>
-            <div className="flex justify-between items-center pb-3 border-b border-orange-100">
+          <section className="bg-white border border-slate-100 rounded-[20px] p-4 sm:p-6 space-y-6 relative overflow-hidden" style={{ boxShadow: CARD_SHADOW }}>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100">
+                <div className="p-2.5 bg-emerald-50 rounded-2xl text-emerald-600 border border-emerald-100">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-800 font-quicksand">Absen Masuk Tercatat!</h2>
-                  <p className="text-xs text-slate-500">Anda sudah melakukan absen masuk (check-in) untuk hari ini.</p>
+                  <h2 className="text-lg font-bold text-slate-800">Check-in tercatat</h2>
+                  <p className="text-[13px] text-slate-500">Presensi masuk hari ini sudah tersimpan.</p>
                 </div>
               </div>
               {getStatusBadge(todayAttendance.status_in)}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
-              <div className="md:col-span-7 space-y-4">
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Waktu Presensi Masuk</span>
-                    <span className="text-3xl font-extrabold text-slate-800 font-mono">{todayAttendance.clock_in}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Tipe Presensi</span>
-                      <span className="text-xs text-slate-700 font-extrabold capitalize">{todayAttendance.attendance_type || 'kantor'}</span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Lokasi Absensi</span>
-                      <span className="text-xs text-slate-700 font-extrabold">Thamrin City Lantai 7</span>
-                    </div>
-                  </div>
-                  {todayAttendance.notes_in && (
-                    <div className="pt-2 border-t border-slate-200">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Catatan Anda</span>
-                      <p className="text-xs text-slate-600 mt-1 font-medium font-quicksand">{todayAttendance.notes_in}</p>
-                    </div>
-                  )}
-                  {todayAttendance && (
-                    <div className="pt-2 border-t border-slate-200 font-quicksand">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Jadwal Shift Kerja Anda</span>
-                      <span className="text-xs text-slate-700 font-bold">
-                        {getShiftLabelForAttendance(todayAttendance)}
-                      </span>
-                    </div>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="rounded-2xl bg-[#F8FAFC] border border-slate-100 p-4 space-y-4">
+                <div>
+                  <span className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide block">Waktu masuk</span>
+                  <span className="text-3xl font-bold text-slate-800 tabular-nums">{todayAttendance.clock_in?.substring(0, 5)}</span>
                 </div>
-              </div>
-
-              <div className="md:col-span-5">
-                {todayAttendance.photo_in && (
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-inner">
-                    <img src={getAssetUrl(todayAttendance.photo_in)} alt="Foto Check In" className="w-full h-full object-cover" />
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200 text-sm">
+                  <div>
+                    <span className="text-[12px] font-semibold text-slate-500 uppercase block">Tipe</span>
+                    <span className="font-semibold text-slate-800">{getAttendanceTypeLabel(todayAttendance.attendance_type)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[12px] font-semibold text-slate-500 uppercase block">Shift</span>
+                    <span className="font-semibold text-slate-800 text-[13px] leading-snug">{getShiftLabelForAttendance(todayAttendance)}</span>
+                  </div>
+                </div>
+                {todayAttendance.notes_in && (
+                  <div className="pt-3 border-t border-slate-200">
+                    <span className="text-[12px] font-semibold text-slate-500 uppercase block">Catatan</span>
+                    <p className="text-sm text-slate-600 mt-1">{todayAttendance.notes_in}</p>
                   </div>
                 )}
               </div>
+
+              {todayAttendance.photo_in && (
+                <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-100 bg-slate-100">
+                  <img src={getAssetUrl(todayAttendance.photo_in)} alt="Foto check-in" className="w-full h-full object-cover" />
+                </div>
+              )}
             </div>
           </section>
         )
@@ -964,46 +1065,51 @@ export default function EmployeeAbsen({
         // Check-Out Tab
         !todayAttendance || !todayAttendance.clock_in ? (
           // Check-Out Blocked (Need Check-In First)
-          <section className="bg-white border border-orange-100 rounded-3xl p-12 text-center shadow-sm flex flex-col items-center justify-center gap-4">
-            <div className="p-4 bg-rose-50 rounded-full border border-rose-200 text-rose-600">
-              <AlertTriangle className="w-10 h-10 animate-pulse" />
+          <section
+            className="bg-white border border-slate-100 rounded-[20px] p-8 sm:p-10 text-center flex flex-col items-center gap-4"
+            style={{ boxShadow: CARD_SHADOW }}
+          >
+            <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center border border-rose-100">
+              <AlertTriangle className="w-7 h-7 text-rose-600" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-800 font-quicksand">Absen Keluar Belum Tersedia</h3>
-              <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed font-medium">
-                Anda harus melakukan **Absen Masuk (Check-In)** terlebih dahulu pada hari ini sebelum dapat mencatat Absen Keluar (Check-Out).
+              <h3 className="text-lg font-bold text-slate-800">Check-out belum tersedia</h3>
+              <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto leading-relaxed">
+                Lakukan check-in terlebih dahulu hari ini sebelum mencatat check-out.
               </p>
             </div>
             <button
+              type="button"
               onClick={() => setSelectedTab('in')}
-              className="mt-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-red-500/10 cursor-pointer font-quicksand"
+              className="h-11 px-6 bg-[#FF5A00] hover:bg-[#E04800] text-white font-semibold rounded-2xl text-sm transition-all cursor-pointer"
             >
-              Buka Absen Masuk
+              Ke tab Check In
             </button>
           </section>
         ) : !todayAttendance.clock_out ? (
-          // Form for Check-Out
-          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6">
-            <div className="border-b border-orange-100 pb-3 flex justify-between items-center">
+          <section className="bg-white border border-slate-100 rounded-[20px] p-4 sm:p-6 space-y-6" style={{ boxShadow: CARD_SHADOW }}>
+            <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
               <div>
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 font-quicksand">
-                  <Camera className="w-5 h-5 text-red-500" />
-                  Formulir Presensi: Keluar (Check-Out)
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-[#FF5A00]" />
+                  Check-Out
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">Harap ambil foto wajah and aktifkan lokasi GPS Anda.</p>
+                <p className="text-[13px] text-slate-500 mt-1">
+                  {isWfhMode
+                    ? 'Check-out WFH — foto wajah dan GPS wajib, tanpa batas radius kantor.'
+                    : 'Foto wajah dan lokasi GPS wajib diisi (harus dalam radius kantor).'}
+                </p>
               </div>
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-quicksand">
-                  Belum Keluar
-                </span>
-              </div>
+              <span className="self-start text-[12px] font-semibold uppercase tracking-wide text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
+                Belum keluar
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Column 1: Foto Presensi */}
               <div className="space-y-3">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
-                  1. Foto Wajah
+                <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wide">
+                  1. Foto wajah
                 </label>
 
                 {capturedPhoto ? (
@@ -1035,24 +1141,26 @@ export default function EmployeeAbsen({
                   </div>
                 ) : (
                   /* No photo yet — show camera launcher */
-                  <div className="rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/30 aspect-video flex flex-col items-center justify-center gap-4 p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-red-500/25">
+                  <div className="rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/40 flex flex-col p-5 sm:p-6 min-h-[260px] sm:min-h-[280px]">
+                    <div className="flex flex-col items-center justify-center gap-3 flex-1 text-center py-2">
+                    <div className="w-16 h-16 rounded-2xl bg-[#FF5A00] flex items-center justify-center shadow-lg shadow-orange-500/20">
                       <Camera className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-700 font-quicksand">Ambil Foto Wajah</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Kamera akan terbuka penuh di perangkat Anda</p>
+                      <p className="text-sm font-bold text-slate-700">Ambil foto wajah</p>
+                      <p className="text-[12px] text-slate-400 mt-0.5">Kamera fullscreen di perangkat Anda</p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs">
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2.5 w-full shrink-0 pt-1">
                       <button
                         type="button"
                         onClick={openCameraModal}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md shadow-red-500/25 active:scale-95"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 min-h-[44px] h-11 sm:h-12 w-full bg-[#FF5A00] hover:bg-[#E04800] text-white rounded-2xl text-sm font-semibold transition-all cursor-pointer active:scale-[0.98] shrink-0"
                       >
-                        <Camera className="w-4 h-4" /> Buka Kamera
+                        <Camera className="w-4 h-4 shrink-0" /> Buka kamera
                       </button>
-                      <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95">
-                        <Upload className="w-4 h-4 text-slate-500" /> Galeri
+                      <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 min-h-[44px] h-11 sm:h-12 w-full bg-white border border-slate-200 text-slate-700 rounded-2xl text-sm font-semibold transition-all cursor-pointer hover:bg-slate-50 active:scale-[0.98] shrink-0">
+                        <Upload className="w-4 h-4 text-slate-500 shrink-0" /> Galeri
                         <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                       </label>
                     </div>
@@ -1063,19 +1171,24 @@ export default function EmployeeAbsen({
               {/* Column 2: Peta */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider font-quicksand">
-                    2. Lokasi Geolocation (GPS)
+                  <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wide">
+                    2. Lokasi GPS
                   </label>
-                  <button onClick={fetchLocation} disabled={locationLoading} className="inline-flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-700 cursor-pointer font-quicksand">
-                    <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} /> Cari Ulang
+                  <button
+                    type="button"
+                    onClick={fetchLocation}
+                    disabled={locationLoading}
+                    className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF5A00] hover:text-[#E04800] cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${locationLoading ? 'animate-spin' : ''}`} /> Refresh
                   </button>
                 </div>
 
-                <div className="relative w-full h-[220px] rounded-2xl bg-slate-50 border border-orange-100/60 overflow-hidden flex items-center justify-center">
+                <div className="relative w-full h-[220px] sm:h-[260px] rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden">
                   <div ref={setMapRef} id="employee-map-out" className="w-full h-full z-10" />
                   {locationLoading && (
                     <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center text-slate-600 text-center gap-2">
-                      <RefreshCw className="w-7 h-7 animate-spin text-red-500" />
+                      <RefreshCw className="w-7 h-7 animate-spin text-[#FF5A00]" />
                       <p className="text-xs font-semibold">Mengunci sinyal koordinat GPS...</p>
                     </div>
                   )}
@@ -1090,18 +1203,25 @@ export default function EmployeeAbsen({
                 <div className="space-y-2">
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center text-xs font-mono">
                     <div className="flex items-center gap-1.5 text-slate-500">
-                      <MapPin className="w-3.5 h-3.5 text-red-500" />
-                      <span className="font-quicksand font-bold">Koordinat:</span>
+                      <MapPin className="w-3.5 h-3.5 text-[#FF5A00]" />
+                      <span className="font-semibold">Koordinat:</span>
                     </div>
                     {latitude && longitude ? (
                       <span className="text-slate-700 text-[11px] font-bold">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
                     ) : (
-                      <span className="text-slate-400 italic font-quicksand font-semibold">Lokasi belum dikunci</span>
+                      <span className="text-slate-400 italic font-medium">Lokasi belum dikunci</span>
                     )}
                   </div>
 
-                  {latitude && longitude && officeSetting && currentDistance !== null && (
-                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-250'}`}>
+                  {latitude && longitude && isWfhMode && (
+                    <div className="p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed text-sky-700 bg-sky-50 border-sky-200">
+                      <Home className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                      <span>Mode Work From Home aktif — lokasi GPS dicatat tanpa batas radius kantor.</span>
+                    </div>
+                  )}
+
+                  {latitude && longitude && !isWfhMode && officeSetting && currentDistance !== null && (
+                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}>
                       {isWithinRadius ? (
                         <>
                           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -1119,90 +1239,110 @@ export default function EmployeeAbsen({
               </div>
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-orange-100">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 font-quicksand">
-                <FileText className="w-3.5 h-3.5 text-red-500" />
-                3. Catatan Presensi (Opsional)
+            <div className="space-y-2 pt-3 border-t border-slate-100">
+              <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-[#FF5A00]" />
+                Catatan (opsional)
               </label>
-              <textarea placeholder="Tambahkan pesan atau keterangan jika diperlukan..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-slate-50 border border-slate-200 focus:border-red-500 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 px-4 outline-none transition-all text-xs resize-none font-medium font-quicksand" />
+              <textarea
+                placeholder="Keterangan tambahan jika diperlukan…"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                className="w-full bg-[#F8FAFC] border border-slate-200 focus:border-[#FF5A00] focus:ring-2 focus:ring-orange-100 text-slate-800 placeholder-slate-400 rounded-xl py-3 px-4 outline-none text-sm resize-none"
+              />
             </div>
 
-            <div className="pt-2 flex justify-end">
-              <button onClick={() => handleAttendanceSubmit('check-out')} disabled={submitting || !capturedPhoto || !latitude || !longitude || (officeSetting !== null && !isWithinRadius)} className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-orange-600/10 cursor-pointer text-sm flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed font-quicksand">
-                {submitting ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim Presensi...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" /> Kirim Absensi Keluar Sekarang
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleAttendanceSubmit('check-out')}
+              disabled={submitting || !capturedPhoto || !latitude || !longitude || (requiresOfficeRadius && officeSetting !== null && !isWithinRadius)}
+              className="w-full sm:w-auto sm:ml-auto flex h-[52px] px-8 bg-[#FF5A00] hover:bg-[#E04800] text-white font-bold rounded-2xl transition-all cursor-pointer text-sm items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ boxShadow: '0 6px 20px rgba(255,90,0,0.25)' }}
+            >
+              {submitting ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" /> Mengirim…
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" /> Kirim check-out
+                </>
+              )}
+            </button>
           </section>
         ) : (
-          // Check-Out Complete Details
-          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-transparent"></div>
-            <div className="flex justify-between items-center pb-3 border-b border-orange-100">
+          <section className="bg-white border border-slate-100 rounded-[20px] p-4 sm:p-6 space-y-6 relative overflow-hidden" style={{ boxShadow: CARD_SHADOW }}>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100">
+                <div className="p-2.5 bg-emerald-50 rounded-2xl text-emerald-600 border border-emerald-100">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-slate-800 font-quicksand">Absen Keluar Tercatat!</h2>
-                  <p className="text-xs text-slate-500">Anda sudah melakukan absen keluar (check-out) untuk hari ini.</p>
+                  <h2 className="text-lg font-bold text-slate-800">Check-out tercatat</h2>
+                  <p className="text-[13px] text-slate-500">Presensi keluar hari ini sudah tersimpan.</p>
                 </div>
               </div>
               {getStatusBadge(todayAttendance.status_out)}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2">
-              <div className="md:col-span-7 space-y-4">
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Waktu Presensi Keluar</span>
-                    <span className="text-3xl font-extrabold text-slate-800 font-mono">{todayAttendance.clock_out}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-200">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Tipe Presensi</span>
-                      <span className="text-xs text-slate-700 font-extrabold capitalize">{todayAttendance.attendance_type || 'kantor'}</span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Lokasi Absensi</span>
-                      <span className="text-xs text-slate-700 font-extrabold">Thamrin City Lantai 7</span>
-                    </div>
-                  </div>
-                  {todayAttendance.notes_out && (
-                    <div className="pt-2 border-t border-slate-200">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-quicksand">Catatan Anda</span>
-                      <p className="text-xs text-slate-600 mt-1 font-medium font-quicksand">{todayAttendance.notes_out}</p>
-                    </div>
-                  )}
-                  {todayAttendance && (
-                    <div className="pt-2 border-t border-slate-200 font-quicksand">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Jadwal Shift Kerja Anda</span>
-                      <span className="text-xs text-slate-700 font-bold">
-                        {getShiftLabelForAttendance(todayAttendance)}
-                      </span>
-                    </div>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="rounded-2xl bg-[#F8FAFC] border border-slate-100 p-4 space-y-4">
+                <div>
+                  <span className="text-[12px] font-semibold text-slate-500 uppercase tracking-wide block">Waktu keluar</span>
+                  <span className="text-3xl font-bold text-slate-800 tabular-nums">{todayAttendance.clock_out?.substring(0, 5)}</span>
                 </div>
-              </div>
-
-              <div className="md:col-span-5">
-                {todayAttendance.photo_out && (
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-inner">
-                    <img src={getAssetUrl(todayAttendance.photo_out)} alt="Foto Check Out" className="w-full h-full object-cover" />
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200 text-sm">
+                  <div>
+                    <span className="text-[12px] font-semibold text-slate-500 uppercase block">Tipe</span>
+                    <span className="font-semibold text-slate-800">{getAttendanceTypeLabel(todayAttendance.attendance_type)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[12px] font-semibold text-slate-500 uppercase block">Shift</span>
+                    <span className="font-semibold text-slate-800 text-[13px] leading-snug">{getShiftLabelForAttendance(todayAttendance)}</span>
+                  </div>
+                </div>
+                {todayAttendance.notes_out && (
+                  <div className="pt-3 border-t border-slate-200">
+                    <span className="text-[12px] font-semibold text-slate-500 uppercase block">Catatan</span>
+                    <p className="text-sm text-slate-600 mt-1">{todayAttendance.notes_out}</p>
                   </div>
                 )}
               </div>
+
+              {todayAttendance.photo_out && (
+                <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-100 bg-slate-100">
+                  <img src={getAssetUrl(todayAttendance.photo_out)} alt="Foto check-out" className="w-full h-full object-cover" />
+                </div>
+              )}
             </div>
           </section>
         )
       )}
+
+      <aside
+        className="rounded-[20px] border border-orange-100 bg-orange-50/40 p-4 sm:p-5 flex gap-3 items-start"
+        style={{ boxShadow: CARD_SHADOW }}
+      >
+        <div className="w-10 h-10 rounded-xl bg-white border border-orange-100 flex items-center justify-center shrink-0">
+          <AlertCircle className="w-5 h-5 text-[#FF5A00]" />
+        </div>
+        <div className="min-w-0 text-[13px] text-slate-600 leading-relaxed">
+          <p className="font-bold text-slate-800 mb-1">Tips absensi kantor</p>
+          <p>
+            Aktifkan GPS, ambil foto wajah yang jelas, dan pastikan posisi Anda di dalam radius kantor sebelum
+            mengirim presensi.
+          </p>
+          <NavLink
+            to="/employee/riwayat"
+            className="inline-flex items-center gap-1 mt-2.5 text-[#FF5A00] font-semibold hover:text-[#E04800] transition-colors"
+          >
+            Lihat riwayat presensi
+            <span aria-hidden>→</span>
+          </NavLink>
+        </div>
+      </aside>
     </div>
 
     {/* ================================================================
@@ -1236,7 +1376,7 @@ export default function EmployeeAbsen({
               >
                 <X className="w-6 h-6" />
               </button>
-              <span className="text-white text-sm font-bold font-quicksand tracking-wide drop-shadow px-3 py-1 bg-black/40 rounded-full backdrop-blur-sm">
+              <span className="text-white text-sm font-bold tracking-wide drop-shadow px-3 py-1 bg-black/40 rounded-full backdrop-blur-sm">
                 Pratinjau Foto
               </span>
               <div className="w-10" />
@@ -1258,7 +1398,7 @@ export default function EmployeeAbsen({
               <button
                 type="button"
                 onClick={confirmModalPhoto}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-extrabold rounded-2xl text-sm shadow-lg shadow-emerald-500/30 transition-all active:scale-95 cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-[#FF5A00] hover:bg-[#E04800] text-white font-bold rounded-2xl text-sm shadow-lg shadow-orange-500/25 transition-all active:scale-95 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Gunakan Foto
@@ -1280,7 +1420,7 @@ export default function EmployeeAbsen({
                 <X className="w-6 h-6" />
               </button>
 
-              <span className="text-white text-sm font-bold font-quicksand tracking-wide drop-shadow">
+              <span className="text-white text-sm font-bold tracking-wide drop-shadow px-3 py-1 bg-black/30 rounded-full backdrop-blur-sm">
                 Foto Wajah Presensi
               </span>
 

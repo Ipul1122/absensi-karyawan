@@ -13,6 +13,7 @@ use App\Models\Bonus;
 use App\Models\Inventory;
 use App\Models\PermitRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class NotificationController extends Controller
 {
@@ -31,9 +32,29 @@ class NotificationController extends Controller
                 ]);
             }
 
-            $counts = [];
+            $cacheKey = 'sidebar_notification_counts:' . $user->id . ':' . $user->role;
 
-            if ($user->role === 'employee') {
+            $counts = Cache::remember($cacheKey, 30, function () use ($user) {
+                return $this->buildCountsForUser($user);
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $counts
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'success',
+                'data' => []
+            ]);
+        }
+    }
+
+    private function buildCountsForUser($user): array
+    {
+        $counts = [];
+
+        if ($user->role === 'employee') {
                 $pendingCuti = LeaveRequest::where('user_id', $user->id)->whereIn('status', ['pending', 'pending_director'])->count();
                 $pendingLembur = Overtime::where('user_id', $user->id)->whereIn('status', ['pending', 'pending_director'])->count();
                 $pendingReimburse = Reimbursement::where('user_id', $user->id)->whereIn('status', ['pending', 'pending_director'])->count();
@@ -85,15 +106,6 @@ class NotificationController extends Controller
                 ];
             }
 
-            return response()->json([
-                'status' => 'success',
-                'data' => $counts
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'status' => 'success',
-                'data' => []
-            ]);
-        }
+            return $counts;
     }
 }

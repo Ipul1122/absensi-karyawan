@@ -29,6 +29,19 @@ export const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
+// Configure a global request interceptor on the default axios instance to rewrite local backend URLs
+axios.interceptors.request.use(
+  (config) => {
+    if (config.url && config.url.includes('localhost:8000')) {
+      config.url = config.url.replace('http://localhost:8000', API_BASE_URL);
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 /**
  * Returns a fully-qualified URL for static/storage assets.
  * Handles prepended slashes and schemas dynamically.
@@ -41,20 +54,12 @@ export const getAssetUrl = (path: string | null | undefined): string => {
   let processedPath = path;
 
   if (processedPath.startsWith('http')) {
-    // If we are accessing via local IP (e.g. from phone), rewrite any localhost:8000 or 127.0.0.1:8000 assets to the actual API_BASE_URL
-    if (API_BASE_URL.includes('192.168.') || API_BASE_URL.includes('10.') || API_BASE_URL.includes('172.')) {
-      const normalizedBase = API_BASE_URL.replace('http://', '://').replace('https://', '://');
-      processedPath = processedPath
-        .replace('://localhost:8000', normalizedBase)
-        .replace('://127.0.0.1:8000', normalizedBase);
-    }
+    // Rewrite any localhost:8000 or 127.0.0.1:8000 asset URLs to actual API_BASE_URL
+    const normalizedBase = API_BASE_URL.replace('http://', '://').replace('https://', '://');
+    processedPath = processedPath
+      .replace('://localhost:8000', normalizedBase)
+      .replace('://127.0.0.1:8000', normalizedBase);
 
-    if (processedPath.includes('://localhost/') && !processedPath.includes(':8000/')) {
-      return processedPath.replace('://localhost/', '://localhost:8000/');
-    }
-    if (processedPath.includes('://127.0.0.1/') && !processedPath.includes(':8000/')) {
-      return processedPath.replace('://127.0.0.1/', '://127.0.0.1:8000/');
-    }
     return processedPath;
   }
   const cleanPath = processedPath.startsWith('/') ? processedPath.substring(1) : processedPath;
@@ -160,4 +165,3 @@ export const setupResponseInterceptor = (instance: any) => {
 
 // Set up interceptor for apiClient
 setupResponseInterceptor(apiClient);
-

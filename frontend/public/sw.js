@@ -4,8 +4,8 @@ self.addEventListener('push', function(event) {
       const data = event.data.json();
       const options = {
         body: data.body || 'Ada pengingat penting untuk Anda.',
-        icon: data.icon || '/logo-absen.png', // Fallback ke logo absensi jika ada
-        badge: data.badge || '/logo-absen.png',
+        icon: data.icon || '/pwa/icon-192.png',
+        badge: data.badge || '/pwa/icon-192.png',
         vibrate: [100, 50, 100],
         data: {
           url: data.url || '/employee/dashboard'

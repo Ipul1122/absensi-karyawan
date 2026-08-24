@@ -38,7 +38,7 @@ class AttendanceController extends Controller
             'longitude' => 'required|string',
             'photo' => 'required|string', // base64 string
             'notes' => 'nullable|string',
-            'attendance_type' => 'nullable|string|in:kantor,kunjungan,client',
+            'attendance_type' => 'nullable|string|in:kantor,kunjungan,client,wfh',
             'shift_id' => 'nullable|integer',
         ]);
 
@@ -118,7 +118,7 @@ class AttendanceController extends Controller
             }
 
             if ($timeStr > $limitIn) {
-                $status = ($attendanceType === 'kantor') ? 'late' : 'normal';
+                $status = in_array($attendanceType, ['kantor', 'wfh'], true) ? 'late' : 'normal';
             }
 
             if ($existing) {
@@ -477,6 +477,49 @@ class AttendanceController extends Controller
             $items = $items->concat($otherAttendances);
         }
 
+        // 4. Fetch WFH attendances
+        if (in_array($type, ['all', 'wfh'])) {
+            $wfhQuery = Attendance::with('shift')->where('user_id', $userId)
+                ->where('attendance_type', 'wfh');
+
+            if ($date) {
+                $wfhQuery->where('date', $date);
+            } elseif ($month && $year) {
+                $wfhQuery->whereMonth('date', $month)->whereYear('date', $year);
+            }
+
+            $wfhAttendances = $wfhQuery->get()->map(function ($att) {
+                $dateStr = is_string($att->date) ? $att->date : ($att->date ? $att->date->format('Y-m-d') : null);
+                return [
+                    'id' => 'att_' . $att->id,
+                    'date' => $dateStr,
+                    'attendance_type' => 'wfh',
+                    'clock_in' => $att->clock_in,
+                    'clock_out' => $att->clock_out,
+                    'latitude_in' => $att->latitude_in,
+                    'longitude_in' => $att->longitude_in,
+                    'latitude_out' => $att->latitude_out,
+                    'longitude_out' => $att->longitude_out,
+                    'photo_in' => $att->photo_in,
+                    'photo_out' => $att->photo_out,
+                    'notes_in' => $att->notes_in,
+                    'notes_out' => $att->notes_out,
+                    'status_in' => $att->status_in,
+                    'status_out' => $att->status_out,
+                    'shift_start_time' => $att->shift_start_time,
+                    'shift_end_time' => $att->shift_end_time,
+                    'shift' => $att->shift ? [
+                        'name' => $att->shift->name,
+                        'start_time' => $att->shift->start_time,
+                        'end_time' => $att->shift->end_time,
+                    ] : null,
+                    'sort_time' => ($dateStr ?: '') . ' ' . ($att->clock_in ?: '00:00:00')
+                ];
+            });
+
+            $items = $items->concat($wfhAttendances);
+        }
+
         // Sort descending by sort_time
         $sorted = $items->sortByDesc('sort_time')->values();
 
@@ -598,7 +641,7 @@ class AttendanceController extends Controller
         $request->validate([
             'user_id' => 'required|integer|exists:users,id',
             'date' => 'required|date',
-            'attendance_type' => 'required|string|in:kantor,kunjungan,client',
+            'attendance_type' => 'required|string|in:kantor,kunjungan,client,wfh',
             'clock_in' => 'required_without:clock_out|nullable|string',
             'clock_out' => 'required_without:clock_in|nullable|string',
             'notes' => 'nullable|string',
@@ -631,7 +674,7 @@ class AttendanceController extends Controller
             $clockIn = Carbon::parse($request->clock_in)->format('H:i:s');
             $statusIn = 'normal';
             if ($clockIn > '08:30:00') {
-                $statusIn = ($request->attendance_type === 'kantor') ? 'late' : 'normal';
+                $statusIn = in_array($request->attendance_type, ['kantor', 'wfh'], true) ? 'late' : 'normal';
             }
         }
 
@@ -833,7 +876,7 @@ class AttendanceController extends Controller
             $statusIn = 'normal';
             $limitIn = $attendance->shift_start_time ?: '09:00:00';
             if ($clockIn > $limitIn) {
-                $statusIn = ($attendance->attendance_type === 'kantor') ? 'late' : 'normal';
+                $statusIn = in_array($attendance->attendance_type, ['kantor', 'wfh'], true) ? 'late' : 'normal';
             }
             $attendance->clock_in = $clockIn;
             $attendance->status_in = $statusIn;

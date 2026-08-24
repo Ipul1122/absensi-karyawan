@@ -43,14 +43,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 body {
-  background-color: #fdfbf7;
+  background-color: #F8FAFC;
   color: #1e293b;
   min-height: 100vh;
   margin: 0;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(254, 243, 199, 0.45) 0, transparent 50%),
-    radial-gradient(at 50% 0%, rgba(239, 68, 68, 0.05) 0, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(234, 88, 12, 0.08) 0, transparent 50%);
   background-attachment: fixed;
   overflow-x: hidden;
 }
@@ -69,6 +65,14 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* SweetAlert2 Theme Overrides */

@@ -222,7 +222,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
   const labelClass = "block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5 font-quicksand"
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5 animate-fade-in">
+    <div className="w-full max-w-2xl mx-auto space-y-5 animate-fade-in">
       <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-5">
         <div className="border-b border-orange-100 pb-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-md shadow-red-200">

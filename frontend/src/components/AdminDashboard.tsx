@@ -16,6 +16,7 @@ import {
 import AdminSidebar from './layout/AdminSidebar'
 import AdminNavbar, { AdminMobileNavbar } from './layout/AdminNavbar'
 import { API_BASE_URL } from '../utils/api'
+import { buildPresentTodayList } from '../utils/attendanceLocation'
 
 // Import sub-components (Lazy loaded for optimal code splitting & chunk sizing)
 const DashboardOverview = lazy(() => import('./admin/dashboard/DashboardOverview'))
@@ -102,6 +103,7 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
   const location = useLocation()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [attendances, setAttendances] = useState<Attendance[]>([])
+  const [todaySalesVisits, setTodaySalesVisits] = useState<any[]>([])
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [sidebarCounts, setSidebarCounts] = useState({
     pendingKaryawanCount: 0,
@@ -246,15 +248,27 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
 
   const fetchAttendances = async () => {
     setAttendanceLoading(true)
+    const todayStr = new Date().toLocaleDateString('en-CA')
     try {
-      const response = await axios.get(`${baseUrl}/api/admin/attendances`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (response.data.status === 'success') {
-        const validAttendances = (response.data.data || []).filter(
+      const [attendanceResponse, visitsResponse] = await Promise.all([
+        axios.get(`${baseUrl}/api/admin/attendances`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${baseUrl}/api/admin/sales-visits`, {
+          params: { date: todayStr },
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+      ])
+
+      if (attendanceResponse.data.status === 'success') {
+        const validAttendances = (attendanceResponse.data.data || []).filter(
           (att: any) => att && att.user && att.user.id
         )
         setAttendances(validAttendances)
+      }
+
+      if (visitsResponse.data.status === 'success') {
+        setTodaySalesVisits(visitsResponse.data.data || [])
       }
     } catch (err: any) {
       console.error(err)
@@ -296,12 +310,11 @@ export default function AdminDashboard({ user, token, onLogout, onProfileUpdate 
     fetchOfficeSetting()
     fetchLeaves()
     fetchProfile()
-    fetchSidebarCounts()
   }, [])
 
   useEffect(() => {
     fetchSidebarCounts()
-    const interval = setInterval(fetchSidebarCounts, 15000)
+    const interval = setInterval(fetchSidebarCounts, 60000)
     return () => clearInterval(interval)
   }, [token])
 
@@ -719,10 +732,8 @@ ${window.location.origin}/director/karyawan`
   // Get current date string (YYYY-MM-DD) local time
   const todayStr = new Date().toLocaleDateString('en-CA')
 
-  // Get list of employees present today
-  const presentToday = attendances.filter(
-    (att) => att.date === todayStr && att.clock_in !== null
-  )
+  // Gabung absensi kantor, WFH, kunjungan sales/klien (+ fallback dari log kunjungan)
+  const presentToday = buildPresentTodayList(attendances, todaySalesVisits, todayStr) as Attendance[]
 
   const formatDate = (dateString: string) => {
     const d = new Date(dateString)
@@ -839,7 +850,7 @@ ${window.location.origin}/director/karyawan`
       </button>
 
       {/* Desktop Left Sidebar (Fixed) */}
-      <aside className="hidden md:block w-64 bg-white border-r border-slate-100 p-6 flex-shrink-0 shadow-sm">
+      <aside className="hidden md:flex md:flex-col w-64 bg-white border-r border-slate-100 p-6 flex-shrink-0 shadow-sm sticky top-0 h-screen overflow-hidden">
         <AdminSidebar user={user} onLogout={handleLogoutClick} counts={sidebarCounts} />
       </aside>
 
@@ -872,7 +883,7 @@ ${window.location.origin}/director/karyawan`
         <AdminNavbar user={user} title={routeInfo.title} />
 
         {/* Main page content container */}
-        <main className="flex-grow p-4 md:p-8 overflow-y-auto">
+        <main className="flex-grow p-4 md:p-8 overflow-y-auto min-h-0">
           {/* Nested Routing Views */}
           <Suspense fallback={
             <div className="flex flex-col items-center justify-center py-12 text-slate-500 font-sans text-xs">
@@ -888,6 +899,7 @@ ${window.location.origin}/director/karyawan`
                   loading={loading}
                   attendanceLoading={attendanceLoading}
                   employees={employees}
+                  attendances={attendances}
                   presentTodayCount={presentToday.length}
                   presentTodayList={presentToday}
                   todayStr={todayStr}

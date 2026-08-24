@@ -183,17 +183,17 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
   return (
     <div className="flex flex-col h-full justify-between">
       <div className="flex flex-col flex-1 min-h-0">
-        {/* Brand Logo */}
-        <div className="flex items-center gap-3 px-3 py-2 border-b border-orange-100 pb-5 shrink-0">
+                {/* Brand Logo */}
+        <div className="flex items-center gap-3 px-3 py-2 border-b border-slate-100 pb-5 shrink-0">
           <Logo company="PT Cakrawala Parama Internasional" />
         </div>
 
         {/* Scrollable Container for Profile & Menu Items */}
         <div className="flex-1 overflow-y-auto pr-1 py-4 space-y-6 min-h-0 sidebar-scrollbar">
-          {/* User profile brief */}
-          <div className="bg-gradient-to-tr from-amber-500/5 to-orange-500/5 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-orange-500/10">
-              AD
+                    {/* User profile brief */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center gap-3 shadow-xs shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#E53935] to-[#C62828] flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-red-500/15 shrink-0">
+              {user.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase()}
             </div>
             <div className="overflow-hidden">
               <h4 className="text-xs font-bold text-slate-800 truncate font-quicksand">{user.name}</h4>
@@ -227,16 +227,16 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                 
                 return (
                   <div key={item.label} className="space-y-1">
-                    <button
+                                        <button
                       onClick={toggleOpen}
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group border border-transparent active:scale-[0.97] ${
                         isChildActive
-                          ? 'text-amber-700 bg-orange-50/30'
-                          : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40'
+                          ? 'text-[#E53935] bg-red-50/30'
+                          : 'text-slate-600 hover:text-[#E53935] hover:bg-slate-50'
                       }`}
                     >
                       <span className="flex items-center gap-3">
-                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isChildActive ? 'text-amber-700' : 'text-slate-400 group-hover:text-amber-600'}`} />
+                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isChildActive ? 'text-[#E53935]' : 'text-slate-400 group-hover:text-[#E53935]'}`} />
                         <span>{item.label}</span>
                         {item.label === 'Data Karyawan' && (counts?.pendingKaryawanCount ?? 0) > 0 && (
                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
@@ -254,7 +254,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                           </span>
                         )}
                       </span>
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-amber-700' : 'text-slate-400'}`} />
+                                            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${isChildActive ? 'text-[#E53935]' : 'text-slate-400'}`} />
                     </button>
                     
                     <div 
@@ -282,24 +282,24 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
                           }
                           
                           return (
-                            <NavLink
+                                                        <NavLink
                               key={child.to}
                               to={child.to}
                               onClick={handleLinkClick}
                               className={({ isActive }) => `w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] duration-150 ${
                                 isActive 
-                                  ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15 scale-[1.01]' 
-                                  : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 border border-transparent'
+                                  ? 'bg-[#E53935] text-white shadow-md shadow-red-500/15 scale-[1.01]' 
+                                  : 'text-slate-600 hover:text-[#E53935] hover:bg-slate-50 border border-transparent'
                               }`}
                             >
                               {({ isActive }) => (
                                 <>
                                   <span className="flex items-center gap-2.5">
-                                    <ChildIcon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-amber-600'}`} />
+                                    <ChildIcon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-[#E53935]'}`} />
                                     <span>{child.label}</span>
                                     {childBadge > 0 && (
                                       <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none min-w-[16px] h-4 flex items-center justify-center ${
-                                        isActive ? 'bg-white text-amber-700' : 'bg-amber-600 text-white'
+                                        isActive ? 'bg-white text-[#E53935]' : 'bg-[#E53935] text-white'
                                       }`}>
                                         {childBadge}
                                       </span>
@@ -318,21 +318,21 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
               }
 
               const IconComponent = item.icon
-              return (
+                            return (
                 <NavLink
                   key={item.to}
                   to={item.to!}
                   onClick={handleLinkClick}
                   className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] duration-150 ${
                     isActive 
-                      ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-orange-500/15 scale-[1.01]' 
-                      : 'text-slate-600 hover:text-amber-700 hover:bg-orange-50/40 border border-transparent'
+                      ? 'bg-[#E53935] text-white shadow-md shadow-red-500/15 scale-[1.01]' 
+                      : 'text-slate-600 hover:text-[#E53935] hover:bg-slate-50 border border-transparent'
                   }`}
                 >
                   {({ isActive }) => (
                     <>
                       <span className="flex items-center gap-3">
-                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-amber-600'}`} />
+                        <IconComponent className={`w-4.5 h-4.5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-[#E53935]'}`} />
                         {item.label}
                       </span>
                       <ChevronRight className={`w-4 h-4 transition-all ${isActive ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
@@ -345,15 +345,22 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
         </div>
       </div>
 
-      {/* Bottom Actions */}
-      <div className="pt-4 border-t border-orange-100 space-y-3 shrink-0">
-        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold px-3 font-quicksand">
-          <ShieldCheck className="w-4.5 h-4.5 text-amber-700 animate-pulse" />
-          <span className="uppercase tracking-wider text-[9px]">Akses Admin Utama</span>
+            {/* Bottom Actions */}
+      <div className="pt-4 border-t border-slate-100 space-y-4 shrink-0 font-quicksand">
+        {/* Help Center Card */}
+        <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 flex items-start gap-3">
+          <div className="p-2 bg-red-50 text-[#E53935] rounded-xl shrink-0">
+            <ShieldCheck className="w-4.5 h-4.5 animate-pulse" />
+          </div>
+          <div>
+            <h5 className="text-[11px] font-extrabold text-slate-800 leading-none">Butuh bantuan?</h5>
+            <p className="text-[10px] text-slate-400 mt-1.5 leading-normal">Hubungi tim developer HR kami untuk support teknis.</p>
+          </div>
         </div>
+
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-red-600 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm font-quicksand active:scale-95 duration-150"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-rose-50 hover:border-rose-100 text-slate-600 hover:text-[#E53935] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95 duration-150"
         >
           <LogOut className="w-4 h-4" />
           Keluar Aplikasi

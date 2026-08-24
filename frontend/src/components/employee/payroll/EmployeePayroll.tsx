@@ -248,12 +248,7 @@ export default function EmployeePayroll({ token, user, company }: EmployeePayrol
 
   return (
     <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-6 animate-fade-in font-quicksand">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-base font-bold text-slate-800 font-quicksand">Riwayat Slip Gaji Anda</h3>
-          <p className="text-[11px] text-slate-500 font-medium">Lihat rincian penerimaan dan potongan gaji bulanan Anda secara transparan.</p>
-        </div>
-
+      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
         <div className="flex items-center gap-3">
           {/* Month & Year Filter */}
           <div className="flex items-center gap-2 bg-orange-50/30 border border-orange-150 rounded-xl px-3 py-1.5 shadow-sm shrink-0">

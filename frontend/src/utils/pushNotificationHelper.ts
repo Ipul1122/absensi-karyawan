@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { API_BASE_URL } from './api';
 
 /**
  * Konversi string VAPID Public Key base64url ke Uint8Array.
@@ -67,7 +68,7 @@ export async function subscribeUserToPush(token: string, vapidPublicKey: string)
 
   // Kirim data subscription ke backend Laravel
   const response = await axios.post(
-    'http://localhost:8000/api/push-subscriptions',
+    `${API_BASE_URL}/api/push-subscriptions`,
     subscription.toJSON(),
     {
       headers: { Authorization: `Bearer ${token}` }
@@ -94,7 +95,7 @@ export async function unsubscribeUserFromPush(token: string): Promise<any> {
 
     // Hapus di backend
     const response = await axios.post(
-      'http://localhost:8000/api/push-subscriptions/unsubscribe',
+      `${API_BASE_URL}/api/push-subscriptions/unsubscribe`,
       { endpoint },
       {
         headers: { Authorization: `Bearer ${token}` }

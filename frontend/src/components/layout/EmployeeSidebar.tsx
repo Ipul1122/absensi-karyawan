@@ -19,9 +19,12 @@ import {
   ChevronDown,
   Briefcase,
   ClipboardList,
-  User
+  User,
+  Headphones
 } from 'lucide-react'
 import Logo from './Logo'
+import { getAssetUrl } from '../../utils/api'
+import { useEmployeeFaq } from '../employee/layanan/EmployeeFaqContext'
 
 interface SubMenuItem {
   to: string
@@ -56,10 +59,13 @@ interface EmployeeSidebarProps {
     operasionalCount: number
   }
   company?: string
+  division?: string | null
+  photo?: string | null
 }
 
-export default function EmployeeSidebar({ user, onLogout, onClose, counts, company }: EmployeeSidebarProps) {
+export default function EmployeeSidebar({ user, onLogout, onClose, counts, company, division, photo }: EmployeeSidebarProps) {
   const location = useLocation()
+  const { openEmployeeFaq } = useEmployeeFaq()
   
   const [isAbsenDropdownOpen, setIsAbsenDropdownOpen] = useState(() => {
     return location.pathname.startsWith('/employee/absen') || 
@@ -159,14 +165,35 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
 
         {/* Scrollable Container for Profile & Menu Items */}
         <div className="flex-1 overflow-y-auto pr-1 py-4 space-y-6 min-h-0 sidebar-scrollbar">
-          {/* User profile brief */}
-          <div className="bg-orange-50/40 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
+          {/* User profile — mobile drawer (tetap) */}
+          <div className="md:hidden bg-orange-50/40 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-3 shadow-sm shrink-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-orange-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-orange-500/10">
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div className="overflow-hidden">
               <h4 className="text-xs font-bold text-slate-800 truncate font-quicksand">{user.name}</h4>
               <p className="text-[10px] text-slate-500 truncate font-medium">{user.email}</p>
+            </div>
+          </div>
+
+          {/* User profile — desktop sidebar (mockup) */}
+          <div className="hidden md:flex bg-slate-50 border border-slate-100 rounded-2xl p-4 flex-col gap-3 shadow-sm shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-amber-600 to-orange-600 flex items-center justify-center text-white font-bold text-sm overflow-hidden shrink-0 border-2 border-white shadow-sm">
+                {photo ? (
+                  <img src={getAssetUrl(photo)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  user.name.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-[13px] font-bold text-slate-800 truncate leading-tight">{user.name}</h4>
+                <p className="text-[11px] text-slate-500 truncate">{division || 'Karyawan'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-600">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Online
             </div>
           </div>
 
@@ -279,14 +306,14 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
                   onClick={handleLinkClick}
                   className={({ isActive }) => `w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer group active:scale-[0.97] duration-150 ${
                     isActive 
-                      ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/60 border border-orange-100/80 text-amber-700 shadow-sm scale-[1.01]' 
+                      ? 'bg-gradient-to-r from-amber-50/60 to-orange-50/60 border border-orange-100/80 text-amber-700 shadow-sm md:bg-[#FF5A00] md:from-[#FF5A00] md:to-[#E04800] md:border-[#FF5A00] md:text-white md:shadow-md md:shadow-orange-500/20 scale-[1.01]' 
                       : 'text-slate-600 hover:text-amber-650 hover:bg-orange-50/30 border border-transparent'
                   }`}
                 >
                   {({ isActive }) => (
                     <>
                       <span className="flex items-center gap-3">
-                        <IconComponent className={`w-4 h-4 transition-colors ${isActive ? 'text-amber-700' : 'text-slate-400 group-hover:text-amber-600'}`} />
+                        <IconComponent className={`w-4 h-4 transition-colors ${isActive ? 'text-amber-700 md:text-white' : 'text-slate-400 group-hover:text-amber-600'}`} />
                         <span>{item.label}</span>
                         {itemBadge > 0 && (
                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-500 text-white leading-none min-w-[16px] h-4 flex items-center justify-center">
@@ -294,7 +321,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
                           </span>
                         )}
                       </span>
-                      <ChevronRight className={`w-3.5 h-3.5 transition-all ${isActive ? 'opacity-100 text-amber-700' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
+                      <ChevronRight className={`w-3.5 h-3.5 transition-all ${isActive ? 'opacity-100 text-amber-700 md:text-white/90' : 'opacity-0 group-hover:opacity-100 text-slate-400'}`} />
                     </>
                   )}
                 </NavLink>
@@ -306,7 +333,27 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
 
       {/* Bottom Actions */}
       <div className="pt-4 border-t border-orange-100 space-y-3 shrink-0">
-        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold px-3">
+        <div className="hidden md:block rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-white p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white border border-orange-100 flex items-center justify-center shrink-0">
+              <Headphones className="w-5 h-5 text-[#FF5A00]" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-bold text-slate-800">Butuh bantuan?</p>
+              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">Tim HR siap membantu kendala absensi &amp; layanan.</p>
+              <button
+                type="button"
+                onClick={() => openEmployeeFaq()}
+                className="mt-2 text-[12px] font-bold text-[#FF5A00] hover:underline cursor-pointer bg-transparent border-none p-0 inline-flex items-center gap-0.5"
+              >
+                Hubungi Sekarang
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold px-3 md:hidden">
           <ShieldCheck className="w-4 h-4 text-amber-700" />
           <span className="font-quicksand uppercase tracking-wider text-[9px]">Akses Karyawan</span>
         </div>
@@ -322,4 +369,3 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
 
   )
 }
-

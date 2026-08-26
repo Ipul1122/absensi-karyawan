@@ -40,7 +40,7 @@ interface PermitRequest {
   admin_notes: string | null
   created_at: string
   updated_at: string
-  user: UserDetails
+  user?: UserDetails | null
 }
 
 interface AdminIzinProps {
@@ -420,19 +420,21 @@ export default function AdminIzin({ token }: AdminIzinProps) {
 
   // Filtered permit list
   const filteredPermits = permits.filter((permit) => {
+    const userName = permit.user?.name || ''
+    const userEmail = permit.user?.email || ''
+    const categoryText = permit.category === 'LAINNYA' ? (permit.custom_category || '') : (permit.category || '')
+
     const matchesSearch = 
-      permit.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      permit.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (permit.category === 'LAINNYA' ? permit.custom_category || '' : permit.category)
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase())
+      userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      categoryText.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesStatus = statusFilter === 'all' || permit.status === statusFilter
 
     const matchesMonth = !monthFilter || 
-                         permit.start_date.startsWith(monthFilter) || 
-                         permit.end_date.startsWith(monthFilter) || 
-                         permit.created_at.startsWith(monthFilter)
+                         permit.start_date?.startsWith(monthFilter) || 
+                         permit.end_date?.startsWith(monthFilter) || 
+                         permit.created_at?.startsWith(monthFilter)
 
     return matchesSearch && matchesStatus && matchesMonth
   })
@@ -497,26 +499,35 @@ export default function AdminIzin({ token }: AdminIzinProps) {
           
           <div class="meta">
             <table>
-              <tr>
-                <td class="label">Pencarian Karyawan:</td>
-                <td>${searchQuery || 'Semua Karyawan'}</td>
-                <td class="label">Status Izin:</td>
-                <td>${statusFilter === 'all' ? 'Semua Status' : statusFilter === 'approved' ? 'Disetujui' : statusFilter === 'rejected' ? 'Ditolak' : 'Menunggu Persetujuan'}</td>
-              </tr>
-            </table>
+          <div class="header">
+            <h1>Rekapitulasi Pengajuan Izin Karyawan</h1>
+            <p>PT Cakrawala Parama Internasional & PT Yasodana Parvez Internasional</p>
           </div>
-
+          <table class="meta-table">
+            <tr>
+              <td style="width: 12%;"><strong>Periode:</strong></td>
+              <td style="width: 38%;">${indonesianMonthName} ${activeYear}</td>
+              <td style="width: 15%;"><strong>Total Pengajuan:</strong></td>
+              <td style="width: 35%;">${filteredPermits.length} Data</td>
+            </tr>
+            <tr>
+              <td><strong>Status Filter:</strong></td>
+              <td>${statusFilter === 'all' ? 'Semua Status' : statusFilter === 'approved' ? 'Disetujui' : statusFilter === 'rejected' ? 'Ditolak' : 'Menunggu Persetujuan'}</td>
+              <td><strong>Waktu Cetak:</strong></td>
+              <td>${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+            </tr>
+          </table>
           <table class="data-table">
             <thead>
               <tr>
-                <th style="width: 5%; text-align: center;">No</th>
-                <th>Nama Karyawan</th>
-                <th>Kategori Izin</th>
-                <th>Tanggal Izin</th>
-                <th>Durasi</th>
-                <th>Alasan / Keterangan</th>
-                <th>Status</th>
-                <th>Catatan Admin/Direktur</th>
+                <th style="width: 4%; text-align: center;">No</th>
+                <th style="width: 18%;">Nama Karyawan</th>
+                <th style="width: 16%;">Kategori</th>
+                <th style="width: 14%;">Periode Izin</th>
+                <th style="width: 8%; text-align: center;">Durasi</th>
+                <th style="width: 22%;">Alasan</th>
+                <th style="width: 9%;">Status</th>
+                <th style="width: 9%;">Catatan</th>
               </tr>
             </thead>
             <tbody>
@@ -529,7 +540,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
               ` : filteredPermits.map((permit, idx) => `
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
-                  <td><strong>${permit.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${permit.user.email}</span></td>
+                  <td><strong>${permit.user?.name || 'Karyawan Dihapus'}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${permit.user?.email || '-'}</span></td>
                   <td>${permit.category === 'LAINNYA' ? permit.custom_category : permit.category}</td>
                   <td>${formatDate(permit.start_date)} s/d ${formatDate(permit.end_date)}</td>
                   <td>${calculateDays(permit.start_date, permit.end_date)} Hari</td>
@@ -608,8 +619,8 @@ export default function AdminIzin({ token }: AdminIzinProps) {
       excelContent += `
         <tr>
           <td class="text-center">${idx + 1}</td>
-          <td><b>${permit.user.name}</b></td>
-          <td>${permit.user.email}</td>
+          <td><b>${permit.user?.name || 'Karyawan Dihapus'}</b></td>
+          <td>${permit.user?.email || '-'}</td>
           <td>${catText}</td>
           <td>${permit.start_date}</td>
           <td>${permit.end_date}</td>
@@ -879,11 +890,11 @@ export default function AdminIzin({ token }: AdminIzinProps) {
                         <td className="py-4 px-5">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs">
-                              {permit.user.name.charAt(0).toUpperCase()}
+                              {permit.user?.name ? permit.user.name.charAt(0).toUpperCase() : '?'}
                             </div>
                             <div>
-                              <span className="block font-bold text-slate-800">{permit.user.name}</span>
-                              <span className="text-[10px] text-slate-400 font-medium">{permit.user.email}</span>
+                              <span className="block font-bold text-slate-800">{permit.user?.name || 'Karyawan Dihapus'}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">{permit.user?.email || '-'}</span>
                             </div>
                           </div>
                         </td>
@@ -925,7 +936,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
                           {permit.image ? (
                             <button
                               type="button"
-                              onClick={() => viewProofImage(permit.image!, permit.user.name)}
+                              onClick={() => viewProofImage(permit.image!, permit.user?.name || 'Karyawan')}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-all border border-orange-150 cursor-pointer text-[10px] font-bold"
                             >
                               <Eye className="w-3.5 h-3.5" /> Lihat
@@ -954,7 +965,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
                           <div className="flex justify-end gap-1.5">
                             {(permit.status === 'pending' || permit.status === 'rejected') && (
                               <button
-                                onClick={() => handleApprove(permit.id, permit.user.name)}
+                                onClick={() => handleApprove(permit.id, permit.user?.name || 'Karyawan')}
                                 className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
                                 title="Verifikasi"
                               >
@@ -963,7 +974,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
                             )}
                             {(permit.status === 'pending' || permit.status === 'approved' || permit.status === 'pending_director') && (
                               <button
-                                onClick={() => handleReject(permit.id, permit.user.name)}
+                                onClick={() => handleReject(permit.id, permit.user?.name || 'Karyawan')}
                                 className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
                                 title="Tolak"
                               >
@@ -971,7 +982,7 @@ export default function AdminIzin({ token }: AdminIzinProps) {
                               </button>
                             )}
                             <button
-                              onClick={() => handleDelete(permit.id, permit.user.name)}
+                              onClick={() => handleDelete(permit.id, permit.user?.name || 'Karyawan')}
                               className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-850 rounded-lg transition-all cursor-pointer shadow-sm"
                               title="Hapus"
                             >

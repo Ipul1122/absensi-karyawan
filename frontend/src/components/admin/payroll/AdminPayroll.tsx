@@ -41,7 +41,7 @@ interface PayrollRecord {
   notes: string | null
   updated_at: string
   verification_hash?: string
-  user: {
+  user?: {
     id: number
     name: string
     email: string
@@ -50,7 +50,7 @@ interface PayrollRecord {
     division?: string | null
     employee_number?: string | null
     join_date?: string | null
-  }
+  } | null
 }
 
 interface AdminPayrollProps {
@@ -271,10 +271,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
                   <td>
-                    <strong>${record.user.name}</strong><br/>
-                    <span style="color: #64748b; font-size: 8px;">${record.user.email}</span>
-                    <br/><span style="color: #64748b; font-size: 8px; font-weight: bold;">Perusahaan: ${record.user.company || '-'}</span>
-                    ${record.user.join_date ? `<br/><span style="color: #ea580c; font-size: 8px; font-weight: bold;">Masuk: ${new Date(record.user.join_date).toLocaleDateString('id-ID')}</span>` : ''}
+                    <strong>${record.user?.name || 'Karyawan Dihapus'}</strong><br/>
+                    <span style="color: #64748b; font-size: 8px;">${record.user?.email || '-'}</span>
+                    <br/><span style="color: #64748b; font-size: 8px; font-weight: bold;">Perusahaan: ${record.user?.company || '-'}</span>
+                    ${record.user?.join_date ? `<br/><span style="color: #ea580c; font-size: 8px; font-weight: bold;">Masuk: ${new Date(record.user.join_date).toLocaleDateString('id-ID')}</span>` : ''}
                   </td>
                   <td class="text-center">${record.days_present}H / ${record.days_late}T / ${record.days_leave}C</td>
                   <td class="text-right">${formatRupiah(record.basic_salary)}</td>
@@ -405,15 +405,15 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
     `
 
     filteredRecords.forEach((record, idx) => {
-      const joinDateStr = record.user.join_date 
+      const joinDateStr = record.user?.join_date 
         ? new Date(record.user.join_date).toLocaleDateString('id-ID')
         : '-'
       excelContent += `
         <tr>
           <td class="text-center">${idx + 1}</td>
-          <td><b>${record.user.name}</b></td>
-          <td>${record.user.company || '-'}</td>
-          <td>${record.user.email}</td>
+          <td><b>${record.user?.name || 'Karyawan Dihapus'}</b></td>
+          <td>${record.user?.company || '-'}</td>
+          <td>${record.user?.email || '-'}</td>
           <td>${joinDateStr}</td>
           <td class="text-center">${record.days_present}</td>
           <td class="text-center">${record.days_late}</td>
@@ -576,7 +576,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
   const handleDeletePayroll = (record: PayrollRecord) => {
     Swal.fire({
       title: 'Hapus Rekam Jejak Gaji?',
-      text: `Apakah Anda yakin ingin menghapus data gaji ${record.user.name} pada periode ${record.period_month}?`,
+      text: `Apakah Anda yakin ingin menghapus data gaji ${record.user?.name || 'Karyawan'} pada periode ${record.period_month}?`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
@@ -625,7 +625,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
   const handleSendToDirector = async (record: PayrollRecord) => {
     Swal.fire({
       title: 'Ajukan ke Direktur?',
-      text: `Apakah Anda yakin ingin mengajukan slip gaji ${record.user.name} ke Direktur Utama untuk disetujui?`,
+      text: `Apakah Anda yakin ingin mengajukan slip gaji ${record.user?.name || 'Karyawan'} ke Direktur Utama untuk disetujui?`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#ea580c',
@@ -642,8 +642,8 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           )
           if (response.data.status === 'success') {
             Swal.fire({
-              title: 'Berhasil Diajukan!',
-              text: response.data.message,
+              title: 'Terkirim!',
+              text: 'Slip gaji telah diajukan ke Direktur Utama.',
               icon: 'success',
               timer: 1500,
               showConfirmButton: false
@@ -652,9 +652,10 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
           }
         } catch (err: any) {
           console.error(err)
+          const msg = err.response?.data?.message || 'Gagal mengajukan slip gaji ke Direktur.'
           Swal.fire({
             title: 'Gagal',
-            text: err.response?.data?.message || 'Gagal mengajukan payroll.',
+            text: msg,
             icon: 'error'
           })
         }
@@ -771,7 +772,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Slip Gaji - ${selectedSlip?.user.name}</title>
+          <title>Slip Gaji - ${selectedSlip?.user?.name || 'Karyawan'}</title>
           <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; }
             .slip-card { border: 2px solid #e2e8f0; border-radius: 16px; padding: 30px; background-color: #ffffff; max-width: 650px; margin: 0 auto; }
@@ -1085,9 +1086,9 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                     <tr key={record.id} className="hover:bg-orange-50/10 transition-colors">
                       <td className="py-4 px-5">
                         <div>
-                          <p className="font-extrabold text-slate-800 text-[13px]">{record.user.name}</p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">{record.user.email}</p>
-                          {record.user.no_rekening && (
+                          <p className="font-extrabold text-slate-800 text-[13px]">{record.user?.name || 'Karyawan Dihapus'}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{record.user?.email || '-'}</p>
+                          {record.user?.no_rekening && (
                             <p className="text-[10px] font-bold text-blue-600 mt-1 select-all bg-blue-50/50 px-2 py-0.5 rounded border border-blue-100/50 w-fit">
                               Rek: {record.user.no_rekening} {record.user.company ? `(${record.user.company})` : ''}
                             </p>
@@ -1222,12 +1223,12 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
-                      {record.user.name.charAt(0).toUpperCase()}
+                      {record.user?.name ? record.user.name.charAt(0).toUpperCase() : '?'}
                     </div>
                     <div>
-                      <h4 className="font-extrabold text-slate-800 text-sm">{record.user.name}</h4>
-                      <p className="text-[11px] text-slate-400 font-medium">{record.user.email}</p>
-                      {record.user.no_rekening && (
+                      <h4 className="font-extrabold text-slate-800 text-sm">{record.user?.name || 'Karyawan Dihapus'}</h4>
+                      <p className="text-[11px] text-slate-400 font-medium">{record.user?.email || '-'}</p>
+                      {record.user?.no_rekening && (
                         <p className="text-[10px] font-bold text-blue-600 mt-1 select-all bg-blue-50/50 px-2 py-0.5 rounded border border-blue-100/50 w-fit">
                           Rek: {record.user.no_rekening}
                         </p>
@@ -1366,7 +1367,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2 font-montserrat">
                 <Coins className="w-4 h-4 text-orange-600" />
-                Penyesuaian Gaji: {adjustingPayroll.user.name}
+                Penyesuaian Gaji: {adjustingPayroll.user?.name || 'Karyawan'}
               </h3>
               <button
                 onClick={() => setShowAdjustModal(false)}
@@ -1590,18 +1591,18 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                   <div className="logo" style={{ flexShrink: 0 }}>
                     <img 
-                      src={selectedSlip.user.company === 'PT Yasodana Parvez Internasional' ? `${window.location.origin}/logo/LOGO-YPI.png` : `${window.location.origin}/logo/LOGO-CPI.png`} 
-                      alt={selectedSlip.user.company || 'PT Cakrawala Parama Internasional'} 
+                      src={(selectedSlip.user?.company || '') === 'PT Yasodana Parvez Internasional' ? `${window.location.origin}/logo/LOGO-YPI.png` : `${window.location.origin}/logo/LOGO-CPI.png`} 
+                      alt={selectedSlip.user?.company || 'PT Cakrawala Parama Internasional'} 
                     />
                   </div>
                   <div style={{ textAlign: 'left' }}>
                     <h1 style={{ margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
-                      {selectedSlip.user.company || 'PT Cakrawala Parama Internasional'}
+                      {selectedSlip.user?.company || 'PT Cakrawala Parama Internasional'}
                     </h1>
                     <p style={{ margin: '2px 0 0 0', fontSize: '9px', color: '#64748b', fontWeight: 600, maxWidth: '280px', lineHeight: '1.3' }} className="font-quicksand">
                       Thamrin City, Jl. Kebon Kacang Raya Lantai 2 Blok C9a No.5, Kb. Melati, Kec. Tanah Abang, Kota Jakarta Pusat, DKI Jakarta 10230
                       <br />
-                      Telp: {selectedSlip.user.company === 'PT Yasodana Parvez Internasional' ? '(021) 719-1234' : '(021) 536-5678'} | Email: {selectedSlip.user.company === 'PT Yasodana Parvez Internasional' ? 'hr@yasodana.co.id' : 'hr@cakrawala.co.id'}
+                      Telp: {(selectedSlip.user?.company || '') === 'PT Yasodana Parvez Internasional' ? '(021) 719-1234' : '(021) 536-5678'} | Email: {(selectedSlip.user?.company || '') === 'PT Yasodana Parvez Internasional' ? 'hr@yasodana.co.id' : 'hr@cakrawala.co.id'}
                     </p>
                   </div>
                 </div>
@@ -1612,16 +1613,16 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
 
               <div className="meta">
                 <div>
-                  <strong>Nama:</strong> {selectedSlip.user.name}
+                  <strong>Nama:</strong> {selectedSlip.user?.name || 'Karyawan Dihapus'}
                 </div>
                 <div>
-                  <strong>Jabatan:</strong> {selectedSlip.user.division || '-'}
+                  <strong>Jabatan:</strong> {selectedSlip.user?.division || '-'}
                 </div>
                 <div>
-                  <strong>NIP:</strong> {selectedSlip.user.employee_number || '-'}
+                  <strong>NIP:</strong> {selectedSlip.user?.employee_number || '-'}
                 </div>
                 <div>
-                  <strong>Email:</strong> {selectedSlip.user.email}
+                  <strong>Email:</strong> {selectedSlip.user?.email || '-'}
                 </div>
 
                 <div>
@@ -1644,7 +1645,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 </div>
                 <div>
                   <strong>Tanggal Bergabung:</strong>{' '}
-                  {selectedSlip.user.join_date 
+                  {selectedSlip.user?.join_date 
                     ? new Date(selectedSlip.user.join_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
                     : '-'}
                 </div>
@@ -1740,7 +1741,7 @@ export default function AdminPayroll({ token }: AdminPayrollProps) {
                 <div className="signature">
                   <p>Penerima,</p>
                   <div className="line"></div>
-                  <p><strong>{selectedSlip.user.name}</strong></p>
+                  <p><strong>{selectedSlip.user?.name || 'Karyawan'}</strong></p>
                 </div>
 
                 {/* QR Code Digital Seal */}

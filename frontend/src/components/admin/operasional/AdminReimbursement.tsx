@@ -39,7 +39,7 @@ interface Reimbursement {
   admin_notes: string | null
   created_at: string
   updated_at: string
-  user: UserDetails
+  user?: UserDetails | null
 }
 
 interface AdminReimbursementProps {
@@ -268,14 +268,14 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
   }
 
   const handleWhatsAppShare = (item: Reimbursement) => {
-    const company = item.user.company;
+    const company = item.user?.company;
     const isYpi = company === 'PT Yasodana Parvez Internasional';
     const directorName = isYpi ? 'Pak Andre' : 'Bu Dian';
     const phone = isYpi ? '6289656931184' : '628170038421';
 
     Swal.fire({
       title: 'Kirim WhatsApp ke Direktur',
-      text: `Kirim rincian reimbursement untuk ${item.user.name} ke ${directorName}?`,
+      text: `Kirim rincian reimbursement untuk ${item.user?.name || 'Karyawan'} ke ${directorName}?`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#22c55e',
@@ -296,7 +296,7 @@ export default function AdminReimbursement({ token }: AdminReimbursementProps) {
 
         const message = `Halo ${directorName}, mohon verifikasi pengajuan reimbursement berikut:
 
-Nama Karyawan: ${item.user.name}
+Nama Karyawan: ${item.user?.name || 'Karyawan'}
 Keperluan: ${item.title}
 Kategori: ${item.category}
 Tanggal Nota: ${formatDate(item.expense_date)}
@@ -380,9 +380,11 @@ Terima kasih.`;
 
   // Filtered List
   const filteredReimbursements = reimbursements.filter((item) => {
+    const userName = item.user?.name || ''
+    const userEmail = item.user?.email || ''
     const matchesSearch = 
-      item.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter
@@ -451,7 +453,7 @@ Terima kasih.`;
               ` : filteredReimbursements.map((item, idx) => `
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
-                  <td><strong>${item.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${item.user.email}</span></td>
+                  <td><strong>${item.user?.name || 'Karyawan Dihapus'}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${item.user?.email || '-'}</span></td>
                   <td>${item.title}</td>
                   <td>${item.category}</td>
                   <td>${formatDate(item.expense_date)}</td>
@@ -518,8 +520,8 @@ Terima kasih.`;
       excelContent += `
         <tr>
           <td>${idx + 1}</td>
-          <td><b>${item.user.name}</b></td>
-          <td>${item.user.email}</td>
+          <td><b>${item.user?.name || 'Karyawan Dihapus'}</b></td>
+          <td>${item.user?.email || '-'}</td>
           <td>${item.title}</td>
           <td>${item.category}</td>
           <td>${item.expense_date}</td>
@@ -761,11 +763,11 @@ Terima kasih.`;
                         <td className="py-4 px-5">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs">
-                              {item.user.name.charAt(0).toUpperCase()}
+                              {item.user?.name ? item.user.name.charAt(0).toUpperCase() : '?'}
                             </div>
                             <div>
-                              <span className="block font-bold text-slate-800">{item.user.name}</span>
-                              <span className="text-[10px] text-slate-400 font-medium">{item.user.email}</span>
+                              <span className="block font-bold text-slate-800">{item.user?.name || 'Karyawan Dihapus'}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">{item.user?.email || '-'}</span>
                             </div>
                           </div>
                         </td>
@@ -811,7 +813,7 @@ Terima kasih.`;
                         <td className="py-4 px-5">
                           <button
                             type="button"
-                            onClick={() => viewProofImage(item.receipt_path, item.user.name)}
+                            onClick={() => viewProofImage(item.receipt_path, item.user?.name || 'Karyawan')}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-all border border-orange-150 cursor-pointer text-[10px] font-bold"
                           >
                             <Eye className="w-3.5 h-3.5" /> Lihat Nota
@@ -838,14 +840,14 @@ Terima kasih.`;
                             {item.status === 'pending' && (
                               <>
                                 <button
-                                  onClick={() => handleApprove(item.id, item.user.name, item.amount)}
+                                  onClick={() => handleApprove(item.id, item.user?.name || 'Karyawan', item.amount)}
                                   className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
                                   title="Setujui"
                                 >
                                   <Check className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleReject(item.id, item.user.name)}
+                                  onClick={() => handleReject(item.id, item.user?.name || 'Karyawan')}
                                   className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
                                   title="Tolak"
                                 >
@@ -853,12 +855,28 @@ Terima kasih.`;
                                 </button>
                               </>
                             )}
+                            {item.status === 'pending_director' && (
+                              <button
+                                onClick={() => handleReject(item.id, item.user?.name || 'Karyawan')}
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                                title="Tolak"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDelete(item.id, item.user?.name || 'Karyawan')}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               onClick={() => handleWhatsAppShare(item)}
                               className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-600 hover:text-green-700 rounded-lg transition-all cursor-pointer shadow-sm flex items-center justify-center"
                               title="Kirim WhatsApp ke Direktur"
                             >
-                              <WhatsAppIcon className="w-4 h-4" />
+                              <WhatsAppIcon className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -876,11 +894,11 @@ Terima kasih.`;
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-50 to-orange-100/60 border border-orange-200/50 flex items-center justify-center text-red-500 font-extrabold text-xs shrink-0">
-                        {item.user.name.charAt(0).toUpperCase()}
+                        {item.user?.name ? item.user.name.charAt(0).toUpperCase() : '?'}
                       </div>
                       <div>
-                        <span className="block font-bold text-slate-800 text-xs">{item.user.name}</span>
-                        <span className="text-[9px] text-slate-400 font-medium block">{item.user.email}</span>
+                        <span className="block font-bold text-slate-800 text-xs">{item.user?.name || 'Karyawan Dihapus'}</span>
+                        <span className="text-[9px] text-slate-400 font-medium block">{item.user?.email || '-'}</span>
                       </div>
                     </div>
                     <div className="shrink-0">
@@ -914,7 +932,7 @@ Terima kasih.`;
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => viewProofImage(item.receipt_path, item.user.name)}
+                        onClick={() => viewProofImage(item.receipt_path, item.user?.name || 'Karyawan')}
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-xl text-xs font-bold transition-all border border-orange-100 cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5" /> Nota
@@ -922,7 +940,7 @@ Terima kasih.`;
                       <div className="flex gap-1 items-center">
                         {(item.status === 'pending' || item.status === 'rejected') && (
                           <button
-                            onClick={() => handleApprove(item.id, item.user.name, item.amount)}
+                            onClick={() => handleApprove(item.id, item.user?.name || 'Karyawan', item.amount)}
                             className="p-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-600 hover:text-emerald-700 rounded-lg transition-all cursor-pointer shadow-sm"
                             title="Setujui"
                           >
@@ -931,7 +949,7 @@ Terima kasih.`;
                         )}
                         {(item.status === 'pending' || item.status === 'approved' || item.status === 'pending_director') && (
                           <button
-                            onClick={() => handleReject(item.id, item.user.name)}
+                            onClick={() => handleReject(item.id, item.user?.name || 'Karyawan')}
                             className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
                             title="Tolak"
                           >
@@ -939,7 +957,7 @@ Terima kasih.`;
                           </button>
                         )}
                         <button
-                          onClick={() => handleDelete(item.id, item.user.name)}
+                          onClick={() => handleDelete(item.id, item.user?.name || 'Karyawan')}
                           className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-800 rounded-lg transition-all cursor-pointer shadow-sm"
                           title="Hapus"
                         >
@@ -950,7 +968,7 @@ Terima kasih.`;
                           className="p-1.5 bg-green-50 hover:bg-green-100 border border-green-200 text-green-600 hover:text-green-700 rounded-lg transition-all cursor-pointer shadow-sm flex items-center justify-center"
                           title="Kirim WhatsApp ke Direktur"
                         >
-                          <WhatsAppIcon className="w-4 h-4" />
+                          <WhatsAppIcon className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>

@@ -31,7 +31,7 @@ interface Bonus {
   description: string | null
   created_at: string
   updated_at: string
-  user: UserDetails
+  user?: UserDetails | null
   status: 'pending' | 'approved' | 'rejected'
 }
 
@@ -299,14 +299,14 @@ export default function AdminBonus({ token }: AdminBonusProps) {
   }
 
   const handleWhatsAppShare = (item: Bonus) => {
-    const company = item.user.company;
+    const company = item.user?.company;
     const isYpi = company === 'PT Yasodana Parvez Internasional';
     const directorName = isYpi ? 'Pak Andre' : 'Bu Dian';
     const phone = isYpi ? '6289656931184' : '628170038421';
 
     Swal.fire({
       title: 'Kirim WhatsApp ke Direktur',
-      text: `Kirim rincian bonus untuk ${item.user.name} ke ${directorName}?`,
+      text: `Kirim rincian bonus untuk ${item.user?.name || 'Karyawan'} ke ${directorName}?`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#22c55e',
@@ -319,7 +319,7 @@ export default function AdminBonus({ token }: AdminBonusProps) {
       if (result.isConfirmed) {
         const message = `Halo ${directorName}, mohon verifikasi pengajuan bonus berikut:
 
-Nama Karyawan: ${item.user.name}
+Nama Karyawan: ${item.user?.name || 'Karyawan'}
 Jumlah Bonus: ${displayRupiah(item.bonus_amount)}
 Tanggal: ${formatDate(item.bonus_date)}
 Keterangan: ${item.description || '-'}
@@ -344,9 +344,11 @@ Terima kasih.`;
 
   // Filtered bonuses
   const filteredBonuses = bonuses.filter((item) => {
+    const userName = item.user?.name || ''
+    const userEmail = item.user?.email || ''
     const matchesSearch = 
-      item.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
 
     const matchesUser = selectedUserFilter === 'all' || item.user_id.toString() === selectedUserFilter
@@ -631,11 +633,11 @@ Terima kasih.`;
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-50 to-orange-100 border border-orange-200/50 flex items-center justify-center text-amber-600 font-bold text-[11px]">
-                                {item.user.name.charAt(0).toUpperCase()}
+                                {item.user?.name ? item.user.name.charAt(0).toUpperCase() : '?'}
                               </div>
                               <div>
-                                <span className="block font-bold text-slate-800">{item.user.name}</span>
-                                <span className="text-[9px] text-slate-400 font-medium">{item.user.email}</span>
+                                <span className="block font-bold text-slate-800">{item.user?.name || 'Karyawan Dihapus'}</span>
+                                <span className="text-[9px] text-slate-400 font-medium">{item.user?.email || '-'}</span>
                               </div>
                             </div>
                           </td>
@@ -697,7 +699,7 @@ Terima kasih.`;
                                  <Edit className="w-3.5 h-3.5" />
                                </button>
                                <button
-                                 onClick={() => handleDeleteBonus(item.id, item.user.name, item.bonus_amount)}
+                                 onClick={() => handleDeleteBonus(item.id, item.user?.name || 'Karyawan', item.bonus_amount)}
                                  className="p-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 rounded-lg transition-all cursor-pointer shadow-sm"
                                  title="Hapus"
                                >
@@ -733,7 +735,7 @@ Terima kasih.`;
               <div className="flex items-start justify-between mb-5">
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Edit Data Bonus</h3>
-                  <p className="text-[10px] text-slate-400">Memperbarui bonus untuk {editingBonus.user.name}</p>
+                  <p className="text-[10px] text-slate-400">Memperbarui bonus untuk {editingBonus.user?.name || 'Karyawan'}</p>
                 </div>
                 <button
                   onClick={() => setShowEditModal(false)}

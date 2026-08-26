@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../../../utils/api'
 
 interface Attendance {
   id: number
+  user_id?: number
   date: string
   attendance_type?: string | null
   clock_in: string | null
@@ -22,7 +23,7 @@ interface Attendance {
   notes_out: string | null
   status_in: string | null
   status_out: string | null
-  user: {
+  user?: {
     id: number
     name: string
     email: string
@@ -31,7 +32,7 @@ interface Attendance {
     employee_number?: string | null
     division?: string | null
     company?: string | null
-  }
+  } | null
   shift_start_time?: string | null
   shift_end_time?: string | null
 }
@@ -64,7 +65,7 @@ interface Leave {
     name: string
     email: string
     company?: string
-  }
+  } | null
 }
 
 interface Permit {
@@ -81,11 +82,12 @@ interface Permit {
     name: string
     email: string
     company?: string
-  }
+  } | null
 }
 
 interface SalesVisit {
   id: number
+  user_id?: number
   date: string
   visit_type?: string
   client_name?: string
@@ -93,25 +95,25 @@ interface SalesVisit {
   notes_out?: string | null
   visit_time?: string | null
   visit_time_out?: string | null
-  user: {
+  user?: {
     id: number
     name: string
     email: string
     company?: string
-  }
+  } | null
 }
 
 interface RekapAbsensiProps {
   token: string
   employees: Employee[]
   attendanceLoading: boolean
-  attendances: Attendance[]
+  attendances: any[]
   fetchAttendances: () => void
   fetchLeaves?: () => void
   fetchPermits?: () => void
   formatDate: (d: string) => string
   getStatusBadge: (s: string | null) => React.ReactNode
-  setSelectedAttendance: (a: Attendance) => void
+  setSelectedAttendance: (a: any) => void
   officeLatitude?: string
   officeLongitude?: string
   leaves?: Leave[]
@@ -169,10 +171,10 @@ export default function RekapAbsensi({
       // Exclude today if employee hasn't clocked in yet and doesn't have an approved leave/permit today
       const todayStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(todayDate).padStart(2, '0')}`
       const hasCheckedInToday = attendances.some(
-        (att) => Number(att.user.id) === Number(emp.id) && att.date === todayStr && att.clock_in !== null
+        (att) => (att.user ? Number(att.user.id) : Number(att.user_id)) === Number(emp.id) && att.date === todayStr && att.clock_in !== null
       )
       const hasLeaveOrPermitToday = [...leaves, ...permits].some(
-        (lp) => Number(lp.user_id) === Number(emp.id) && lp.status === 'approved' && todayStr >= lp.start_date && todayStr <= lp.end_date
+        (lp) => (lp.user ? Number(lp.user.id) : Number(lp.user_id)) === Number(emp.id) && lp.status === 'approved' && todayStr >= lp.start_date && todayStr <= lp.end_date
       )
 
       if (!hasCheckedInToday && !hasLeaveOrPermitToday) {
@@ -201,20 +203,17 @@ export default function RekapAbsensi({
     }
 
     let workingDays = 0
-    for (let d = startDay; d <= endDay; d++) {
-      const dayOfWeek = new Date(year, month - 1, d).getDay()
-      
-      let isOff = false
+    for (let day = startDay; day <= endDay; day++) {
+      const dayOfWeek = new Date(year, month - 1, day).getDay()
       if (dayOfWeek === 0 && isSunOff) {
-        isOff = true
-      } else if (dayOfWeek === 6 && isSatOff) {
-        isOff = true
+        continue
       }
-
-      if (!isOff) {
-        workingDays++
+      if (dayOfWeek === 6 && isSatOff) {
+        continue
       }
+      workingDays++
     }
+
     return workingDays
   }
 
@@ -224,7 +223,7 @@ export default function RekapAbsensi({
       const workingDays = getWorkingDaysCount(reportMonth, emp)
 
       const userMonthAtt = attendances.filter(
-        (att) => att.user && Number(att.user.id) === Number(emp.id) && att.date.startsWith(reportMonth)
+        (att) => (att.user ? Number(att.user.id) : Number(att.user_id)) === Number(emp.id) && att.date.startsWith(reportMonth)
       )
 
       // Present: unique dates where clock_in is not null
@@ -235,12 +234,12 @@ export default function RekapAbsensi({
 
       // 2. Filter user approved leaves for this month
       const userLeaves = leaves.filter(
-        (l) => Number(l.user_id) === Number(emp.id) && l.status === 'approved'
+        (l) => (l.user ? Number(l.user.id) : Number(l.user_id)) === Number(emp.id) && l.status === 'approved'
       )
 
       // Filter user approved permits for this month
       const userPermits = permits.filter(
-        (p) => Number(p.user_id) === Number(emp.id) && p.status === 'approved'
+        (p) => (p.user ? Number(p.user.id) : Number(p.user_id)) === Number(emp.id) && p.status === 'approved'
       )
 
       const isSatOff = !!emp.saturday_off
@@ -293,11 +292,11 @@ export default function RekapAbsensi({
       const absentCount = Math.max(0, workingDays - presentCount - leaveDaysCount)
 
       const salesCount = salesVisits.filter(
-        (v) => Number(v.user.id) === Number(emp.id) && v.date.startsWith(reportMonth) && (v.visit_type || 'sales') === 'sales'
+        (v) => (v.user ? Number(v.user.id) : Number(v.user_id)) === Number(emp.id) && v.date.startsWith(reportMonth) && (v.visit_type || 'sales') === 'sales'
       ).length
 
       const clientCount = salesVisits.filter(
-        (v) => Number(v.user.id) === Number(emp.id) && v.date.startsWith(reportMonth) && (v.visit_type || 'sales') === 'client'
+        (v) => (v.user ? Number(v.user.id) : Number(v.user_id)) === Number(emp.id) && v.date.startsWith(reportMonth) && (v.visit_type || 'sales') === 'client'
       ).length
 
       // Presence percentage: presentCount / workingDays * 100
@@ -376,10 +375,12 @@ export default function RekapAbsensi({
     }
 
     // 1. Search Query (Name/Email)
+    const userName = att.user?.name || ''
+    const userEmail = att.user?.email || ''
     const matchesSearch =
       !search ||
-      att.user.name.toLowerCase().includes(search.toLowerCase()) ||
-      att.user.email.toLowerCase().includes(search.toLowerCase())
+      userName.toLowerCase().includes(search.toLowerCase()) ||
+      userEmail.toLowerCase().includes(search.toLowerCase())
 
     // 2. Calendar Date Range & Month Filter
     const matchesDate =
@@ -394,7 +395,7 @@ export default function RekapAbsensi({
     const matchesStatusOut = statusOut === 'all' || att.status_out === statusOut
 
     // 5. Company Filter
-    const matchesCompany = selectedCompany === 'all' || att.user.company === selectedCompany
+    const matchesCompany = selectedCompany === 'all' || (att.user?.company || '') === selectedCompany
 
     return matchesSearch && matchesDate && matchesStatusIn && matchesStatusOut && matchesCompany
   })
@@ -658,7 +659,7 @@ export default function RekapAbsensi({
               ` : filteredAttendances.map((att, idx) => `
                 <tr>
                   <td style="text-align: center;">${idx + 1}</td>
-                  <td><strong>${att.user.name}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${att.user.email}</span></td>
+                  <td><strong>${att.user?.name || 'Karyawan Dihapus'}</strong><br/><span style="color: #64748b; font-size: 8.5px;">${att.user?.email || '-'}</span></td>
                   <td>${formatDate(att.date)}</td>
                   <td><span class="badge badge-${att.attendance_type || 'kantor'}">${getTypeLabel(att.attendance_type)}</span></td>
                   <td style="font-family: monospace; font-weight: bold;">${att.clock_in || '-'}</td>
@@ -883,19 +884,22 @@ export default function RekapAbsensi({
           return false
         }
 
+        const userName = att.user?.name || ''
+        const userEmail = att.user?.email || ''
         const matchesSearch = !search ||
-          att.user.name.toLowerCase().includes(search.toLowerCase()) ||
-          att.user.email.toLowerCase().includes(search.toLowerCase())
+          userName.toLowerCase().includes(search.toLowerCase()) ||
+          userEmail.toLowerCase().includes(search.toLowerCase())
 
         const matchesDate = isDateInFilter(att.date)
-        const matchesCompany = selectedCompany === 'all' || att.user.company === selectedCompany
+        const matchesCompany = selectedCompany === 'all' || (att.user?.company || '') === selectedCompany
         const matchesStatusIn = activeStatusIn === 'all' || att.status_in === activeStatusIn
         const matchesStatusOut = activeStatusOut === 'all' || att.status_out === activeStatusOut
 
         return matchesSearch && matchesDate && matchesCompany && matchesStatusIn && matchesStatusOut
       })
       .map((att) => {
-        const emp = employees.find(e => Number(e.id) === Number(att.user.id))
+        const userId = att.user ? att.user.id : att.user_id
+        const emp = employees.find(e => Number(e.id) === Number(userId))
         
         let notesText = getKeteranganLocal(att)
         if (att.notes_in) notesText += ` (Masuk: ${att.notes_in})`
@@ -909,13 +913,13 @@ export default function RekapAbsensi({
         }
 
         return {
-          employeeId: att.user.id,
+          employeeId: userId || 0,
           date: att.date,
           dayName: getDayName(att.date),
-          employeeName: att.user.name,
-          employeeNumber: att.user.employee_number || emp?.employee_number || '-',
-          division: att.user.division || emp?.division || '-',
-          company: att.user.company || emp?.company || '-',
+          employeeName: att.user?.name || emp?.name || 'Karyawan Dihapus',
+          employeeNumber: att.user?.employee_number || emp?.employee_number || '-',
+          division: att.user?.division || emp?.division || '-',
+          company: att.user?.company || emp?.company || '-',
           type: 'Kantor',
           timeIn: att.clock_in || '-',
           timeOut: att.clock_out || '-',
@@ -933,28 +937,31 @@ export default function RekapAbsensi({
 
     visits.forEach(v => {
       const type = (v.visit_type || 'sales') === 'client' ? 'Klien' : 'Sales'
-      const emp = employees.find(e => Number(e.id) === Number(v.user.id))
+      const userId = v.user ? v.user.id : v.user_id
+      const emp = employees.find(e => Number(e.id) === Number(userId))
+      const userName = v.user?.name || emp?.name || ''
+      const userEmail = v.user?.email || emp?.email || ''
       
       const matchesSearch = !search ||
-        v.user.name.toLowerCase().includes(search.toLowerCase()) ||
-        v.user.email.toLowerCase().includes(search.toLowerCase()) ||
+        userName.toLowerCase().includes(search.toLowerCase()) ||
+        userEmail.toLowerCase().includes(search.toLowerCase()) ||
         (v.client_name && v.client_name.toLowerCase().includes(search.toLowerCase()))
 
       const matchesDate = isDateInFilter(v.date)
-      const matchesCompany = selectedCompany === 'all' || v.user.company === selectedCompany || emp?.company === selectedCompany
+      const matchesCompany = selectedCompany === 'all' || (v.user?.company || '') === selectedCompany || emp?.company === selectedCompany
 
       if (!matchesSearch || !matchesDate || !matchesCompany) return
 
       const notesText = (v.notes ? `Masuk: ${v.notes}` : '') + (v.notes_out ? ` | Keluar: ${v.notes_out}` : '') || '-'
 
       const mappedVisit: ExportRow = {
-        employeeId: v.user.id,
+        employeeId: userId || 0,
         date: v.date,
         dayName: getDayName(v.date),
-        employeeName: v.user.name,
+        employeeName: v.user?.name || emp?.name || 'Karyawan Dihapus',
         employeeNumber: emp?.employee_number || '-',
         division: emp?.division || '-',
-        company: v.user.company || emp?.company || '-',
+        company: v.user?.company || emp?.company || '-',
         type: type,
         timeIn: v.visit_time || '-',
         timeOut: v.visit_time_out || '-',
@@ -1936,21 +1943,21 @@ export default function RekapAbsensi({
                     <tr key={att.id} className="hover:bg-orange-50/10 transition-colors">
                       <td className="py-4 px-6">
                         <div>
-                          <p className="font-extrabold text-slate-800 font-quicksand">{att.user.name}</p>
-                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">{att.user.email}</p>
+                          <p className="font-extrabold text-slate-800 font-quicksand">{att.user?.name || 'Karyawan Dihapus'}</p>
+                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">{att.user?.email || '-'}</p>
                           <div className="mt-1 flex flex-wrap gap-1.5 items-center">
-                            {att.user.join_date && (
+                            {att.user?.join_date && (
                               <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit">
                                 Masuk: {formatDate(att.user.join_date)}
                               </span>
                             )}
-                            {att.user.company && (
+                            {att.user?.company && (
                               <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
-                                att.user.company.includes('Cakrawala') 
+                                (att.user.company || '').includes('Cakrawala') 
                                   ? 'text-red-750 bg-red-50 border-red-200' 
                                   : 'text-blue-750 bg-blue-50 border-blue-200'
                               }`}>
-                                {att.user.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                                {(att.user.company || '').includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
                               </span>
                             )}
                           </div>
@@ -2156,24 +2163,24 @@ export default function RekapAbsensi({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
-                      {att.user.name.charAt(0).toUpperCase()}
+                      {att.user?.name ? att.user.name.charAt(0).toUpperCase() : '?'}
                     </div>
                     <div>
-                      <h4 className="font-extrabold text-slate-800 text-sm">{att.user.name}</h4>
-                      <p className="text-[11px] text-slate-400 font-medium">{att.user.email}</p>
+                      <h4 className="font-extrabold text-slate-800 text-sm">{att.user?.name || 'Karyawan Dihapus'}</h4>
+                      <p className="text-[11px] text-slate-400 font-medium">{att.user?.email || '-'}</p>
                       <div className="mt-1 flex flex-wrap gap-1.5 items-center">
-                        {att.user.join_date && (
+                        {att.user?.join_date && (
                           <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit font-quicksand">
                             Masuk: {formatDate(att.user.join_date)}
                           </span>
                         )}
-                        {att.user.company && (
+                        {att.user?.company && (
                           <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
-                            att.user.company.includes('Cakrawala') 
+                            (att.user.company || '').includes('Cakrawala') 
                               ? 'text-red-755 bg-red-50 border-red-200' 
                               : 'text-blue-755 bg-blue-50 border-blue-200'
                           }`}>
-                            {att.user.company.includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                            {(att.user.company || '').includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
                           </span>
                         )}
                       </div>

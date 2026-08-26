@@ -1,549 +1,453 @@
-# 📋 Absensi Karyawan — Sistem Manajemen Kehadiran Karyawan
+# 📋 goodpeople-hcms — Sistem Manajemen Kehadiran & HCMS Karyawan
 
-> Aplikasi full-stack untuk manajemen kehadiran, penggajian, dan operasional karyawan berbasis web. Dibangun dengan **React + TypeScript** (Frontend) dan **Laravel 13** (Backend API).
+> Platform full-stack Human Capital Management System (HCMS) untuk manajemen kehadiran, multi-cabang kantor, jadwal kerja fleksibel/shift, perizinan/cuti, penggajian (payroll) digital ber-QR Code, inventaris, klaim reimbursement, dan alur persetujuan bertingkat. Dibangun dengan **React 19 + TypeScript** (Frontend) dan **Laravel 13** (Backend API).
 
 ---
 
 ## 📑 Daftar Isi
 
 - [Tentang Proyek](#-tentang-proyek)
-- [Fitur Utama](#-fitur-utama)
-- [Tech Stack](#-tech-stack)
-- [Arsitektur Proyek](#-arsitektur-proyek)
-- [Prasyarat](#-prasyarat)
-- [Instalasi & Setup](#-instalasi--setup)
-- [Menjalankan Aplikasi](#-menjalankan-aplikasi)
+- [Fitur Utama & Pembaruan](#-fitur-utama--pembaruan)
+- [Tech Stack & Arsitektur](#-tech-stack--arsitektur)
 - [Struktur Folder](#-struktur-folder)
 - [Role & Hak Akses](#-role--hak-akses)
-- [API Endpoints](#-api-endpoints)
-- [Screenshot](#-screenshot)
+- [Prasyarat & Instalasi](#-prasyarat--instalasi)
+- [Menjalankan Aplikasi](#-menjalankan-aplikasi)
+- [Daftar Lengkap API Endpoints](#-daftar-lengkap-api-endpoints)
+- [Halaman Publik & Kepatuhan](#-halaman-publik--kepatuhan)
 - [Lisensi](#-lisensi)
 
 ---
 
 ## 🧾 Tentang Proyek
 
-**Absensi Karyawan** adalah sistem manajemen kehadiran dan operasional karyawan yang komprehensif. Aplikasi ini mendukung tiga level pengguna — **Admin**, **Karyawan (Employee)**, dan **Direktur** — dengan fitur mulai dari absensi berbasis lokasi (GPS), pengajuan cuti & lembur, penggajian (payroll), hingga alur persetujuan bertingkat (multi-level approval).
+**goodpeople-hcms** adalah aplikasi manajemen SDM dan presensi karyawan modern yang mendukung multi-entitas perusahaan (*PT Cakrawala Parama Internasional* & *PT Yasodana Parvez Internasional*) serta multi-kantor cabang (Jakarta & Bogor). 
+
+Sistem ini melayani 3 level pengguna dengan hak akses spesifik:
+1. **Admin (HR / Operasional)**: Pengelolaan penuh master data karyawan, shift, multi-lokasi kantor, rekap absensi, jadwal khusus (*schedule override*), payroll, reimbursement, dan inventaris.
+2. **Employee (Karyawan)**: Presensi GPS & selfie (kantor, sales visit, client visit), checkout visit, pengajuan cuti, izin/sakit, lembur, klaim reimbursement, serta unduh slip gaji digital.
+3. **Director (Direktur)**: Monitoring analitik eksekutif dan *final approval* untuk seluruh transaksi operasional, karyawan baru, komponen gaji, dan payroll massal.
 
 ---
 
-## ✨ Fitur Utama
+## ✨ Fitur Utama & Pembaruan
 
-### 🔐 Autentikasi & Profil
-- Login dengan email & password (Laravel Sanctum)
-- Manajemen profil & biodata karyawan (foto, CV, data pribadi)
-- Lupa password & reset password
-- Ganti password
+### 🏢 Multi-Company & Multi-Office Location
+- **Multi-Entitas Perusahaan**: Branding dinamis (logo, favicon, judul tab browser) otomatis menyesuaikan entitas perusahaan karyawan (*PT CPI* / *PT YPI*).
+- **Multi-Kantor Cabang**: Konfigurasi koordinat GPS dan radius toleransi terpisah untuk **Kantor Jakarta** dan **Kantor Bogor**.
+- **Penetapan Lokasi per Karyawan**: Karyawan dapat dialokasikan ke kantor tertentu sesuai penempatan tugas.
 
-### 📍 Absensi (Attendance)
-- **Absen Kantor** — Clock In/Out berbasis GPS & radius kantor
-- **Kunjungan Sales** — Absensi lapangan untuk tim sales dengan check-out lokasi
-- **Kunjungan Klien** — Absensi kunjungan ke klien (client visit)
-- Deteksi otomatis status: Normal, Terlambat, Pulang Cepat, Lembur
-- Foto selfie saat absen (bukti kehadiran)
-- Riwayat absensi lengkap
+### 📍 Presensi & Kunjungan Lapangan
+- **Absen Kantor (Clock In & Clock Out)**: Validasi radius GPS kantor + pengambilan foto selfie bukti kehadiran.
+- **Kunjungan Sales & Klien (Visit Management)**: 
+  - Check-in lokasi kunjungan sales/klien dengan foto selfie dan deskripsi agenda.
+  - **Fitur Check-Out Kunjungan**: Pencatatan waktu selesai kunjungan, catatan hasil pertemuan, dan kalkulasi otomatis durasi visit.
+- **Deteksi Status Otomatis**: Normal, Terlambat (dengan toleransi menit fleksibel), Pulang Cepat, dan Lembur.
+- **Riwayat & Rekap Absensi**: Filter tanggal, divisi, status kehadiran, dan ekspor data rekapitulasi.
 
-### 📅 Cuti, Izin & Lembur
-- Pengajuan cuti dengan alasan & tanggal
-- Pengajuan izin / sakit dengan upload dokumen bukti (surat dokter, dll)
-- Pengajuan lembur kerja
-- Alur persetujuan bertingkat (Admin → Direktur)
+### 🕒 Shift Kerja & Override Jadwal (Schedule Override)
+- **Master Shift Kerja**: Jam masuk, jam pulang, dan toleransi keterlambatan dinamis.
+- **Penetapan Libur Mingguan (Sunday Off / Day Off)**: Pengaturan hari libur khusus per individu karyawan.
+- **Override Jadwal Kerja (*Employee Schedule Override*)**: Penyesuaian jadwal dinamis pada rentang tanggal tertentu untuk penugasan khusus tanpa mengubah shift default.
+- **Kalender Libur Nasional**: Manajemen hari libur nasional serta fitur impor kalender libur.
 
-### 🕒 Shift Kerja & Hari Libur
-- Pengaturan shift kerja dinamis (jam masuk, jam pulang, toleransi keterlambatan)
-- Alokasi shift khusus per karyawan atau divisi
-- Kalender hari libur nasional serta import massal hari libur
+### 💰 Penggajian Digital & Verifikasi Slip (Payroll with QR Code)
+- **Konfigurasi Komponen Gaji**: Gaji pokok, tunjangan tetap, bonus, dan potongan otomatis berbasis absensi/keterlambatan.
+- **Generate Payroll Massal**: Pembuatan slip gaji otomatis bulanan untuk seluruh karyawan dalam satu klik.
+- **Alur Approval Payroll Bertingkat**: Admin mengajukan $\rightarrow$ Direktur menyetujui (satuan atau *Approve All*) $\rightarrow$ Direktur menandai *Paid*.
+- **Slip Gaji Digital dengan QR Code**:
+  - Halaman verifikasi publik (`/verify-slip/:id/:hash`) untuk memeriksa keaslian dokumen slip gaji secara instan tanpa perlu login.
+  - Cetak slip gaji format standar cetak dan unduh PDF.
 
-### 💰 Penggajian (Payroll)
-- Konfigurasi gaji pokok, tunjangan, & potongan
-- Generate slip gaji bulanan otomatis secara massal atau individu
-- Potongan (deduction) otomatis berdasarkan ketidakhadiran
-- Alur approval payroll lengkap oleh Direktur
+### 📅 Operasional & Multi-Level Approval
+- **Cuti Tahunan & Khusus**: Pengajuan tanggal, alasan, dan pelacakan sisa kuota cuti.
+- **Izin & Sakit (*Permit Request*)**: Formulir terpisah untuk izin atau sakit dengan lampiran dokumen/surat keterangan dokter.
+- **Lembur Kerja (*Overtime*)**: Pengajuan jam lembur dan rekapitulasi jam kerja tambahan.
+- **Reimbursement Dana**: Pengajuan klaim biaya operasional dengan upload foto nota/kuitansi.
+- **Pemberian Bonus**: Manajemen insentif/bonus performa oleh Admin dengan persetujuan Direktur.
 
-### 💳 Reimbursement & Bonus
-- Pengajuan reimbursement oleh karyawan dengan upload nota/kuitansi bukti
-- Manajemen pemberian bonus oleh Admin
-- Persetujuan bertingkat (Admin → Direktur)
-
-### 🏢 Inventaris Kantor
-- Pengelolaan aset & inventaris perusahaan
-- Upload foto inventaris barang
-- Alur penghapusan atau pembaruan inventaris
-
-### 🗑 Recycle Bin & Backup Data
-- Fitur tempat sampah untuk pemulihan data (karyawan, dll) yang dihapus sementara (soft delete)
-- Backup database (export format SQL) dan pemulihan database (import) langsung dari panel Admin
-
-### 📊 Dashboard & Rekap
-- **Admin Dashboard** — Ringkasan kehadiran harian, grafik data karyawan, manajemen payroll & operasional
-- **Employee Dashboard** — Status absen hari ini, info shift kerja, ringkasan biodata, slip gaji, & status pengajuan
-- **Director Dashboard** — Ringkasan log aktivitas, persetujuan operasional, monitoring payroll, & keuangan perusahaan
-- Laporan rekap absensi bulanan dengan filter multi-parameter & ekspor laporan
-
-### 🔔 Notifikasi Real-time
-- Integrasi notifikasi push (Web Push API) untuk pemberitahuan real-time mengenai status pengajuan, approval, dan aktivitas sistem lainnya
+### 🛡 Keamanan, Monitoring & Pemulihan Data
+- **Activity & Online Tracking (*Last Seen*)**: Middleware pencatatan aktivitas terakhir user untuk memantau status online staf secara real-time.
+- **Recycle Bin (Soft Deletes)**: Tempat sampah pemulihan data karyawan dan transaksi yang terhapus agar dapat di-*restore* kembali.
+- **Backup & Restore Database**: Ekspor file database SQL dan impor cadangan langsung melalui antarmuka Admin.
+- **Notifikasi Push & WhatsApp**:
+  - Integrasi Web Push Notification untuk update status pengajuan & approval.
+  - Tautan kontak langsung WhatsApp Admin aktif.
 
 ---
 
-## 🛠 Tech Stack
+## 🛠 Tech Stack & Arsitektur
 
 ### Frontend
 | Teknologi | Versi | Keterangan |
 |-----------|-------|------------|
-| React | 19.x | UI Library |
-| TypeScript | 5.x | Type-safe JavaScript |
-| Vite | 6.x | Build tool & dev server |
-| React Router | 7.x | Client-side routing |
-| Axios | - | HTTP client |
-| Lucide React | - | Icon library |
-| SweetAlert2 | - | Alert & dialog |
+| **React** | 19.x | UI Library |
+| **TypeScript** | 5.x | Type-safe JavaScript |
+| **Vite** | 6.x | Build tool, HMR & dev server |
+| **React Router** | 7.x | Client-side routing dengan Code Splitting (`React.lazy` & `Suspense`) |
+| **Axios** | - | HTTP client dengan Interceptor token |
+| **Lucide React** | - | Icon library modern |
+| **SweetAlert2** | - | Modal, dialog alert, dan konfirmasi interaktif |
 
 ### Backend
 | Teknologi | Versi | Keterangan |
 |-----------|-------|------------|
-| PHP | ≥ 8.3 | Runtime |
-| Laravel | 13.x | Backend framework |
-| Laravel Sanctum | 4.x | API authentication (token-based) |
-| MySQL / SQLite | - | Database |
+| **PHP** | ≥ 8.3 | Server runtime |
+| **Laravel** | 13.x | Backend REST API framework |
+| **Laravel Sanctum** | 4.x | Token-based API Authentication |
+| **MySQL / SQLite** | - | Relational database (default support MySQL & SQLite) |
 
----
-
-## 🏗 Arsitektur Proyek
-
+### Arsitektur Repositori
 ```
-absen-karyawan/               ← Root monorepo
-├── frontend/                  ← React + TypeScript (Vite)
+absen-karyawan/
+├── frontend/                  ← Single Page Application (React + Vite)
+│   ├── public/                ← Asset logo, favicon, manifest
 │   └── src/
-│       ├── components/        ← Semua komponen UI
-│       │   ├── admin/         ← Halaman-halaman admin
-│       │   ├── employee/      ← Halaman-halaman karyawan
-│       │   ├── direktur/      ← Halaman-halaman direktur
-│       │   └── layout/        ← Sidebar, Logo, dll
-│       ├── utils/             ← Utility functions
-│       ├── App.tsx            ← Root routing & auth state
+│       ├── components/
+│       │   ├── admin/         ← Modul Admin (absensi, dataKaryawan, payroll, operasional, pengaturan)
+│       │   ├── employee/      ← Modul Karyawan (absensi, operasional, payroll, biodata)
+│       │   ├── direktur/      ← Modul Direktur (analitik & persetujuan berjenjang)
+│       │   ├── payroll/       ← Verifikasi slip gaji publik (VerifySlip)
+│       │   ├── public/        ← Kebijakan privasi, syarat layanan, kepatuhan keamanan
+│       │   ├── layout/        ← Sidebar navigasi, Header, Logo
+│       │   └── Login.tsx      ← Halaman login & reset password
+│       ├── utils/             ← Helper axios, format tanggal, rupiah, dll
+│       ├── App.tsx            ← Root router & state otentikasi
 │       └── main.tsx           ← Entry point
 │
-├── backend/                   ← Laravel 13 API
+├── backend/                   ← Laravel 13 REST API
 │   ├── app/
-│   │   ├── Http/Controllers/  ← API controllers
-│   │   ├── Models/            ← Eloquent models
-│   │   └── Providers/         ← Service providers
+│   │   ├── Http/Controllers/  ← REST API Controllers
+│   │   ├── Http/Middleware/   ← Auth Sanctum, Role Checks, LastSeen Middleware
+│   │   └── Models/            ← Eloquent Models & Relasi
 │   ├── database/
-│   │   ├── migrations/        ← Schema migrations
-│   │   ├── seeders/           ← Data seeders
-│   │   └── factories/         ← Model factories
+│   │   ├── migrations/        ← Skema migrasi database
+│   │   └── seeders/           ← Seeder akun default & master data
 │   ├── routes/
-│   │   └── api.php            ← Semua API routes
-│   └── config/                ← Konfigurasi Laravel
+│   │   └── api.php            ← Seluruh routing REST API backend
+│   └── config/                ← Konfigurasi aplikasi, auth, & database
 │
-└── README.md                  ← File ini
+├── absensi.md                 ← Analisis & roadmap pengembangan produk komersial
+└── README.md                  ← Dokumentasi utama proyek
 ```
 
 ---
 
-## 📌 Prasyarat
+## 📁 Struktur Komponen Frontend
 
-Pastikan tools berikut sudah terinstall:
-
-- **PHP** ≥ 8.3
-- **Composer** ≥ 2.x
-- **Node.js** ≥ 18.x
-- **npm** ≥ 9.x
-- **MySQL** 8.x atau **SQLite** (default)
-- **XAMPP** (opsional, jika menggunakan MySQL bawaan XAMPP)
-
----
-
-## 🚀 Instalasi & Setup
-
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/Ipul1122/absensi-karyawan.git
-cd absen-karyawan
 ```
-
-### 2. Setup Backend (Laravel)
-
-```bash
-cd backend
-
-# Install dependensi PHP
-composer install
-
-# Salin file environment
-cp .env.example .env
-
-# Generate application key
-php artisan key:generate
-
-# Konfigurasi database di file .env
-# Default menggunakan SQLite, untuk MySQL ubah:
-#   DB_CONNECTION=mysql
-#   DB_HOST=127.0.0.1
-#   DB_PORT=3306
-#   DB_DATABASE=absen_karyawan
-#   DB_USERNAME=root
-#   DB_PASSWORD=
-
-# Jalankan migrasi database
-php artisan migrate
-
-# (Opsional) Jalankan seeder untuk data dummy
-php artisan db:seed
+frontend/src/components/
+├── AdminDashboard.tsx
+├── EmployeeDashboard.tsx
+├── Login.tsx
+│
+├── admin/
+│   ├── DashboardOverview.tsx
+│   ├── absensi/
+│   │   ├── RekapAbsensi.tsx
+│   │   ├── SalesVisitsLog.tsx
+│   │   └── AbsenMandiriAdmin.tsx
+│   ├── dataKaryawan/
+│   │   └── AkunKaryawan.tsx
+│   ├── payroll/
+│   │   ├── AdminPayroll.tsx
+│   │   ├── AdminSalaryConfig.tsx
+│   │   └── AdminBonus.tsx
+│   ├── operasional/
+│   │   ├── AdminCuti.tsx
+│   │   ├── AdminIzin.tsx
+│   │   ├── AdminOvertime.tsx
+│   │   ├── AdminReimbursement.tsx
+│   │   └── AdminInventaris.tsx
+│   └── pengaturan/
+│       ├── LokasiKantor.tsx
+│       ├── KelolaShift.tsx
+│       ├── AdminKelolaHariLibur.tsx
+│       ├── ScheduleOverride.tsx
+│       └── RecycleBin.tsx
+│
+├── employee/
+│   ├── EmployeeOverview.tsx
+│   ├── absensi/
+│   │   ├── EmployeeAbsen.tsx
+│   │   ├── EmployeeSales.tsx
+│   │   ├── EmployeeClient.tsx
+│   │   └── EmployeeHistory.tsx
+│   ├── operasional/
+│   │   ├── EmployeeCuti.tsx
+│   │   ├── EmployeeIzin.tsx
+│   │   ├── EmployeeOvertime.tsx
+│   │   └── EmployeeReimbursement.tsx
+│   ├── payroll/
+│   │   ├── EmployeePayroll.tsx
+│   │   └── EmployeeBonus.tsx
+│   └── pengaturan/
+│       ├── BiodataSetting.tsx
+│       └── EmployeeSettings.tsx
+│
+├── direktur/
+│   ├── DirectorDashboard.tsx
+│   ├── DirekturOverview.tsx
+│   ├── kehadiran/LogKehadiran.tsx
+│   ├── pengaturan/DirectorSettings.tsx
+│   └── persetujuan/
+│       ├── PersetujuanKaryawan.tsx
+│       ├── PersetujuanKehadiran.tsx
+│       ├── PersetujuanGaji.tsx
+│       ├── PersetujuanPayroll.tsx
+│       └── PersetujuanOperational.tsx
+│
+├── payroll/
+│   └── VerifySlip.tsx
+│
+└── public/
+    ├── PrivacyPolicy.tsx
+    ├── TermsOfService.tsx
+    └── SecurityCompliance.tsx
 ```
-
-### 3. Setup Frontend (React)
-
-```bash
-cd ../frontend
-
-# Install dependensi Node.js
-npm install
-```
-
----
-
-## ▶ Menjalankan Aplikasi
-
-Buka **dua terminal** terpisah:
-
-### Terminal 1 — Backend API (port 8000)
-
-```bash
-cd backend
-php artisan serve
-```
-
-Server berjalan di: `http://localhost:8000`
-
-### Terminal 2 — Frontend Dev Server (port 5173)
-
-```bash
-cd frontend
-npm run dev
-```
-
-Aplikasi berjalan di: `http://localhost:5173`
-
-> **Catatan:** Frontend akan otomatis melakukan health check ke backend saat pertama kali dibuka.
-
----
-
-## 📁 Struktur Folder
-
-### Frontend — Komponen Utama
-
-| File / Folder | Deskripsi |
-|---------------|-----------|
-| `App.tsx` | Root component, konfigurasi rute (routes) & state otentikasi utama |
-| `Login.tsx` | Halaman login karyawan / admin / direktur |
-| `AdminDashboard.tsx` | Dashboard admin shell dengan rute anak (nested routes) |
-| `EmployeeDashboard.tsx` | Dashboard karyawan shell dengan rute anak (nested routes) |
-| `direktur/DirectorDashboard.tsx` | Dashboard direktur shell dengan rute anak (nested routes) |
-
-#### Admin Components (`components/admin/`)
-
-| Komponen / Subfolder | File | Deskripsi |
-|----------------------|------|-----------|
-| **dashboard/** | `DashboardOverview.tsx` | Ringkasan statistik operasional & kehadiran harian |
-| **absensi/** | `RekapAbsensi.tsx` | Laporan rekap kehadiran & filter absensi semua karyawan |
-| | `SalesVisitsLog.tsx` | Pencatatan log kunjungan lapangan sales/klien |
-| | `AbsenMandiriAdmin.tsx` | Menu absensi khusus untuk user admin |
-| **dataKaryawan/** | `AkunKaryawan.tsx` | Manajemen profil, penambahan, & pembaruan data karyawan |
-| **pengaturan/** | `LokasiKantor.tsx` | Konfigurasi koordinat kantor & radius presensi GPS |
-| | `KelolaShift.tsx` | Pengaturan shift jam kerja & waktu dispensasi keterlambatan |
-| | `AdminKelolaHariLibur.tsx` | Manajemen kalender hari libur nasional |
-| | `RecycleBin.tsx` | Halaman tempat sampah untuk pemulihan soft-deleted data |
-| **payroll/** | `AdminPayroll.tsx` | Pembuatan & pengelolaan payroll bulanan |
-| | `AdminSalaryConfig.tsx` | Pengaturan formula gaji pokok & tunjangan |
-| | `AdminBonus.tsx` | Input & daftar bonus performa karyawan |
-| **operasional/** | `AdminCuti.tsx` | Verifikasi & persetujuan permohonan cuti |
-| | `AdminIzin.tsx` | Verifikasi & persetujuan permohonan izin/sakit |
-| | `AdminOvertime.tsx` | Verifikasi & persetujuan lembur kerja |
-| | `AdminReimbursement.tsx` | Verifikasi & persetujuan reimbursement klaim dana |
-| | `AdminInventaris.tsx` | Pengelolaan data inventaris aset kantor |
-
-#### Employee Components (`components/employee/`)
-
-| Komponen / Subfolder | File | Deskripsi |
-|----------------------|------|-----------|
-| **dashboard/** | `EmployeeOverview.tsx` | Ringkasan kehadiran personal harian & kalender info |
-| **absensi/** | `EmployeeAbsen.tsx` | Presensi Clock In & Clock Out berbasis lokasi kantor |
-| | `EmployeeSales.tsx` | Presensi kunjungan lapangan (sales visit) |
-| | `EmployeeClient.tsx` | Presensi kunjungan klien langsung |
-| | `EmployeeHistory.tsx` | Riwayat absensi detail per bulan |
-| **operasional/** | `EmployeeCuti.tsx` | Formulir & riwayat pengajuan cuti tahunan/khusus |
-| | `EmployeeIzin.tsx` | Formulir & riwayat pengajuan izin/sakit dengan berkas bukti |
-| | `EmployeeOvertime.tsx` | Formulir & riwayat pengajuan lembur |
-| | `EmployeeReimbursement.tsx` | Formulir & riwayat pengajuan klaim biaya |
-| **payroll/** | `EmployeePayroll.tsx` | Riwayat penerimaan slip gaji bulanan PDF/Web |
-| | `EmployeeBonus.tsx` | Ringkasan penerimaan bonus |
-| **pengaturan/** | `EmployeeSettings.tsx` | Ubah kata sandi login |
-| | `BiodataSetting.tsx` | Melengkapi biodata diri dan unggah berkas CV/KTP |
-
-#### Director Components (`components/direktur/`)
-
-| Komponen / Subfolder | File | Deskripsi |
-|----------------------|------|-----------|
-| **root** | `DirectorDashboard.tsx` | Shell layout sidebar & router navigasi Direktur |
-| **dashboard/** | `DirekturOverview.tsx` | Dashboard analitik absensi, pengeluaran & monitoring |
-| **kehadiran/** | `LogKehadiran.tsx` | Daftar monitoring kehadiran real-time seluruh staf |
-| **pengaturan/** | `DirectorSettings.tsx` | Pengaturan profil dan kata sandi direktur |
-| **persetujuan/** | `PersetujuanKaryawan.tsx` | Approval data karyawan baru & approval penghapusan |
-| | `PersetujuanKehadiran.tsx` | Approval koreksi waktu absensi |
-| | `PersetujuanGaji.tsx` | Approval penyesuaian komponen gaji pokok karyawan |
-| | `PersetujuanPayroll.tsx` | Approval slip gaji sebelum rilis transfer dana |
-| | `PersetujuanOperational.tsx` | Approval cuti, izin, lembur, reimbursement & bonus akhir |
-
-### Backend — Controllers
-
-| Controller | Deskripsi |
-|------------|-----------|
-| `AuthController.php` | Menangani login, logout, edit profil, & pemulihan password |
-| `AttendanceController.php` | Mengatur jam masuk/pulang, presensi GPS, shifting, & rekapitulasi |
-| `EmployeeController.php` | CRUD data utama karyawan, profil karyawan, & alur approval biodata |
-| `LeaveController.php` | Pengelolaan cuti & persetujuan multi-level |
-| `PermitController.php` | Pengelolaan izin / sakit & persetujuan multi-level |
-| `PayrollController.php` | Perhitungan & pembuatan slip gaji, formula gaji, serta approval gaji |
-| `OvertimeController.php` | Pengelolaan waktu lembur & persetujuan multi-level |
-| `ReimbursementController.php` | Pengelolaan reimbursement biaya & persetujuan multi-level |
-| `BonusController.php` | Pengelolaan bonus tambahan |
-| `InventoryController.php` | Pengelolaan inventaris aset perusahaan |
-| `SalesVisitController.php` | Pencatatan detail kunjungan lapangan & checkout sales/klien |
-| `BackupController.php` | Backup database (export format SQL) & restore database (import) |
-| `RecycleBinController.php` | Mengelola data terhapus sementara (soft-deletes) untuk dipulihkan |
-| `PushNotificationController.php` | Mengatur subscription push notification & pengiriman push message |
-| `DirectorController.php` | Mengolah data ringkasan analitik khusus dashboard direktur |
-| `SidebarNotificationController.php` | Menghitung status pengajuan tertunda untuk badge menu |
-
-### Backend — Models
-
-| Model | Tabel | Keterangan |
-|-------|-------|------------|
-| `User.php` | `users` | Data pokok karyawan, hak akses, & data login |
-| `Attendance.php` | `attendances` | Log deteksi waktu clock-in/out & foto selfie |
-| `Shift.php` | `shifts` | Master data jam kerja kantor |
-| `Holiday.php` | `holidays` | Daftar hari libur nasional perusahaan |
-| `LeaveRequest.php` | `leave_requests` | Form detail data pengajuan cuti |
-| `PermitRequest.php` | `permit_requests` | Form detail data pengajuan izin/sakit |
-| `Overtime.php` | `overtimes` | Log data kerja lembur karyawan |
-| `Payroll.php` | `payrolls` | Data gaji bulanan yang digenerate sistem |
-| `SalaryConfiguration.php` | `salary_configurations` | Skema gaji pokok & tunjangan tetap |
-| `Reimbursement.php` | `reimbursements` | Data klaim pengeluaran dana operasional |
-| `Bonus.php` | `bonuses` | Pemberian bonus di luar gaji pokok |
-| `Inventory.php` | `inventories` | Aset perusahaan yang terdaftar |
-| `SalesVisit.php` | `sales_visits` | Log kunjungan luar kota/sales |
-| `OfficeSetting.php` | `office_settings` | Pengaturan koordinat lintang/bujur & radius kantor |
-| `PushSubscription.php` | `push_subscriptions` | Token endpoint push notification user |
-| `RecycleBin.php` | `recycle_bins` | Penyimpanan meta data untuk file di tempat sampah |
 
 ---
 
 ## 👥 Role & Hak Akses
 
-Aplikasi memiliki **3 role** dengan hak akses berbeda:
-
-### 🔴 Admin
-- Manajemen CRUD karyawan & profil lengkap
-- Input absensi manual & koreksi presensi
-- Konfigurasi lokasi kantor, radius GPS, shift kerja, & hari libur nasional
-- Generate, kelola, & sesuaikan payroll bulanan
-- Kelola tempat sampah (Recycle Bin) & backup database
-- Approval cuti, izin, lembur, reimbursement
-- Manajemen bonus & inventaris perusahaan
-- Melihat log kunjungan sales
-
-### 🟢 Employee (Karyawan)
-- Absensi mandiri (kantor via GPS, sales, & klien)
-- Pengajuan cuti, izin/sakit, lembur, & reimbursement
-- Lihat slip gaji pribadi & perolehan bonus
-- Lihat riwayat absensi pribadi
-- Kelola profil, biodata diri, upload CV/berkas, & kata sandi
-
-### 🔵 Director (Direktur)
-- **Read-only** akses ke seluruh data admin (kehadiran, karyawan, inventaris, dll)
-- Approval akhir pendaftaran / penolakan karyawan baru & biodata
-- Approval konfigurasi gaji
-- Approval slip gaji (payroll) bulanan secara massal maupun individu
-- Approval akhir cuti, izin/sakit, lembur, reimbursement, & bonus
-- Approval akhir usulan koreksi kehadiran
-
-### Alur Approval Bertingkat
-
-```
-Karyawan mengajukan → Admin menyetujui → Direktur memberikan approval akhir
-```
+| Fitur / Modul | Karyawan (Employee) | Admin (HR & Ops) | Direktur (Director) |
+| :--- | :---: | :---: | :---: |
+| **Absen GPS & Selfie (Kantor)** | ✅ | ✅ (Absen Mandiri) | ❌ |
+| **Kunjungan Sales/Klien + Checkout** | ✅ | 👁️ Monitoring | 👁️ Monitoring |
+| **Lihat Riwayat & Slip Gaji Pribadi** | ✅ | ✅ | ✅ |
+| **Pengajuan Cuti / Izin / Lembur / Reimburse** | ✅ | ❌ | ❌ |
+| **Manajemen Data Karyawan (CRUD)** | ❌ | ✅ | 👁️ Read & Approval Baru |
+| **Atur Lokasi Kantor & Radius GPS** | ❌ | ✅ | 👁️ Read |
+| **Atur Shift, Libur & Schedule Override** | ❌ | ✅ | 👁️ Read |
+| **Approval Operasional Tahap 1 (Admin)** | ❌ | ✅ | ❌ |
+| **Approval Operasional Akhir (Direktur)** | ❌ | ❌ | ✅ |
+| **Generate & Sesuaikan Payroll** | ❌ | ✅ | ❌ |
+| **Approval Payroll Massal & Bayar Gaji** | ❌ | ❌ | ✅ |
+| **Backup, Restore & Recycle Bin** | ❌ | ✅ | ❌ |
+| **Dashboard Analitik Eksekutif** | ❌ | ❌ | ✅ |
 
 ---
 
-## 🔌 API Endpoints
+## 🚀 Prasyarat & Instalasi
 
-Base URL: `http://localhost:8000/api`
+### Prasyarat
+- **PHP** ≥ 8.3 & **Composer** ≥ 2.x
+- **Node.js** ≥ 18.x & **npm** ≥ 9.x
+- **MySQL** 8.x (atau SQLite bawaan)
 
-### Public (Tanpa Login)
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| `GET` | `/health-check` | Mengecek status koneksi backend & database |
-| `POST` | `/login` | Otentikasi login pengguna |
-| `POST` | `/forgot-password` | Pengajuan lupa password |
-| `POST` | `/reset-password` | Melakukan reset password |
-| `GET` | `/payroll/verify/{id}/{hash}` | Verifikasi keabsahan slip gaji digital |
+### Langkah Instalasi
 
-### Authenticated (Semua Role Login)
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| `POST` | `/logout` | Logout & mencabut token API Sanctum |
-| `GET` | `/user` | Informasi dasar user yang aktif |
-| `GET` | `/user/profile` | Data profil & detail biodata lengkap |
-| `POST` | `/user/profile` | Memperbarui berkas biodata & profil |
-| `PUT` | `/user/change-password` | Mengganti password pengguna |
-| `GET` | `/admin-contact` | Memperoleh kontak WhatsApp Admin aktif |
-| `GET` | `/shifts` | Memperoleh daftar shift kerja yang tersedia |
-| `GET` | `/sidebar/notification-counts` | Mengambil badge hitungan notifikasi pending |
-| `POST` | `/push-subscriptions` | Mendaftarkan token push notifikasi browser |
-| `POST` | `/push-subscriptions/unsubscribe` | Membatalkan subskripsi push notifikasi |
-| `POST` | `/push-subscriptions/test` | Mengirim notifikasi uji coba ke perangkat |
+1. **Clone Repository**:
+   ```bash
+   git clone https://github.com/Ipul1122/absensi-karyawan.git
+   cd absen-karyawan
+   ```
 
-### Attendance & Sales Visit (Karyawan)
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| `GET` | `/attendance/today` | Status presensi hari ini |
-| `POST` | `/attendance/check-in` | Melakukan Clock In (GPS & Selfie) |
-| `POST` | `/attendance/check-out` | Melakukan Clock Out (GPS & Selfie) |
-| `GET` | `/attendance/history` | Riwayat kehadiran pribadi bulanan |
-| `GET` | `/office-setting` | Mendapatkan pengaturan radius koordinat kantor |
-| `POST` | `/sales-visits` | Melakukan Clock In kunjungan sales/klien |
-| `GET` | `/sales-visits/today` | Daftar kunjungan sales hari ini |
-| `PUT` | `/sales-visits/{id}/checkout` | Melakukan Clock Out dari kunjungan sales/klien |
-| `GET` | `/holidays/upcoming` | Daftar libur nasional mendatang |
+2. **Setup Backend**:
+   ```bash
+   cd backend
+   composer install
+   cp .env.example .env
+   php artisan key:generate
+   ```
+   *Sesuaikan konfigurasi database pada `.env` (default SQLite atau MySQL `absen_karyawan`).*
 
-### Operasional (Karyawan)
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| `GET` | `/leaves` | Daftar pengajuan cuti pribadi |
-| `POST` | `/leaves` | Mengirimkan pengajuan cuti baru |
-| `DELETE` | `/leaves/{id}` | Membatalkan/menghapus draf cuti |
-| `GET` | `/permits` | Daftar pengajuan izin / sakit pribadi |
-| `POST` | `/permits` | Mengirimkan pengajuan izin / sakit (dengan file bukti) |
-| `DELETE` | `/permits/{id}` | Membatalkan/menghapus pengajuan izin |
-| `GET` | `/overtimes` | Daftar pengajuan lembur pribadi |
-| `POST` | `/overtimes` | Mengirimkan pengajuan lembur baru |
-| `DELETE` | `/overtimes/{id}` | Membatalkan/menghapus pengajuan lembur |
-| `GET` | `/reimbursements` | Daftar pengajuan reimbursement pribadi |
-| `POST` | `/reimbursements` | Mengirimkan klaim reimbursement (dengan kuitansi) |
-| `DELETE` | `/reimbursements/{id}` | Membatalkan/menghapus pengajuan reimbursement |
-| `GET` | `/bonuses` | Riwayat perolehan bonus pribadi |
-| `GET` | `/payroll/my-slips` | Daftar slip gaji bulanan pribadi |
+3. **Migrasi & Seed Data**:
+   ```bash
+   php artisan migrate
+   php artisan db:seed
+   ```
 
-### Admin & Director (Akses Bersama - Read Only untuk Direktur)
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| `GET` | `/employees` | Menampilkan seluruh data karyawan |
-| `GET` | `/employees/{id}/profile` | Memperoleh profil detail staf tertentu |
-| `GET` | `/admin/employees/backup` | Mendapatkan data backup karyawan |
-| `GET` | `/admin/attendances` | Laporan kehadiran seluruh karyawan |
-| `GET` | `/admin/sales-visits` | Log kunjungan sales seluruh karyawan |
-| `GET` | `/admin/leaves` | Log pengajuan cuti seluruh karyawan |
-| `GET` | `/admin/permits` | Log pengajuan izin/sakit seluruh karyawan |
-| `GET` | `/admin/payroll/configurations` | Melihat skema/formula gaji terdaftar |
-| `GET` | `/admin/directors` | Mendapatkan list akun dengan role Direktur |
-| `GET` | `/admin/payroll` | Melihat daftar histori payroll bulanan |
-| `GET` | `/admin/inventories` | Melihat daftar inventaris barang perusahaan |
-| `GET` | `/admin/inventories/{id}` | Detail barang inventaris tertentu |
-| `GET` | `/admin/reimbursements` | Log reimbursement seluruh karyawan |
-| `GET` | `/admin/reimbursements/summary` | Ringkasan statistik reimbursement |
-| `GET` | `/admin/bonuses` | Log bonus yang telah diberikan |
-| `GET` | `/admin/overtimes` | Log lembur seluruh karyawan |
-| `GET` | `/admin/overtimes/recap` | Ringkasan total lembur karyawan |
-| `GET` | `/admin/holidays` | Daftar seluruh hari libur terkonfigurasi |
-
-### Admin (Hanya Akses Modifikasi Admin)
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| `POST` | `/employees` | Mendaftarkan karyawan baru |
-| `PUT` | `/employees/{id}` | Memperbarui info profil dasar karyawan |
-| `DELETE` | `/employees/{id}` | Menghapus karyawan (Soft Delete) |
-| `POST` | `/employees/{id}/profile` | Memperbarui detail biodata/berkas karyawan |
-| `POST` | `/admin/attendances` | Input data kehadiran manual |
-| `PUT` | `/admin/attendances/{id}` | Memperbarui/koreksi kehadiran |
-| `PUT` | `/admin/office-setting` | Memperbarui koordinat & radius GPS kantor |
-| `PUT` | `/admin/leaves/{id}/approve` | Menyetujui pengajuan cuti |
-| `PUT` | `/admin/leaves/{id}/reject` | Menolak pengajuan cuti |
-| `PUT` | `/admin/permits/{id}/approve` | Menyetujui pengajuan izin/sakit |
-| `PUT` | `/admin/permits/{id}/reject` | Menolak pengajuan izin/sakit |
-| `POST` | `/admin/payroll/configurations` | Membuat / mengubah komponen gaji karyawan |
-| `POST` | `/admin/payroll/generate` | Memproses hitung gaji bulanan otomatis |
-| `PUT` | `/admin/payroll/{id}/update` | Koreksi manual angka di slip gaji |
-| `DELETE` | `/admin/payroll/{id}` | Menghapus slip gaji tertentu |
-| `POST` | `/admin/payroll/{id}/submit-approval` | Mengirim slip gaji ke direktur untuk disetujui |
-| `POST` | `/admin/payroll/submit-all-approval` | Mengirim semua slip gaji aktif ke direktur |
-| `POST` | `/admin/holidays` | Menambah hari libur nasional manual |
-| `POST` | `/admin/holidays/import` | Mengimpor daftar hari libur dari file eksternal |
-| `DELETE` | `/admin/holidays/{id}` | Menghapus hari libur nasional terdaftar |
-| `POST` | `/admin/shifts` | Membuat shift kerja baru |
-| `PUT` | `/admin/shifts/{id}` | Memperbarui pengaturan shift |
-| `DELETE` | `/admin/shifts/{id}` | Menghapus shift kerja |
-| `POST` | `/admin/inventories` | Menambahkan inventaris barang baru |
-| `POST` | `/admin/inventories/{id}/update` | Memperbarui data inventaris barang |
-| `DELETE` | `/admin/inventories/{id}` | Menghapus data barang |
-| `PUT` | `/admin/reimbursements/{id}/approve` | Menyetujui pengajuan reimbursement |
-| `PUT` | `/admin/reimbursements/{id}/reject` | Menolak pengajuan reimbursement |
-| `POST` | `/admin/bonuses` | Memberikan bonus baru ke karyawan |
-| `PUT` | `/admin/bonuses/{id}` | Memperbarui detail bonus |
-| `DELETE` | `/admin/bonuses/{id}` | Menghapus bonus terdaftar |
-| `PUT` | `/admin/overtimes/{id}/approve` | Menyetujui lembur |
-| `PUT` | `/admin/overtimes/{id}/reject` | Menolak lembur |
-| `GET` | `/admin/backup/export` | Ekspor cadangan database |
-| `POST` | `/admin/backup/import` | Impor/restore cadangan database |
-| `GET` | `/admin/recycle-bin` | Menampilkan seluruh data soft-deleted |
-| `POST` | `/admin/recycle-bin/{id}/restore` | Memulihkan data dari tempat sampah |
-| `DELETE` | `/admin/recycle-bin/{id}` | Menghapus data permanen |
-
-### Director (Hanya Akses Persetujuan Akhir Direktur)
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| `GET` | `/director/dashboard-summary` | Memperoleh metrik keuangan & ringkasan aktivitas |
-| `PUT` | `/director/employees/{id}/approve` | Menyetujui pendaftaran karyawan baru |
-| `PUT` | `/director/employees/{id}/reject` | Menolak pendaftaran karyawan baru |
-| `PUT` | `/director/employees/{id}/approve-delete` | Menyetujui penghapusan permanen karyawan |
-| `PUT` | `/director/employees/{id}/reject-delete` | Membatalkan penghapusan karyawan |
-| `PUT` | `/director/payroll/configurations/{id}/approve` | Menyetujui formula gaji baru |
-| `PUT` | `/director/payroll/configurations/{id}/reject` | Menolak formula gaji baru |
-| `PUT` | `/director/payroll/{id}/approve` | Menyetujui slip gaji individu |
-| `PUT` | `/director/payroll/{id}/reject` | Menolak slip gaji individu |
-| `POST` | `/director/payroll/approve-all` | Menyetujui seluruh slip gaji yang diajukan |
-| `POST` | `/director/payroll/reject-all` | Menolak seluruh slip gaji yang diajukan |
-| `PUT` | `/director/payroll/{id}/pay` | Approval akhir & tandai payroll terbayar |
-| `PUT` | `/director/leaves/{id}/approve` | Approval akhir permohonan cuti |
-| `PUT` | `/director/leaves/{id}/reject` | Penolakan akhir permohonan cuti |
-| `PUT` | `/director/permits/{id}/approve` | Approval akhir permohonan izin/sakit |
-| `PUT` | `/director/permits/{id}/reject` | Penolakan akhir permohonan izin/sakit |
-| `PUT` | `/director/overtimes/{id}/approve` | Approval akhir permohonan lembur |
-| `PUT` | `/director/overtimes/{id}/reject` | Penolakan akhir permohonan lembur |
-| `PUT` | `/director/reimbursements/{id}/approve` | Approval akhir reimbursement |
-| `PUT` | `/director/reimbursements/{id}/reject` | Penolakan akhir reimbursement |
-| `PUT` | `/director/bonuses/{id}/approve` | Approval akhir pembagian bonus |
-| `PUT` | `/director/bonuses/{id}/reject` | Penolakan akhir pembagian bonus |
-| `PUT` | `/director/attendances/{id}/approve` | Menyetujui usulan koreksi kehadiran |
-| `PUT` | `/director/attendances/{id}/reject` | Menolak usulan koreksi kehadiran |
-| `PUT` | `/director/inventories/{id}/approve` | Menyetujui penambahan/perubahan inventaris |
-| `PUT` | `/director/inventories/{id}/reject` | Menolak penambahan/perubahan inventaris |
+4. **Setup Frontend**:
+   ```bash
+   cd ../frontend
+   npm install
+   ```
 
 ---
 
-## 🖼 Screenshot
+## ▶ Menjalankan Aplikasi
 
-> _Screenshot akan ditambahkan di sini._
+Jalankan backend dan frontend secara bersamaan pada terminal terpisah:
+
+### 1. Terminal Backend (Port 8000)
+```bash
+cd backend
+php artisan serve
+```
+*API Base URL*: `http://localhost:8000/api`
+
+### 2. Terminal Frontend (Port 5173)
+```bash
+cd frontend
+npm run dev
+```
+*Aplikasi Web*: `http://localhost:5173`
+
+---
+
+## 🔌 Daftar Lengkap API Endpoints
+
+### 🌐 Public Endpoints
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/api/health-check` | Cek status server backend & database |
+| `POST` | `/api/login` | Login user (Email & Password) |
+| `POST` | `/api/forgot-password` | Pengajuan pemulihan password |
+| `POST` | `/api/reset-password` | Reset password dengan token verifikasi |
+| `GET` | `/api/payroll/verify/{id}/{hash}` | Verifikasi keabsahan slip gaji digital publik |
+
+### 🔐 Authenticated (Semua Role)
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `POST` | `/api/logout` | Revoke token Sanctum aktif |
+| `GET` | `/api/user` | Informasi ringkas user login |
+| `GET` | `/api/user/profile` | Biodata & profil lengkap |
+| `POST` | `/api/user/profile` | Update foto profil & biodata |
+| `PUT` | `/api/user/change-password` | Ganti password akun |
+| `GET` | `/api/admin-contact` | Kontak WhatsApp Admin aktif |
+| `GET` | `/api/office-setting` | Ambil pengaturan koordinat kantor |
+| `GET` | `/api/shifts` | Daftar shift kerja |
+| `GET` | `/api/holidays/upcoming` | Daftar libur nasional mendatang |
+| `GET` | `/api/sidebar/notification-counts` | Hitungan badge notifikasi pending |
+| `POST` | `/api/push-subscriptions` | Daftarkan subscription push browser |
+| `POST` | `/api/push-subscriptions/unsubscribe` | Hapus subscription push notifikasi |
+| `POST` | `/api/push-subscriptions/test` | Uji coba pengiriman push notifikasi |
+
+### 🟢 Modul Employee (Karyawan)
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/api/attendance/today` | Status presensi hari ini |
+| `POST` | `/api/attendance/check-in` | Clock In absensi kantor (GPS + Selfie) |
+| `POST` | `/api/attendance/check-out` | Clock Out absensi kantor |
+| `GET` | `/api/attendance/history` | Riwayat absensi bulanan pribadi |
+| `POST` | `/api/sales-visits` | Check-in kunjungan sales/klien |
+| `GET` | `/api/sales-visits/today` | Daftar kunjungan hari ini |
+| `PUT` | `/api/sales-visits/{id}/checkout` | Check-out kunjungan sales/klien |
+| `GET` | `/api/leaves` | Riwayat & daftar cuti pribadi |
+| `POST` | `/api/leaves` | Ajukan permohonan cuti baru |
+| `DELETE` | `/api/leaves/{id}` | Batalkan draf pengajuan cuti |
+| `GET` | `/api/permits` | Riwayat & daftar izin/sakit pribadi |
+| `POST` | `/api/permits` | Ajukan izin/sakit (+ file bukti) |
+| `DELETE` | `/api/permits/{id}` | Batalkan pengajuan izin/sakit |
+| `GET` | `/api/overtimes` | Riwayat & daftar lembur pribadi |
+| `POST` | `/api/overtimes` | Ajukan lembur baru |
+| `DELETE` | `/api/overtimes/{id}` | Batalkan pengajuan lembur |
+| `GET` | `/api/reimbursements` | Riwayat & daftar reimbursement |
+| `POST` | `/api/reimbursements` | Ajukan klaim reimbursement (+ kuitansi) |
+| `DELETE` | `/api/reimbursements/{id}` | Batalkan klaim reimbursement |
+| `GET` | `/api/bonuses` | Riwayat perolehan bonus |
+| `GET` | `/api/payroll/my-slips` | Daftar slip gaji bulanan pribadi |
+| `GET` | `/api/schedule-overrides/my` | Jadwal khusus penugasan pribadi |
+
+### 🔴 Modul Admin
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/api/employees` | Seluruh data master karyawan |
+| `POST` | `/api/employees` | Daftarkan karyawan baru |
+| `PUT` | `/api/employees/{id}` | Update informasi dasar karyawan |
+| `DELETE` | `/api/employees/{id}` | Hapus karyawan (Soft Delete) |
+| `GET` | `/api/employees/{id}/profile` | Lihat profil lengkap karyawan |
+| `POST` | `/api/employees/{id}/profile` | Update profil/biodata karyawan oleh Admin |
+| `GET` | `/api/admin/attendances` | Laporan dan log absensi seluruh karyawan |
+| `POST` | `/api/admin/attendances` | Input presensi manual |
+| `PUT` | `/api/admin/attendances/{id}` | Koreksi log presensi |
+| `GET` | `/api/admin/sales-visits` | Log seluruh kunjungan sales/klien |
+| `PUT` | `/api/admin/sales-visits/{id}` | Update log kunjungan sales |
+| `PUT` | `/api/admin/office-setting` | Update koordinat kantor Jakarta & Bogor |
+| `GET` | `/api/admin/shifts` | Daftar master shift |
+| `POST` | `/api/admin/shifts` | Buat shift kerja baru |
+| `PUT` | `/api/admin/shifts/{id}` | Edit pengaturan shift |
+| `DELETE` | `/api/admin/shifts/{id}` | Hapus shift |
+| `GET` | `/api/admin/schedule-overrides` | Daftar jadwal override khusus |
+| `POST` | `/api/admin/schedule-overrides` | Tambah jadwal override karyawan |
+| `DELETE` | `/api/admin/schedule-overrides/{id}` | Hapus jadwal override |
+| `GET` | `/api/admin/holidays` | Daftar hari libur nasional |
+| `POST` | `/api/admin/holidays` | Tambah hari libur manual |
+| `POST` | `/api/admin/holidays/import` | Impor data hari libur |
+| `DELETE` | `/api/admin/holidays/{id}` | Hapus hari libur |
+| `GET` | `/api/admin/leaves` | Log cuti seluruh staf |
+| `PUT` | `/api/admin/leaves/{id}/approve` | Persetujuan cuti tahap Admin |
+| `PUT` | `/api/admin/leaves/{id}/reject` | Tolak pengajuan cuti |
+| `GET` | `/api/admin/permits` | Log izin/sakit seluruh staf |
+| `PUT` | `/api/admin/permits/{id}/approve` | Persetujuan izin tahap Admin |
+| `PUT` | `/api/admin/permits/{id}/reject` | Tolak pengajuan izin |
+| `GET` | `/api/admin/overtimes` | Log lembur seluruh staf |
+| `GET` | `/api/admin/overtimes/recap` | Rekapitulasi total jam lembur |
+| `PUT` | `/api/admin/overtimes/{id}/approve` | Persetujuan lembur tahap Admin |
+| `PUT` | `/api/admin/overtimes/{id}/reject` | Tolak pengajuan lembur |
+| `GET` | `/api/admin/reimbursements` | Log reimbursement seluruh staf |
+| `GET` | `/api/admin/reimbursements/summary` | Ringkasan statistik reimbursement |
+| `PUT` | `/api/admin/reimbursements/{id}/approve` | Persetujuan reimbursement tahap Admin |
+| `PUT` | `/api/admin/reimbursements/{id}/reject` | Tolak reimbursement |
+| `GET` | `/api/admin/bonuses` | Log daftar bonus |
+| `POST` | `/api/admin/bonuses` | Berikan bonus baru |
+| `PUT` | `/api/admin/bonuses/{id}` | Edit bonus |
+| `DELETE` | `/api/admin/bonuses/{id}` | Hapus bonus |
+| `GET` | `/api/admin/inventories` | Master inventaris aset perusahaan |
+| `POST` | `/api/admin/inventories` | Tambah aset baru |
+| `POST` | `/api/admin/inventories/{id}/update` | Edit aset |
+| `DELETE` | `/api/admin/inventories/{id}` | Hapus aset |
+| `GET` | `/api/admin/payroll/configurations` | Skema gaji terdaftar |
+| `POST` | `/api/admin/payroll/configurations` | Update formula/komponen gaji |
+| `GET` | `/api/admin/payroll` | Daftar slip gaji bulanan |
+| `POST` | `/api/admin/payroll/generate` | Generate payroll otomatis |
+| `PUT` | `/api/admin/payroll/{id}/update` | Koreksi manual slip gaji |
+| `DELETE` | `/api/admin/payroll/{id}` | Hapus slip gaji |
+| `POST` | `/api/admin/payroll/{id}/submit-approval` | Ajukan slip gaji ke Direktur |
+| `POST` | `/api/admin/payroll/submit-all-approval` | Ajukan semua slip ke Direktur |
+| `GET` | `/api/admin/backup/export` | Download file cadangan database SQL |
+| `POST` | `/api/admin/backup/import` | Impor/restore cadangan database |
+| `GET` | `/api/admin/recycle-bin` | Daftar item soft-deleted |
+| `POST` | `/api/admin/recycle-bin/{id}/restore` | Pulihkan data dari tempat sampah |
+| `DELETE` | `/api/admin/recycle-bin/{id}` | Hapus data permanen (*force delete*) |
+
+### 🔵 Modul Director (Direktur)
+| Method | Endpoint | Deskripsi |
+|---|---|---|
+| `GET` | `/api/director/dashboard-summary` | Ringkasan metrik eksekutif & finansial |
+| `PUT` | `/api/director/employees/{id}/approve` | Approval akhir karyawan baru |
+| `PUT` | `/api/director/employees/{id}/reject` | Tolak registrasi karyawan baru |
+| `PUT` | `/api/director/employees/{id}/approve-delete` | Approval penghapusan karyawan |
+| `PUT` | `/api/director/employees/{id}/reject-delete` | Batalkan penghapusan karyawan |
+| `PUT` | `/api/director/payroll/configurations/{id}/approve` | Approval formula gaji |
+| `PUT` | `/api/director/payroll/configurations/{id}/reject` | Tolak formula gaji |
+| `PUT` | `/api/director/payroll/{id}/approve` | Approval slip gaji individu |
+| `PUT` | `/api/director/payroll/{id}/reject` | Tolak slip gaji individu |
+| `POST` | `/api/director/payroll/approve-all` | Approval massal seluruh slip gaji |
+| `POST` | `/api/director/payroll/reject-all` | Tolak seluruh slip gaji |
+| `PUT` | `/api/director/payroll/{id}/pay` | Rilis & tandai gaji sudah dibayarkan |
+| `PUT` | `/api/director/leaves/{id}/approve` | Approval akhir cuti |
+| `PUT` | `/api/director/leaves/{id}/reject` | Tolak cuti |
+| `PUT` | `/api/director/permits/{id}/approve` | Approval akhir izin/sakit |
+| `PUT` | `/api/director/permits/{id}/reject` | Tolak izin/sakit |
+| `PUT` | `/api/director/overtimes/{id}/approve` | Approval akhir lembur |
+| `PUT` | `/api/director/overtimes/{id}/reject` | Tolak lembur |
+| `PUT` | `/api/director/reimbursements/{id}/approve` | Approval akhir reimbursement |
+| `PUT` | `/api/director/reimbursements/{id}/reject` | Tolak reimbursement |
+| `PUT` | `/api/director/bonuses/{id}/approve` | Approval akhir bonus |
+| `PUT` | `/api/director/bonuses/{id}/reject` | Tolak bonus |
+| `PUT` | `/api/director/attendances/{id}/approve` | Approval koreksi presensi |
+| `PUT` | `/api/director/attendances/{id}/reject` | Tolak koreksi presensi |
+| `PUT` | `/api/director/inventories/{id}/approve` | Approval perubahan inventaris |
+| `PUT` | `/api/director/inventories/{id}/reject` | Tolak perubahan inventaris |
+
+---
+
+## 📜 Halaman Publik & Kepatuhan
+
+Aplikasi dilengkapi halaman kepatuhan standar hukum dan keamanan data:
+- `/verify-slip/:id/:hash` — Verifikasi digital keaslian slip gaji via QR Code.
+- `/privacy-policy` — Kebijakan Privasi data pengguna.
+- `/terms-of-service` — Syarat & Ketentuan Layanan.
+- `/security-compliance` — Informasi Kepatuhan Keamanan & Standar Perlindungan Data.
 
 ---
 
 ## 📄 Lisensi
 
-Proyek ini dikembangkan untuk keperluan internal perusahaan.
-
----
+Hak Cipta © 2026 **goodpeople-hcms**. Dikembangkan untuk operasional dan manajemen internal perusahaan.
 
 <p align="center">
-  <sub>Dibuat dengan ❤️ menggunakan React + Laravel</sub>
+  <sub>Dibuat dengan dedikasi menggunakan React 19 + TypeScript + Laravel 13</sub>
 </p>

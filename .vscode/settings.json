@@ -1,4 +1,9 @@
 {
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/vendor": true,
+    "**/dist": true
+  },
   "css.lint.unknownAtRules": "ignore",
   "cSpell.ignorePaths": [
     "**/composer.lock",

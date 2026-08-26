@@ -5,6 +5,14 @@ import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass, Sl
 import ManualAttendanceModal from './ManualAttendanceModal'
 import SalesVisitsLog from './SalesVisitsLog'
 import { API_BASE_URL } from '../../../utils/api'
+import {
+  clearRekapAbsensiFiltersStorage,
+  getDefaultRekapAbsensiFilters,
+  getDefaultReportMonth,
+  getTodayDateStr,
+  loadRekapAbsensiFilters,
+  saveRekapAbsensiFilters,
+} from '../../../utils/rekapAbsensiFilters'
 
 interface Attendance {
   id: number
@@ -134,8 +142,14 @@ export default function RekapAbsensi({
   leaves = [],
   permits = [],
 }: RekapAbsensiProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'sales_visits' | 'client_visits'>('attendance')
-  const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily')
+  const initialFiltersRef = React.useRef<ReturnType<typeof loadRekapAbsensiFilters> | null>(null)
+  if (!initialFiltersRef.current) {
+    initialFiltersRef.current = loadRekapAbsensiFilters()
+  }
+  const initialFilters = initialFiltersRef.current
+
+  const [activeSubTab, setActiveSubTab] = useState(initialFilters.activeSubTab)
+  const [viewMode, setViewMode] = useState(initialFilters.viewMode)
 
   const [salesVisits, setSalesVisits] = useState<SalesVisit[]>([])
 
@@ -169,7 +183,12 @@ export default function RekapAbsensi({
       // Exclude today if employee hasn't clocked in yet and doesn't have an approved leave/permit today
       const todayStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(todayDate).padStart(2, '0')}`
       const hasCheckedInToday = attendances.some(
-        (att) => Number(att.user.id) === Number(emp.id) && att.date === todayStr && att.clock_in !== null
+        (att) =>
+          att.user &&
+          att.date &&
+          Number(att.user.id) === Number(emp.id) &&
+          att.date === todayStr &&
+          att.clock_in !== null
       )
       const hasLeaveOrPermitToday = [...leaves, ...permits].some(
         (lp) => Number(lp.user_id) === Number(emp.id) && lp.status === 'approved' && todayStr >= lp.start_date && todayStr <= lp.end_date
@@ -224,7 +243,11 @@ export default function RekapAbsensi({
       const workingDays = getWorkingDaysCount(reportMonth, emp)
 
       const userMonthAtt = attendances.filter(
-        (att) => att.user && Number(att.user.id) === Number(emp.id) && att.date.startsWith(reportMonth)
+        (att) =>
+          att.user &&
+          att.date &&
+          Number(att.user.id) === Number(emp.id) &&
+          att.date.startsWith(reportMonth)
       )
 
       // Present: unique dates where clock_in is not null
@@ -293,11 +316,21 @@ export default function RekapAbsensi({
       const absentCount = Math.max(0, workingDays - presentCount - leaveDaysCount)
 
       const salesCount = salesVisits.filter(
-        (v) => Number(v.user.id) === Number(emp.id) && v.date.startsWith(reportMonth) && (v.visit_type || 'sales') === 'sales'
+        (v) =>
+          v.user &&
+          v.date &&
+          Number(v.user.id) === Number(emp.id) &&
+          v.date.startsWith(reportMonth) &&
+          (v.visit_type || 'sales') === 'sales'
       ).length
 
       const clientCount = salesVisits.filter(
-        (v) => Number(v.user.id) === Number(emp.id) && v.date.startsWith(reportMonth) && (v.visit_type || 'sales') === 'client'
+        (v) =>
+          v.user &&
+          v.date &&
+          Number(v.user.id) === Number(emp.id) &&
+          v.date.startsWith(reportMonth) &&
+          (v.visit_type || 'sales') === 'client'
       ).length
 
       // Presence percentage: presentCount / workingDays * 100
@@ -320,10 +353,7 @@ export default function RekapAbsensi({
   }
 
   // Date helper functions
-  const getTodayStr = () => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  }
+  const getTodayStr = getTodayDateStr
 
   const getYesterdayStr = () => {
     const d = new Date()
@@ -331,21 +361,18 @@ export default function RekapAbsensi({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }
 
-  // Filter States
-  const [search, setSearch] = useState('')
-  const [selectedCompany, setSelectedCompany] = useState('all')
-  const [reportMonth, setReportMonth] = useState(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}` // Default to current month-year
-  })
-  const [startDate, setStartDate] = useState(getTodayStr)
-  const [endDate, setEndDate] = useState(getTodayStr)
-  const [statusIn, setStatusIn] = useState('all')
-  const [statusOut, setStatusOut] = useState('all')
+  // Filter States (dipulihkan dari localStorage saat refresh)
+  const [search, setSearch] = useState(initialFilters.search)
+  const [selectedCompany, setSelectedCompany] = useState(initialFilters.selectedCompany)
+  const [reportMonth, setReportMonth] = useState(initialFilters.reportMonth)
+  const [startDate, setStartDate] = useState(initialFilters.startDate)
+  const [endDate, setEndDate] = useState(initialFilters.endDate)
+  const [statusIn, setStatusIn] = useState(initialFilters.statusIn)
+  const [statusOut, setStatusOut] = useState(initialFilters.statusOut)
   
   // Pagination State
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(15) // Default to 15 (> 10)
+  const [currentPage, setCurrentPage] = useState(initialFilters.currentPage)
+  const [itemsPerPage, setItemsPerPage] = useState(initialFilters.itemsPerPage)
 
   // Manual Attendance Modal States
   const [showManualModal, setShowManualModal] = useState(false)
@@ -353,13 +380,45 @@ export default function RekapAbsensi({
   // Mobile Filters Collapsible State
   const [showFilters, setShowFilters] = useState(false)
 
-  // Reset page when filters change
+  const skipPageResetRef = React.useRef(true)
+
+  // Reset page when filters change (bukan saat pertama kali muat dari localStorage)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentPage(1)
-    }, 0)
-    return () => clearTimeout(timer)
+    if (skipPageResetRef.current) {
+      skipPageResetRef.current = false
+      return
+    }
+    setCurrentPage(1)
   }, [search, selectedCompany, reportMonth, startDate, endDate, statusIn, statusOut, itemsPerPage])
+
+  // Simpan filter ke localStorage agar tetap setelah refresh
+  useEffect(() => {
+    saveRekapAbsensiFilters({
+      search,
+      selectedCompany,
+      reportMonth,
+      startDate,
+      endDate,
+      statusIn,
+      statusOut,
+      viewMode,
+      currentPage,
+      itemsPerPage,
+      activeSubTab,
+    })
+  }, [
+    search,
+    selectedCompany,
+    reportMonth,
+    startDate,
+    endDate,
+    statusIn,
+    statusOut,
+    viewMode,
+    currentPage,
+    itemsPerPage,
+    activeSubTab,
+  ])
 
   // Fetch leaves, permits & sales visits on mount to ensure we have fresh data
   useEffect(() => {
@@ -370,6 +429,8 @@ export default function RekapAbsensi({
 
   // Filter Logic (For Web UI Display)
   const filteredAttendances = attendances.filter((att) => {
+    if (!att?.user || !att?.date) return false
+
     // Only show 'kantor' type (or null/default to office) in daily attendance log
     if (att.attendance_type && att.attendance_type !== 'kantor') {
       return false
@@ -378,8 +439,8 @@ export default function RekapAbsensi({
     // 1. Search Query (Name/Email)
     const matchesSearch =
       !search ||
-      att.user.name.toLowerCase().includes(search.toLowerCase()) ||
-      att.user.email.toLowerCase().includes(search.toLowerCase())
+      (att.user.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (att.user.email || '').toLowerCase().includes(search.toLowerCase())
 
     // 2. Calendar Date Range & Month Filter
     const matchesDate =
@@ -411,9 +472,12 @@ export default function RekapAbsensi({
   // Monthly Summary Stats Filter & Pagination
   const monthlyStats = getEmployeeMonthlyStats()
   const filteredMonthlyStats = monthlyStats.filter(({ employee }) => {
+    if (!employee) return false
+
     const matchesSearch = 
-      employee.name.toLowerCase().includes(search.toLowerCase()) ||
-      employee.email.toLowerCase().includes(search.toLowerCase())
+      !search ||
+      (employee.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (employee.email || '').toLowerCase().includes(search.toLowerCase())
     
     const matchesCompany = selectedCompany === 'all' || employee.company === selectedCompany
 
@@ -1878,14 +1942,23 @@ export default function RekapAbsensi({
         <div className="flex items-end col-span-1">
           <button
             onClick={() => {
-              setSearch('')
-              setSelectedCompany('all')
-              const now = new Date()
-              setReportMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+              const defaults = getDefaultRekapAbsensiFilters()
+              setSearch(defaults.search)
+              setSelectedCompany(defaults.selectedCompany)
+              setReportMonth(getDefaultReportMonth())
               setStartDate('')
               setEndDate('')
-              setStatusIn('all')
-              setStatusOut('all')
+              setStatusIn(defaults.statusIn)
+              setStatusOut(defaults.statusOut)
+              setCurrentPage(1)
+              clearRekapAbsensiFiltersStorage()
+              saveRekapAbsensiFilters({
+                ...defaults,
+                startDate: '',
+                endDate: '',
+                viewMode,
+                activeSubTab,
+              })
             }}
             disabled={
               viewMode === 'daily'

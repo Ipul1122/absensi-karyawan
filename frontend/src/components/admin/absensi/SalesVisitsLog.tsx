@@ -112,13 +112,15 @@ export default function SalesVisitsLog({
   const exportFilename = isClient ? 'Rekap_Kunjungan_Klien' : 'Rekap_Kunjungan_Sales'
 
   const filteredVisits = visits.filter(visit => {
+    if (!visit?.user) return false
+
     const matchesType = (visit.visit_type || 'sales') === visitType
 
     const matchesSearch = 
       !search ||
-      visit.user.name.toLowerCase().includes(search.toLowerCase()) ||
-      visit.user.email.toLowerCase().includes(search.toLowerCase()) ||
-      visit.client_name.toLowerCase().includes(search.toLowerCase())
+      (visit.user.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (visit.user.email || '').toLowerCase().includes(search.toLowerCase()) ||
+      (visit.client_name || '').toLowerCase().includes(search.toLowerCase())
 
     const matchesDate = !filterDate || visit.date === filterDate
 

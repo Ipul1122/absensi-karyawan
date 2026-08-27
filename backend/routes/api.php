@@ -147,6 +147,7 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::post('/employees/{id}/profile', [EmployeeController::class, 'updateEmployeeProfile']);
         Route::post('/admin/attendances', [AttendanceController::class, 'storeManualAttendance']);
         Route::put('/admin/attendances/{id}', [AttendanceController::class, 'updateAttendance']);
+        Route::delete('/admin/attendances/{id}', [AttendanceController::class, 'deleteAttendance']);
         Route::put('/admin/office-setting', [AttendanceController::class, 'updateOfficeSetting']);
         Route::put('/admin/sales-visits/{id}', [SalesVisitController::class, 'updateVisit']);
         

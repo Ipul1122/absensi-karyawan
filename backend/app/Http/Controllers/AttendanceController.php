@@ -775,6 +775,13 @@ class AttendanceController extends Controller
             $msg = 'Absensi manual karyawan berhasil dibuat!';
         }
 
+        if ($request->attendance_type === 'kantor' || $request->attendance_type === 'wfh') {
+            // If admin sets to Kantor or WFH, clean up any lingering sales_visits for this user on this date
+            \App\Models\SalesVisit::where('user_id', $userId)
+                ->where('date', $date)
+                ->delete();
+        }
+
         if ($request->attendance_type === 'kunjungan' || $request->attendance_type === 'client') {
             $clientName = $request->attendance_type === 'client' ? 'Kunjungan Klien Pertama' : 'Kunjungan Lapangan Pertama';
             if ($request->notes) {
@@ -782,6 +789,13 @@ class AttendanceController extends Controller
             }
             
             $visitType = $request->attendance_type === 'client' ? 'client' : 'sales';
+            $otherVisitType = $visitType === 'client' ? 'sales' : 'client';
+            
+            // Clean up any visit of other type on the same date to avoid double rows
+            \App\Models\SalesVisit::where('user_id', $userId)
+                ->where('date', $date)
+                ->where('visit_type', $otherVisitType)
+                ->delete();
             
             // Check if there is already a visit log for this date, user, and type
             $existingVisit = \App\Models\SalesVisit::where('user_id', $userId)
@@ -916,6 +930,34 @@ class AttendanceController extends Controller
             'status' => 'success',
             'message' => 'Absensi berhasil diperbarui!',
             'data' => $attendance
+        ]);
+    }
+
+    /**
+     * Delete employee's attendance record (for admin).
+     */
+    public function deleteAttendance($id)
+    {
+        $attendance = Attendance::findOrFail($id);
+
+        // Delete photo if exists
+        if ($attendance->photo_in && Storage::disk('public')->exists($attendance->photo_in)) {
+            Storage::disk('public')->delete($attendance->photo_in);
+        }
+        if ($attendance->photo_out && Storage::disk('public')->exists($attendance->photo_out)) {
+            Storage::disk('public')->delete($attendance->photo_out);
+        }
+
+        // Clean up any sales_visits on this date for this user
+        \App\Models\SalesVisit::where('user_id', $attendance->user_id)
+            ->where('date', $attendance->date)
+            ->delete();
+
+        $attendance->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Data absensi berhasil dihapus!'
         ]);
     }
 

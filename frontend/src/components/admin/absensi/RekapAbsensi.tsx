@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
-import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass, SlidersHorizontal } from 'lucide-react'
+import { Search, RefreshCw, Loader2, Eye, Clock, Calendar, FileDown, Compass, SlidersHorizontal, AlertTriangle, Copy, Trash2 } from 'lucide-react'
 import ManualAttendanceModal from './ManualAttendanceModal'
 import SalesVisitsLog from './SalesVisitsLog'
 import { API_BASE_URL } from '../../../utils/api'
@@ -111,6 +111,20 @@ interface SalesVisit {
   } | null
 }
 
+interface Holiday {
+  id: number
+  holiday_date: string
+  name: string
+}
+
+interface ScheduleOverride {
+  id: number
+  user_id: number
+  override_date: string
+  status: 'work_day' | 'day_off'
+  reason?: string | null
+}
+
 interface RekapAbsensiProps {
   token: string
   employees: Employee[]
@@ -154,6 +168,55 @@ export default function RekapAbsensi({
   const [viewMode, setViewMode] = useState(initialFilters.viewMode)
 
   const [salesVisits, setSalesVisits] = useState<SalesVisit[]>([])
+  const [holidays, setHolidays] = useState<Holiday[]>([])
+  const [scheduleOverrides, setScheduleOverrides] = useState<ScheduleOverride[]>([])
+  const [showOnlyDuplicates, setShowOnlyDuplicates] = useState(false)
+
+  // Map of (user_id + date) occurrence counts for office attendances
+  const duplicateAttendanceMap = React.useMemo(() => {
+    const counts = new Map<string, number>()
+    attendances.forEach((att) => {
+      if (att.attendance_type && att.attendance_type !== 'kantor') return
+      const uid = att.user ? att.user.id : att.user_id
+      if (uid && att.date) {
+        const key = `${uid}_${att.date}`
+        counts.set(key, (counts.get(key) || 0) + 1)
+      }
+    })
+    return counts
+  }, [attendances])
+
+  const isDuplicateAttendance = useCallback((att: Attendance) => {
+    const uid = att.user ? att.user.id : att.user_id
+    if (!uid || !att.date) return false
+    return (duplicateAttendanceMap.get(`${uid}_${att.date}`) || 0) > 1
+  }, [duplicateAttendanceMap])
+
+  const fetchHolidaysAndOverrides = useCallback(async () => {
+    try {
+      const baseUrl = API_BASE_URL || 'http://localhost:8000'
+      const [holidaysRes, overridesRes] = await Promise.allSettled([
+        axios.get(`${baseUrl}/api/admin/holidays`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${baseUrl}/api/admin/schedule-overrides`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ])
+      if (holidaysRes.status === 'fulfilled' && holidaysRes.value.data.status === 'success') {
+        setHolidays(holidaysRes.value.data.data || [])
+      }
+      if (overridesRes.status === 'fulfilled' && overridesRes.value.data.status === 'success') {
+        setScheduleOverrides(overridesRes.value.data.data || [])
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data hari libur & penyesuaian jadwal:', err)
+    }
+  }, [token])
+
+  useEffect(() => {
+    fetchHolidaysAndOverrides()
+  }, [fetchHolidaysAndOverrides])
 
   const fetchSalesVisits = useCallback(async () => {
     try {
@@ -169,7 +232,75 @@ export default function RekapAbsensi({
     }
   }, [token])
 
-  // Helper to calculate total working days in reportMonth (excluding Sundays/Saturdays based on user schedule settings)
+// Default Indonesian Official Holidays 2026 (Fallback if not yet configured in DB)
+const DEFAULT_HOLIDAYS_2026: { holiday_date: string; name: string }[] = [
+  { holiday_date: '2026-01-01', name: 'Tahun Baru 2026 Masehi' },
+  { holiday_date: '2026-01-16', name: 'Isra Mikraj Nabi Muhammad S.A.W.' },
+  { holiday_date: '2026-02-16', name: 'Cuti Bersama Tahun Baru Imlek 2577 Kongzili' },
+  { holiday_date: '2026-02-17', name: 'Tahun Baru Imlek 2577 Kongzili' },
+  { holiday_date: '2026-03-18', name: 'Cuti Bersama Hari Suci Nyepi' },
+  { holiday_date: '2026-03-19', name: 'Hari Suci Nyepi (Tahun Baru Saka 1948)' },
+  { holiday_date: '2026-03-20', name: 'Cuti Bersama Hari Raya Idul Fitri 1447 Hijriah' },
+  { holiday_date: '2026-03-21', name: 'Hari Raya Idul Fitri 1447 Hijriah' },
+  { holiday_date: '2026-03-22', name: 'Hari Raya Idul Fitri 1447 Hijriah' },
+  { holiday_date: '2026-03-23', name: 'Cuti Bersama Hari Raya Idul Fitri 1447 Hijriah' },
+  { holiday_date: '2026-03-24', name: 'Cuti Bersama Hari Raya Idul Fitri 1447 Hijriah' },
+  { holiday_date: '2026-04-03', name: 'Wafat Yesus Kristus' },
+  { holiday_date: '2026-04-05', name: 'Kebangkitan Yesus Kristus (Paskah)' },
+  { holiday_date: '2026-05-01', name: 'Hari Buruh Internasional' },
+  { holiday_date: '2026-05-14', name: 'Kenaikan Yesus Kristus' },
+  { holiday_date: '2026-05-15', name: 'Cuti Bersama Kenaikan Yesus Kristus' },
+  { holiday_date: '2026-05-27', name: 'Hari Raya Idul Adha 1447 Hijriah' },
+  { holiday_date: '2026-05-28', name: 'Cuti Bersama Hari Raya Idul Adha 1447 Hijriah' },
+  { holiday_date: '2026-05-31', name: 'Hari Raya Waisak 2570 BE' },
+  { holiday_date: '2026-06-01', name: 'Hari Lahir Pancasila' },
+  { holiday_date: '2026-06-16', name: 'Tahun Baru Islam 1448 Hijriah' },
+  { holiday_date: '2026-08-17', name: 'Proklamasi Kemerdekaan RI' },
+  { holiday_date: '2026-08-25', name: 'Maulid Nabi Muhammad S.A.W.' },
+  { holiday_date: '2026-12-24', name: 'Cuti Bersama Kelahiran Yesus Kristus' },
+  { holiday_date: '2026-12-25', name: 'Kelahiran Yesus Kristus (Natal)' },
+]
+
+  // Helper to check if a specific date is a day off for an employee (accounting for schedule overrides, national/company holidays, and weekly weekend off)
+  const isDayOffForEmployee = useCallback((dateStr: string, emp: Employee, customHolidays?: Holiday[], customOverrides?: ScheduleOverride[]) => {
+    const activeOverrides = customOverrides || scheduleOverrides
+    const activeHolidays = customHolidays || holidays
+
+    // 1. Check schedule override first (personal override takes top priority)
+    const override = activeOverrides.find((o) => {
+      const oDate = String(o.override_date || '').substring(0, 10)
+      return Number(o.user_id) === Number(emp.id) && oDate === dateStr
+    })
+    if (override) {
+      return override.status === 'day_off'
+    }
+
+    // 2. Check national / company holiday (API holidays + built-in fallback)
+    const allHolidays = [...DEFAULT_HOLIDAYS_2026, ...activeHolidays]
+    const isHoliday = allHolidays.some((h) => {
+      const hDate = String(h.holiday_date || '').substring(0, 10)
+      return hDate === dateStr
+    })
+    if (isHoliday) {
+      return true
+    }
+
+    // 3. Check regular weekly off-days (Sunday / Saturday)
+    const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay()
+    const isSatOff = !!emp.saturday_off
+    const isSunOff = emp.sunday_off !== false
+
+    if (dayOfWeek === 0 && isSunOff) {
+      return true
+    }
+    if (dayOfWeek === 6 && isSatOff) {
+      return true
+    }
+
+    return false
+  }, [holidays, scheduleOverrides])
+
+  // Helper to calculate total working days in reportMonth (excluding Sundays/Saturdays and holidays based on user schedule settings)
   const getWorkingDaysCount = (monthStr: string, emp: Employee) => {
     if (!monthStr) return 0
     const [year, month] = monthStr.split('-').map(Number)
@@ -204,9 +335,6 @@ export default function RekapAbsensi({
       return 0
     }
 
-    const isSatOff = !!emp.saturday_off
-    const isSunOff = emp.sunday_off !== false
-
     let startDay = 1
     if (emp.join_date) {
       const [joinYear, joinMonth, joinDay] = emp.join_date.split('-').map(Number)
@@ -222,11 +350,8 @@ export default function RekapAbsensi({
 
     let workingDays = 0
     for (let day = startDay; day <= endDay; day++) {
-      const dayOfWeek = new Date(year, month - 1, day).getDay()
-      if (dayOfWeek === 0 && isSunOff) {
-        continue
-      }
-      if (dayOfWeek === 6 && isSatOff) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      if (isDayOffForEmployee(dateStr, emp)) {
         continue
       }
       workingDays++
@@ -263,9 +388,6 @@ export default function RekapAbsensi({
         (p) => (p.user ? Number(p.user.id) : Number(p.user_id)) === Number(emp.id) && p.status === 'approved'
       )
 
-      const isSatOff = !!emp.saturday_off
-      const isSunOff = emp.sunday_off !== false
-
       // Calculate leave days count that overlap with the selected month and are not employee off days
       let leaveDaysCount = 0
       if (reportMonth) {
@@ -284,27 +406,21 @@ export default function RekapAbsensi({
 
         for (let d = startDay; d <= daysInMonth; d++) {
           const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-          const dayOfWeek = new Date(year, month - 1, d).getDay()
           
-          let isOff = false
-          if (dayOfWeek === 0 && isSunOff) {
-            isOff = true
-          } else if (dayOfWeek === 6 && isSatOff) {
-            isOff = true
+          if (isDayOffForEmployee(dateStr, emp)) {
+            continue
           }
 
-          if (!isOff) {
-            // Check if dateStr is within any of the user leaves range
-            const isOnLeave = userLeaves.some(
-              (l) => dateStr >= l.start_date && dateStr <= l.end_date
-            )
-            // Check if dateStr is within any of the user permits range
-            const isOnPermit = userPermits.some(
-              (p) => dateStr >= p.start_date && dateStr <= p.end_date
-            )
-            if (isOnLeave || isOnPermit) {
-              leaveDaysCount++
-            }
+          // Check if dateStr is within any of the user leaves range
+          const isOnLeave = userLeaves.some(
+            (l) => dateStr >= l.start_date && dateStr <= l.end_date
+          )
+          // Check if dateStr is within any of the user permits range
+          const isOnPermit = userPermits.some(
+            (p) => dateStr >= p.start_date && dateStr <= p.end_date
+          )
+          if (isOnLeave || isOnPermit) {
+            leaveDaysCount++
           }
         }
       }
@@ -454,8 +570,20 @@ export default function RekapAbsensi({
     // 5. Company Filter
     const matchesCompany = selectedCompany === 'all' || (att.user?.company || '') === selectedCompany
 
-    return matchesSearch && matchesDate && matchesStatusIn && matchesStatusOut && matchesCompany
+    // 6. Duplicate Filter
+    const matchesDuplicate = !showOnlyDuplicates || isDuplicateAttendance(att)
+
+    return matchesSearch && matchesDate && matchesStatusIn && matchesStatusOut && matchesCompany && matchesDuplicate
   })
+
+  // Count total duplicate records in the currently selected month
+  const totalDuplicatesInMonth = React.useMemo(() => {
+    return attendances.filter((att) => {
+      if (att.attendance_type && att.attendance_type !== 'kantor') return false
+      if (reportMonth && !att.date?.startsWith(reportMonth)) return false
+      return isDuplicateAttendance(att)
+    }).length
+  }, [attendances, isDuplicateAttendance, reportMonth])
 
   // Count active filters (excluding reportMonth as it defaults to current month)
   const activeFilterCount =
@@ -464,7 +592,8 @@ export default function RekapAbsensi({
     (startDate ? 1 : 0) +
     (endDate ? 1 : 0) +
     (statusIn !== 'all' ? 1 : 0) +
-    (statusOut !== 'all' ? 1 : 0)
+    (statusOut !== 'all' ? 1 : 0) +
+    (showOnlyDuplicates ? 1 : 0)
 
   // Monthly Summary Stats Filter & Pagination
   const monthlyStats = getEmployeeMonthlyStats()
@@ -525,6 +654,83 @@ export default function RekapAbsensi({
     if (locIn === '-' && locOut === '-') return '-'
     if (locOut === '-' || locIn === locOut) return locIn
     return `${locIn} (Masuk) / ${locOut} (Keluar)`
+  }
+
+  // Handle delete single attendance record
+  const handleDeleteAttendance = async (att: Attendance) => {
+    const isDup = isDuplicateAttendance(att)
+    const empName = att.user?.name || 'Karyawan'
+    const dateFormatted = formatDate(att.date)
+
+    const result = await Swal.fire({
+      title: 'Hapus Data Absensi?',
+      html: `
+        <div style="text-align: left; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+          <p>Apakah Anda yakin ingin menghapus data absensi ini?</p>
+          <div style="margin-top: 10px; padding: 12px; background: #0f172a; border-radius: 10px; border: 1px solid #334155;">
+            <div><strong style="color: #f8fafc;">Karyawan:</strong> ${empName}</div>
+            <div><strong style="color: #f8fafc;">Tanggal:</strong> ${dateFormatted}</div>
+            <div><strong style="color: #f8fafc;">Tipe:</strong> ${att.attendance_type || 'kantor'}</div>
+            <div><strong style="color: #f8fafc;">Jam:</strong> Masuk ${att.clock_in || '-'} | Keluar ${att.clock_out || '-'}</div>
+          </div>
+          ${isDup ? '<p style="color: #fbbf24; font-weight: bold; margin-top: 10px;">⚠️ Rekaman ini terdeteksi ganda/duplikat pada tanggal yang sama.</p>' : ''}
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Hapus Data',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      background: '#1e293b',
+      color: '#f8fafc',
+    })
+
+    if (!result.isConfirmed) return
+
+    try {
+      Swal.fire({
+        title: 'Menghapus...',
+        text: 'Sedang menghapus data absensi...',
+        allowOutsideClick: false,
+        background: '#1e293b',
+        color: '#f8fafc',
+        didOpen: () => {
+          Swal.showLoading()
+        },
+      })
+
+      const baseUrl = API_BASE_URL || 'http://localhost:8000'
+      const response = await axios.delete(`${baseUrl}/api/admin/attendances/${att.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (response.data.status === 'success') {
+        Swal.fire({
+          title: 'Berhasil!',
+          text: response.data.message || 'Data absensi berhasil dihapus.',
+          icon: 'success',
+          timer: 1800,
+          showConfirmButton: false,
+          background: '#1e293b',
+          color: '#f8fafc',
+        })
+        fetchAttendances()
+      } else {
+        throw new Error(response.data.message || 'Gagal menghapus absensi')
+      }
+    } catch (err: any) {
+      console.error('Gagal menghapus absensi:', err)
+      const msg = err.response?.data?.message || err.message || 'Gagal menghapus data absensi.'
+      Swal.fire({
+        title: 'Gagal',
+        text: msg,
+        icon: 'error',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#ef4444',
+      })
+    }
   }
 
   // Export to PDF (Filtered strictly to selected report month, in Indonesian language)
@@ -883,10 +1089,10 @@ export default function RekapAbsensi({
       return finalName
     }
 
-    // ── Fetch Sales & Client Visits from API ─────────────────────────────────
+    // ── Fetch Sales & Client Visits, Holidays, and Overrides from API ─────────
     Swal.fire({
       title: 'Memproses...',
-      text: 'Sedang mengambil data kunjungan sales/klien...',
+      text: 'Sedang mengambil data rekap absensi & hari libur...',
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading()
@@ -895,15 +1101,34 @@ export default function RekapAbsensi({
 
     const baseUrl = API_BASE_URL || 'http://localhost:8000'
     let visits: SalesVisit[] = []
+    let currentHolidays = holidays
+    let currentOverrides = scheduleOverrides
+
     try {
-      const response = await axios.get(`${baseUrl}/api/admin/sales-visits`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (response.data.status === 'success') {
-        visits = response.data.data
+      const [visitsRes, holidaysRes, overridesRes] = await Promise.allSettled([
+        axios.get(`${baseUrl}/api/admin/sales-visits`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${baseUrl}/api/admin/holidays`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${baseUrl}/api/admin/schedule-overrides`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ])
+      if (visitsRes.status === 'fulfilled' && visitsRes.value.data.status === 'success') {
+        visits = visitsRes.value.data.data
+      }
+      if (holidaysRes.status === 'fulfilled' && holidaysRes.value.data.status === 'success') {
+        currentHolidays = holidaysRes.value.data.data || []
+        setHolidays(currentHolidays)
+      }
+      if (overridesRes.status === 'fulfilled' && overridesRes.value.data.status === 'success') {
+        currentOverrides = overridesRes.value.data.data || []
+        setScheduleOverrides(currentOverrides)
       }
     } catch (err) {
-      console.error('Gagal mengambil data kunjungan sales/klien:', err)
+      console.error('Gagal mengambil data kunjungan sales/klien & hari libur:', err)
       Swal.fire({
         title: 'Gagal',
         text: 'Tidak dapat mengambil data kunjungan sales/klien.',
@@ -961,13 +1186,19 @@ export default function RekapAbsensi({
         const userId = att.user ? att.user.id : att.user_id
         const emp = employees.find(e => Number(e.id) === Number(userId))
         
+        const dupCount = duplicateAttendanceMap.get(`${userId}_${att.date}`) || 0
         let notesText = getKeteranganLocal(att)
+        if (dupCount > 1) {
+          notesText = `[GANDA/DOUBLE] ${notesText}`
+        }
         if (att.notes_in) notesText += ` (Masuk: ${att.notes_in})`
         if (att.notes_out) notesText += ` (Keluar: ${att.notes_out})`
 
         let styleId = 'sNormal'
         if (!att.clock_in) {
           styleId = 'sAbsent'
+        } else if (dupCount > 1) {
+          styleId = 'sDuplicate'
         } else if (att.status_in === 'late') {
           styleId = 'sLate'
         }
@@ -1057,18 +1288,8 @@ export default function RekapAbsensi({
       dates.forEach(dateStr => {
         if (!isDateInFilter(dateStr)) return
 
-        // Skip weekend cuti/izin to avoid double counting weekends in calculations
-        const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay()
-        const isSatOff = !!emp.saturday_off
-        const isSunOff = emp.sunday_off !== false
-        let isOff = false
-        if (dayOfWeek === 0 && isSunOff) {
-          isOff = true
-        } else if (dayOfWeek === 6 && isSatOff) {
-          isOff = true
-        }
-
-        if (isOff) return // Exclude weekend leaves
+        // Skip weekend / holiday cuti to avoid double counting
+        if (isDayOffForEmployee(dateStr, emp, currentHolidays, currentOverrides)) return
 
         leavesData.push({
           employeeId: emp.id,
@@ -1108,18 +1329,8 @@ export default function RekapAbsensi({
       dates.forEach(dateStr => {
         if (!isDateInFilter(dateStr)) return
 
-        // Skip weekend cuti/izin to avoid double counting weekends in calculations
-        const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay()
-        const isSatOff = !!emp.saturday_off
-        const isSunOff = emp.sunday_off !== false
-        let isOff = false
-        if (dayOfWeek === 0 && isSunOff) {
-          isOff = true
-        } else if (dayOfWeek === 6 && isSatOff) {
-          isOff = true
-        }
-
-        if (isOff) return // Exclude weekend permits
+        // Skip weekend / holiday izin to avoid double counting
+        if (isDayOffForEmployee(dateStr, emp, currentHolidays, currentOverrides)) return
 
         permitsData.push({
           employeeId: emp.id,
@@ -1139,14 +1350,47 @@ export default function RekapAbsensi({
       })
     })
 
-    // Combine and Sort
-    const mergedRows: ExportRow[] = [
+    // Combine and Deduplicate (Option A: Primary entry takes precedence, exactly one row per employee date)
+    // Priority order: Kantor > Klien > Sales > Cuti > Izin
+    const typePriority: Record<string, number> = {
+      'Kantor': 1,
+      'Klien': 2,
+      'Sales': 3,
+      'Cuti': 4,
+      'Izin': 5,
+    }
+
+    const deduplicatedRowsMap = new Map<string, ExportRow>()
+    const allRawRows: ExportRow[] = [
       ...officeData,
       ...salesData,
       ...clientData,
       ...leavesData,
       ...permitsData
     ]
+
+    allRawRows.forEach(row => {
+      const key = `${row.employeeId}_${row.date}`
+      const existing = deduplicatedRowsMap.get(key)
+      if (!existing) {
+        deduplicatedRowsMap.set(key, row)
+      } else {
+        const existingPri = typePriority[existing.type] || 99
+        const currentPri = typePriority[row.type] || 99
+
+        if (currentPri < existingPri) {
+          deduplicatedRowsMap.set(key, row)
+        } else if (currentPri === existingPri) {
+          const existingHasTime = existing.timeIn !== '-' || existing.timeOut !== '-'
+          const currentHasTime = row.timeIn !== '-' || row.timeOut !== '-'
+          if (!existingHasTime && currentHasTime) {
+            deduplicatedRowsMap.set(key, row)
+          }
+        }
+      }
+    })
+
+    const mergedRows: ExportRow[] = Array.from(deduplicatedRowsMap.values())
 
     mergedRows.sort((a, b) => {
       const dateCompare = a.date.localeCompare(b.date)
@@ -1231,23 +1475,17 @@ export default function RekapAbsensi({
       if (startStr > endStr) return 0
 
       let workingDays = 0
-      const isSatOff = !!emp.saturday_off
-      const isSunOff = emp.sunday_off !== false
-
       const start = new Date(startStr + 'T00:00:00')
       const end = new Date(endStr + 'T00:00:00')
       const current = new Date(start)
       
       while (current <= end) {
-        const dayOfWeek = current.getDay()
-        let isOff = false
-        if (dayOfWeek === 0 && isSunOff) {
-          isOff = true
-        } else if (dayOfWeek === 6 && isSatOff) {
-          isOff = true
-        }
+        const yearC = current.getFullYear()
+        const monthC = String(current.getMonth() + 1).padStart(2, '0')
+        const dayC = String(current.getDate()).padStart(2, '0')
+        const dateStr = `${yearC}-${monthC}-${dayC}`
 
-        if (!isOff) {
+        if (!isDayOffForEmployee(dateStr, emp, currentHolidays, currentOverrides)) {
           workingDays++
         }
         current.setDate(current.getDate() + 1)
@@ -1320,10 +1558,9 @@ export default function RekapAbsensi({
         summaryRowsXML = `
         <Row ss:Height="15"></Row>
         <Row ss:Height="22">
-          <Cell ss:StyleID="sSummaryHeader" ss:MergeAcross="10"><Data ss:Type="String">TOTAL KESELURUHAN (SUMMARY)</Data></Cell>
+          <Cell ss:StyleID="sSummaryHeader" ss:MergeAcross="9"><Data ss:Type="String">TOTAL KESELURUHAN (SUMMARY)</Data></Cell>
         </Row>
         <Row ss:Height="20">
-          <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Hari Kerja</Data></Cell>
           <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Hadir</Data></Cell>
           <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Kunjungan Sales</Data></Cell>
           <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Kunjungan Klien</Data></Cell>
@@ -1336,7 +1573,6 @@ export default function RekapAbsensi({
           <Cell ss:StyleID="sSummaryCol"><Data ss:Type="String">Alpa</Data></Cell>
         </Row>
         <Row ss:Height="20">
-          <Cell ss:StyleID="sSummaryVal"><Data ss:Type="Number">${workingDays}</Data></Cell>
           <Cell ss:StyleID="sSummaryValGreen"><Data ss:Type="Number">${presentCount}</Data></Cell>
           <Cell ss:StyleID="sSummaryVal"><Data ss:Type="Number">${salesCount}</Data></Cell>
           <Cell ss:StyleID="sSummaryVal"><Data ss:Type="Number">${clientCount}</Data></Cell>
@@ -1370,10 +1606,10 @@ export default function RekapAbsensi({
     }
 
     const buildSummarySheetXML = () => {
-      const COL_WIDTHS_SUM = [35, 160, 100, 100, 150, 80, 85, 80, 80, 80, 100, 100, 80, 80, 100, 100, 120]
+      const COL_WIDTHS_SUM = [35, 160, 100, 100, 150, 85, 80, 80, 80, 100, 100, 80, 80, 100, 100, 120]
       const HEADERS_SUM = [
         'No', 'Nama Karyawan', 'Nomor Induk', 'Divisi', 'Perusahaan',
-        'Hari Kerja', 'Hadir', 'Terlambat', 'Lembur', 'Pulang Cepat',
+        'Hadir', 'Terlambat', 'Lembur', 'Pulang Cepat',
         'Izin (Non-Sakit)', 'Cuti (Non-Sakit)', 'Sakit', 'Alpa', 'Kunjungan Sales', 'Kunjungan Klien', 'Rasio Kehadiran (%)'
       ]
 
@@ -1421,7 +1657,6 @@ export default function RekapAbsensi({
           <Cell ss:StyleID="sNormal"><Data ss:Type="String">${escXml(employee.employee_number || '-')}</Data></Cell>
           <Cell ss:StyleID="sNormal"><Data ss:Type="String">${escXml(employee.division || '-')}</Data></Cell>
           <Cell ss:StyleID="sNormal"><Data ss:Type="String">${escXml(employee.company || '-')}</Data></Cell>
-          ${cell(String(workingDays), 'Number', 'sSummaryVal')}
           ${cell(String(presentCount), 'Number', 'sSummaryValGreen')}
           ${cell(String(lateCount), 'Number', 'sSummaryValOrange')}
           ${cell(String(overtimeCount), 'Number', 'sSummaryValYellow')}
@@ -1508,6 +1743,17 @@ export default function RekapAbsensi({
         <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
         <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
         <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+      </Borders>
+    </Style>
+    <Style ss:ID="sDuplicate">
+      <Alignment ss:Vertical="Center"/>
+      <Font ss:Size="9" ss:Bold="1" ss:Color="#9A3412"/>
+      <Interior ss:Color="#FEF3C7" ss:Pattern="Solid"/>
+      <Borders>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#FCD34D"/>
+        <Border ss:Position="Left"   ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#FCD34D"/>
+        <Border ss:Position="Right"  ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#FCD34D"/>
+        <Border ss:Position="Top"    ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#FCD34D"/>
       </Borders>
     </Style>
     <Style ss:ID="sAbsent">
@@ -1773,6 +2019,7 @@ export default function RekapAbsensi({
               if (fetchLeaves) fetchLeaves()
               if (fetchPermits) fetchPermits()
               fetchSalesVisits()
+              fetchHolidaysAndOverrides()
             }}
             disabled={attendanceLoading}
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 hover:border-red-500 text-slate-650 hover:text-red-500 rounded-xl transition-all cursor-pointer disabled:opacity-50 shadow-sm hover:scale-[1.02] active:scale-[0.98] h-[38px] w-full lg:w-[38px]"
@@ -1953,6 +2200,7 @@ export default function RekapAbsensi({
               setEndDate('')
               setStatusIn(defaults.statusIn)
               setStatusOut(defaults.statusOut)
+              setShowOnlyDuplicates(false)
               setCurrentPage(1)
               clearRekapAbsensiFiltersStorage()
               saveRekapAbsensiFilters({
@@ -1965,7 +2213,7 @@ export default function RekapAbsensi({
             }}
             disabled={
               viewMode === 'daily'
-                ? !search && selectedCompany === 'all' && !startDate && !endDate && statusIn === 'all' && statusOut === 'all'
+                ? !search && selectedCompany === 'all' && !startDate && !endDate && statusIn === 'all' && statusOut === 'all' && !showOnlyDuplicates
                 : !search && selectedCompany === 'all' && reportMonth === `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
             }
             className="w-full py-2.5 bg-white border border-slate-250 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 font-bold rounded-xl text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm hover:shadow"
@@ -1974,6 +2222,43 @@ export default function RekapAbsensi({
           </button>
         </div>
       </div>
+
+      {/* Duplicates Alert Banner */}
+      {viewMode === 'daily' && totalDuplicatesInMonth > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-amber-50/90 border border-amber-250 rounded-2xl text-amber-900 shadow-sm animate-fadeIn font-quicksand">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-200/70 text-amber-800 rounded-xl shrink-0">
+              <AlertTriangle className="w-5 h-5 text-amber-700" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                <span>Perhatian: Ditemukan {totalDuplicatesInMonth} Data Absensi Ganda (Double Entry)</span>
+                <span className="text-[10px] bg-amber-200 text-amber-800 font-extrabold px-2 py-0.5 rounded-full border border-amber-300">
+                  {totalDuplicatesInMonth} baris
+                </span>
+              </p>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                Ada karyawan yang memiliki lebih dari 1 entri rekaman absensi pada tanggal yang sama.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowOnlyDuplicates(prev => !prev)
+              setCurrentPage(1)
+            }}
+            className={`px-3.5 py-2 text-xs font-extrabold rounded-xl border transition-all cursor-pointer shrink-0 shadow-sm flex items-center gap-1.5 ${
+              showOnlyDuplicates 
+                ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-md' 
+                : 'bg-white hover:bg-amber-100 text-amber-800 border-amber-300'
+            }`}
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span>{showOnlyDuplicates ? 'Tampilkan Semua Data' : 'Filter Data Ganda Saja'}</span>
+          </button>
+        </div>
+      )}
 
       {/* Attendances Table - Desktop */}
       <div className="hidden md:block border border-orange-100 rounded-2xl overflow-hidden bg-orange-50/5">
@@ -2008,30 +2293,46 @@ export default function RekapAbsensi({
                     </td>
                   </tr>
                 ) : (
-                  paginatedAttendances.map((att) => (
-                    <tr key={att.id} className="hover:bg-orange-50/10 transition-colors">
-                      <td className="py-4 px-6">
-                        <div>
-                          <p className="font-extrabold text-slate-800 font-quicksand">{att.user?.name || 'Karyawan Dihapus'}</p>
-                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">{att.user?.email || '-'}</p>
-                          <div className="mt-1 flex flex-wrap gap-1.5 items-center">
-                            {att.user?.join_date && (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit">
-                                Masuk: {formatDate(att.user.join_date)}
-                              </span>
-                            )}
-                            {att.user?.company && (
-                              <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
-                                (att.user.company || '').includes('Cakrawala') 
-                                  ? 'text-red-750 bg-red-50 border-red-200' 
-                                  : 'text-blue-750 bg-blue-50 border-blue-200'
-                              }`}>
-                                {(att.user.company || '').includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
-                              </span>
-                            )}
+                  paginatedAttendances.map((att) => {
+                    const isDuplicate = isDuplicateAttendance(att)
+                    return (
+                      <tr 
+                        key={att.id} 
+                        className={`transition-colors ${
+                          isDuplicate 
+                            ? 'bg-amber-50/50 hover:bg-amber-100/50 border-l-4 border-l-amber-500' 
+                            : 'hover:bg-orange-50/10'
+                        }`}
+                      >
+                        <td className="py-4 px-6">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-extrabold text-slate-800 font-quicksand">{att.user?.name || 'Karyawan Dihapus'}</p>
+                              {isDuplicate && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5 shadow-2xs" title="Terdapat lebih dari satu rekaman absensi pada karyawan dan tanggal ini">
+                                  ⚠️ Ganda (Double)
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-400 font-medium mt-0.5">{att.user?.email || '-'}</p>
+                            <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                              {att.user?.join_date && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit">
+                                  Masuk: {formatDate(att.user.join_date)}
+                                </span>
+                              )}
+                              {att.user?.company && (
+                                <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                                  (att.user.company || '').includes('Cakrawala') 
+                                    ? 'text-red-750 bg-red-50 border-red-200' 
+                                    : 'text-blue-750 bg-blue-50 border-blue-200'
+                                }`}>
+                                  {(att.user.company || '').includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
                       <td className="py-4 px-6 font-extrabold text-slate-700 text-xs">
                         <div>{formatDate(att.date)}</div>
                         {att.shift_start_time && att.shift_end_time && (
@@ -2081,13 +2382,22 @@ export default function RekapAbsensi({
                           <button
                             onClick={() => setSelectedAttendance(att)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-red-500 text-slate-600 hover:text-red-500 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm"
+                            title="Lihat Detail Absensi"
                           >
                             <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAttendance(att)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-rose-500 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition-all cursor-pointer font-quicksand shadow-sm"
+                            title="Hapus Rekaman Absensi Ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))
+                  )
+                })
                 )}
               </tbody>
             </table>
@@ -2226,35 +2536,49 @@ export default function RekapAbsensi({
               Data absensi tidak ditemukan.
             </div>
           ) : (
-            paginatedAttendances.map((att) => (
-              <div key={att.id} className="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm space-y-4 hover:border-orange-200 hover:shadow-md transition-all font-quicksand">
-                {/* Card Header: Name and Date */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
-                      {att.user?.name ? att.user.name.charAt(0).toUpperCase() : '?'}
-                    </div>
-                    <div>
-                      <h4 className="font-extrabold text-slate-800 text-sm">{att.user?.name || 'Karyawan Dihapus'}</h4>
-                      <p className="text-[11px] text-slate-400 font-medium">{att.user?.email || '-'}</p>
-                      <div className="mt-1 flex flex-wrap gap-1.5 items-center">
-                        {att.user?.join_date && (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit font-quicksand">
-                            Masuk: {formatDate(att.user.join_date)}
-                          </span>
-                        )}
-                        {att.user?.company && (
-                          <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
-                            (att.user.company || '').includes('Cakrawala') 
-                              ? 'text-red-755 bg-red-50 border-red-200' 
-                              : 'text-blue-755 bg-blue-50 border-blue-200'
-                          }`}>
-                            {(att.user.company || '').includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
-                          </span>
-                        )}
+            paginatedAttendances.map((att) => {
+              const isDuplicate = isDuplicateAttendance(att)
+              return (
+                <div 
+                  key={att.id} 
+                  className={`bg-white border rounded-2xl p-4 shadow-sm space-y-4 hover:shadow-md transition-all font-quicksand ${
+                    isDuplicate ? 'border-amber-400 bg-amber-50/25 ring-1 ring-amber-300' : 'border-orange-100 hover:border-orange-200'
+                  }`}
+                >
+                  {/* Card Header: Name and Date */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
+                        {att.user?.name ? att.user.name.charAt(0).toUpperCase() : '?'}
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h4 className="font-extrabold text-slate-800 text-sm">{att.user?.name || 'Karyawan Dihapus'}</h4>
+                          {isDuplicate && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
+                              ⚠️ Ganda (Double)
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-medium">{att.user?.email || '-'}</p>
+                        <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                          {att.user?.join_date && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 w-fit font-quicksand">
+                              Masuk: {formatDate(att.user.join_date)}
+                            </span>
+                          )}
+                          {att.user?.company && (
+                            <span className={`inline-flex items-center text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
+                              (att.user.company || '').includes('Cakrawala') 
+                                ? 'text-red-755 bg-red-50 border-red-200' 
+                                : 'text-blue-755 bg-blue-50 border-blue-200'
+                            }`}>
+                              {(att.user.company || '').includes('Cakrawala') ? 'Cakrawala' : 'Yasodana'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
                   <div className="text-right flex flex-col items-end gap-1.5">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border capitalize ${
                       att.attendance_type === 'kunjungan' 
@@ -2314,17 +2638,25 @@ export default function RekapAbsensi({
                 </div>
 
                 {/* Actions Footer */}
-                <div className="pt-2 border-t border-orange-50">
+                <div className="pt-2 border-t border-orange-50 flex items-center gap-2">
                   <button
                     onClick={() => setSelectedAttendance(att)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-slate-200 hover:border-red-500 text-slate-700 hover:text-red-500 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-slate-200 hover:border-red-500 text-slate-700 hover:text-red-500 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
                   >
                     <Eye className="w-4 h-4 text-slate-500" />
-                    <span>Lihat Detail Absensi</span>
+                    <span>Lihat Detail</span>
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAttendance(att)}
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-3.5 bg-white border border-slate-200 hover:border-rose-500 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]"
+                    title="Hapus Rekaman Absensi"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
-            ))
+            )
+          })
           )
         ) : (
           attendanceLoading ? (

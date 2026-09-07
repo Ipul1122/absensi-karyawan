@@ -140,8 +140,12 @@ class SalesVisitController extends Controller
 
     /**
      * Process checkout for a sales/client visit.
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function checkout(Request $request, $id)
+    public function checkout(Request $request, int|string $id)
     {
         $request->validate([
             'latitude' => 'required|string',
@@ -195,16 +199,16 @@ class SalesVisitController extends Controller
                 $now = Carbon::now();
                 $isSaturday = $now->isSaturday();
                 
-                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
-                $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+                $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
 
                 $status = 'normal';
                 if ($attendance->shift_end_time) {
                     $limitEarly = $attendance->shift_end_time;
-                    $limitOvertime = Carbon::parse($attendance->shift_end_time)->addHour()->format('H:i:s');
+                    $limitOvertime = Carbon::parse($attendance->shift_end_time)->addMinutes(30)->format('H:i:s');
                 } else {
-                    $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
-                    $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+                    $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+                    $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
                 }
 
                 if ($visitTimeOut < $limitEarly) {
@@ -239,8 +243,12 @@ class SalesVisitController extends Controller
 
     /**
      * Update a sales/client visit (for admin).
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function updateVisit(Request $request, $id)
+    public function updateVisit(Request $request, int|string $id)
     {
         $request->validate([
             'client_name' => 'required|string|max:255',
@@ -307,8 +315,12 @@ class SalesVisitController extends Controller
 
     /**
      * Helper to decode and save base64 image.
+     *
+     * @param string $base64String
+     * @param string $prefix
+     * @return string
      */
-    private function saveBase64Image($base64String, $prefix)
+    private function saveBase64Image(string $base64String, string $prefix): string
     {
         if (preg_match('/^data:image\/(\w+);base64,/', $base64String, $type)) {
             $imageData = substr($base64String, strpos($base64String, ',') + 1);

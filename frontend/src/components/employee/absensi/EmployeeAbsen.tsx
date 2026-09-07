@@ -89,7 +89,7 @@ const getShiftLabelForAttendance = (att: Attendance | null | undefined) => {
   if (att.shift_start_time && att.shift_end_time) {
     return `${att.shift_start_time.substring(0, 5)} - ${att.shift_end_time.substring(0, 5)}`
   }
-  return isSat ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:30)'
+  return isSat ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:00)'
 }
 
 export default function EmployeeAbsen({
@@ -966,7 +966,7 @@ export default function EmployeeAbsen({
                 className="w-full h-11 bg-[#F8FAFC] border border-slate-200 focus:border-[#FF5A00] focus:ring-2 focus:ring-orange-100 text-slate-800 rounded-xl py-2 px-4 outline-none text-sm font-medium cursor-pointer"
               >
                 <option value="">
-                  {new Date().getDay() === 6 ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:30)'}
+                  {new Date().getDay() === 6 ? 'Shift Reguler (08:30 - 14:00)' : 'Shift Reguler (08:30 - 17:00)'}
                 </option>
                 {shifts.map((shift) => {
                   const isRegulerSat = shift.name === 'Shift Reguler' && new Date().getDay() === 6

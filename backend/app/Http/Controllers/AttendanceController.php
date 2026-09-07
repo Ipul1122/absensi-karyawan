@@ -264,19 +264,19 @@ class AttendanceController extends Controller
             //   - 14:00 - 15:00: normal (Normal)
             //   - After 15:00: overtime (Lembur)
             // - Other days:
-            //   - Before 17:30: early_departure (Pulang Cepat)
-            //   - 17:30 - 18:30: normal (Normal)
-            //   - After 18:30: overtime (Lembur)
-            $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
-            $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+            //   - Before 17:00: early_departure (Pulang Cepat)
+            //   - 17:00 - 17:30: normal (Normal)
+            //   - After 17:30: overtime (Lembur)
+            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
 
             $status = 'normal';
             if ($attendance->shift_end_time) {
                 $limitEarly = $attendance->shift_end_time;
-                $limitOvertime = Carbon::parse($attendance->shift_end_time)->addHour()->format('H:i:s');
+                $limitOvertime = Carbon::parse($attendance->shift_end_time)->addMinutes(30)->format('H:i:s');
             } else {
-                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
-                $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+                $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
             }
 
             if ($timeStr < $limitEarly) {
@@ -310,8 +310,11 @@ class AttendanceController extends Controller
 
     /**
      * Get attendance history for the logged-in employee.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getHistory(Request $request)
+    public function getHistory(Request $request): \Illuminate\Http\JsonResponse
     {
         $userId = $request->user()->id;
         $type = strtolower($request->input('attendance_type', 'all'));
@@ -335,35 +338,7 @@ class AttendanceController extends Controller
                 $attQuery->whereMonth('date', $month)->whereYear('date', $year);
             }
 
-            $attendances = $attQuery->get()->map(function ($att) {
-                $dateStr = is_string($att->date) ? $att->date : ($att->date ? $att->date->format('Y-m-d') : null);
-                return [
-                    'id' => 'att_' . $att->id,
-                    'date' => $dateStr,
-                    'attendance_type' => 'kantor',
-                    'clock_in' => $att->clock_in,
-                    'clock_out' => $att->clock_out,
-                    'latitude_in' => $att->latitude_in,
-                    'longitude_in' => $att->longitude_in,
-                    'latitude_out' => $att->latitude_out,
-                    'longitude_out' => $att->longitude_out,
-                    'photo_in' => $att->photo_in,
-                    'photo_out' => $att->photo_out,
-                    'notes_in' => $att->notes_in,
-                    'notes_out' => $att->notes_out,
-                    'status_in' => $att->status_in,
-                    'status_out' => $att->status_out,
-                    'shift_start_time' => $att->shift_start_time,
-                    'shift_end_time' => $att->shift_end_time,
-                    'shift' => $att->shift ? [
-                        'name' => $att->shift->name,
-                        'start_time' => $att->shift->start_time,
-                        'end_time' => $att->shift->end_time,
-                    ] : null,
-                    'sort_time' => ($dateStr ?: '') . ' ' . ($att->clock_in ?: '00:00:00')
-                ];
-            });
-
+            $attendances = $attQuery->get()->map(fn ($att) => $this->formatAttendanceHistoryItem($att, 'kantor'));
             $items = $items->concat($attendances);
         }
 
@@ -386,33 +361,7 @@ class AttendanceController extends Controller
                 $visitQuery->whereMonth('date', $month)->whereYear('date', $year);
             }
 
-            $visits = $visitQuery->get()->map(function ($sv) {
-                $dateStr = is_string($sv->date) ? $sv->date : ($sv->date ? $sv->date->format('Y-m-d') : null);
-                $visitType = ($sv->visit_type === 'client') ? 'client' : 'kunjungan';
-                $prefix = ($sv->visit_type === 'client') ? 'Klien: ' : 'Tujuan: ';
-                $noteText = $prefix . $sv->client_name . ($sv->notes ? ' (' . $sv->notes . ')' : '');
-
-                return [
-                    'id' => 'visit_' . $sv->id,
-                    'date' => $dateStr,
-                    'attendance_type' => $visitType,
-                    'clock_in' => $sv->visit_time,
-                    'clock_out' => $sv->visit_time_out,
-                    'latitude_in' => $sv->latitude,
-                    'longitude_in' => $sv->longitude,
-                    'latitude_out' => $sv->latitude_out,
-                    'longitude_out' => $sv->longitude_out,
-                    'photo_in' => $sv->photo_path,
-                    'photo_out' => $sv->photo_path_out,
-                    'notes_in' => $noteText,
-                    'notes_out' => $sv->notes_out,
-                    'status_in' => 'normal',
-                    'status_out' => $sv->visit_time_out ? 'normal' : null,
-                    'shift' => null,
-                    'sort_time' => ($dateStr ?: '') . ' ' . ($sv->visit_time ?: '00:00:00')
-                ];
-            });
-
+            $visits = $visitQuery->get()->map(fn ($sv) => $this->formatSalesVisitHistoryItem($sv));
             $items = $items->concat($visits);
         }
 
@@ -442,37 +391,10 @@ class AttendanceController extends Controller
             $visitDates = $items->pluck('date')->unique()->filter()->values()->toArray();
             $otherAttendances = $otherAttQuery->get()
                 ->reject(function ($att) use ($visitDates) {
-                    $dStr = is_string($att->date) ? $att->date : ($att->date ? $att->date->format('Y-m-d') : null);
+                    $dStr = $att->date ? Carbon::parse($att->date)->format('Y-m-d') : null;
                     return in_array($dStr, $visitDates);
                 })
-                ->map(function ($att) {
-                    $dateStr = is_string($att->date) ? $att->date : ($att->date ? $att->date->format('Y-m-d') : null);
-                    return [
-                        'id' => 'att_' . $att->id,
-                        'date' => $dateStr,
-                        'attendance_type' => $att->attendance_type,
-                        'clock_in' => $att->clock_in,
-                        'clock_out' => $att->clock_out,
-                        'latitude_in' => $att->latitude_in,
-                        'longitude_in' => $att->longitude_in,
-                        'latitude_out' => $att->latitude_out,
-                        'longitude_out' => $att->longitude_out,
-                        'photo_in' => $att->photo_in,
-                        'photo_out' => $att->photo_out,
-                        'notes_in' => $att->notes_in,
-                        'notes_out' => $att->notes_out,
-                        'status_in' => $att->status_in,
-                        'status_out' => $att->status_out,
-                        'shift_start_time' => $att->shift_start_time,
-                        'shift_end_time' => $att->shift_end_time,
-                        'shift' => $att->shift ? [
-                            'name' => $att->shift->name,
-                            'start_time' => $att->shift->start_time,
-                            'end_time' => $att->shift->end_time,
-                        ] : null,
-                        'sort_time' => ($dateStr ?: '') . ' ' . ($att->clock_in ?: '00:00:00')
-                    ];
-                });
+                ->map(fn ($att) => $this->formatAttendanceHistoryItem($att));
 
             $items = $items->concat($otherAttendances);
         }
@@ -488,35 +410,7 @@ class AttendanceController extends Controller
                 $wfhQuery->whereMonth('date', $month)->whereYear('date', $year);
             }
 
-            $wfhAttendances = $wfhQuery->get()->map(function ($att) {
-                $dateStr = is_string($att->date) ? $att->date : ($att->date ? $att->date->format('Y-m-d') : null);
-                return [
-                    'id' => 'att_' . $att->id,
-                    'date' => $dateStr,
-                    'attendance_type' => 'wfh',
-                    'clock_in' => $att->clock_in,
-                    'clock_out' => $att->clock_out,
-                    'latitude_in' => $att->latitude_in,
-                    'longitude_in' => $att->longitude_in,
-                    'latitude_out' => $att->latitude_out,
-                    'longitude_out' => $att->longitude_out,
-                    'photo_in' => $att->photo_in,
-                    'photo_out' => $att->photo_out,
-                    'notes_in' => $att->notes_in,
-                    'notes_out' => $att->notes_out,
-                    'status_in' => $att->status_in,
-                    'status_out' => $att->status_out,
-                    'shift_start_time' => $att->shift_start_time,
-                    'shift_end_time' => $att->shift_end_time,
-                    'shift' => $att->shift ? [
-                        'name' => $att->shift->name,
-                        'start_time' => $att->shift->start_time,
-                        'end_time' => $att->shift->end_time,
-                    ] : null,
-                    'sort_time' => ($dateStr ?: '') . ' ' . ($att->clock_in ?: '00:00:00')
-                ];
-            });
-
+            $wfhAttendances = $wfhQuery->get()->map(fn ($att) => $this->formatAttendanceHistoryItem($att, 'wfh'));
             $items = $items->concat($wfhAttendances);
         }
 
@@ -684,8 +578,8 @@ class AttendanceController extends Controller
         if ($request->filled('clock_out')) {
             $clockOut = Carbon::parse($request->clock_out)->format('H:i:s');
             $isSaturday = Carbon::parse($date)->isSaturday();
-            $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
-            $limitOvertime = $isSaturday ? '15:00:00' : '18:30:00';
+            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
 
             $statusOut = 'normal';
             if ($clockOut < $limitEarly) {
@@ -872,8 +766,12 @@ class AttendanceController extends Controller
 
     /**
      * Update employee's attendance record (for admin).
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function updateAttendance(Request $request, $id)
+    public function updateAttendance(Request $request, int|string $id)
     {
         $request->validate([
             'clock_in' => 'nullable|string',
@@ -903,11 +801,11 @@ class AttendanceController extends Controller
             $clockOut = Carbon::parse($clockOut)->format('H:i:s');
             if ($attendance->shift_end_time) {
                 $limitEarly = $attendance->shift_end_time;
-                $limitOvertime = Carbon::parse($attendance->shift_end_time)->addHour()->format('H:i:s');
+                $limitOvertime = Carbon::parse($attendance->shift_end_time)->addMinutes(30)->format('H:i:s');
             } else {
                 $isSaturday = Carbon::parse($attendance->date)->isSaturday();
                 $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-                $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
             }
 
             $statusOut = 'normal';
@@ -935,8 +833,11 @@ class AttendanceController extends Controller
 
     /**
      * Delete employee's attendance record (for admin).
+     *
+     * @param int|string $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function deleteAttendance($id)
+    public function deleteAttendance(int|string $id)
     {
         $attendance = Attendance::findOrFail($id);
 
@@ -1028,8 +929,14 @@ class AttendanceController extends Controller
 
     /**
      * Helper to calculate distance between two coordinates using Haversine formula (in meters).
+     *
+     * @param float|int $lat1
+     * @param float|int $lon1
+     * @param float|int $lat2
+     * @param float|int $lon2
+     * @return float
      */
-    private function getDistance($lat1, $lon1, $lat2, $lon2)
+    private function getDistance(float|int $lat1, float|int $lon1, float|int $lat2, float|int $lon2): float
     {
         $earthRadius = 6371000; // Earth's radius in meters
         $dLat = deg2rad($lat2 - $lat1);
@@ -1039,7 +946,13 @@ class AttendanceController extends Controller
         return $earthRadius * $c;
     }
 
-    public function directorApprove($id)
+    /**
+     * Approve attendance correction (Director only).
+     *
+     * @param int|string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function directorApprove(int|string $id)
     {
         $attendance = Attendance::findOrFail($id);
 
@@ -1054,7 +967,13 @@ class AttendanceController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Koreksi absensi berhasil disetujui.']);
     }
 
-    public function directorReject($id)
+    /**
+     * Reject attendance correction (Director only).
+     *
+     * @param int|string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function directorReject(int|string $id)
     {
         $attendance = Attendance::findOrFail($id);
 
@@ -1069,11 +988,85 @@ class AttendanceController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Koreksi absensi ditolak.']);
     }
 
+    /**
+     * Helper to format an attendance record into a standardized history array.
+     *
+     * @param Attendance|object $att
+     * @param string|null $overrideType
+     * @return array
+     */
+    private function formatAttendanceHistoryItem($att, ?string $overrideType = null): array
+    {
+        $dateStr = $att->date ? Carbon::parse($att->date)->format('Y-m-d') : null;
+        return [
+            'id' => 'att_' . $att->id,
+            'date' => $dateStr,
+            'attendance_type' => $overrideType ?: $att->attendance_type,
+            'clock_in' => $att->clock_in,
+            'clock_out' => $att->clock_out,
+            'latitude_in' => $att->latitude_in,
+            'longitude_in' => $att->longitude_in,
+            'latitude_out' => $att->latitude_out,
+            'longitude_out' => $att->longitude_out,
+            'photo_in' => $att->photo_in,
+            'photo_out' => $att->photo_out,
+            'notes_in' => $att->notes_in,
+            'notes_out' => $att->notes_out,
+            'status_in' => $att->status_in,
+            'status_out' => $att->status_out,
+            'shift_start_time' => $att->shift_start_time,
+            'shift_end_time' => $att->shift_end_time,
+            'shift' => $att->shift ? [
+                'name' => $att->shift->name,
+                'start_time' => $att->shift->start_time,
+                'end_time' => $att->shift->end_time,
+            ] : null,
+            'sort_time' => ($dateStr ?: '') . ' ' . ($att->clock_in ?: '00:00:00')
+        ];
+    }
+
+    /**
+     * Helper to format a sales visit record into a standardized history array.
+     *
+     * @param \App\Models\SalesVisit|object $sv
+     * @return array
+     */
+    private function formatSalesVisitHistoryItem($sv): array
+    {
+        $dateStr = $sv->date ? Carbon::parse($sv->date)->format('Y-m-d') : null;
+        $visitType = ($sv->visit_type === 'client') ? 'client' : 'kunjungan';
+        $prefix = ($sv->visit_type === 'client') ? 'Klien: ' : 'Tujuan: ';
+        $noteText = $prefix . $sv->client_name . ($sv->notes ? ' (' . $sv->notes . ')' : '');
+
+        return [
+            'id' => 'visit_' . $sv->id,
+            'date' => $dateStr,
+            'attendance_type' => $visitType,
+            'clock_in' => $sv->visit_time,
+            'clock_out' => $sv->visit_time_out,
+            'latitude_in' => $sv->latitude,
+            'longitude_in' => $sv->longitude,
+            'latitude_out' => $sv->latitude_out,
+            'longitude_out' => $sv->longitude_out,
+            'photo_in' => $sv->photo_path,
+            'photo_out' => $sv->photo_path_out,
+            'notes_in' => $noteText,
+            'notes_out' => $sv->notes_out,
+            'status_in' => 'normal',
+            'status_out' => $sv->visit_time_out ? 'normal' : null,
+            'shift' => null,
+            'sort_time' => ($dateStr ?: '') . ' ' . ($sv->visit_time ?: '00:00:00')
+        ];
+    }
 
     /**
      * Helper to decode and save base64 image.
+     *
+     * @param string $base64String
+     * @param string $prefix
+     * @return string
      */
-    private function saveBase64Image($base64String, $prefix)
+    private function saveBase64Image(string $base64String, string $prefix): string
     {
         if (preg_match('/^data:image\/(\w+);base64,/', $base64String, $type)) {
             $imageData = substr($base64String, strpos($base64String, ',') + 1);
@@ -1191,8 +1184,12 @@ class AttendanceController extends Controller
 
     /**
      * Update an existing shift (Admin only).
+     *
+     * @param Request $request
+     * @param int|string $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function updateShift(Request $request, $id)
+    public function updateShift(Request $request, int|string $id)
     {
         $request->validate([
             'name' => 'required|string',
@@ -1218,8 +1215,11 @@ class AttendanceController extends Controller
 
     /**
      * Delete a shift (Admin only).
+     *
+     * @param int|string $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function deleteShift($id)
+    public function deleteShift(int|string $id)
     {
         $shift = \App\Models\Shift::findOrFail($id);
         

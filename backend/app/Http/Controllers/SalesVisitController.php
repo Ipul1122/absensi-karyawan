@@ -199,16 +199,16 @@ class SalesVisitController extends Controller
                 $now = Carbon::now();
                 $isSaturday = $now->isSaturday();
                 
-                $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-                $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
+                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
 
                 $status = 'normal';
                 if ($attendance->shift_end_time) {
                     $limitEarly = $attendance->shift_end_time;
                     $limitOvertime = Carbon::parse($attendance->shift_end_time)->addMinutes(30)->format('H:i:s');
                 } else {
-                    $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-                    $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
+                    $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                    $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
                 }
 
                 if ($visitTimeOut < $limitEarly) {

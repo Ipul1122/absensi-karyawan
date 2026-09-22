@@ -15,7 +15,7 @@ export const EMPLOYEE_FAQ_ITEMS = [
     id: 'terlambat',
     question: 'Kapan status dianggap terlambat atau normal?',
     answer:
-      'Check in sebelum 08:30 dianggap datang lebih awal. Antara 08:30–09:00 status normal. Setelah 09:00 tercatat terlambat. Check out sebelum 17:00 pulang cepat, 17:00–17:30 normal, setelah 17:30 dapat tercatat lembur sesuai kebijakan.'
+      'Check in sebelum 08:30 dianggap datang lebih awal. Antara 08:30–09:00 status normal. Setelah 09:00 tercatat terlambat. Check out sebelum 17:30 pulang cepat, 17:30–18:00 normal, setelah 18:00 dapat tercatat lembur sesuai kebijakan.'
   },
   {
     id: 'cuti-izin',

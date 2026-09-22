@@ -264,19 +264,19 @@ class AttendanceController extends Controller
             //   - 14:00 - 15:00: normal (Normal)
             //   - After 15:00: overtime (Lembur)
             // - Other days:
-            //   - Before 17:00: early_departure (Pulang Cepat)
-            //   - 17:00 - 17:30: normal (Normal)
-            //   - After 17:30: overtime (Lembur)
-            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-            $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
+            //   - Before 17:30: early_departure (Pulang Cepat)
+            //   - 17:30 - 18:00: normal (Normal)
+            //   - After 18:00: overtime (Lembur)
+            $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
 
             $status = 'normal';
             if ($attendance->shift_end_time) {
                 $limitEarly = $attendance->shift_end_time;
                 $limitOvertime = Carbon::parse($attendance->shift_end_time)->addMinutes(30)->format('H:i:s');
             } else {
-                $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-                $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
+                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
             }
 
             if ($timeStr < $limitEarly) {
@@ -578,8 +578,8 @@ class AttendanceController extends Controller
         if ($request->filled('clock_out')) {
             $clockOut = Carbon::parse($request->clock_out)->format('H:i:s');
             $isSaturday = Carbon::parse($date)->isSaturday();
-            $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-            $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
+            $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+            $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
 
             $statusOut = 'normal';
             if ($clockOut < $limitEarly) {
@@ -804,8 +804,8 @@ class AttendanceController extends Controller
                 $limitOvertime = Carbon::parse($attendance->shift_end_time)->addMinutes(30)->format('H:i:s');
             } else {
                 $isSaturday = Carbon::parse($attendance->date)->isSaturday();
-                $limitEarly = $isSaturday ? '14:00:00' : '17:00:00';
-                $limitOvertime = $isSaturday ? '15:00:00' : '17:30:00';
+                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
             }
 
             $statusOut = 'normal';

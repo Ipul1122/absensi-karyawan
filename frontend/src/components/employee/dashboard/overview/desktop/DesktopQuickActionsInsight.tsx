@@ -26,7 +26,7 @@ export default function DesktopQuickActionsInsight({ attendanceState }: DesktopQ
       text:
         attendanceState === 'completed'
           ? 'Presensi hari ini sudah lengkap. Sampai jumpa besok!'
-          : 'Estimasi sisa jam kerja mengikuti jadwal kantor (08:30–17:00).'
+          : 'Estimasi sisa jam kerja mengikuti jadwal kantor (08:30–17:30).'
     },
     {
       icon: Wallet,

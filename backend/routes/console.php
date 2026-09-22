@@ -10,7 +10,7 @@ Artisan::command('inspire', function () {
 
 // Pengingat absensi otomatis sesuai jadwal kerja karyawan (dikirim sebelum jam 8:30)
 Schedule::command('attendance:send-reminders in')->dailyAt('08:00');
-Schedule::command('attendance:send-reminders out')->dailyAt('17:00');
+Schedule::command('attendance:send-reminders out')->dailyAt('17:30');
 
 // Bersihkan data recycle bin yang berumur lebih dari 30 hari secara permanen
 Schedule::call(function () {

@@ -348,8 +348,8 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     const mins = time.getMinutes()
     const timeVal = hrs * 60 + mins
 
-    const startNormal = 17 * 60 // 17:00
-    const endNormal = 17 * 60 + 30 // 17:30
+    const startNormal = 17 * 60 + 30 // 17:30
+    const endNormal = 18 * 60 // 18:00
 
     if (timeVal < startNormal) {
       return { text: 'Pulang Cepat', colorClass: 'text-rose-700 bg-rose-50 border-rose-200' }

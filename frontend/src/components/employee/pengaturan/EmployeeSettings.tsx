@@ -356,7 +356,7 @@ export default function EmployeeSettings({ user, token }: EmployeeSettingsProps)
               <div className="space-y-1">
                 <p className="text-xs font-black text-slate-700 font-quicksand">Aktifkan Pengingat Harian</p>
                 <p className="text-[10px] text-slate-500 font-quicksand leading-relaxed max-w-md">
-                  Server akan mengirimkan notifikasi push ke HP Anda setiap hari kerja sebelum pukul 08:30 pagi jika Anda belum absen masuk, dan pengingat pulang pukul 17:00.
+                  Server akan mengirimkan notifikasi push ke HP Anda setiap hari kerja sebelum pukul 08:30 pagi jika Anda belum absen masuk, dan pengingat pulang pukul 17:30.
                 </p>
               </div>
 

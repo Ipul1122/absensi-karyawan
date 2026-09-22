@@ -49,7 +49,7 @@ export function computeDayProgress(time: Date, clockIn: string | null, clockOut:
   if (start == null) return 0
 
   const endTarget = new Date(time)
-  endTarget.setHours(17, 0, 0, 0)
+  endTarget.setHours(17, 30, 0, 0)
 
   const now =
     clockOut != null && clockOut !== ''

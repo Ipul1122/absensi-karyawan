@@ -767,22 +767,22 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
       ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'responsibilities' && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100">
-              <div>
+          <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs overflow-hidden">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100">
+              <div className="min-w-0 flex-1">
                 <h3 className="text-sm sm:text-base font-extrabold text-slate-800">
                   Daftar Tanggung Jawab & Target KPI Karyawan
                 </h3>
-                <p className="text-xs text-slate-400 font-medium">
+                <p className="text-xs text-slate-400 font-medium mt-0.5 max-w-2xl leading-relaxed">
                   Tanggung jawab yang diinputkan di sini akan tampil sebagai acuan kerja pada portal masing-masing karyawan
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
                 <select
                   value={selectedEmployeeId}
                   onChange={(e) => setSelectedEmployeeId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  className="w-full sm:w-auto px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+                  className="w-full sm:w-60 md:w-64 max-w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer truncate shadow-xs"
                 >
                   <option value="all">Semua Karyawan</option>
                   {employees.map(emp => (
@@ -795,10 +795,10 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                     resetRespForm()
                     setShowAddRespModal(true)
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-red-600/20 transition-all cursor-pointer shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-red-600/20 transition-all cursor-pointer shrink-0 whitespace-nowrap hover:scale-[1.01] active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Tambah Tanggung Jawab
+                  <span>Tambah Tanggung Jawab</span>
                 </button>
               </div>
             </div>

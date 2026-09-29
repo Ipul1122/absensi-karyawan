@@ -51,7 +51,7 @@ class NotificationController extends Controller
         }
     }
 
-    private function buildCountsForUser($user): array
+    private function buildCountsForUser(User $user): array
     {
         $counts = [];
 

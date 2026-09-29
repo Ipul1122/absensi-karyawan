@@ -98,7 +98,7 @@ export default function PanduanEmployee() {
         'Ketik nama pekerjaan yang Anda kerjakan pada kolom input, lalu tekan Enter atau klik "Tambah Tugas".',
         'Pilih status tugas secara fleksibel: 🔴 Proses (sedang dikerjakan), 🟡 Revisi (perlu perbaikan), atau 🟢 Selesai (sudah tuntas).',
         'Lampirkan foto bukti pekerjaan pada setiap butir tugas (Batas maksimal ukuran foto adalah 2MB per gambar).',
-        'Gunakan tombol "+ Bulk" jika ingin memasukkan banyak pekerjaan sekaligus dalam satu form cepat.',
+        'Gunakan tombol "Buat" jika ingin memasukkan banyak pekerjaan sekaligus dalam satu form cepat.',
         'Gunakan tombol "Kemarin" untuk menarik otomatis tugas kemarin yang belum selesai tanpa perlu mengetik ulang.',
         'Di akhir hari kerja, klik tombol "Kirim Laporan" untuk mengirim rekapitulasi pekerjaan Anda ke Admin HR & Direktur.'
       ],

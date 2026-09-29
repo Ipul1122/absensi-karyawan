@@ -114,7 +114,7 @@ export default function PanduanAdmin() {
       steps: [
         'Buka menu Operasional → To-Do List Saya (HR).',
         'Ketik nama pekerjaan pada kolom input form, lalu pilih status awal (🔴 Proses / 🟡 Revisi / 🟢 Selesai).',
-        'Gunakan tombol "+ Bulk" untuk menginput beberapa pekerjaan sekaligus secara masal.',
+        'Gunakan tombol "+ Buat" untuk menginput beberapa pekerjaan sekaligus secara masal.',
         'Lampirkan foto bukti pekerjaan pada setiap tugas (Maksimal ukuran 2MB per gambar).',
         'Gunakan tombol "Kemarin" untuk menarik otomatis tugas kemarin yang masih berstatus 🔴 Proses atau 🟡 Revisi.',
         'Ubah status tugas secara fleksibel: 🟢 Selesai, 🟡 Revisi, atau 🔴 Proses.',

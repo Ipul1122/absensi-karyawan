@@ -334,7 +334,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
               <div className="lg:hidden flex flex-col items-center mb-6">
                 <h2 className="text-xl font-black text-slate-900 tracking-tight font-sans">
                   {activeTab === 'director' ? (
-                    <span className="bg-gradient-to-r from-orange-600 to-red-650 bg-clip-text text-transparent font-extrabold">Portal Direksi</span>
+                    <span className="bg-gradient-to-r from-orange-600 to-red-650 bg-clip-text text-transparent font-extrabold">Login Direktur</span>
                   ) : (
                     <>
                       <span className="text-slate-800 font-extrabold">goodpeople</span>
@@ -389,7 +389,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
               <div className="mb-6 hidden lg:block">
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight transition-all duration-300">
                   {activeTab === 'director' ? (
-                    <span className="bg-gradient-to-r from-orange-600 to-red-650 bg-clip-text text-transparent font-extrabold">Portal Direksi</span>
+                    <span className="bg-gradient-to-r from-orange-600 to-red-650 bg-clip-text text-transparent font-extrabold">Login Direktur</span>
                   ) : (
                     <span className="text-slate-800 font-extrabold">Selamat Datang</span>
                   )}

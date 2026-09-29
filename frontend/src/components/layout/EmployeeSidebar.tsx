@@ -21,7 +21,8 @@ import {
   ClipboardList,
   User,
   Headphones,
-  CheckSquare
+  CheckSquare,
+  BookOpen
 } from 'lucide-react'
 import Logo from './Logo'
 import { getAssetUrl } from '../../utils/api'
@@ -148,7 +149,8 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
         { to: '/employee/pengaturan', label: 'Atur Akun', icon: User },
         { to: '/employee/biodata', label: 'Atur Biodata', icon: ClipboardList }
       ]
-    }
+    },
+    { to: '/employee/panduan', label: 'Buku Panduan', icon: BookOpen }
   ]
 
   const handleLinkClick = () => {

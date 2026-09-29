@@ -12,6 +12,7 @@ use App\Models\Inventory;
 use App\Models\Payroll;
 use App\Models\SalaryConfiguration;
 use App\Models\PermitRequest;
+use App\Models\DailyWorkReport;
 use Illuminate\Support\Facades\Auth;
 
 class SidebarNotificationController extends Controller
@@ -79,6 +80,7 @@ class SidebarNotificationController extends Controller
                 $opInventory = Inventory::where('status', 'pending')->count();
 
                 $data['pendingOperasionalCount'] = $opCuti + $opLembur + $opReimburse + $opBonus + $opInventory + $opIzin;
+                $data['pendingKpiCount'] = DailyWorkReport::whereHas('user', fn($q) => $q->where('role', 'admin'))->where('status', 'submitted')->count();
             }
 
             return response()->json([

@@ -30,6 +30,7 @@ interface DirectorSidebarProps {
   pendingGajiCount?: number
   pendingPayrollCount?: number
   pendingOperasionalCount?: number
+  pendingKpiCount?: number
 }
 
 const menuItems = [
@@ -51,7 +52,8 @@ export default function DirectorSidebar({
   pendingKaryawanCount = 0,
   pendingGajiCount = 0,
   pendingPayrollCount = 0,
-  pendingOperasionalCount = 0
+  pendingOperasionalCount = 0,
+  pendingKpiCount = 0
 }: DirectorSidebarProps) {
   const handleLinkClick = () => { if (onClose) onClose() }
 
@@ -88,6 +90,7 @@ export default function DirectorSidebar({
               const isSalaryApproval = item.to === '/director/gaji'
               const isPayrollApproval = item.to === '/director/payroll'
               const isOperationalApproval = item.to === '/director/operasional'
+              const isKpiApproval = item.to === '/director/kpi'
 
               const badgeCount = isEmployeeApproval 
                 ? pendingKaryawanCount 
@@ -97,7 +100,9 @@ export default function DirectorSidebar({
                     ? pendingPayrollCount
                     : isOperationalApproval
                       ? pendingOperasionalCount
-                      : 0
+                      : isKpiApproval
+                        ? pendingKpiCount
+                        : 0
 
               const showBadge = badgeCount > 0
 

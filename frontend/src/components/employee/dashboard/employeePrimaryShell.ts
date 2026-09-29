@@ -1,5 +1,5 @@
 const ORANGE_SHELL_ROUTE =
-  /^\/employee\/(dashboard|absen|sales|client|riwayat|pengaturan|biodata|cuti|izin|payroll|reimbursement|bonus|lembur)\/?$/
+  /^\/employee\/(dashboard|absen|sales|client|riwayat|pengaturan|biodata|cuti|izin|payroll|reimbursement|bonus|lembur|panduan)\/?$/
 
 /** Semua halaman fitur karyawan memakai header orange + layout shell */
 export function isEmployeeOrangeShellPath(pathname: string): boolean {

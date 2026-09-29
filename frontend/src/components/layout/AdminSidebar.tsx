@@ -20,7 +20,8 @@ import {
   KeyRound,
   UserCircle2,
   UserCheck,
-  Database
+  Database,
+  CheckSquare
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -58,6 +59,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
 
   const [isOperasionalOpen, setIsOperasionalOpen] = useState(() => {
     return [
+      '/admin/kpi',
       '/admin/cuti',
       '/admin/izin',
       '/admin/inventaris',
@@ -95,6 +97,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
     }
     if (
       [
+        '/admin/kpi',
         '/admin/cuti',
         '/admin/izin',
         '/admin/inventaris',
@@ -143,6 +146,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       label: 'Operasional',
       icon: ClipboardList,
       children: [
+        { to: '/admin/kpi', label: 'Kinerja (KPI)', icon: CheckSquare },
         { to: '/admin/cuti', label: 'Cuti', icon: CalendarDays },
         { to: '/admin/izin', label: 'Izin', icon: ClipboardList },
         { to: '/admin/inventaris', label: 'Inventaris', icon: Package },

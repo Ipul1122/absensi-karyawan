@@ -33,6 +33,7 @@ const AdminInventaris = lazy(() => import('./admin/operasional/AdminInventaris')
 const AdminReimbursement = lazy(() => import('./admin/operasional/AdminReimbursement'))
 const AdminBonus = lazy(() => import('./admin/payroll/AdminBonus'))
 const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
+const AdminKpi = lazy(() => import('./admin/operasional/AdminKpi'))
 const KelolaShift = lazy(() => import('./admin/pengaturan/KelolaShift'))
 const AdminKelolaJadwalKhusus = lazy(() => import('./admin/pengaturan/AdminKelolaJadwalKhusus'))
 
@@ -1147,6 +1148,14 @@ ${window.location.origin}/director/karyawan`
               path="lembur" 
               element={
                 <AdminOvertime
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="kpi" 
+              element={
+                <AdminKpi
                   token={token}
                 />
               } 

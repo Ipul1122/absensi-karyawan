@@ -20,14 +20,16 @@ import {
   FileText,
   FileUp,
   Lock,
-  ShieldAlert,
   CheckCircle2,
   CreditCard,
   Phone,
   Database,
   UploadCloud,
   DownloadCloud,
-  Info
+  Info,
+  Shield,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 
 interface UserProp {
@@ -120,12 +122,16 @@ export default function LokasiKantor({
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [savingProfile, setSavingProfile] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const accountPhotoInputRef = useRef<HTMLInputElement>(null)
 
   // ---------- Password States ----------
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // ---------- Backup & Restore States ----------
   const [backupSubTab, setBackupSubTab] = useState<'db' | 'recycle'>('db')
@@ -318,6 +324,52 @@ export default function LokasiKantor({
   useEffect(() => {
     fetchProfile()
   }, [])
+
+  const handlePhotoSave = async () => {
+    if (!photoFile) return
+    setSavingProfile(true)
+    try {
+      const formData = new FormData()
+      formData.append('name', profile.name || user.name)
+      formData.append('email', profile.email || user.email)
+      formData.append('photo', photoFile)
+      if (profile.whatsapp) formData.append('whatsapp', profile.whatsapp)
+
+      const res = await axios.post('http://localhost:8000/api/user/profile', formData, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      })
+      if (res.data.status === 'success') {
+        Swal.fire({
+          title: 'Foto Berhasil Diperbarui!',
+          text: 'Foto profil Admin HR berhasil disimpan.',
+          icon: 'success',
+          background: '#fffdfb',
+          color: '#3c1105',
+          timer: 2000,
+          showConfirmButton: false
+        })
+        setPhotoFile(null)
+        if (res.data.data?.photo) setPhotoPreview(res.data.data.photo)
+        if (onProfileUpdate) {
+          onProfileUpdate({
+            name: res.data.data?.name || profile.name,
+            email: res.data.data?.email || profile.email,
+            photo: res.data.data?.photo || null
+          })
+        }
+      }
+    } catch (err: any) {
+      Swal.fire({
+        title: 'Gagal Menyimpan Foto',
+        text: err.response?.data?.message || 'Terjadi kesalahan saat mengunggah foto profil.',
+        icon: 'error',
+        background: '#fffdfb',
+        color: '#3c1105'
+      })
+    } finally {
+      setSavingProfile(false)
+    }
+  }
 
   const fetchProfile = async () => {
     setLoadingProfile(true)
@@ -910,112 +962,220 @@ export default function LokasiKantor({
 
       {/* ===== TAB: AKUN & KEAMANAN ===== */}
       {activeTab === 'akun' && (
-        <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-5 animate-fade-in font-quicksand">
-          <div className="border-b border-orange-100 pb-4 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-md shadow-red-200">
-              <KeyRound className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-800">Pengaturan Akun Admin</h2>
-              <p className="text-[11px] text-slate-500">Ubah kata sandi login Admin Utama Anda secara berkala.</p>
-            </div>
-          </div>
-
-          {/* User info summary */}
-          <div className="flex items-center gap-4 p-3.5 bg-orange-50/40 border border-orange-100 rounded-2xl">
-            {photoPreview ? (
-              <img
-                src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : getAssetUrl(photoPreview)}
-                alt="Foto"
-                className="w-10 h-10 rounded-xl object-cover border-2 border-orange-200 shrink-0"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-400 to-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div className="flex-grow min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate">{profile.name || user.name}</p>
-              <p className="text-[11px] text-slate-500 font-mono truncate">{profile.email || user.email}</p>
-            </div>
-            <span className="shrink-0 text-[10px] font-bold px-2.5 py-1 bg-red-50 text-red-750 border border-red-100 rounded-full">
-              HR Admin
-            </span>
-          </div>
-
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            {/* Current Password */}
-            <div>
-              <label className={labelClass}>Kata Sandi Saat Ini</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
+        <div className="space-y-6 animate-fade-in font-quicksand">
+          {/* Card 1: Ganti Foto Profil & Info Akun */}
+          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-5">
+            <div className="border-b border-orange-100 pb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-md shadow-red-200 shrink-0">
+                  <UserCircle2 className="w-4 h-4 text-white" />
                 </div>
-                <input
-                  type="password"
-                  required
-                  value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
-                  placeholder="Masukkan kata sandi aktif"
-                  className={inputClass}
-                />
+                <div>
+                  <h2 className="text-base font-bold text-slate-800">Foto Profil & Identitas Admin HR</h2>
+                  <p className="text-[11px] text-slate-500">Perbarui foto profil akun Admin HR Anda agar selalu mutakhir.</p>
+                </div>
               </div>
+              <span className="text-[10px] font-bold px-3 py-1 bg-red-50 text-red-750 border border-red-100 rounded-full shrink-0">
+                Admin HR
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Kata Sandi Baru</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Lock className="w-4 h-4" /></div>
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    placeholder="Min. 6 karakter"
-                    className={inputClass}
+            <div className="flex flex-col sm:flex-row items-center gap-5 p-4 bg-orange-50/30 border border-orange-100/70 rounded-2xl">
+              <div className="relative shrink-0">
+                {photoPreview ? (
+                  <img
+                    src={photoPreview.startsWith('http') || photoPreview.startsWith('blob:') || photoPreview.startsWith('data:') ? photoPreview : getAssetUrl(photoPreview)}
+                    alt="Foto Profil Admin"
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-orange-200 shadow-md shadow-orange-100"
                   />
-                </div>
-              </div>
-              <div>
-                <label className={labelClass}>Konfirmasi Sandi Baru</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><Lock className="w-4 h-4" /></div>
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="Ketik ulang sandi baru"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-1">
-              <button
-                type="submit"
-                disabled={savingPassword}
-                className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/15 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {savingPassword ? (
-                  <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />Menyimpan...</>
                 ) : (
-                  <><Save className="w-4 h-4" />Perbarui Kata Sandi</>
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-red-500 to-orange-500 text-white flex items-center justify-center font-bold text-2xl uppercase shadow-md shadow-orange-200">
+                    {user.name.charAt(0)}
+                  </div>
                 )}
-              </button>
-            </div>
-          </form>
+                <button
+                  type="button"
+                  onClick={() => accountPhotoInputRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 w-7 h-7 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center text-white shadow-md hover:scale-110 transition-transform cursor-pointer"
+                  title="Pilih Foto Baru"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+              </div>
 
-          {/* Safety notice */}
-          <div className="flex items-start gap-3 p-3.5 bg-orange-50/30 border border-orange-100 rounded-xl">
-            <ShieldAlert className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-            <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
-              <strong className="text-slate-700">Peringatan Keamanan:</strong> Gunakan kata sandi unik yang berbeda dari akun media sosial pribadi Anda. Jangan bagikan akses kredensial Admin HR dengan siapa pun.
-            </p>
+              <div className="flex-grow text-center sm:text-left space-y-1 min-w-0">
+                <p className="text-sm font-bold text-slate-800 truncate">{profile.name || user.name}</p>
+                <p className="text-xs text-slate-500 font-mono truncate">{profile.email || user.email}</p>
+                <p className="text-[11px] text-slate-400">Format yang didukung: JPG, PNG, atau WEBP (Maksimal 2MB).</p>
+
+                <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => accountPhotoInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-orange-200 hover:border-red-300 hover:bg-red-50 text-slate-700 hover:text-red-600 rounded-xl text-[11px] font-bold transition-all cursor-pointer shadow-xs"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    {photoPreview ? 'Pilih Foto Baru' : 'Unggah Foto'}
+                  </button>
+
+                  {photoFile && (
+                    <button
+                      type="button"
+                      disabled={savingProfile}
+                      onClick={handlePhotoSave}
+                      className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white rounded-xl text-[11px] font-bold transition-all shadow-md shadow-red-500/15 cursor-pointer disabled:opacity-50"
+                    >
+                      {savingProfile ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Menyimpan...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3.5 h-3.5" />
+                          Simpan Foto Profil
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {photoFile && (
+                  <p className="text-[10px] text-emerald-600 font-semibold pt-1">
+                    ✓ File dipilih: {photoFile.name} (Klik "Simpan Foto Profil" untuk menerapkan perubahan)
+                  </p>
+                )}
+              </div>
+
+              <input
+                ref={accountPhotoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+            </div>
+          </section>
+
+          {/* Card 2: Ubah Kata Sandi */}
+          <section className="bg-white border border-orange-100 rounded-3xl p-6 shadow-sm space-y-5">
+            <div className="border-b border-orange-100 pb-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-orange-600 flex items-center justify-center shadow-md shadow-red-200">
+                <KeyRound className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Ubah Kata Sandi</h2>
+                <p className="text-[11px] text-slate-500">Perbarui kata sandi akun login Admin HR secara berkala demi keamanan.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              {/* Current Password */}
+              <div>
+                <label className={labelClass}>Kata Sandi Saat Ini</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    required
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    placeholder="Masukkan kata sandi aktif saat ini"
+                    className={`${inputClass} pr-10`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>Kata Sandi Baru</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      required
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Min. 6 karakter"
+                      className={`${inputClass} pr-10`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Konfirmasi Sandi Baru</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Ketik ulang sandi baru"
+                      className={`${inputClass} pr-10`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/15 cursor-pointer text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingPassword ? (
+                    <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />Menyimpan...</>
+                  ) : (
+                    <><Save className="w-4 h-4" />Perbarui Kata Sandi</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          {/* Card 3: Notice Kewenangan Manajemen Akun Admin HR */}
+          <div className="p-4 bg-orange-50/40 border border-orange-200/80 rounded-2xl flex items-start gap-3.5">
+            <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center shrink-0 mt-0.5 text-orange-600">
+              <Shield className="w-4 h-4" />
+            </div>
+            <div className="text-xs text-slate-600 leading-relaxed font-quicksand space-y-1">
+              <p className="font-bold text-slate-800">
+                Informasi Wewenang Manajemen Akun Admin HR
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Pendaftaran akun Admin HR baru, perubahan data kredensial staf HR, serta penonaktifan/penghapusan akun merupakan kewenangan eksklusif <strong>Direktur Utama</strong> melalui menu <strong>Kelola Admin HR</strong>. Admin HR dapat memperbarui foto profil dan kata sandi mandiri melalui halaman ini.
+              </p>
+            </div>
           </div>
-        </section>
+        </div>
       )}
 
       {/* ===== TAB: BIODATA PRIBADI ADMIN ===== */}

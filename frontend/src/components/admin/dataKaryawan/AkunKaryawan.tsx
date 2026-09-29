@@ -28,7 +28,8 @@ import {
   Users,
   UserCheck,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Shield
 } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
 
@@ -649,9 +650,17 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                             </div>
                           )}
                           <div className="min-w-0">
-                            <span className="font-quicksand text-sm font-bold text-slate-800 block truncate leading-snug">
-                              {emp.name}
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-quicksand text-sm font-bold text-slate-800 truncate leading-snug">
+                                {emp.name}
+                              </span>
+                              {emp.role === 'admin' && (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 bg-red-50 text-red-750 border border-red-100 rounded-md">
+                                  <Shield className="w-2.5 h-2.5" />
+                                  Admin HR
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[10px] text-slate-400 font-mono tracking-wider block mt-0.5">
                               {emp.employee_number || 'NIK: -'}
                             </span>
@@ -744,53 +753,60 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                         </div>
                       </td>
 
-                      {/* Column 6: Aksi */}
+                        {/* Column 6: Aksi */}
                       <td className="py-4 px-5 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleResetPasswordDirect(emp)}
-                            className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-[10px] transition-all cursor-pointer font-quicksand flex items-center gap-1 active:scale-95 shadow-sm"
-                            title="Reset Kata Sandi Karyawan"
-                          >
-                            <Key className="w-3 h-3 text-orange-500" />
-                            Reset Sandi
-                          </button>
-                          
-                          <div className="flex items-center border-l border-slate-100 pl-2">
-                            {/* Lihat Sandi */}
+                        {emp.role === 'admin' ? (
+                          <span className="text-[10px] font-bold text-slate-500 bg-orange-50/80 border border-orange-200/60 px-2.5 py-1 rounded-xl inline-flex items-center gap-1 font-quicksand">
+                            <Shield className="w-3 h-3 text-orange-500" />
+                            Dikelola Direktur
+                          </span>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2">
                             <button
-                              onClick={() => handleShowPassword(emp)}
-                              className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                              title="Lihat Kata Sandi"
+                              onClick={() => handleResetPasswordDirect(emp)}
+                              className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-[10px] transition-all cursor-pointer font-quicksand flex items-center gap-1 active:scale-95 shadow-sm"
+                              title="Reset Kata Sandi Karyawan"
                             >
-                              <Eye className="w-3.5 h-3.5" />
+                              <Key className="w-3 h-3 text-orange-500" />
+                              Reset Sandi
                             </button>
-                            {/* Edit Akun Credentials */}
-                            <button
-                              onClick={() => onEditClick(emp)}
-                              className="p-1.5 text-slate-400 hover:text-red-650 hover:bg-red-550/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                              title="Edit Akun Login"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </button>
-                            {/* Edit Biodata */}
-                            <button
-                              onClick={() => handleOpenEditBio(emp)}
-                              className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                              title="Edit Biodata Lengkap"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                            </button>
-                            {/* Hapus */}
-                            <button
-                              onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                              className="p-1.5 text-slate-450 hover:text-red-750 hover:bg-red-550/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
-                              title="Hapus Karyawan"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            
+                            <div className="flex items-center border-l border-slate-100 pl-2">
+                              {/* Lihat Sandi */}
+                              <button
+                                onClick={() => handleShowPassword(emp)}
+                                className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                                title="Lihat Kata Sandi"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              {/* Edit Akun Credentials */}
+                              <button
+                                onClick={() => onEditClick(emp)}
+                                className="p-1.5 text-slate-400 hover:text-red-650 hover:bg-red-550/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                                title="Edit Akun Login"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              {/* Edit Biodata */}
+                              <button
+                                onClick={() => handleOpenEditBio(emp)}
+                                className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                                title="Edit Biodata Lengkap"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                              </button>
+                              {/* Hapus */}
+                              <button
+                                onClick={() => handleDeleteEmployee(emp.id, emp.name)}
+                                className="p-1.5 text-slate-400 hover:text-red-750 hover:bg-red-550/5 rounded-lg transition-all cursor-pointer inline-flex items-center"
+                                title="Hapus Karyawan"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -925,50 +941,59 @@ Silakan login kembali dan segera ubah kata sandi Anda di menu pengaturan.`
                   </div>
                 </div>
 
-                {/* Reset Sandi Button */}
-                <button
-                  onClick={() => handleResetPasswordDirect(emp)}
-                  className="w-full py-2.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-xs transition-all cursor-pointer font-quicksand flex items-center justify-center gap-1.5 active:scale-95"
-                >
-                  <Key className="w-3.5 h-3.5 text-orange-500" />
-                  Reset Kata Sandi Karyawan
-                </button>
-
-                {/* Actions & Registered Date */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-50 font-quicksand">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase">Reg: {formatDate(emp.created_at)}</span>
-                  
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleShowPassword(emp)}
-                      className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer"
-                      title="Lihat Kata Sandi"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onEditClick(emp)}
-                      className="p-2 text-slate-400 hover:text-red-650 hover:bg-red-550/5 rounded-xl transition-all cursor-pointer"
-                      title="Edit Akun Login"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleOpenEditBio(emp)}
-                      className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer"
-                      title="Edit Biodata Lengkap"
-                    >
-                      <FileText className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                      className="p-2 text-slate-400 hover:text-red-750 hover:bg-red-550/5 rounded-xl transition-all cursor-pointer"
-                      title="Hapus Karyawan"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                {/* Reset Sandi / Direct Status */}
+                {emp.role === 'admin' ? (
+                  <div className="text-center py-2 bg-orange-50/80 border border-orange-200/60 rounded-xl text-[10px] font-bold text-slate-600 flex items-center justify-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-orange-500" />
+                    Akun Admin HR (Dikelola Direktur)
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleResetPasswordDirect(emp)}
+                      className="w-full py-2.5 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-655 font-bold rounded-xl text-xs transition-all cursor-pointer font-quicksand flex items-center justify-center gap-1.5 active:scale-95"
+                    >
+                      <Key className="w-3.5 h-3.5 text-orange-500" />
+                      Reset Kata Sandi Karyawan
+                    </button>
+
+                    {/* Actions & Registered Date */}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-50 font-quicksand">
+                      <span className="text-[9px] text-slate-400 font-bold uppercase">Reg: {formatDate(emp.created_at)}</span>
+                      
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleShowPassword(emp)}
+                          className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer"
+                          title="Lihat Kata Sandi"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onEditClick(emp)}
+                          className="p-2 text-slate-400 hover:text-red-650 hover:bg-red-550/5 rounded-xl transition-all cursor-pointer"
+                          title="Edit Akun Login"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditBio(emp)}
+                          className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-all cursor-pointer"
+                          title="Edit Biodata Lengkap"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEmployee(emp.id, emp.name)}
+                          className="p-2 text-slate-400 hover:text-red-750 hover:bg-red-550/5 rounded-xl transition-all cursor-pointer"
+                          title="Hapus Karyawan"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ))
           )}

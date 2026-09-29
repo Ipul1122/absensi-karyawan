@@ -117,7 +117,7 @@ class EmployeeController extends Controller
         ], 201);
     }
 
-    public function destroy($id)
+    public function destroy(int|string $id)
     {
         $employee = $this->getEmployeeById($id);
 
@@ -126,6 +126,13 @@ class EmployeeController extends Controller
                 'status' => 'error',
                 'message' => 'Karyawan tidak ditemukan.'
             ], 404);
+        }
+
+        if ($employee->role === 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Hanya Direktur yang memiliki izin untuk menghapus akun Admin HR.'
+            ], 403);
         }
 
         if ($employee->status === 'pending') {
@@ -144,7 +151,7 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function approveEmployee($id)
+    public function approveEmployee(int|string $id)
     {
         $employee = $this->getEmployeeById($id);
         if (!$employee) {
@@ -154,7 +161,7 @@ class EmployeeController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Karyawan berhasil disetujui.']);
     }
 
-    public function rejectEmployee($id)
+    public function rejectEmployee(int|string $id)
     {
         $employee = $this->getEmployeeById($id);
         if (!$employee) {
@@ -164,7 +171,7 @@ class EmployeeController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Karyawan berhasil ditolak (dihapus).']);
     }
 
-    public function approveDeleteEmployee($id)
+    public function approveDeleteEmployee(int|string $id)
     {
         $employee = $this->getEmployeeById($id);
         if (!$employee) {
@@ -174,7 +181,7 @@ class EmployeeController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Penghapusan karyawan berhasil disetujui.']);
     }
 
-    public function rejectDeleteEmployee($id)
+    public function rejectDeleteEmployee(int|string $id)
     {
         $employee = $this->getEmployeeById($id);
         if (!$employee) {
@@ -184,7 +191,7 @@ class EmployeeController extends Controller
         return response()->json(['status' => 'success', 'message' => 'Penghapusan karyawan ditolak, status kembali aktif.']);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int|string $id)
     {
         $employee = $this->getEmployeeById($id);
 
@@ -193,6 +200,13 @@ class EmployeeController extends Controller
                 'status' => 'error',
                 'message' => 'Karyawan tidak ditemukan.'
             ], 404);
+        }
+
+        if ($employee->role === 'admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Hanya Direktur yang memiliki izin untuk mengubah data akun Admin HR.'
+            ], 403);
         }
 
         $rules = [
@@ -241,7 +255,7 @@ class EmployeeController extends Controller
     /**
      * Admin: Get full profile/biodata of a specific employee
      */
-    public function getEmployeeProfile($id)
+    public function getEmployeeProfile(int|string $id)
     {
         $employee = $this->getEmployeeById($id);
 
@@ -280,7 +294,7 @@ class EmployeeController extends Controller
     /**
      * Admin: Update full profile/biodata of a specific employee
      */
-    public function updateEmployeeProfile(Request $request, $id)
+    public function updateEmployeeProfile(Request $request, int|string $id)
     {
         $employee = $this->getEmployeeById($id);
 
@@ -379,7 +393,7 @@ class EmployeeController extends Controller
         ]);
     }
 
-    private function getEmployeeById($id)
+    private function getEmployeeById(int|string $id)
     {
         $query = User::where('id', $id)->whereIn('role', ['employee', 'admin']);
         return $query->first();

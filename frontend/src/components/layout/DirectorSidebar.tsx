@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Clock,
   Users,
-  Settings
+  Settings,
+  Award
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -34,9 +35,11 @@ interface DirectorSidebarProps {
 const menuItems = [
   { to: '/director/dashboard', label: 'Overview', icon: LayoutDashboard, description: 'Ringkasan persetujuan' },
   { to: '/director/karyawan', label: 'Kelola Karyawan', icon: Users, description: 'Daftar & persetujuan staf' },
+  { to: '/director/admin', label: 'Kelola Admin HR', icon: ShieldCheck, description: 'Manajemen akun Admin HR' },
   { to: '/director/gaji', label: 'Informasi Gaji', icon: Wallet, description: 'Penyesuaian kompensasi' },
   { to: '/director/payroll', label: 'Bayar Gaji', icon: Coins, description: 'Rollout gaji bulanan' },
   { to: '/director/operasional', label: 'Operasional', icon: FileCheck, description: 'Cuti, lembur & klaim' },
+  { to: '/director/kpi', label: 'Kinerja & KPI', icon: Award, description: 'Laporan kerja & KPI staf' },
   { to: '/director/log-kehadiran', label: 'Log Kehadiran', icon: Clock, description: 'Aktivitas absensi staf' },
   { to: '/director/pengaturan', label: 'Pengaturan', icon: Settings, description: 'Profil & kata sandi' },
 ]

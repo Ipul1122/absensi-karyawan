@@ -9,8 +9,10 @@ import PersetujuanKaryawan from './persetujuan/PersetujuanKaryawan'
 import PersetujuanGaji from './persetujuan/PersetujuanGaji'
 import PersetujuanPayroll from './persetujuan/PersetujuanPayroll'
 import PersetujuanOperational from './persetujuan/PersetujuanOperational'
+import DirectorKpi from './persetujuan/DirectorKpi'
 import LogKehadiran from './kehadiran/LogKehadiran'
 import DirectorSettings from './pengaturan/DirectorSettings'
+import KelolaAdmin from './admin/KelolaAdmin'
 
 interface User {
   id: number
@@ -65,9 +67,11 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
   let pageTitle = 'Dashboard Utama'
   let pageSubtitle = 'Selamat datang, pantau semua persetujuan yang menunggu tindakan Anda'
   if (path.includes('/karyawan')) { pageTitle = 'Kelola Karyawan'; pageSubtitle = 'Pantau direktori lengkap serta kelola persetujuan registrasi/penghapusan akun' }
+  else if (path.includes('/admin')) { pageTitle = 'Kelola Admin HR'; pageSubtitle = 'Manajemen penuh pendaftaran, pembaruan data, dan hak akses akun Admin HR' }
   else if (path.includes('/gaji')) { pageTitle = 'Persetujuan Gaji'; pageSubtitle = 'Setujui atau tolak penyesuaian nominal gaji dan tunjangan karyawan' }
   else if (path.includes('/payroll')) { pageTitle = 'Persetujuan Payroll Bulanan'; pageSubtitle = 'Validasi dan sahkan rekap slip gaji karyawan sebelum ditransfer' }
   else if (path.includes('/operasional')) { pageTitle = 'Persetujuan Operasional'; pageSubtitle = 'Proses pengajuan cuti, lembur, klaim biaya, bonus, dan inventaris barang' }
+  else if (path.includes('/kpi')) { pageTitle = 'Kinerja & KPI Staf'; pageSubtitle = 'Evaluasi to-do list harian staf admin dan pantau pencapaian KPI seluruh karyawan' }
   else if (path.includes('/log-kehadiran')) { pageTitle = 'Log Kehadiran'; pageSubtitle = 'Pantau riwayat aktivitas absensi harian karyawan dan admin' }
   else if (path.includes('/pengaturan')) { pageTitle = 'Pengaturan Akun'; pageSubtitle = 'Ubah biodata nama dan kata sandi login Anda' }
 
@@ -135,9 +139,11 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
           <Routes>
             <Route path="dashboard" element={<DirekturOverview token={token} />} />
             <Route path="karyawan" element={<PersetujuanKaryawan token={token} onApprovalChange={fetchPendingCounts} />} />
+            <Route path="admin" element={<KelolaAdmin token={token} />} />
             <Route path="gaji" element={<PersetujuanGaji token={token} onApprovalChange={fetchPendingCounts} />} />
             <Route path="payroll" element={<PersetujuanPayroll token={token} />} />
             <Route path="operasional" element={<PersetujuanOperational token={token} />} />
+            <Route path="kpi" element={<DirectorKpi token={token} />} />
             <Route path="log-kehadiran" element={<LogKehadiran token={token} />} />
             <Route path="pengaturan" element={<DirectorSettings user={user} token={token} onProfileUpdate={onProfileUpdate} />} />
             <Route path="" element={<Navigate to="dashboard" replace />} />

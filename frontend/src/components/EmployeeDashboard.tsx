@@ -38,6 +38,7 @@ import EmployeePayroll from './employee/payroll/EmployeePayroll'
 import EmployeeReimbursement from './employee/operasional/EmployeeReimbursement'
 import EmployeeBonus from './employee/payroll/EmployeeBonus'
 import EmployeeOvertime from './employee/operasional/EmployeeOvertime'
+import EmployeeKpi from './employee/kpi/EmployeeKpi'
 import OverviewHeader from './employee/dashboard/overview/OverviewHeader'
 import { overviewLayout, PAGE_BG } from './employee/dashboard/overview/overviewTheme'
 import {
@@ -428,6 +429,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     if (path.includes('client')) {
       return { title: 'Kunjungan Klien (Client Visit)', subtitle: 'Clock In / Out' }
     }
+    if (path.includes('kpi')) {
+      return { title: 'Target & To-Do List Harian', subtitle: 'Laporan Kinerja & Presensi Harian' }
+    }
     if (path.includes('cuti')) {
       return { title: 'Pengajuan Cuti', subtitle: 'Leave Request' }
     }
@@ -776,6 +780,14 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
               path="lembur" 
               element={
                 <EmployeeOvertime
+                  token={token}
+                />
+              } 
+            />
+            <Route 
+              path="kpi" 
+              element={
+                <EmployeeKpi
                   token={token}
                 />
               } 

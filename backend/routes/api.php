@@ -22,6 +22,8 @@ use App\Http\Controllers\PermitController;
 use App\Http\Controllers\ScheduleOverrideController;
 use App\Http\Controllers\SidebarNotificationController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\KpiController;
+use App\Http\Controllers\AdminManagementController;
 
 Route::get('/health-check', function () {
     try {
@@ -114,6 +116,20 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     Route::delete('/overtimes/{id}', [OvertimeController::class, 'destroy']);
     Route::get('/schedule-overrides/my', [ScheduleOverrideController::class, 'getMyOverrides']);
 
+    // Employee KPI & Daily To-Do List routes
+    Route::get('/kpi/my-responsibilities', [KpiController::class, 'getMyResponsibilities']);
+    Route::get('/kpi/by-date', [KpiController::class, 'getReportByDate']);
+    Route::post('/kpi/tasks', [KpiController::class, 'addTask']);
+    Route::post('/kpi/tasks/bulk', [KpiController::class, 'bulkAddTasks']);
+    Route::post('/kpi/tasks/{id}/upload-photo', [KpiController::class, 'uploadTaskPhoto']);
+    Route::delete('/kpi/tasks/{id}/delete-photo', [KpiController::class, 'deleteTaskPhoto']);
+    Route::put('/kpi/tasks/{id}', [KpiController::class, 'updateTask']);
+    Route::patch('/kpi/tasks/{id}/status', [KpiController::class, 'updateTaskStatus']);
+    Route::delete('/kpi/tasks/{id}', [KpiController::class, 'deleteTask']);
+    Route::post('/kpi/submit-daily', [KpiController::class, 'submitDailyReport']);
+    Route::post('/kpi/carry-over', [KpiController::class, 'carryOverTasks']);
+    Route::get('/kpi/history', [KpiController::class, 'getHistory']);
+
     // Admin or Director routes (Read only for Director)
     Route::middleware('admin_or_director')->group(function () {
         Route::get('/admin/employees/backup', [BackupController::class, 'backup']);
@@ -137,6 +153,8 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::get('/admin/schedule-overrides', [ScheduleOverrideController::class, 'index']);
         Route::delete('/admin/bonuses/{id}', [BonusController::class, 'destroy']);
         Route::delete('/admin/inventories/{id}', [InventoryController::class, 'destroy']);
+        Route::get('/admin/responsibilities', [KpiController::class, 'getResponsibilities']);
+        Route::get('/admin/kpi/reports', [KpiController::class, 'getAdminReports']);
     });
 
     // Admin only modifying routes
@@ -201,6 +219,12 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::get('/admin/recycle-bin', [\App\Http\Controllers\RecycleBinController::class, 'index']);
         Route::post('/admin/recycle-bin/{id}/restore', [\App\Http\Controllers\RecycleBinController::class, 'restore']);
         Route::delete('/admin/recycle-bin/{id}', [\App\Http\Controllers\RecycleBinController::class, 'destroy']);
+
+        // Admin KPI routes
+        Route::post('/admin/responsibilities', [KpiController::class, 'storeResponsibility']);
+        Route::put('/admin/responsibilities/{id}', [KpiController::class, 'updateResponsibility']);
+        Route::delete('/admin/responsibilities/{id}', [KpiController::class, 'destroyResponsibility']);
+        Route::post('/admin/kpi/reports/{id}/review', [KpiController::class, 'reviewReportAdmin']);
     });
 
     // Director only approval routes
@@ -251,6 +275,20 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         // Inventory approvals
         Route::put('/director/inventories/{id}/approve', [InventoryController::class, 'directorApprove']);
         Route::put('/director/inventories/{id}/reject', [InventoryController::class, 'directorReject']);
+
+        // Director KPI routes
+        Route::get('/director/kpi/overview', [KpiController::class, 'getDirectorOverview']);
+        Route::get('/director/kpi/admin-reports', [KpiController::class, 'getAdminReportsForDirector']);
+        Route::post('/director/kpi/reports/{id}/review', [KpiController::class, 'reviewReportDirector']);
+        Route::post('/director/responsibilities', [KpiController::class, 'storeResponsibility']);
+        Route::put('/director/responsibilities/{id}', [KpiController::class, 'updateResponsibility']);
+        Route::delete('/director/responsibilities/{id}', [KpiController::class, 'destroyResponsibility']);
+
+        // Director Admin HR Management routes (Full CRUD)
+        Route::get('/director/admins', [AdminManagementController::class, 'index']);
+        Route::post('/director/admins', [AdminManagementController::class, 'store']);
+        Route::put('/director/admins/{id}', [AdminManagementController::class, 'update']);
+        Route::delete('/director/admins/{id}', [AdminManagementController::class, 'destroy']);
     });
 
     // Employee Payroll routes

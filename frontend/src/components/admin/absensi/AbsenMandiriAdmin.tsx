@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import L from 'leaflet'
@@ -63,6 +64,7 @@ interface AbsenMandiriAdminProps {
 }
 
 export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProps) {
+  const navigate = useNavigate()
   // Time state
   const [time, setTime] = useState(new Date())
   
@@ -454,14 +456,51 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
       )
 
       if (response.data.status === 'success') {
-        Swal.fire({
-          title: 'Berhasil!',
-          text: response.data.message,
-          icon: 'success',
-          timer: 2000,
-          showConfirmButton: false,
-          background: '#ffffff',
-        })
+        const isCheckIn = modalType === 'check-in'
+        if (isCheckIn) {
+          Swal.fire({
+            title: 'Absen Masuk Berhasil!',
+            text: response.data.message,
+            icon: 'success',
+            timer: 1600,
+            showConfirmButton: false,
+            background: '#ffffff',
+          }).then(() => {
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'info',
+              title: 'Jangan lupa buat laporan kerja',
+              text: 'Presensi masuk tercatat. Yuk susun to-do list & laporan kerja hari ini!',
+              showConfirmButton: true,
+              confirmButtonText: 'Buat Laporan',
+              confirmButtonColor: '#dc2626',
+              showCancelButton: true,
+              cancelButtonText: 'Nanti',
+              cancelButtonColor: '#64748b',
+              timer: 6500,
+              timerProgressBar: true,
+              background: '#ffffff',
+              color: '#1e293b',
+              customClass: {
+                popup: 'shadow-2xl border border-red-200 rounded-xl'
+              }
+            }).then((res) => {
+              if (res.isConfirmed) {
+                navigate('/admin/kpi')
+              }
+            })
+          })
+        } else {
+          Swal.fire({
+            title: 'Berhasil!',
+            text: response.data.message,
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false,
+            background: '#ffffff',
+          })
+        }
         closeConsole()
         await fetchData()
       }

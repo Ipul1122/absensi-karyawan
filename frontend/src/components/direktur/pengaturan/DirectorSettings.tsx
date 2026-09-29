@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import {
@@ -521,6 +522,25 @@ export default function DirectorSettings({ user, token, onProfileUpdate }: Direc
               <div className="text-[11px] text-slate-500 leading-relaxed">
                 <strong className="text-slate-700">Rekomendasi Keamanan:</strong> Gunakan kombinasi huruf besar-kecil, angka, dan simbol unik. Ganti kata sandi secara berkala minimal 3-6 bulan sekali, dan hindari menggunakan kata sandi yang sama dengan situs web lain.
               </div>
+            </div>
+
+            {/* Quick Link to Kelola Admin HR */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4.5 bg-gradient-to-r from-red-50 to-orange-50 border border-orange-200/70 rounded-2xl shadow-xs">
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-red-600" />
+                  Manajemen Akun Admin HR
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Kelola pendaftaran, pembaruan data, hingga penghapusan akun Admin HR di sini.
+                </p>
+              </div>
+              <Link
+                to="/director/admin"
+                className="shrink-0 px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-xl text-xs shadow-md transition-all active:scale-95"
+              >
+                Buka Kelola Admin
+              </Link>
             </div>
           </section>
         </>

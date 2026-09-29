@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 
 #[Fillable([
@@ -43,5 +44,13 @@ class Attendance extends Model
     public function shift(): BelongsTo
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    /**
+     * Get the daily work report associated with the attendance record.
+     */
+    public function dailyWorkReport(): HasOne
+    {
+        return $this->hasOne(DailyWorkReport::class);
     }
 }

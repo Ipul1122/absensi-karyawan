@@ -2,13 +2,11 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import {
-  CheckCircle2,
   Star,
   Plus,
   Trash2,
   Edit2,
   X,
-  Clock,
   ShieldCheck,
   FileSpreadsheet
 } from 'lucide-react'
@@ -74,14 +72,28 @@ interface AdminReport {
 
 interface AdminKpiProps {
   token: string
+  user?: {
+    id: number
+    name: string
+    email: string
+    role: 'admin' | 'employee'
+    photo?: string | null
+  }
+  initialTab?: 'monitoring' | 'responsibilities' | 'my_todo'
 }
 
-export default function AdminKpi({ token }: AdminKpiProps) {
+export default function AdminKpi({ token, user, initialTab = 'monitoring' }: AdminKpiProps) {
   const getTodayJakarta = () => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date())
   }
 
-  const [activeTab, setActiveTab] = useState<'monitoring' | 'responsibilities' | 'my_todo'>('monitoring')
+  const [activeTab, setActiveTab] = useState<'monitoring' | 'responsibilities' | 'my_todo'>(initialTab)
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab])
 
   // TAB 1: MONITORING
   const [filterDate, setFilterDate] = useState(getTodayJakarta())
@@ -333,7 +345,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
     }
 
     const rows = reports.map((r, idx) => {
-      const taskList = r.tasks?.map(t => `${t.status === 'completed' ? '[V]' : '[X]'} ${t.title}`).join('; ') || '-'
+      const taskList = r.tasks?.map(t => `${t.status === 'completed' ? '[🟢 Selesai]' : t.status === 'revision' ? '[🟡 Revisi]' : '[🔴 Proses]'} ${t.title}`).join('; ') || '-'
       return `
         <tr>
           <td style="text-align: center;">${idx + 1}</td>
@@ -408,10 +420,10 @@ export default function AdminKpi({ token }: AdminKpiProps) {
           TOP NAVIGATION TABS
       ══════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200/90 rounded-2xl p-2.5 shadow-xs">
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setActiveTab('monitoring')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'monitoring'
                 ? 'bg-red-600 text-white shadow-sm shadow-red-600/20'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
@@ -421,7 +433,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
           </button>
           <button
             onClick={() => setActiveTab('responsibilities')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'responsibilities'
                 ? 'bg-red-600 text-white shadow-sm shadow-red-600/20'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
@@ -431,7 +443,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
           </button>
           <button
             onClick={() => setActiveTab('my_todo')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'my_todo'
                 ? 'bg-red-600 text-white shadow-sm shadow-red-600/20'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
@@ -442,14 +454,24 @@ export default function AdminKpi({ token }: AdminKpiProps) {
         </div>
 
         {activeTab === 'monitoring' && (
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end pr-1">
-            <span className="text-xs font-semibold text-slate-500 hidden sm:inline">Tanggal:</span>
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500/20"
-            />
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+            <span className="text-xs font-semibold text-slate-500">Tanggal:</span>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="px-2.5 sm:px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500/20"
+              />
+              <button
+                type="button"
+                onClick={() => setFilterDate(getTodayJakarta())}
+                className="px-2 sm:px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+                title="Kembali ke Hari Ini"
+              >
+                Hari Ini
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -458,36 +480,36 @@ export default function AdminKpi({ token }: AdminKpiProps) {
           TAB 1: MONITORING LAPORAN KERJA STAF
       ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'monitoring' && (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Summary Cards */}
           {summaryMetrics && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Karyawan</span>
-                <p className="text-2xl font-black text-slate-800 mt-1">{summaryMetrics.total_employees}</p>
-                <span className="text-[11px] text-slate-400 font-medium">Status aktif</span>
+                <p className="text-xl sm:text-2xl font-black text-slate-800 mt-1">{summaryMetrics.total_employees}</p>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">Status aktif</span>
               </div>
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Presensi Hari Ini</span>
-                <p className="text-2xl font-black text-emerald-600 mt-1">{summaryMetrics.attended_employees}</p>
-                <span className="text-[11px] text-emerald-600/90 font-medium">Karyawan hadir</span>
+                <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-1">{summaryMetrics.attended_employees}</p>
+                <span className="text-[10px] sm:text-[11px] text-emerald-600/90 font-medium">Karyawan hadir</span>
               </div>
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Laporan Masuk</span>
-                <p className="text-2xl font-black text-red-600 mt-1">{summaryMetrics.submitted_reports}</p>
-                <span className="text-[11px] text-red-600/90 font-medium">Telah disubmit</span>
+                <p className="text-xl sm:text-2xl font-black text-red-600 mt-1">{summaryMetrics.submitted_reports}</p>
+                <span className="text-[10px] sm:text-[11px] text-red-600/90 font-medium">Telah disubmit</span>
               </div>
-              <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rata-rata Capaian</span>
-                <p className="text-2xl font-black text-amber-500 mt-1">{summaryMetrics.average_completion_rate}%</p>
-                <span className="text-[11px] text-amber-600/90 font-medium">Tugas terselesaikan</span>
+                <p className="text-xl sm:text-2xl font-black text-amber-500 mt-1">{summaryMetrics.average_completion_rate}%</p>
+                <span className="text-[10px] sm:text-[11px] text-amber-600/90 font-medium">Tugas terselesaikan</span>
               </div>
             </div>
           )}
 
           {/* Table List of Reports */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+          <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-5">
               <div>
                 <h3 className="text-sm sm:text-base font-extrabold text-slate-800">
                   Laporan Kerja Harian Karyawan ({reports.length})
@@ -498,11 +520,11 @@ export default function AdminKpi({ token }: AdminKpiProps) {
               </div>
 
               {/* Filters & Export Excel */}
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
                 <select
                   value={filterDivision}
                   onChange={(e) => setFilterDivision(e.target.value)}
-                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none cursor-pointer"
+                  className="px-3 py-2 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none cursor-pointer w-full sm:w-auto"
                 >
                   <option value="all">Semua Divisi</option>
                   {Array.from(new Set(employees.map(e => e.division).filter(Boolean))).map((div: any) => (
@@ -513,17 +535,17 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none cursor-pointer"
+                  className="px-3 py-2 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none cursor-pointer w-full sm:w-auto"
                 >
                   <option value="all">Semua Status</option>
                   <option value="draft">Draft</option>
                   <option value="submitted">Menunggu Review</option>
-                  <option value="reviewed_admin">Sudah Direview Admin</option>
+                  <option value="reviewed_admin">Sudah Direview</option>
                 </select>
 
                 <button
                   onClick={handleExportAdminKpiExcel}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer shrink-0"
+                  className="col-span-2 sm:col-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer shrink-0"
                   title="Export seluruh laporan hari ini ke file Excel"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -540,99 +562,201 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                 <p className="text-xs text-slate-400 mt-1">Belum ada karyawan yang mengisi to-do list pada {filterDate}.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs min-w-[650px]">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 font-black uppercase tracking-wider text-[10px]">
-                      <th className="pb-3 pl-2">Karyawan</th>
-                      <th className="pb-3">Presensi Masuk</th>
-                      <th className="pb-3">Jumlah Tugas</th>
-                      <th className="pb-3">Progres Capaian</th>
-                      <th className="pb-3">Rating Admin</th>
-                      <th className="pb-3 text-right pr-2">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium">
-                    {reports.map((r) => {
-                      const completedCount = r.tasks?.filter(t => t.status === 'completed').length || 0
-                      const totalCount = r.tasks?.length || 0
+              <>
+                {/* ── MOBILE VIEW: CARD LIST (md:hidden) ── */}
+                <div className="block md:hidden space-y-3">
+                  {reports.map((r) => {
+                    const completedCount = r.tasks?.filter(t => t.status === 'completed').length || 0
+                    const totalCount = r.tasks?.length || 0
 
-                      return (
-                        <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3.5 pl-2">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center shrink-0 overflow-hidden text-xs">
-                                {r.user?.photo ? (
-                                  <img src={getAssetUrl(r.user.photo)} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  r.user?.name?.charAt(0).toUpperCase()
-                                )}
-                              </div>
-                              <div>
-                                <p className="font-extrabold text-slate-800 leading-tight">{r.user?.name}</p>
-                                <p className="text-[10px] text-slate-400">{r.user?.division || 'Karyawan'}</p>
-                              </div>
+                    return (
+                      <div
+                        key={r.id}
+                        className="p-3.5 bg-slate-50/70 border border-slate-200/80 rounded-2xl space-y-3 hover:border-red-200 transition-all"
+                      >
+                        {/* Header: User Info & Presensi */}
+                        <div className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-9 h-9 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center shrink-0 overflow-hidden text-xs border border-red-200/60">
+                              {r.user?.photo ? (
+                                <img src={getAssetUrl(r.user.photo)} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                r.user?.name?.charAt(0).toUpperCase()
+                              )}
                             </div>
-                          </td>
-                          <td className="py-3.5">
+                            <div className="min-w-0">
+                              <p className="font-extrabold text-slate-800 text-xs truncate leading-tight">{r.user?.name}</p>
+                              <p className="text-[10px] text-slate-400 truncate">{r.user?.division || 'Karyawan'}</p>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 text-right">
                             {r.attendance?.clock_in ? (
-                              <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[11px]">
+                              <span className="inline-block font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[10px]">
                                 {r.attendance.clock_in.substring(0, 5)} WIB
                               </span>
                             ) : (
-                              <span className="text-slate-400 italic text-[11px]">Belum Absen</span>
-                            )}
-                          </td>
-                          <td className="py-3.5">
-                            <span className="font-bold text-slate-700">
-                              {completedCount} / {totalCount} Selesai
-                            </span>
-                          </td>
-                          <td className="py-3.5 min-w-[140px]">
-                            <div className="flex items-center gap-2">
-                              <div className="w-20 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
-                                <div
-                                  className={`h-full rounded-full ${
-                                    r.completion_rate >= 80 ? 'bg-emerald-500' :
-                                    r.completion_rate >= 50 ? 'bg-amber-500' : 'bg-red-600'
-                                  }`}
-                                  style={{ width: `${r.completion_rate}%` }}
-                                />
-                              </div>
-                              <span className="font-bold text-slate-700 text-[11px]">
-                                {r.completion_rate}%
+                              <span className="inline-block text-slate-400 italic text-[10px] bg-slate-100 px-1.5 py-0.5 rounded">
+                                Belum Absen
                               </span>
-                            </div>
-                          </td>
-                          <td className="py-3.5">
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar & Rate */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px] font-bold">
+                            <span className="text-slate-600">Progres ({completedCount}/{totalCount} selesai)</span>
+                            <span className={r.completion_rate >= 80 ? 'text-emerald-600' : r.completion_rate >= 50 ? 'text-amber-600' : 'text-red-600'}>
+                              {r.completion_rate}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-300 ${
+                                r.completion_rate >= 80 ? 'bg-emerald-500' :
+                                r.completion_rate >= 50 ? 'bg-amber-500' : 'bg-red-600'
+                              }`}
+                              style={{ width: `${r.completion_rate}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Summary / Notes if any */}
+                        {r.summary && (
+                          <p className="text-[11px] text-slate-600 italic bg-white p-2 rounded-xl border border-slate-200/60 line-clamp-2">
+                            "{r.summary}"
+                          </p>
+                        )}
+
+                        {/* Rating & Action Row */}
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/60">
+                          <div>
                             {r.admin_rating ? (
                               <div className="flex items-center gap-0.5 text-red-600">
                                 {[...Array(r.admin_rating)].map((_, i) => (
                                   <Star key={i} className="w-3.5 h-3.5 fill-red-600 text-red-600" />
                                 ))}
+                                <span className="text-[10px] font-bold text-red-700 ml-1">({r.admin_rating}/5)</span>
                               </div>
                             ) : (
-                              <span className="text-slate-400 italic text-[11px]">Belum Dinilai</span>
+                              <span className="text-slate-400 italic text-[10px] bg-slate-100 px-2 py-0.5 rounded">
+                                Belum Dinilai
+                              </span>
                             )}
-                          </td>
-                          <td className="py-3.5 text-right pr-2">
-                            <button
-                              onClick={() => {
-                                setSelectedReport(r)
-                                setRatingInput(r.admin_rating || 5)
-                                setNotesInput(r.admin_notes || '')
-                              }}
-                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer"
-                            >
-                              Lihat & Review
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              setSelectedReport(r)
+                              setRatingInput(r.admin_rating || 5)
+                              setNotesInput(r.admin_notes || '')
+                            }}
+                            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-xs shadow-red-600/20 transition-all cursor-pointer"
+                          >
+                            Lihat & Review
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* ── DESKTOP VIEW: TABLE (hidden md:block) ── */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[650px]">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-slate-400 font-black uppercase tracking-wider text-[10px]">
+                        <th className="pb-3 pl-2">Karyawan</th>
+                        <th className="pb-3">Presensi Masuk</th>
+                        <th className="pb-3">Jumlah Tugas</th>
+                        <th className="pb-3">Progres Capaian</th>
+                        <th className="pb-3">Rating Admin</th>
+                        <th className="pb-3 text-right pr-2">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium">
+                      {reports.map((r) => {
+                        const completedCount = r.tasks?.filter(t => t.status === 'completed').length || 0
+                        const totalCount = r.tasks?.length || 0
+
+                        return (
+                          <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3.5 pl-2">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center shrink-0 overflow-hidden text-xs">
+                                  {r.user?.photo ? (
+                                    <img src={getAssetUrl(r.user.photo)} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    r.user?.name?.charAt(0).toUpperCase()
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-extrabold text-slate-800 leading-tight">{r.user?.name}</p>
+                                  <p className="text-[10px] text-slate-400">{r.user?.division || 'Karyawan'}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5">
+                              {r.attendance?.clock_in ? (
+                                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[11px]">
+                                  {r.attendance.clock_in.substring(0, 5)} WIB
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">Belum Absen</span>
+                              )}
+                            </td>
+                            <td className="py-3.5">
+                              <span className="font-bold text-slate-700">
+                                {completedCount} / {totalCount} Selesai
+                              </span>
+                            </td>
+                            <td className="py-3.5 min-w-[140px]">
+                              <div className="flex items-center gap-2">
+                                <div className="w-20 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      r.completion_rate >= 80 ? 'bg-emerald-500' :
+                                      r.completion_rate >= 50 ? 'bg-amber-500' : 'bg-red-600'
+                                    }`}
+                                    style={{ width: `${r.completion_rate}%` }}
+                                  />
+                                </div>
+                                <span className="font-bold text-slate-700 text-[11px]">
+                                  {r.completion_rate}%
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3.5">
+                              {r.admin_rating ? (
+                                <div className="flex items-center gap-0.5 text-red-600">
+                                  {[...Array(r.admin_rating)].map((_, i) => (
+                                    <Star key={i} className="w-3.5 h-3.5 fill-red-600 text-red-600" />
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">Belum Dinilai</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 text-right pr-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedReport(r)
+                                  setRatingInput(r.admin_rating || 5)
+                                  setNotesInput(r.admin_notes || '')
+                                }}
+                                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer"
+                              >
+                                Lihat & Review
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -643,8 +767,8 @@ export default function AdminKpi({ token }: AdminKpiProps) {
       ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'responsibilities' && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+          <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-sm sm:text-base font-extrabold text-slate-800">
                   Daftar Tanggung Jawab & Target KPI Karyawan
@@ -654,11 +778,11 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <select
                   value={selectedEmployeeId}
                   onChange={(e) => setSelectedEmployeeId(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+                  className="w-full sm:w-auto px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
                 >
                   <option value="all">Semua Karyawan</option>
                   {employees.map(emp => (
@@ -671,7 +795,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                     resetRespForm()
                     setShowAddRespModal(true)
                   }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-red-600/20 transition-all cursor-pointer shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-red-600/20 transition-all cursor-pointer shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Tambah Tanggung Jawab
@@ -687,7 +811,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                 <p className="text-xs text-slate-400 mt-1">Klik tombol "+ Tambah Tanggung Jawab" di atas untuk menambahkan.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 mt-4 sm:mt-5">
                 {responsibilities.map((resp) => (
                   <div key={resp.id} className="bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between hover:border-red-200 hover:shadow-xs transition-all">
                     <div>
@@ -713,7 +837,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                       <span className="text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200/60 truncate max-w-[170px]">
                         🎯 {resp.target_indicator || 'Umum'}
                       </span>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => {
                             setEditingResp(resp)
@@ -723,14 +847,14 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                             setRespTarget(resp.target_indicator || '')
                             setShowAddRespModal(true)
                           }}
-                          className="p-1 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50 cursor-pointer"
+                          className="p-1.5 text-slate-500 hover:text-red-600 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
                           title="Edit"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteResponsibility(resp.id)}
-                          className="p-1 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50 cursor-pointer"
+                          className="p-1.5 text-slate-500 hover:text-red-600 rounded-lg hover:bg-red-50 cursor-pointer transition-colors"
                           title="Hapus"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -750,7 +874,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
       ══════════════════════════════════════════════════════════════════ */}
       {activeTab === 'my_todo' && (
         <div className="space-y-4">
-          <div className="bg-red-50/60 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
+          <div className="bg-red-50/60 border border-red-200 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-red-600/20">
               <ShieldCheck className="w-5 h-5" />
             </div>
@@ -764,7 +888,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
             </div>
           </div>
 
-          <EmployeeKpi token={token} />
+          <EmployeeKpi token={token} user={user} />
         </div>
       )}
 
@@ -772,11 +896,11 @@ export default function AdminKpi({ token }: AdminKpiProps) {
           MODAL DETAIL LAPORAN & BERI REVIEW ADMIN
       ══════════════════════════════════════════════════════════════════ */}
       {selectedReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-2xl border border-slate-100 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl border border-slate-100 shadow-2xl space-y-4 sm:space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center text-sm">
+                <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center text-xs sm:text-sm shrink-0">
                   {selectedReport.user?.photo ? (
                     <img src={getAssetUrl(selectedReport.user.photo)} alt="" className="w-full h-full object-cover rounded-full" />
                   ) : (
@@ -784,10 +908,10 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                   )}
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-extrabold text-slate-800">
+                  <h3 className="text-sm sm:text-base font-extrabold text-slate-800 leading-tight">
                     Laporan Kerja: {selectedReport.user?.name}
                   </h3>
-                  <p className="text-xs text-slate-400 font-medium">
+                  <p className="text-[11px] sm:text-xs text-slate-400 font-medium">
                     Tanggal: {selectedReport.date} · {selectedReport.completion_rate}% Selesai
                   </p>
                 </div>
@@ -801,7 +925,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
             </div>
 
             {selectedReport.summary && (
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-3.5">
                 <span className="text-[10px] font-black uppercase text-slate-400">Ringkasan dari Karyawan:</span>
                 <p className="text-xs text-slate-700 mt-1 italic leading-relaxed">
                   "{selectedReport.summary}"
@@ -816,17 +940,24 @@ export default function AdminKpi({ token }: AdminKpiProps) {
               {selectedReport.tasks?.map((t) => (
                 <div key={t.id} className="p-3 bg-slate-50/70 border border-slate-200/70 rounded-2xl flex items-center justify-between gap-3">
                   <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                    <span className="mt-0.5">
-                      {t.status === 'completed' ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      ) : (
-                        <Clock className="w-4 h-4 text-amber-500" />
-                      )}
+                    <span className="mt-0.5 text-xs">
+                      {t.status === 'completed' ? '🟢' : t.status === 'revision' ? '🟡' : '🔴'}
                     </span>
-                    <div className="min-w-0">
-                      <p className={`text-xs font-bold ${t.status === 'completed' ? 'text-slate-800' : 'text-slate-700'}`}>
-                        {t.title}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className={`text-xs font-bold ${t.status === 'completed' ? 'text-slate-800' : 'text-slate-700'}`}>
+                          {t.title}
+                        </p>
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${
+                          t.status === 'completed'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : t.status === 'revision'
+                              ? 'bg-amber-50 text-amber-800 border-amber-200'
+                              : 'bg-red-50 text-red-700 border-red-200'
+                        }`}>
+                          {t.status === 'completed' ? '🟢 Telah Selesai' : t.status === 'revision' ? '🟡 Revisi' : '🔴 Proses'}
+                        </span>
+                      </div>
                       {t.description && (
                         <p className="text-[11px] text-slate-500 mt-0.5">{t.description}</p>
                       )}
@@ -851,7 +982,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
             </div>
 
             {/* Form Review Admin */}
-            <div className="border-t border-slate-100 pt-4 space-y-3">
+            <div className="border-t border-slate-100 pt-3 sm:pt-4 space-y-3">
               <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
                 Beri Penilaian & Feedback Admin
               </h4>
@@ -894,11 +1025,11 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setSelectedReport(null)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                  className="px-4 py-2.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer text-center"
                 >
                   Tutup
                 </button>
@@ -906,7 +1037,7 @@ export default function AdminKpi({ token }: AdminKpiProps) {
                   type="button"
                   onClick={handleSaveReview}
                   disabled={submittingReview}
-                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-red-600/20 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-red-600/20 cursor-pointer disabled:opacity-50 text-center"
                 >
                   {submittingReview ? 'Menyimpan...' : 'Simpan Review & Rating'}
                 </button>
@@ -918,10 +1049,10 @@ export default function AdminKpi({ token }: AdminKpiProps) {
 
       {/* MODAL TAMBAH / EDIT TANGGUNG JAWAB */}
       {showAddRespModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <form onSubmit={handleSaveResponsibility} className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md border border-slate-100 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-xs">
+          <form onSubmit={handleSaveResponsibility} className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-md border border-slate-100 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-extrabold text-slate-800">
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-800">
                 {editingResp ? 'Edit Tanggung Jawab' : 'Tambah Tanggung Jawab / KPI'}
               </h3>
               <button
@@ -994,18 +1125,18 @@ export default function AdminKpi({ token }: AdminKpiProps) {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <div className="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setShowAddRespModal(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
+                className="px-4 py-2.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer text-center"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={savingResp}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-red-600/20 cursor-pointer disabled:opacity-50"
+                className="px-5 py-2.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-red-600/20 cursor-pointer disabled:opacity-50 text-center"
               >
                 {savingResp ? 'Menyimpan...' : 'Simpan'}
               </button>

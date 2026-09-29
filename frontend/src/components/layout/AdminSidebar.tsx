@@ -21,7 +21,9 @@ import {
   UserCircle2,
   UserCheck,
   Database,
-  CheckSquare
+  CheckSquare,
+  ListTodo,
+  BookOpen
 } from 'lucide-react'
 import Logo from './Logo'
 
@@ -59,6 +61,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
 
   const [isOperasionalOpen, setIsOperasionalOpen] = useState(() => {
     return [
+      '/admin/todo',
+      '/admin/kpi-saya',
       '/admin/kpi',
       '/admin/cuti',
       '/admin/izin',
@@ -97,6 +101,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
     }
     if (
       [
+        '/admin/todo',
+        '/admin/kpi-saya',
         '/admin/kpi',
         '/admin/cuti',
         '/admin/izin',
@@ -146,7 +152,8 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
       label: 'Operasional',
       icon: ClipboardList,
       children: [
-        { to: '/admin/kpi', label: 'Kinerja (KPI)', icon: CheckSquare },
+        { to: '/admin/todo', label: 'To-Do List Saya (HR)', icon: ListTodo },
+        { to: '/admin/kpi', label: 'Monitoring KPI Tim', icon: CheckSquare },
         { to: '/admin/cuti', label: 'Cuti', icon: CalendarDays },
         { to: '/admin/izin', label: 'Izin', icon: ClipboardList },
         { to: '/admin/inventaris', label: 'Inventaris', icon: Package },
@@ -176,6 +183,7 @@ export default function AdminSidebar({ user, onLogout, onClose, counts }: AdminS
         { to: '/admin/backup', label: 'Backup & Restore', icon: Database },
       ]
     },
+    { to: '/admin/panduan', label: 'Buku Panduan', icon: BookOpen },
   ]
 
   const handleLinkClick = () => {

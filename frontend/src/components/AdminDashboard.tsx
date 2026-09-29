@@ -36,6 +36,7 @@ const AdminOvertime = lazy(() => import('./admin/operasional/AdminOvertime'))
 const AdminKpi = lazy(() => import('./admin/operasional/AdminKpi'))
 const KelolaShift = lazy(() => import('./admin/pengaturan/KelolaShift'))
 const AdminKelolaJadwalKhusus = lazy(() => import('./admin/pengaturan/AdminKelolaJadwalKhusus'))
+const PanduanAdmin = lazy(() => import('./admin/panduan/PanduanAdmin'))
 
 const AddEmployeeModal = lazy(() => import('./admin/dataKaryawan/AddEmployeeModal'))
 const EditEmployeeModal = lazy(() => import('./admin/dataKaryawan/EditEmployeeModal'))
@@ -822,6 +823,9 @@ ${window.location.origin}/director/karyawan`
     if (path.includes('lembur')) {
       return { title: 'Manajemen Lembur Karyawan', subtitle: 'Employee Overtime' }
     }
+    if (path.includes('panduan')) {
+      return { title: 'Buku Panduan Admin & HR', subtitle: 'User Manual & Guides' }
+    }
     return { title: 'Dashboard Monitoring', subtitle: 'Overview' }
   }
 
@@ -1157,8 +1161,34 @@ ${window.location.origin}/director/karyawan`
               element={
                 <AdminKpi
                   token={token}
+                  user={user}
+                  initialTab="monitoring"
                 />
               } 
+            />
+            <Route 
+              path="kpi-saya" 
+              element={
+                <AdminKpi
+                  token={token}
+                  user={user}
+                  initialTab="my_todo"
+                />
+              } 
+            />
+            <Route 
+              path="todo" 
+              element={
+                <AdminKpi
+                  token={token}
+                  user={user}
+                  initialTab="my_todo"
+                />
+              } 
+            />
+            <Route 
+              path="panduan" 
+              element={<PanduanAdmin />} 
             />
             {/* Default fallback route */}
             <Route path="" element={<Navigate to="dashboard" replace />} />

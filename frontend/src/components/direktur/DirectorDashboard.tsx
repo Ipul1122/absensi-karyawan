@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import { X } from 'lucide-react'
+import { API_BASE_URL } from '../../utils/api'
 import DirectorSidebar from '../layout/DirectorSidebar'
 import DirectorNavbar, { DirectorMobileNavbar } from '../layout/DirectorNavbar'
 import DirekturOverview from './dashboard/DirekturOverview'
@@ -39,11 +40,12 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
   const [pendingGajiCount, setPendingGajiCount] = useState(0)
   const [pendingPayrollCount, setPendingPayrollCount] = useState(0)
   const [pendingOperasionalCount, setPendingOperasionalCount] = useState(0)
+  const [pendingKpiCount, setPendingKpiCount] = useState(0)
 
   const fetchPendingCounts = async () => {
     if (document.hidden) return
     try {
-      const res = await axios.get('http://localhost:8000/api/sidebar/counts', {
+      const res = await axios.get(`${API_BASE_URL}/api/sidebar/counts`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.data.status === 'success') {
@@ -52,6 +54,7 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
         setPendingGajiCount(d.pendingGajiCount || 0)
         setPendingPayrollCount(d.pendingPayrollCount || 0)
         setPendingOperasionalCount(d.pendingOperasionalCount || 0)
+        setPendingKpiCount(d.pendingKpiCount || 0)
       }
     } catch (err) {
       console.error('Failed to fetch pending counts:', err)
@@ -86,6 +89,7 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
           pendingGajiCount={pendingGajiCount} 
           pendingPayrollCount={pendingPayrollCount}
           pendingOperasionalCount={pendingOperasionalCount}
+          pendingKpiCount={pendingKpiCount}
         />
       </aside>
 
@@ -94,7 +98,7 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
         <DirectorNavbar user={user} title={pageTitle} subtitle={pageSubtitle} onLogout={onLogout} />
         <DirectorMobileNavbar 
           onMenuClick={() => setShowMobileSidebar(true)} 
-          pendingCount={pendingKaryawanCount + pendingGajiCount + pendingPayrollCount + pendingOperasionalCount} 
+          pendingCount={pendingKaryawanCount + pendingGajiCount + pendingPayrollCount + pendingOperasionalCount + pendingKpiCount} 
           company={user.company}
         />
         
@@ -127,6 +131,7 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
               pendingGajiCount={pendingGajiCount} 
               pendingPayrollCount={pendingPayrollCount}
               pendingOperasionalCount={pendingOperasionalCount}
+              pendingKpiCount={pendingKpiCount}
             />
 
           </div>
@@ -143,7 +148,7 @@ export default function DirectorDashboard({ user, token, onLogout, onProfileUpda
             <Route path="gaji" element={<PersetujuanGaji token={token} onApprovalChange={fetchPendingCounts} />} />
             <Route path="payroll" element={<PersetujuanPayroll token={token} />} />
             <Route path="operasional" element={<PersetujuanOperational token={token} />} />
-            <Route path="kpi" element={<DirectorKpi token={token} />} />
+            <Route path="kpi" element={<DirectorKpi token={token} onReviewChange={fetchPendingCounts} />} />
             <Route path="log-kehadiran" element={<LogKehadiran token={token} />} />
             <Route path="pengaturan" element={<DirectorSettings user={user} token={token} onProfileUpdate={onProfileUpdate} />} />
             <Route path="" element={<Navigate to="dashboard" replace />} />

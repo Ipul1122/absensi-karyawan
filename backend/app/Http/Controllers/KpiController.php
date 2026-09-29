@@ -144,7 +144,8 @@ class KpiController extends Controller
             ->where('date', $date)
             ->first();
 
-        $hasClockIn = $attendance && !empty($attendance->clock_in);
+        $isAdminOrDirector = in_array($user->role, ['admin', 'director']);
+        $hasClockIn = ($attendance && !empty($attendance->clock_in)) || $isAdminOrDirector;
 
         // Ambil laporan kerja harian untuk tanggal ini
         $report = DailyWorkReport::with([
@@ -188,14 +189,15 @@ class KpiController extends Controller
             ->where('date', $date)
             ->first();
 
-        if (!$attendance || empty($attendance->clock_in)) {
+        $isAdminOrDirector = in_array($user->role, ['admin', 'director']);
+        if (!$isAdminOrDirector && (!$attendance || empty($attendance->clock_in))) {
             abort(422, "Anda belum tercatat melakukan Absen Masuk pada tanggal {$date}. Silakan lakukan absen masuk terlebih dahulu.");
         }
 
         return DailyWorkReport::firstOrCreate(
             ['user_id' => $user->id, 'date' => $date],
             [
-                'attendance_id' => $attendance->id,
+                'attendance_id' => $attendance?->id,
                 'status' => 'draft',
                 'completion_rate' => 0.00
             ]
@@ -211,7 +213,8 @@ class KpiController extends Controller
             'date' => 'required|date',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'priority' => 'nullable|in:low,medium,high',
+            'priority' => 'nullable|string',
+            'status' => 'nullable|string',
             'responsibility_id' => 'nullable|exists:employee_responsibilities,id',
             'image' => 'nullable|image|max:2048' // Maksimal 2MB (2048 KB)
         ], [
@@ -235,6 +238,18 @@ class KpiController extends Controller
 
         $orderIndex = $report->tasks()->count();
 
+        $rawStatus = strtolower($request->status ?? 'in_progress');
+        if (in_array($rawStatus, ['completed', 'selesai'])) {
+            $taskStatus = 'completed';
+            $completedAt = now();
+        } elseif (in_array($rawStatus, ['revision', 'revisi'])) {
+            $taskStatus = 'revision';
+            $completedAt = null;
+        } else {
+            $taskStatus = 'in_progress';
+            $completedAt = null;
+        }
+
         $task = DailyTask::create([
             'daily_work_report_id' => $report->id,
             'responsibility_id' => $request->responsibility_id,
@@ -242,7 +257,8 @@ class KpiController extends Controller
             'description' => $request->description,
             'image_path' => $imagePath,
             'priority' => $request->priority ?? 'medium',
-            'status' => 'pending',
+            'status' => $taskStatus,
+            'completed_at' => $completedAt,
             'order_index' => $orderIndex
         ]);
 
@@ -266,11 +282,15 @@ class KpiController extends Controller
             'tasks' => 'required|array|min:1',
             'tasks.*.title' => 'required|string|max:255',
             'tasks.*.description' => 'nullable|string',
-            'tasks.*.priority' => 'nullable|in:low,medium,high',
+            'tasks.*.priority' => 'nullable|string',
+            'tasks.*.status' => 'nullable|string',
             'tasks.*.responsibility_id' => 'nullable|exists:employee_responsibilities,id',
+            'tasks.*.image' => 'nullable|image|max:2048',
         ], [
             'tasks.required' => 'Daftar tugas tidak boleh kosong.',
-            'tasks.*.title.required' => 'Judul setiap tugas wajib diisi.'
+            'tasks.*.title.required' => 'Judul setiap tugas wajib diisi.',
+            'tasks.*.image.image' => 'File bukti tugas harus berupa format gambar.',
+            'tasks.*.image.max' => 'Ukuran foto bukti tidak boleh lebih dari 2MB.'
         ]);
 
         $user = $request->user();
@@ -284,13 +304,44 @@ class KpiController extends Controller
         DB::beginTransaction();
         try {
             foreach ($request->tasks as $idx => $t) {
+                $imagePath = null;
+                $file = null;
+
+                if ($request->hasFile("tasks.$idx.image")) {
+                    $file = $request->file("tasks.$idx.image");
+                } elseif ($request->hasFile("task_image_$idx")) {
+                    $file = $request->file("task_image_$idx");
+                } elseif (isset($t['image']) && $t['image'] instanceof \Illuminate\Http\UploadedFile) {
+                    $file = $t['image'];
+                }
+
+                if ($file && $file->isValid()) {
+                    $filename = 'task_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    $path = $file->storeAs('daily_tasks', $filename, 'public');
+                    $imagePath = '/storage/' . $path;
+                }
+
+                $rawStatus = strtolower($t['status'] ?? 'in_progress');
+                if (in_array($rawStatus, ['completed', 'selesai'])) {
+                    $itemStatus = 'completed';
+                    $completedAt = now();
+                } elseif (in_array($rawStatus, ['revision', 'revisi'])) {
+                    $itemStatus = 'revision';
+                    $completedAt = null;
+                } else {
+                    $itemStatus = 'in_progress';
+                    $completedAt = null;
+                }
+
                 $createdTasks[] = DailyTask::create([
                     'daily_work_report_id' => $report->id,
                     'responsibility_id' => $t['responsibility_id'] ?? null,
                     'title' => $t['title'],
                     'description' => $t['description'] ?? null,
+                    'image_path' => $imagePath,
                     'priority' => $t['priority'] ?? 'medium',
-                    'status' => 'pending',
+                    'status' => $itemStatus,
+                    'completed_at' => $completedAt,
                     'order_index' => $startIndex + $idx
                 ]);
             }
@@ -407,21 +458,37 @@ class KpiController extends Controller
     }
 
     /**
-     * Toggle / Perbarui status checklist tugas (completed, in_progress, pending).
+     * Toggle / Perbarui status checklist tugas:
+     * 🟢 Selesai (completed)
+     * 🟡 Revisi (revision)
+     * 🔴 Proses (in_progress)
      */
     public function updateTaskStatus(Request $request, int|string $id)
     {
         $request->validate([
-            'status' => 'required|in:pending,in_progress,completed,cancelled'
+            'status' => 'required|string|in:pending,in_progress,completed,cancelled,revision,revisi,proses,selesai'
         ]);
 
         $user = $request->user();
-        $task = DailyTask::whereHas('report', function ($q) use ($user) {
-            $q->where('user_id', $user->id);
-        })->findOrFail($id);
+        $taskQuery = DailyTask::query();
+        if (!in_array($user->role, ['direktur', 'admin'])) {
+            $taskQuery->whereHas('report', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+        $task = $taskQuery->findOrFail($id);
 
-        $status = $request->status;
-        $completedAt = ($status === 'completed') ? now() : null;
+        $rawStatus = strtolower($request->status);
+        if (in_array($rawStatus, ['completed', 'selesai'])) {
+            $status = 'completed';
+            $completedAt = now();
+        } elseif (in_array($rawStatus, ['revision', 'revisi'])) {
+            $status = 'revision';
+            $completedAt = null;
+        } else {
+            $status = 'in_progress';
+            $completedAt = null;
+        }
 
         $task->update([
             'status' => $status,
@@ -433,7 +500,7 @@ class KpiController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Status tugas diperbarui.',
+            'message' => 'Status tugas berhasil diperbarui.',
             'data' => $task,
             'completion_rate' => $newRate
         ]);
@@ -485,9 +552,13 @@ class KpiController extends Controller
             'status' => 'submitted'
         ]);
 
+        $message = $user->role === 'admin'
+            ? 'Laporan kerja Admin HR berhasil dikirim langsung ke meja Direktur Utama untuk dievaluasi.'
+            : 'Laporan kerja harian berhasil dikirim untuk dievaluasi.';
+
         return response()->json([
             'status' => 'success',
-            'message' => 'Laporan kerja harian berhasil dikirim untuk dievaluasi.',
+            'message' => $message,
             'data' => $report
         ]);
     }
@@ -518,7 +589,7 @@ class KpiController extends Controller
         }
 
         $unfinishedTasks = $previousReport->tasks()
-            ->whereIn('status', ['pending', 'in_progress'])
+            ->where('status', '!=', 'completed')
             ->get();
 
         if ($unfinishedTasks->isEmpty()) {
@@ -544,7 +615,7 @@ class KpiController extends Controller
                     'title' => $task->title,
                     'description' => $task->description ? ($task->description . $suffix) : ($carryDateStr ? 'Lanjutan dari ' . $carryDateStr : 'Lanjutan tugas sebelumnya'),
                     'priority' => $task->priority,
-                    'status' => 'pending',
+                    'status' => $task->status === 'revision' ? 'revision' : 'in_progress',
                     'order_index' => $startIndex + $carriedCount
                 ]);
                 $carriedCount++;
@@ -678,9 +749,10 @@ class KpiController extends Controller
      */
     public function getAdminReportsForDirector(Request $request)
     {
-        $date = $request->input('date', Carbon::today()->toDateString());
+        $date = $request->input('date');
+        $status = $request->input('status');
 
-        $reports = DailyWorkReport::with([
+        $query = DailyWorkReport::with([
             'user:id,name,email,division,role,photo',
             'tasks.responsibility:id,title',
             'attendance:id,clock_in,clock_out',
@@ -688,14 +760,32 @@ class KpiController extends Controller
         ])
         ->whereHas('user', function ($q) {
             $q->where('role', 'admin');
-        })
-        ->where('date', $date)
-        ->orderBy('created_at', 'desc')
-        ->get();
+        });
+
+        if ($request->filled('date') && $request->date !== 'all') {
+            $query->where('date', $request->date);
+        }
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        $reports = $query->orderBy('date', 'desc')->orderBy('created_at', 'desc')->get();
+
+        // Rekap ringkas status laporan Admin untuk Direktur
+        $allAdminReports = DailyWorkReport::whereHas('user', fn($q) => $q->where('role', 'admin'));
+        $totalCount = (clone $allAdminReports)->count();
+        $pendingCount = (clone $allAdminReports)->where('status', 'submitted')->count();
+        $reviewedCount = (clone $allAdminReports)->where('status', 'reviewed_director')->count();
 
         return response()->json([
             'status' => 'success',
-            'data' => $reports
+            'data' => $reports,
+            'summary' => [
+                'total_admin_reports' => $totalCount,
+                'pending_review_count' => $pendingCount,
+                'reviewed_count' => $reviewedCount
+            ]
         ]);
     }
 

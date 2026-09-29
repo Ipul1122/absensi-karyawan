@@ -39,6 +39,7 @@ import EmployeeReimbursement from './employee/operasional/EmployeeReimbursement'
 import EmployeeBonus from './employee/payroll/EmployeeBonus'
 import EmployeeOvertime from './employee/operasional/EmployeeOvertime'
 import EmployeeKpi from './employee/kpi/EmployeeKpi'
+import PanduanEmployee from './employee/panduan/PanduanEmployee'
 import OverviewHeader from './employee/dashboard/overview/OverviewHeader'
 import { overviewLayout, PAGE_BG } from './employee/dashboard/overview/overviewTheme'
 import {
@@ -459,6 +460,9 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
     if (path.includes('lembur')) {
       return { title: 'Pengajuan Lembur Kerja', subtitle: 'Overtime Requests' }
     }
+    if (path.includes('panduan')) {
+      return { title: 'Buku Panduan Karyawan', subtitle: 'Petunjuk Penggunaan & Navigasi Aplikasi' }
+    }
     return { title: 'Dashboard Karyawan', subtitle: 'Overview' }
   }
 
@@ -790,6 +794,12 @@ export default function EmployeeDashboard({ user, token, onLogout }: EmployeeDas
                 <EmployeeKpi
                   token={token}
                 />
+              } 
+            />
+            <Route 
+              path="panduan" 
+              element={
+                <PanduanEmployee />
               } 
             />
             {/* Fallback route */}

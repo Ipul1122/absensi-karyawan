@@ -12,6 +12,7 @@ use App\Models\SalaryConfiguration;
 use App\Models\Bonus;
 use App\Models\Inventory;
 use App\Models\PermitRequest;
+use App\Models\DailyWorkReport;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
@@ -103,6 +104,7 @@ class NotificationController extends Controller
                     'pendingGajiCount' => $pendingGaji,
                     'pendingPayrollCount' => $pendingPayroll,
                     'pendingOperasionalCount' => $opCuti + $opLembur + $opReimburse + $opBonus + $opInventory + $opIzin,
+                    'pendingKpiCount' => DailyWorkReport::whereHas('user', fn($q) => $q->where('role', 'admin'))->where('status', 'submitted')->count(),
                 ];
             }
 

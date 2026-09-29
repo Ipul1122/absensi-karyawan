@@ -530,7 +530,7 @@ export default function Login({ onLoginSuccess, isOnline }: LoginProps) {
                       Koneksi Terputus
                     </p>
                     <p className="text-[11px] text-rose-650/90 font-medium mt-0.5 leading-relaxed">
-                      Server offline — pastikan backend Laravel berjalan dengan perintah <code className="font-mono bg-rose-100/80 px-1.5 py-0.5 rounded text-[10px]">php artisan serve</code>
+                      Server offline — pastikan Jaringan anda tidak bermasalah <code className="font-mono bg-rose-100/80 px-1.5 py-0.5 rounded text-[10px]">php artisan serve</code>
                     </p>
                   </div>
                 </div>

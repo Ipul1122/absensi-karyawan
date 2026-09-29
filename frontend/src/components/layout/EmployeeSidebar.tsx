@@ -20,7 +20,8 @@ import {
   Briefcase,
   ClipboardList,
   User,
-  Headphones
+  Headphones,
+  CheckSquare
 } from 'lucide-react'
 import Logo from './Logo'
 import { getAssetUrl } from '../../utils/api'
@@ -126,6 +127,7 @@ export default function EmployeeSidebar({ user, onLogout, onClose, counts, compa
         { to: '/employee/client', label: 'Kunjungan Klien', icon: UserCheck }
       ]
     },
+    { to: '/employee/kpi', label: 'Target & To-Do List', icon: CheckSquare },
     { to: '/employee/riwayat', label: 'Riwayat Absen', icon: History },
     {
       label: 'Operasional',

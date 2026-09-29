@@ -6,6 +6,11 @@ import 'leaflet/dist/leaflet.css'
 import App from './App.tsx'
 
 import { API_BASE_URL, setupResponseInterceptor } from './utils/api.ts'
+import Swal from 'sweetalert2'
+
+if (typeof window !== 'undefined') {
+  (window as any).Swal = Swal
+}
 
 const apiBaseUrl = API_BASE_URL;
 

@@ -3,7 +3,7 @@ import axios from 'axios'
 import Swal from 'sweetalert2'
 import L from 'leaflet'
 import { getAssetUrl } from '../../../utils/api'
-import { NavLink, useSearchParams } from 'react-router-dom'
+import { NavLink, useSearchParams, useNavigate } from 'react-router-dom'
 import { 
   Clock, 
   Camera, 
@@ -101,6 +101,7 @@ export default function EmployeeAbsen({
   getStatusBadge
 }: EmployeeAbsenProps) {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [selectedTab, setSelectedTab] = useState<'in' | 'out'>('in')
   const [attendanceMode, setAttendanceMode] = useState<AttendanceMode>(() =>
     searchParams.get('mode') === 'wfh' ? 'wfh' : 'kantor'
@@ -685,15 +686,63 @@ export default function EmployeeAbsen({
       )
 
       if (response.data.status === 'success') {
-        Swal.fire({
-          title: 'Berhasil!',
-          text: response.data.message,
-          icon: 'success',
-          background: '#1e293b',
-          color: '#f8fafc',
-          timer: 2000,
-          showConfirmButton: false
-        })
+        const isCheckIn = type === 'check-in'
+
+        // Tandai sessionStorage agar dashboard tidak memicu popup ganda di sesi ini
+        try {
+          const todayStr = new Date().toISOString().slice(0, 10)
+          sessionStorage.setItem(`kpi_toast_shown_${todayStr}`, 'true')
+        } catch {
+          // ignore
+        }
+
+        if (isCheckIn) {
+          Swal.fire({
+            title: 'Absen Masuk Berhasil!',
+            text: response.data.message,
+            icon: 'success',
+            background: '#1e293b',
+            color: '#f8fafc',
+            timer: 1600,
+            showConfirmButton: false
+          }).then(() => {
+            // Toast UX Interaktif: Jangan lupa buat laporan kerja
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'info',
+              title: 'Jangan lupa buat laporan kerja',
+              text: 'Presensi masuk tercatat. Yuk susun to-do list & laporan kerja hari ini!',
+              showConfirmButton: true,
+              confirmButtonText: 'Buat Laporan',
+              confirmButtonColor: '#dc2626',
+              showCancelButton: true,
+              cancelButtonText: 'Nanti',
+              cancelButtonColor: '#64748b',
+              timer: 6500,
+              timerProgressBar: true,
+              background: '#ffffff',
+              color: '#1e293b',
+              customClass: {
+                popup: 'shadow-2xl border border-red-200 rounded-xl'
+              }
+            }).then((toastRes) => {
+              if (toastRes.isConfirmed) {
+                navigate('/employee/kpi')
+              }
+            })
+          })
+        } else {
+          Swal.fire({
+            title: 'Berhasil!',
+            text: response.data.message,
+            icon: 'success',
+            background: '#1e293b',
+            color: '#f8fafc',
+            timer: 2000,
+            showConfirmButton: false
+          })
+        }
         
         // Reset states
         setCapturedPhoto(null)

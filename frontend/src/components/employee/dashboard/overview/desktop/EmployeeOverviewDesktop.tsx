@@ -4,7 +4,7 @@ import type { Attendance, AttendanceState, ProfileSummary } from '../overviewTyp
 import DesktopAttendanceHero from './DesktopAttendanceHero'
 import DesktopStatsRow from './DesktopStatsRow'
 import DesktopQuickActionsInsight from './DesktopQuickActionsInsight'
-import DesktopCompanyNews from './DesktopCompanyNews'
+import WorkShortcutsSection from '../WorkShortcutsSection'
 import DesktopRightWidgets from './DesktopRightWidgets'
 
 interface User {
@@ -100,7 +100,7 @@ export default function EmployeeOverviewDesktop({
         />
         <DesktopStatsRow history={history} time={time} izinDays={izinDays} cutiDays={cutiDays} />
         <DesktopQuickActionsInsight attendanceState={attendanceState} />
-        <DesktopCompanyNews />
+        <WorkShortcutsSection />
       </div>
       <div className="xl:col-span-4 min-w-0">
         <DesktopRightWidgets time={time} todayAttendance={todayAttendance} officeName={officeName} />

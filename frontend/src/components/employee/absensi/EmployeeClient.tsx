@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { getAssetUrl } from '../../../utils/api'
-// import { NavLink } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { 
   Camera, 
   RefreshCw, 
@@ -56,6 +56,7 @@ export default function EmployeeClient({
   todayAttendance,  
   fetchTodayAttendance,
 }: EmployeeClientProps) {
+  const navigate = useNavigate()
   // Client Visit States
   const [visitClientName, setVisitClientName] = useState('')
   const [visitNotes, setVisitNotes] = useState('')
@@ -350,14 +351,45 @@ export default function EmployeeClient({
 
       if (response.data.status === 'success') {
         saveNewClientName(visitClientName)
+        try {
+          const todayStr = new Date().toISOString().slice(0, 10)
+          sessionStorage.setItem(`kpi_toast_shown_${todayStr}`, 'true')
+        } catch {
+          // ignore
+        }
         Swal.fire({
-          title: 'Berhasil!',
+          title: 'Kunjungan Klien Berhasil!',
           text: response.data.message,
           icon: 'success',
           background: '#1e293b',
           color: '#f8fafc',
-          timer: 2000,
+          timer: 1600,
           showConfirmButton: false
+        }).then(() => {
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: 'Jangan lupa buat laporan kerja',
+            text: 'Aktivitas kunjungan tercatat. Yuk masukkan ke to-do list & laporan kerja hari ini!',
+            showConfirmButton: true,
+            confirmButtonText: 'Buat Laporan',
+            confirmButtonColor: '#dc2626',
+            showCancelButton: true,
+            cancelButtonText: 'Nanti',
+            cancelButtonColor: '#64748b',
+            timer: 6500,
+            timerProgressBar: true,
+            background: '#ffffff',
+            color: '#1e293b',
+            customClass: {
+              popup: 'shadow-2xl border border-red-200 rounded-xl'
+            }
+          }).then((res) => {
+            if (res.isConfirmed) {
+              navigate('/employee/kpi')
+            }
+          })
         })
         
         setShowVisitModal(false)

@@ -162,6 +162,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the KPI / job responsibilities for the user.
+     */
+    public function responsibilities()
+    {
+        return $this->hasMany(EmployeeResponsibility::class);
+    }
+
+    /**
+     * Get the daily work reports for the user.
+     */
+    public function dailyWorkReports()
+    {
+        return $this->hasMany(DailyWorkReport::class);
+    }
+
+    /**
      * Get a user-friendly name for this specific record in the Recycle Bin.
      */
     public function getRecycleBinName(): string

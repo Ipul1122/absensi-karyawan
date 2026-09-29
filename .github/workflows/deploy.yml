@@ -1,0 +1,100 @@
+name: Deploy to cPanel Rumahweb
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Pilih bagian yang ingin di-deploy:'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - frontend_only
+          - backend_only
+
+jobs:
+  # ==============================================================
+  # JOB 1: BUILD & DEPLOY FRONTEND
+  # Target: /home/cakt7882/public_html/goodpeople-hcms.com
+  # ==============================================================
+  deploy_frontend:
+    name: Build & Deploy Frontend (goodpeople-hcms.com)
+    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'frontend_only'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: 🛠️ Build Frontend (Production Mode)
+        working-directory: ./frontend
+        env:
+          VITE_API_URL: https://api.goodpeople-hcms.com
+          VITE_APP_URL: https://goodpeople-hcms.com
+        run: npm run build
+
+      - name: 🚀 Sync Frontend to cPanel (goodpeople-hcms.com)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./frontend/dist/
+          server-dir: public_html/goodpeople-hcms.com/
+          dangerous-clean-slate: false
+
+  # ==============================================================
+  # JOB 2: DEPLOY BACKEND LARAVEL
+  # Target: /home/cakt7882/public_html/api.goodpeople-hcms.com
+  # ==============================================================
+  deploy_backend:
+    name: Sync Backend Laravel (api.goodpeople-hcms.com)
+    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'backend_only'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🚀 Sync Backend Files to cPanel (api.goodpeople-hcms.com)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./backend/
+          server-dir: public_html/api.goodpeople-hcms.com/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/storage/**
+            storage/**
+            **/.env
+            .env
+            **/node_modules/**
+            node_modules/**
+            **/vendor/**
+            vendor/**
+            tests/**
+            **/tests/**

@@ -987,7 +987,7 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
                     className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>+ Bulk</span>
+                    <span>Buat</span>
                   </button>
                   <button
                     onClick={handleCarryOver}
@@ -1153,7 +1153,7 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
                 </div>
                 <h4 className="text-xs sm:text-sm font-extrabold text-slate-700">Belum Ada Tugas Ditambahkan</h4>
                 <p className="text-[11px] sm:text-xs text-slate-400 max-w-sm mx-auto mt-1 px-4">
-                  Ketik tugas pada form di atas atau gunakan tombol <b>+ Bulk</b> untuk memasukkan beberapa pekerjaan sekaligus.
+                  Ketik tugas pada form di atas atau gunakan tombol <b>Buat</b> untuk memasukkan beberapa pekerjaan sekaligus.
                 </p>
               </div>
             ) : (

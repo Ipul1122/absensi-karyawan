@@ -7,23 +7,52 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Pilih bagian yang ingin di-deploy:'
+        description: 'Pilih target deploy:'
         required: true
-        default: 'all'
+        default: 'auto'
         type: choice
         options:
+          - auto
           - all
           - frontend_only
           - backend_only
 
 jobs:
   # ==============================================================
+  # DETECT CHANGES: Cek folder mana yang mengalami perubahan
+  # ==============================================================
+  changes:
+    name: 🔍 Deteksi Perubahan Folder
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔎 Cek Folder Frontend / Backend
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+
+  # ==============================================================
   # JOB 1: BUILD & DEPLOY FRONTEND
-  # Target: /home/cakt7882/public_html/goodpeople-hcms.com
+  # Hanya jalan jika folder frontend berubah, atau dipilih manual
   # ==============================================================
   deploy_frontend:
     name: Build & Deploy Frontend (goodpeople-hcms.com)
-    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'frontend_only'
+    needs: changes
+    if: |
+      inputs.target == 'all' ||
+      inputs.target == 'frontend_only' ||
+      (inputs.target == 'auto' && needs.changes.outputs.frontend == 'true') ||
+      (github.event_name == 'push' && (needs.changes.outputs.frontend == 'true' || (needs.changes.outputs.frontend == 'false' && needs.changes.outputs.backend == 'false')))
     runs-on: ubuntu-latest
 
     steps:
@@ -62,11 +91,16 @@ jobs:
 
   # ==============================================================
   # JOB 2: DEPLOY BACKEND LARAVEL
-  # Target: /home/cakt7882/public_html/api.goodpeople-hcms.com
+  # Hanya jalan jika folder backend berubah, atau dipilih manual
   # ==============================================================
   deploy_backend:
     name: Sync Backend Laravel (api.goodpeople-hcms.com)
-    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'backend_only'
+    needs: changes
+    if: |
+      inputs.target == 'all' ||
+      inputs.target == 'backend_only' ||
+      (inputs.target == 'auto' && needs.changes.outputs.backend == 'true') ||
+      (github.event_name == 'push' && needs.changes.outputs.backend == 'true')
     runs-on: ubuntu-latest
 
     steps:

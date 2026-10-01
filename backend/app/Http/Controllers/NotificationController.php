@@ -104,7 +104,7 @@ class NotificationController extends Controller
                     'pendingGajiCount' => $pendingGaji,
                     'pendingPayrollCount' => $pendingPayroll,
                     'pendingOperasionalCount' => $opCuti + $opLembur + $opReimburse + $opBonus + $opInventory + $opIzin,
-                    'pendingKpiCount' => DailyWorkReport::whereHas('user', fn($q) => $q->where('role', 'admin'))->where('status', 'submitted')->count(),
+                    'pendingKpiCount' => 0,
                 ];
             }
 

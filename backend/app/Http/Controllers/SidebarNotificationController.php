@@ -80,7 +80,7 @@ class SidebarNotificationController extends Controller
                 $opInventory = Inventory::where('status', 'pending')->count();
 
                 $data['pendingOperasionalCount'] = $opCuti + $opLembur + $opReimburse + $opBonus + $opInventory + $opIzin;
-                $data['pendingKpiCount'] = DailyWorkReport::whereHas('user', fn($q) => $q->where('role', 'admin'))->where('status', 'submitted')->count();
+                $data['pendingKpiCount'] = 0;
             }
 
             return response()->json([

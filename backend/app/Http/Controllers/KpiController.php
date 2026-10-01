@@ -198,7 +198,7 @@ class KpiController extends Controller
             ['user_id' => $user->id, 'date' => $date],
             [
                 'attendance_id' => $attendance?->id,
-                'status' => 'draft',
+                'status' => 'submitted',
                 'completion_rate' => 0.00
             ]
         );
@@ -262,6 +262,8 @@ class KpiController extends Controller
             'order_index' => $orderIndex
         ]);
 
+        $report->status = 'submitted';
+        $report->save();
         $report->recalculateCompletionRate();
 
         return response()->json([
@@ -354,6 +356,8 @@ class KpiController extends Controller
             ], 500);
         }
 
+        $report->status = 'submitted';
+        $report->save();
         $report->recalculateCompletionRate();
 
         return response()->json([

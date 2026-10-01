@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import {
-  Star,
   Plus,
   Trash2,
   Edit2,
   X,
   ShieldCheck,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Eye
 } from 'lucide-react'
 import { API_BASE_URL, getAssetUrl } from '../../../utils/api'
 import EmployeeKpi from '../../employee/kpi/EmployeeKpi'
@@ -98,17 +98,11 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
   // TAB 1: MONITORING
   const [filterDate, setFilterDate] = useState(getTodayJakarta())
   const [filterDivision, setFilterDivision] = useState('all')
-  const [filterStatus, setFilterStatus] = useState('all')
   const [reports, setReports] = useState<AdminReport[]>([])
   const [summaryMetrics, setSummaryMetrics] = useState<any>(null)
   const [loadingReports, setLoadingReports] = useState(false)
   const [selectedReport, setSelectedReport] = useState<AdminReport | null>(null)
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
-
-  // Review Form
-  const [ratingInput, setRatingInput] = useState<number>(5)
-  const [notesInput, setNotesInput] = useState<string>('')
-  const [submittingReview, setSubmittingReview] = useState(false)
 
   // TAB 2: RESPONSIBILITIES
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -135,7 +129,7 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
     } else if (activeTab === 'responsibilities') {
       fetchResponsibilities()
     }
-  }, [activeTab, filterDate, filterDivision, filterStatus, selectedEmployeeId])
+  }, [activeTab, filterDate, filterDivision, selectedEmployeeId])
 
   const fetchEmployeesList = async () => {
     try {
@@ -158,8 +152,7 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
         headers: { Authorization: `Bearer ${token}` },
         params: {
           date: filterDate,
-          division: filterDivision,
-          status: filterStatus
+          division: filterDivision
         }
       })
       if (res.data.status === 'success') {
@@ -191,40 +184,6 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
       console.error('Gagal mengambil tanggung jawab:', err)
     } finally {
       setLoadingResp(false)
-    }
-  }
-
-  const handleSaveReview = async () => {
-    if (!selectedReport) return
-
-    setSubmittingReview(true)
-    try {
-      const res = await axios.post(`${API_BASE_URL}/api/admin/kpi/reports/${selectedReport.id}/review`, {
-        admin_rating: ratingInput,
-        admin_notes: notesInput
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-
-      if (res.data.status === 'success') {
-        Swal.fire({
-          icon: 'success',
-          title: 'Review Berhasil Disimpan!',
-          timer: 1500,
-          showConfirmButton: false
-        })
-        setSelectedReport(null)
-        fetchAdminReports()
-      }
-    } catch (err: any) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Gagal Menyimpan Review',
-        text: err.response?.data?.message || 'Terjadi kesalahan.',
-        confirmButtonColor: '#dc2626'
-      })
-    } finally {
-      setSubmittingReview(false)
     }
   }
 
@@ -357,9 +316,7 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
           <td style="text-align: center;"><b>${r.completion_rate}%</b></td>
           <td>${taskList}</td>
           <td>${r.summary || '-'}</td>
-          <td style="text-align: center;">${r.status === 'reviewed_admin' ? 'Sudah Direview' : r.status === 'submitted' ? 'Menunggu Review' : 'Draft'}</td>
-          <td style="text-align: center;">${r.admin_rating ? `${r.admin_rating} Bintang` : '-'}</td>
-          <td>${r.admin_notes || '-'}</td>
+          <td style="text-align: center;">Terdata Otomatis</td>
         </tr>
       `
     }).join('')
@@ -390,8 +347,6 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
               <th>Rincian Tugas</th>
               <th>Ringkasan Karyawan</th>
               <th style="text-align: center;">Status Laporan</th>
-              <th style="text-align: center;">Rating Admin</th>
-              <th>Catatan Feedback Admin</th>
             </tr>
           </thead>
           <tbody>
@@ -495,9 +450,9 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                 <span className="text-[10px] sm:text-[11px] text-emerald-600/90 font-medium">Karyawan hadir</span>
               </div>
               <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Laporan Masuk</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">To-Do List Terdata</span>
                 <p className="text-xl sm:text-2xl font-black text-red-600 mt-1">{summaryMetrics.submitted_reports}</p>
-                <span className="text-[10px] sm:text-[11px] text-red-600/90 font-medium">Telah disubmit</span>
+                <span className="text-[10px] sm:text-[11px] text-red-600/90 font-medium">Telah terdata otomatis</span>
               </div>
               <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rata-rata Capaian</span>
@@ -515,12 +470,12 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                   Laporan Kerja Harian Karyawan ({reports.length})
                 </h3>
                 <p className="text-xs text-slate-400 font-medium">
-                  Pantau to-do list, foto bukti kerja, dan berikan evaluasi serta rating bintang
+                  Pantau to-do list, rincian aktivitas, dan foto bukti kerja karyawan secara real-time
                 </p>
               </div>
 
               {/* Filters & Export Excel */}
-              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={filterDivision}
                   onChange={(e) => setFilterDivision(e.target.value)}
@@ -532,20 +487,9 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                   ))}
                 </select>
 
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-3 py-2 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none cursor-pointer w-full sm:w-auto"
-                >
-                  <option value="all">Semua Status</option>
-                  <option value="draft">Draft</option>
-                  <option value="submitted">Menunggu Review</option>
-                  <option value="reviewed_admin">Sudah Direview</option>
-                </select>
-
                 <button
                   onClick={handleExportAdminKpiExcel}
-                  className="col-span-2 sm:col-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer shrink-0"
                   title="Export seluruh laporan hari ini ke file Excel"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -629,32 +573,20 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                           </p>
                         )}
 
-                        {/* Rating & Action Row */}
+                        {/* Status & Action Row */}
                         <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-200/60">
                           <div>
-                            {r.admin_rating ? (
-                              <div className="flex items-center gap-0.5 text-red-600">
-                                {[...Array(r.admin_rating)].map((_, i) => (
-                                  <Star key={i} className="w-3.5 h-3.5 fill-red-600 text-red-600" />
-                                ))}
-                                <span className="text-[10px] font-bold text-red-700 ml-1">({r.admin_rating}/5)</span>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 italic text-[10px] bg-slate-100 px-2 py-0.5 rounded">
-                                Belum Dinilai
-                              </span>
-                            )}
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              🟢 Terdata Otomatis
+                            </span>
                           </div>
 
                           <button
-                            onClick={() => {
-                              setSelectedReport(r)
-                              setRatingInput(r.admin_rating || 5)
-                              setNotesInput(r.admin_notes || '')
-                            }}
-                            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-xs shadow-red-600/20 transition-all cursor-pointer"
+                            onClick={() => setSelectedReport(r)}
+                            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-xs shadow-red-600/20 transition-all cursor-pointer inline-flex items-center gap-1.5"
                           >
-                            Lihat & Review
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Lihat Detail</span>
                           </button>
                         </div>
                       </div>
@@ -671,7 +603,7 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                         <th className="pb-3">Presensi Masuk</th>
                         <th className="pb-3">Jumlah Tugas</th>
                         <th className="pb-3">Progres Capaian</th>
-                        <th className="pb-3">Rating Admin</th>
+                        <th className="pb-3">Status</th>
                         <th className="pb-3 text-right pr-2">Aksi</th>
                       </tr>
                     </thead>
@@ -728,26 +660,17 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                               </div>
                             </td>
                             <td className="py-3.5">
-                              {r.admin_rating ? (
-                                <div className="flex items-center gap-0.5 text-red-600">
-                                  {[...Array(r.admin_rating)].map((_, i) => (
-                                    <Star key={i} className="w-3.5 h-3.5 fill-red-600 text-red-600" />
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-slate-400 italic text-[11px]">Belum Dinilai</span>
-                              )}
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                🟢 Terdata Otomatis
+                              </span>
                             </td>
                             <td className="py-3.5 text-right pr-2">
                               <button
-                                onClick={() => {
-                                  setSelectedReport(r)
-                                  setRatingInput(r.admin_rating || 5)
-                                  setNotesInput(r.admin_notes || '')
-                                }}
-                                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer"
+                                onClick={() => setSelectedReport(r)}
+                                className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
                               >
-                                Lihat & Review
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Lihat Detail</span>
                               </button>
                             </td>
                           </tr>
@@ -883,7 +806,7 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                 To-Do List Harian Khusus Staf Admin
               </h4>
               <p className="text-[11px] text-red-800/90 mt-0.5 leading-relaxed">
-                Setiap tugas dan laporan kerja yang Anda buat di sini <b>langsung diteruskan dan dievaluasi oleh Direktur</b> tanpa perantara.
+                Setiap tugas dan aktivitas kerja yang diinput di sini <b>langsung terdata otomatis dan terkirim</b> secara instan tanpa perlu approval atau ACC.
               </p>
             </div>
           </div>
@@ -893,7 +816,7 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
       )}
 
       {/* ══════════════════════════════════════════════════════════════════
-          MODAL DETAIL LAPORAN & BERI REVIEW ADMIN
+          MODAL DETAIL LAPORAN & TO-DO LIST KARYAWAN
       ══════════════════════════════════════════════════════════════════ */}
       {selectedReport && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-xs">
@@ -909,7 +832,7 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-extrabold text-slate-800 leading-tight">
-                    Laporan Kerja: {selectedReport.user?.name}
+                    Rincian To-Do List: {selectedReport.user?.name}
                   </h3>
                   <p className="text-[11px] sm:text-xs text-slate-400 font-medium">
                     Tanggal: {selectedReport.date} · {selectedReport.completion_rate}% Selesai
@@ -922,6 +845,14 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Banner Status Otomatis Terdata */}
+            <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-2xl p-3 flex items-center gap-2.5">
+              <span className="text-base">🟢</span>
+              <p className="text-xs text-emerald-800 font-semibold leading-relaxed">
+                To-do list dan tugas harian karyawan ini <strong>langsung terdata otomatis</strong> ke sistem saat diinputkan tanpa perlu persetujuan atau ACC manual.
+              </p>
             </div>
 
             {selectedReport.summary && (
@@ -981,67 +912,14 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
               ))}
             </div>
 
-            {/* Form Review Admin */}
-            <div className="border-t border-slate-100 pt-3 sm:pt-4 space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Beri Penilaian & Feedback Admin
-              </h4>
-
-              <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">
-                  Rating Kinerja (Bintang 1 - 5):
-                </label>
-                <div className="flex items-center gap-1.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRatingInput(star)}
-                      className="p-1 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
-                    >
-                      <Star
-                        className={`w-6 h-6 ${
-                          star <= ratingInput ? 'text-red-600 fill-red-600' : 'text-slate-200'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="text-xs font-extrabold text-red-600 ml-2">
-                    {ratingInput} / 5 Bintang
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">
-                  Catatan / Masukan untuk Karyawan:
-                </label>
-                <textarea
-                  value={notesInput}
-                  onChange={(e) => setNotesInput(e.target.value)}
-                  placeholder="Contoh: Pekerjaan selesai tepat waktu, kualitas dokumentasi rapi..."
-                  rows={3}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 sm:flex sm:items-center sm:justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSelectedReport(null)}
-                  className="px-4 py-2.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer text-center"
-                >
-                  Tutup
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveReview}
-                  disabled={submittingReview}
-                  className="px-5 py-2.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm shadow-red-600/20 cursor-pointer disabled:opacity-50 text-center"
-                >
-                  {submittingReview ? 'Menyimpan...' : 'Simpan Review & Rating'}
-                </button>
-              </div>
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSelectedReport(null)}
+                className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer text-center shadow-xs"
+              >
+                Tutup Detail
+              </button>
             </div>
           </div>
         </div>

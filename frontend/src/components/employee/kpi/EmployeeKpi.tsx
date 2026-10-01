@@ -18,9 +18,12 @@ import {
   FileSpreadsheet,
   ShieldCheck,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Image as ImageIcon,
+  Info
 } from 'lucide-react'
 import { API_BASE_URL, getAssetUrl } from '../../../utils/api'
+import KpiCameraModal from './KpiCameraModal'
 
 interface Responsibility {
   id: number
@@ -90,6 +93,16 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
   const [quickStatus, setQuickStatus] = useState<'in_progress' | 'revision' | 'completed'>('in_progress')
   const [quickResponsibilityId, setQuickResponsibilityId] = useState<number | ''>('')
   const [submittingQuick, setSubmittingQuick] = useState(false)
+  const [quickImageFile, setQuickImageFile] = useState<File | null>(null)
+  const [quickImagePreview, setQuickImagePreview] = useState<string | null>(null)
+
+  // Camera Modal State
+  const [showCameraModal, setShowCameraModal] = useState(false)
+  const [cameraTarget, setCameraTarget] = useState<{
+    type: 'bulk' | 'quick' | 'task'
+    bulkIndex?: number
+    taskId?: number
+  } | null>(null)
 
   // Bulk Add Modal
   const [showBulkModal, setShowBulkModal] = useState(false)
@@ -180,6 +193,131 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
     }
   }
 
+  // Client-side compression helper for photos > 2MB
+  const compressImageIfNeeded = async (file: File, maxMb = 2): Promise<File> => {
+    if (file.size <= maxMb * 1024 * 1024) {
+      return file
+    }
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let { width, height } = img
+          const maxDimension = 1280
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width)
+              width = maxDimension
+            } else {
+              width = Math.round((width * maxDimension) / height)
+              height = maxDimension
+            }
+          }
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          ctx?.drawImage(img, 0, 0, width, height)
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, '') + '.jpg', {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                })
+                resolve(compressedFile)
+              } else {
+                resolve(file)
+              }
+            },
+            'image/jpeg',
+            0.75
+          )
+        }
+        img.onerror = () => resolve(file)
+        img.src = e.target?.result as string
+      }
+      reader.onerror = () => resolve(file)
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // Camera Open Triggers
+  const openCameraForBulk = (index: number) => {
+    setCameraTarget({ type: 'bulk', bulkIndex: index })
+    setShowCameraModal(true)
+  }
+
+  const openCameraForQuickAdd = () => {
+    setCameraTarget({ type: 'quick' })
+    setShowCameraModal(true)
+  }
+
+  const openCameraForTask = (taskId: number) => {
+    setCameraTarget({ type: 'task', taskId })
+    setShowCameraModal(true)
+  }
+
+  const handleCameraCapture = (file: File, previewUrl: string) => {
+    if (!cameraTarget) return
+
+    if (cameraTarget.type === 'bulk' && cameraTarget.bulkIndex !== undefined) {
+      const idx = cameraTarget.bulkIndex
+      const updated = [...bulkRows]
+      if (updated[idx].imagePreview) {
+        URL.revokeObjectURL(updated[idx].imagePreview!)
+      }
+      updated[idx].imageFile = file
+      updated[idx].imagePreview = previewUrl
+      setBulkRows(updated)
+    } else if (cameraTarget.type === 'quick') {
+      if (quickImagePreview) {
+        URL.revokeObjectURL(quickImagePreview)
+      }
+      setQuickImageFile(file)
+      setQuickImagePreview(previewUrl)
+    } else if (cameraTarget.type === 'task' && cameraTarget.taskId !== undefined) {
+      uploadTaskPhotoFile(cameraTarget.taskId, file)
+    }
+
+    setShowCameraModal(false)
+    setCameraTarget(null)
+  }
+
+  const handleQuickImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0]
+    if (!rawFile) return
+
+    const file = await compressImageIfNeeded(rawFile)
+
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Ukuran Terlalu Besar',
+        text: `Ukuran file foto adalah ${(file.size / (1024 * 1024)).toFixed(2)} MB. Batas maksimal yang diperbolehkan adalah 2MB.`,
+        confirmButtonColor: '#dc2626'
+      })
+      e.target.value = ''
+      return
+    }
+
+    if (quickImagePreview) {
+      URL.revokeObjectURL(quickImagePreview)
+    }
+    setQuickImageFile(file)
+    setQuickImagePreview(URL.createObjectURL(file))
+    e.target.value = ''
+  }
+
+  const handleRemoveQuickImage = () => {
+    if (quickImagePreview) {
+      URL.revokeObjectURL(quickImagePreview)
+    }
+    setQuickImageFile(null)
+    setQuickImagePreview(null)
+  }
+
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!quickTitle.trim()) return
@@ -196,21 +334,32 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
 
     setSubmittingQuick(true)
     try {
-      const payload: any = {
-        date: selectedDate,
-        title: quickTitle.trim(),
-        status: quickStatus
-      }
+      const formData = new FormData()
+      formData.append('date', selectedDate)
+      formData.append('title', quickTitle.trim())
+      formData.append('status', quickStatus)
       if (quickResponsibilityId !== '') {
-        payload.responsibility_id = quickResponsibilityId
+        formData.append('responsibility_id', String(quickResponsibilityId))
+      }
+      if (quickImageFile) {
+        const file = await compressImageIfNeeded(quickImageFile)
+        formData.append('image', file)
       }
 
-      const res = await axios.post(`${API_BASE_URL}/api/kpi/tasks`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await axios.post(`${API_BASE_URL}/api/kpi/tasks`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
       })
 
       if (res.data.status === 'success') {
         setQuickTitle('')
+        if (quickImagePreview) {
+          URL.revokeObjectURL(quickImagePreview)
+        }
+        setQuickImageFile(null)
+        setQuickImagePreview(null)
         fetchReportForDate(selectedDate)
       }
     } catch (err: any) {
@@ -240,9 +389,11 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
     setBulkRows(bulkRows.filter((_, i) => i !== index))
   }
 
-  const handleBulkImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleBulkImageChange = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0]
+    if (!rawFile) return
+
+    const file = await compressImageIfNeeded(rawFile)
 
     // Validasi maksimal 2MB (2 * 1024 * 1024 = 2097152 bytes)
     if (file.size > 2 * 1024 * 1024) {
@@ -421,10 +572,8 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
     }
   }
 
-  const handlePhotoUpload = async (taskId: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
+  const uploadTaskPhotoFile = async (taskId: number, rawFile: File) => {
+    const file = await compressImageIfNeeded(rawFile)
     const MAX_SIZE = 2 * 1024 * 1024
     if (file.size > MAX_SIZE) {
       Swal.fire({
@@ -433,7 +582,6 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
         text: `Ukuran file Anda ${(file.size / (1024 * 1024)).toFixed(2)} MB. Maksimal ukuran foto bukti adalah 2MB.`,
         confirmButtonColor: '#dc2626'
       })
-      e.target.value = ''
       return
     }
 
@@ -471,9 +619,14 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
         text: err.response?.data?.message || 'Gagal mengirim foto ke server.',
         confirmButtonColor: '#dc2626'
       })
-    } finally {
-      e.target.value = ''
     }
+  }
+
+  const handlePhotoUpload = async (taskId: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await uploadTaskPhotoFile(taskId, file)
+    e.target.value = ''
   }
 
   const handleDeletePhoto = async (taskId: number) => {
@@ -1081,59 +1234,117 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
           {/* ══════════════════════════════════════════════════════════════════
               BAGIAN 4: QUICK ADD FORM (Mobile-First 2-Column Selects)
           ══════════════════════════════════════════════════════════════════ */}
-          <form onSubmit={handleQuickAdd} className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-3">
-            <div className="flex-1 w-full">
-              <input
-                type="text"
-                value={quickTitle}
-                onChange={(e) => setQuickTitle(e.target.value)}
-                placeholder="+ Tambah tugas apa yang Anda kerjakan lalu tekan Enter..."
-                disabled={!hasAttendance && !isAdmin}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:opacity-50"
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
-                {myResponsibilities.length > 0 && (
-                  <select
-                    value={quickResponsibilityId}
-                    onChange={(e) => setQuickResponsibilityId(e.target.value ? Number(e.target.value) : '')}
-                    disabled={!hasAttendance && !isAdmin}
-                    className="w-full sm:w-auto px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer disabled:opacity-50 truncate"
-                  >
-                    <option value="">(Tugas Umum)</option>
-                    {myResponsibilities.map(r => (
-                      <option key={r.id} value={r.id}>
-                        {r.title}
-                      </option>
-                    ))}
-                  </select>
-                )}
-
-                <select
-                  value={quickStatus}
-                  onChange={(e) => setQuickStatus(e.target.value as any)}
+          <div className="space-y-1.5">
+            <form onSubmit={handleQuickAdd} className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-4 shadow-xs space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-3">
+              <div className="flex-1 w-full">
+                <input
+                  type="text"
+                  value={quickTitle}
+                  onChange={(e) => setQuickTitle(e.target.value)}
+                  placeholder="+ Tambah tugas apa yang Anda kerjakan lalu tekan Enter..."
                   disabled={!hasAttendance && !isAdmin}
-                  className={`w-full sm:w-auto px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer disabled:opacity-50 ${myResponsibilities.length === 0 ? 'col-span-2' : ''}`}
-                  title="Pilih status tugas (🔴 Proses / 🟡 Revisi / 🟢 Selesai)"
-                >
-                  <option value="in_progress">🔴 Proses</option>
-                  <option value="revision">🟡 Revisi</option>
-                  <option value="completed">🟢 Selesai</option>
-                </select>
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:opacity-50"
+                />
               </div>
 
-              <button
-                type="submit"
-                disabled={(!hasAttendance && !isAdmin) || !quickTitle.trim() || submittingQuick}
-                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-red-600/20 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{submittingQuick ? 'Menyimpan...' : 'Tambah Tugas'}</span>
-              </button>
-            </div>
-          </form>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+                  {myResponsibilities.length > 0 && (
+                    <select
+                      value={quickResponsibilityId}
+                      onChange={(e) => setQuickResponsibilityId(e.target.value ? Number(e.target.value) : '')}
+                      disabled={!hasAttendance && !isAdmin}
+                      className="w-full sm:w-auto px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer disabled:opacity-50 truncate"
+                    >
+                      <option value="">(Tugas Umum)</option>
+                      {myResponsibilities.map(r => (
+                        <option key={r.id} value={r.id}>
+                          {r.title}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  <select
+                    value={quickStatus}
+                    onChange={(e) => setQuickStatus(e.target.value as any)}
+                    disabled={!hasAttendance && !isAdmin}
+                    className={`w-full sm:w-auto px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500/20 cursor-pointer disabled:opacity-50 ${myResponsibilities.length === 0 ? 'col-span-2' : ''}`}
+                    title="Pilih status tugas (🔴 Proses / 🟡 Revisi / 🟢 Selesai)"
+                  >
+                    <option value="in_progress">🔴 Proses</option>
+                    <option value="revision">🟡 Revisi</option>
+                    <option value="completed">🟢 Selesai</option>
+                  </select>
+                </div>
+
+                {/* Foto Bukti Tugas Harian (Kamera / Galeri - Opsional) */}
+                {quickImagePreview ? (
+                  <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-xl shadow-2xs shrink-0">
+                    <img
+                      src={quickImagePreview}
+                      alt="Bukti Tugas"
+                      onClick={() => setLightboxImage(quickImagePreview)}
+                      className="w-7 h-7 rounded-lg object-cover border border-emerald-300 cursor-pointer hover:scale-105 transition-transform shrink-0"
+                      title="Klik untuk memperbesar"
+                    />
+                    <span className="text-[11px] font-bold text-emerald-800 truncate max-w-[90px] sm:max-w-[120px]">
+                      {quickImageFile?.name || 'Foto terlampir'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveQuickImage}
+                      className="p-1 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50 cursor-pointer transition-colors"
+                      title="Hapus foto"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={openCameraForQuickAdd}
+                      disabled={!hasAttendance && !isAdmin}
+                      className="inline-flex items-center gap-1 px-2.5 py-2 bg-slate-50 hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Foto langsung dari kamera (Opsional)"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-red-500" />
+                      <span className="hidden sm:inline">Kamera</span>
+                    </button>
+                    <label
+                      className={`inline-flex items-center gap-1 px-2.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                        !hasAttendance && !isAdmin ? 'opacity-50 pointer-events-none' : ''
+                      }`}
+                      title="Pilih dari galeri / file (Opsional)"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="hidden sm:inline">Galeri</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={!hasAttendance && !isAdmin}
+                        onChange={handleQuickImageChange}
+                      />
+                    </label>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={(!hasAttendance && !isAdmin) || !quickTitle.trim() || submittingQuick}
+                  className="w-full sm:w-auto px-5 py-2.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-red-600/20 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{submittingQuick ? 'Menyimpan...' : 'Tambah Tugas'}</span>
+                </button>
+              </div>
+            </form>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 pl-1">
+              Bisa melampirkan foto bukti / tangkap foto dari kamera bersifat <strong className="text-slate-600 font-bold">OPSIONAL</strong> (Maks. 2MB)
+            </p>
+          </div>
 
           {/* ══════════════════════════════════════════════════════════════════
               BAGIAN 5: DAFTAR TO-DO LIST & FOTO (< 2MB)
@@ -1262,16 +1473,30 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
                             <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">Bukti Terunggah</span>
                           </div>
                         ) : (
-                          <label className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer active:scale-95">
-                            <Camera className="w-3.5 h-3.5 text-red-600" />
-                            <span>Foto Bukti</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => handlePhotoUpload(task.id, e)}
-                            />
-                          </label>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openCameraForTask(task.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+                              title="Foto langsung dari kamera"
+                            >
+                              <Camera className="w-3.5 h-3.5 text-red-600" />
+                              <span>Kamera</span>
+                            </button>
+                            <label
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-xl text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+                              title="Pilih foto dari galeri"
+                            >
+                              <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                              <span>Galeri</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => handlePhotoUpload(task.id, e)}
+                              />
+                            </label>
+                          </div>
                         )}
 
                         <button
@@ -1393,8 +1618,8 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-sm sm:text-base font-extrabold text-slate-800">Bulk Add Tasks</h3>
-                <p className="text-[11px] sm:text-xs text-slate-400 font-medium">
-                  Tambah beberapa to-do list sekaligus, bisa melampirkan foto bukti (Maks. 2MB per gambar)
+                <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                  Tambah beberapa to-do list sekaligus, bisa melampirkan foto bukti / tangkap foto bersifat <strong> OPSIONAL </strong>
                 </p>
               </div>
               <button
@@ -1403,6 +1628,16 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Banner Informasi: Melampirkan foto bersifat opsional */}
+            <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3 sm:p-3.5 text-xs text-amber-900 flex items-start sm:items-center gap-2.5 shadow-2xs">
+              <div className="w-7 h-7 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700">
+                <Info className="w-4 h-4" />
+              </div>
+              <p className="text-[11px] sm:text-xs leading-relaxed text-amber-900">
+                Tambah beberapa to-do list sekaligus, bisa melampirkan foto bukti / tangkap foto bersifat <strong> OPSIONAL </strong>
+              </p>
             </div>
 
             <div className="space-y-3">
@@ -1435,7 +1670,7 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
                     </button>
                   </div>
 
-                  {/* Baris 2: Tanggung Jawab, Prioritas, & Lampiran Foto (Maks 2MB) */}
+                  {/* Baris 2: Tanggung Jawab, Prioritas, & Lampiran Foto (Kamera / Galeri - Opsional) */}
                   <div className="flex flex-wrap items-center gap-2 pl-7">
                     {myResponsibilities.length > 0 && (
                       <select
@@ -1469,7 +1704,7 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
                       <option value="completed">🟢 Selesai</option>
                     </select>
 
-                    {/* Lampiran Foto (Maksimal 2MB) */}
+                    {/* Lampiran Foto (Kamera Langsung atau Galeri - Opsional Maks 2MB) */}
                     {row.imagePreview ? (
                       <div className="flex items-center gap-2 bg-white px-2.5 py-1 rounded-xl border border-emerald-200 shadow-2xs">
                         <img
@@ -1495,17 +1730,30 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
                         </button>
                       </div>
                     ) : (
-                      <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold text-slate-600 cursor-pointer transition-all shrink-0">
-                        <Camera className="w-3.5 h-3.5 text-slate-500" />
-                        <span>+ Foto</span>
-                        <span className="text-[10px] text-slate-400 font-medium">(Maks 2MB)</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => handleBulkImageChange(idx, e)}
-                        />
-                      </label>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openCameraForBulk(idx)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200 hover:border-red-200 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95"
+                          title="Ambil foto langsung dari kamera"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-red-500" />
+                          <span>Kamera</span>
+                        </button>
+                        <label
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95"
+                          title="Pilih foto dari galeri / file"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Galeri</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleBulkImageChange(idx, e)}
+                          />
+                        </label>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1619,6 +1867,23 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
           </div>
         </div>
       )}
+
+      {/* KPI Camera Modal */}
+      <KpiCameraModal
+        isOpen={showCameraModal}
+        onClose={() => {
+          setShowCameraModal(false)
+          setCameraTarget(null)
+        }}
+        onCapture={handleCameraCapture}
+        title={
+          cameraTarget?.type === 'bulk'
+            ? `Foto Bukti Baris #${(cameraTarget.bulkIndex ?? 0) + 1}`
+            : cameraTarget?.type === 'task'
+            ? 'Foto Bukti Tugas'
+            : 'Foto Bukti Tugas Harian'
+        }
+      />
 
     </div>
   )

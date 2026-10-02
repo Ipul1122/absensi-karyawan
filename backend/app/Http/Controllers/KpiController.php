@@ -34,6 +34,7 @@ class KpiController extends Controller
         }
 
         $responsibilities = $query->orderBy('created_at', 'desc')->get();
+        $responsibilities->each(fn($resp) => $this->normalizeUserPhoto($resp->user));
 
         return response()->json([
             'status' => 'success',
@@ -201,6 +202,19 @@ class KpiController extends Controller
             'report_status' => $report ? $report->status : null,
             'date' => $targetDate,
         ]);
+    }
+
+    /**
+     * Helper internal: Pastikan URL foto user memiliki path asset yang valid.
+     */
+    private function normalizeUserPhoto(?User $user): void
+    {
+        if ($user && $user->photo) {
+            if (!str_starts_with($user->photo, 'http') && !str_starts_with($user->photo, 'data:')) {
+                $cleanPhoto = ltrim(str_replace('/storage/', '', $user->photo), '/');
+                $user->photo = asset('storage/' . $cleanPhoto);
+            }
+        }
     }
 
     /**
@@ -720,6 +734,7 @@ class KpiController extends Controller
         }
 
         $reports = $query->orderBy('created_at', 'desc')->get();
+        $reports->each(fn($r) => $this->normalizeUserPhoto($r->user));
 
         // Rekap ringkas hari ini
         $totalEmployees = User::where('role', 'employee')->where('status', 'active')->count();
@@ -799,6 +814,7 @@ class KpiController extends Controller
         }
 
         $reports = $query->orderBy('date', 'desc')->orderBy('created_at', 'desc')->get();
+        $reports->each(fn($r) => $this->normalizeUserPhoto($r->user));
 
         // Rekap ringkas status laporan Admin untuk Direktur
         $allAdminReports = DailyWorkReport::whereHas('user', fn($q) => $q->where('role', 'admin'));
@@ -832,6 +848,7 @@ class KpiController extends Controller
         ])
         ->where('date', $date)
         ->get();
+        $reports->each(fn($r) => $this->normalizeUserPhoto($r->user));
 
         $totalTasks = DailyTask::whereHas('report', fn($q) => $q->where('date', $date))->count();
         $completedTasks = DailyTask::whereHas('report', fn($q) => $q->where('date', $date))->where('status', 'completed')->count();

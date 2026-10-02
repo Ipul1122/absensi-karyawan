@@ -47,11 +47,11 @@ axios.interceptors.request.use(
  * Handles prepended slashes and schemas dynamically.
  */
 export const getAssetUrl = (path: string | null | undefined): string => {
-  if (!path) return '';
+  if (!path || path === 'null' || path === 'undefined' || !path.trim()) return '';
   if (path.startsWith('blob:') || path.startsWith('data:')) {
     return path;
   }
-  let processedPath = path;
+  let processedPath = path.trim();
 
   if (processedPath.startsWith('http')) {
     // Rewrite any localhost:8000 or 127.0.0.1:8000 asset URLs to actual API_BASE_URL
@@ -62,7 +62,13 @@ export const getAssetUrl = (path: string | null | undefined): string => {
 
     return processedPath;
   }
-  const cleanPath = processedPath.startsWith('/') ? processedPath.substring(1) : processedPath;
+  let cleanPath = processedPath.startsWith('/') ? processedPath.substring(1) : processedPath;
+
+  // If path doesn't start with 'storage/' or 'assets/', prepend 'storage/' for Laravel public storage assets
+  if (!cleanPath.startsWith('storage/') && !cleanPath.startsWith('assets/')) {
+    cleanPath = `storage/${cleanPath}`;
+  }
+
   return `${API_BASE_URL}/${cleanPath}`;
 };
 

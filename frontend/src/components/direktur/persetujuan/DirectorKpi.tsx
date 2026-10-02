@@ -63,6 +63,51 @@ interface AdminSummary {
   reviewed_count: number
 }
 
+function UserKpiAvatar({
+  photo,
+  name,
+  size = 'w-8 h-8',
+  textSize = 'text-xs',
+  className = '',
+  borderClass = 'border border-red-200/60'
+}: {
+  photo?: string | null
+  name?: string
+  size?: string
+  textSize?: string
+  className?: string
+  borderClass?: string
+}) {
+  const [hasError, setHasError] = useState(false)
+
+  useEffect(() => {
+    setHasError(false)
+  }, [photo])
+
+  const initial = name ? name.trim().charAt(0).toUpperCase() : '?'
+  const url = photo && photo !== 'null' && photo !== 'undefined' ? getAssetUrl(photo) : null
+
+  if (url && !hasError) {
+    return (
+      <div className={`${size} rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center shrink-0 overflow-hidden ${textSize} ${borderClass} ${className}`}>
+        <img
+          src={url}
+          alt={name || 'Avatar'}
+          className="w-full h-full object-cover"
+          onError={() => setHasError(true)}
+          loading="lazy"
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className={`${size} rounded-full bg-gradient-to-br from-red-100 to-rose-200 text-red-700 font-extrabold flex items-center justify-center shrink-0 ${textSize} ${borderClass} shadow-2xs select-none ${className}`}>
+      {initial}
+    </div>
+  )
+}
+
 export default function DirectorKpi({ token, onReviewChange: _onReviewChange }: DirectorKpiProps) {
   const getTodayJakarta = () => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date())
@@ -578,13 +623,13 @@ export default function DirectorKpi({ token, onReviewChange: _onReviewChange }: 
                       }`}
                     >
                       <div className="flex items-start gap-3.5 flex-1 min-w-0">
-                        <div className="w-11 h-11 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center shrink-0 overflow-hidden text-sm border border-red-200">
-                          {report.user?.photo ? (
-                            <img src={getAssetUrl(report.user.photo)} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            report.user?.name?.charAt(0).toUpperCase()
-                          )}
-                        </div>
+                        <UserKpiAvatar
+                          photo={report.user?.photo}
+                          name={report.user?.name}
+                          size="w-11 h-11"
+                          textSize="text-sm"
+                          borderClass="border border-red-200"
+                        />
                         <div className="flex-1 min-w-0 space-y-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="text-sm font-extrabold text-slate-900">{report.user?.name}</h4>
@@ -772,13 +817,12 @@ export default function DirectorKpi({ token, onReviewChange: _onReviewChange }: 
                         {/* Header: User Info & Role */}
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center shrink-0 text-xs border border-red-200/60">
-                              {r.user?.photo ? (
-                                <img src={getAssetUrl(r.user.photo)} alt="" className="w-full h-full object-cover rounded-full" />
-                              ) : (
-                                r.user?.name?.charAt(0).toUpperCase()
-                              )}
-                            </div>
+                            <UserKpiAvatar
+                              photo={r.user?.photo}
+                              name={r.user?.name}
+                              size="w-8 h-8"
+                              textSize="text-xs"
+                            />
                             <div className="min-w-0">
                               <p className="font-extrabold text-slate-800 text-xs truncate">{r.user?.name}</p>
                               <span className={`inline-block text-[10px] font-bold px-1.5 py-0.2 rounded ${
@@ -949,13 +993,12 @@ export default function DirectorKpi({ token, onReviewChange: _onReviewChange }: 
           <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl border border-slate-100 shadow-2xl space-y-4 sm:space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center text-xs sm:text-sm shrink-0">
-                  {selectedReport.user?.photo ? (
-                    <img src={getAssetUrl(selectedReport.user.photo)} alt="" className="w-full h-full object-cover rounded-full" />
-                  ) : (
-                    selectedReport.user?.name?.charAt(0).toUpperCase()
-                  )}
-                </div>
+                <UserKpiAvatar
+                  photo={selectedReport.user?.photo}
+                  name={selectedReport.user?.name}
+                  size="w-9 sm:w-10 h-9 sm:h-10"
+                  textSize="text-xs sm:text-sm"
+                />
                 <div>
                   <h3 className="text-sm sm:text-base font-extrabold text-slate-800 leading-tight">
                     Laporan Kerja: {selectedReport.user?.name}
@@ -1013,6 +1056,7 @@ export default function DirectorKpi({ token, onReviewChange: _onReviewChange }: 
                       src={getAssetUrl(t.image_path)}
                       alt="Bukti Kerja"
                       onClick={() => setLightboxImg(getAssetUrl(t.image_path))}
+                      onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                       className="w-10 h-10 rounded-xl object-cover border border-slate-200 cursor-pointer hover:scale-105 transition-transform shrink-0"
                     />
                   )}

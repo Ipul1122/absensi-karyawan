@@ -1381,6 +1381,7 @@ export default function EmployeeKpi({ token, user }: EmployeeKpiProps) {
                                 src={getAssetUrl(task.image_path)}
                                 alt="Bukti Kerja"
                                 onClick={() => setLightboxImage(getAssetUrl(task.image_path))}
+                                onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-cover border border-slate-200 shadow-2xs cursor-pointer hover:scale-105 transition-transform"
                               />
                               <button

@@ -221,33 +221,7 @@ class AttendanceController extends Controller
             ], 422);
         }
 
-        // Check office setting radius limit (only if attendance was kantor type)
-        $office = \App\Models\OfficeSetting::first();
-        if ($office && $attendance->attendance_type === 'kantor') {
-            $officeLat = $office->latitude;
-            $officeLng = $office->longitude;
-            $officeRad = $office->radius;
-            
-            if ($user->office_location === 'bogor') {
-                $officeLat = $office->bogor_latitude ?? $office->latitude;
-                $officeLng = $office->bogor_longitude ?? $office->longitude;
-                $officeRad = $office->bogor_radius ?? $office->radius;
-            }
-            
-            $distance = $this->getDistance(
-                floatval($request->latitude),
-                floatval($request->longitude),
-                floatval($officeLat),
-                floatval($officeLng)
-            );
-            
-            if ($distance > $officeRad) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Gagal melakukan absen keluar! Anda berada di luar radius lokasi kantor yang diizinkan (Jarak Anda: ' . round($distance) . ' meter, Radius maksimal: ' . $officeRad . ' meter).'
-                ], 422);
-            }
-        }
+        // Check-out bebas radius kantor (radius hanya berlaku saat check-in)
 
         try {
             // Save webcam image

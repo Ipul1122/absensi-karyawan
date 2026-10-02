@@ -3,7 +3,7 @@ export const EMPLOYEE_FAQ_ITEMS = [
     id: 'absen-kantor',
     question: 'Bagaimana cara absen masuk dan pulang di kantor?',
     answer:
-      'Buka menu Absen → Absen Kantor. Izinkan akses lokasi dan kamera, lalu lakukan Check In saat tiba dan Check Out sebelum pulang. Pastikan Anda berada dalam radius kantor yang ditetapkan perusahaan.'
+      'Buka menu Absen → Absen Kantor. Izinkan akses lokasi dan kamera, lalu lakukan Check In saat tiba (wajib di dalam radius kantor) dan Check Out saat pulang (bebas batas radius). Koordinat GPS dan swafoto tetap dicatat untuk verifikasi.'
   },
   {
     id: 'kunjungan',

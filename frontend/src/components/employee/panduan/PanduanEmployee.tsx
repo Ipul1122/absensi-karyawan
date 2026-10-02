@@ -55,13 +55,13 @@ export default function PanduanEmployee() {
       category: 'presensi',
       badge: 'Absensi Kantor',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      description: 'Tata cara melakukan presensi resmi kantor menggunakan verifikasi kamera selfie dan deteksi lokasi GPS dalam radius area kantor yang ditentukan perusahaan.',
+      description: 'Tata cara melakukan presensi resmi kantor menggunakan verifikasi kamera selfie dan deteksi lokasi GPS. Check-In wajib berada dalam radius area kantor yang ditentukan perusahaan, sedangkan Check-Out bebas batas radius.',
       steps: [
         'Buka menu Absen Mandiri → Absen Kantor.',
         'Pastikan GPS aktif dan izinkan browser mengakses kamera serta lokasi Anda.',
         'Posisikan wajah Anda pada kamera selfie dengan pencahayaan yang cukup.',
-        'Klik tombol "Check In" saat tiba di kantor untuk merekam jam masuk.',
-        'Klik tombol "Check Out" sebelum pulang kerja untuk merekam jam kepulangan.'
+        'Klik tombol "Check In" saat tiba di kantor (sistem memvalidasi jarak radius kantor).',
+        'Klik tombol "Check Out" saat pulang kerja (bebas batas radius, titik koordinat tetap tercatat).'
       ],
       tips: 'Jadwal jam kerja: Sebelum 08.30 Datang Awal, 08.30 - 09.00 Normal/Tepat Waktu, Lewat 09.00 Terlambat. Jam pulang normal mulai pukul 17.30.',
       directPath: '/employee/absen',

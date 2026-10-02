@@ -82,6 +82,51 @@ interface AdminKpiProps {
   initialTab?: 'monitoring' | 'responsibilities' | 'my_todo'
 }
 
+function UserKpiAvatar({
+  photo,
+  name,
+  size = 'w-8 h-8',
+  textSize = 'text-xs',
+  className = '',
+  borderClass = 'border border-red-200/60'
+}: {
+  photo?: string | null
+  name?: string
+  size?: string
+  textSize?: string
+  className?: string
+  borderClass?: string
+}) {
+  const [hasError, setHasError] = useState(false)
+
+  useEffect(() => {
+    setHasError(false)
+  }, [photo])
+
+  const initial = name ? name.trim().charAt(0).toUpperCase() : '?'
+  const url = photo && photo !== 'null' && photo !== 'undefined' ? getAssetUrl(photo) : null
+
+  if (url && !hasError) {
+    return (
+      <div className={`${size} rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center shrink-0 overflow-hidden ${textSize} ${borderClass} ${className}`}>
+        <img
+          src={url}
+          alt={name || 'Avatar'}
+          className="w-full h-full object-cover"
+          onError={() => setHasError(true)}
+          loading="lazy"
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className={`${size} rounded-full bg-gradient-to-br from-red-100 to-rose-200 text-red-700 font-extrabold flex items-center justify-center shrink-0 ${textSize} ${borderClass} shadow-2xs select-none ${className}`}>
+      {initial}
+    </div>
+  )
+}
+
 export default function AdminKpi({ token, user, initialTab = 'monitoring' }: AdminKpiProps) {
   const getTodayJakarta = () => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date())
@@ -521,13 +566,12 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                         {/* Header: User Info & Presensi */}
                         <div className="flex items-start justify-between gap-2.5">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-9 h-9 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center shrink-0 overflow-hidden text-xs border border-red-200/60">
-                              {r.user?.photo ? (
-                                <img src={getAssetUrl(r.user.photo)} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                r.user?.name?.charAt(0).toUpperCase()
-                              )}
-                            </div>
+                            <UserKpiAvatar
+                              photo={r.user?.photo}
+                              name={r.user?.name}
+                              size="w-9 h-9"
+                              textSize="text-xs"
+                            />
                             <div className="min-w-0">
                               <p className="font-extrabold text-slate-800 text-xs truncate leading-tight">{r.user?.name}</p>
                               <p className="text-[10px] text-slate-400 truncate">{r.user?.division || 'Karyawan'}</p>
@@ -616,13 +660,12 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                           <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
                             <td className="py-3.5 pl-2">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center shrink-0 overflow-hidden text-xs">
-                                  {r.user?.photo ? (
-                                    <img src={getAssetUrl(r.user.photo)} alt="" className="w-full h-full object-cover" />
-                                  ) : (
-                                    r.user?.name?.charAt(0).toUpperCase()
-                                  )}
-                                </div>
+                                <UserKpiAvatar
+                                  photo={r.user?.photo}
+                                  name={r.user?.name}
+                                  size="w-8 h-8"
+                                  textSize="text-xs"
+                                />
                                 <div>
                                   <p className="font-extrabold text-slate-800 leading-tight">{r.user?.name}</p>
                                   <p className="text-[10px] text-slate-400">{r.user?.division || 'Karyawan'}</p>
@@ -823,13 +866,12 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
           <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-2xl border border-slate-100 shadow-2xl space-y-4 sm:space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 sm:w-10 h-9 sm:h-10 rounded-full bg-red-100 text-red-700 font-bold flex items-center justify-center text-xs sm:text-sm shrink-0">
-                  {selectedReport.user?.photo ? (
-                    <img src={getAssetUrl(selectedReport.user.photo)} alt="" className="w-full h-full object-cover rounded-full" />
-                  ) : (
-                    selectedReport.user?.name?.charAt(0).toUpperCase()
-                  )}
-                </div>
+                <UserKpiAvatar
+                  photo={selectedReport.user?.photo}
+                  name={selectedReport.user?.name}
+                  size="w-9 sm:w-10 h-9 sm:h-10"
+                  textSize="text-xs sm:text-sm"
+                />
                 <div>
                   <h3 className="text-sm sm:text-base font-extrabold text-slate-800 leading-tight">
                     Rincian To-Do List: {selectedReport.user?.name}
@@ -905,6 +947,7 @@ export default function AdminKpi({ token, user, initialTab = 'monitoring' }: Adm
                       src={getAssetUrl(t.image_path)}
                       alt="Bukti Kerja"
                       onClick={() => setLightboxImg(getAssetUrl(t.image_path))}
+                      onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                       className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-2xs cursor-pointer hover:scale-105 transition-transform shrink-0"
                     />
                   )}

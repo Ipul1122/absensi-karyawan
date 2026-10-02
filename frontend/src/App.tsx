@@ -154,6 +154,10 @@ function App() {
     setToken(newToken)
     setUser(newUser)
 
+    if (newUser.role === 'admin') {
+      sessionStorage.setItem('admin_just_logged_in', 'true')
+    }
+
     const redirectTo = sessionStorage.getItem('redirect_to')
     if (redirectTo) {
       sessionStorage.removeItem('redirect_to')
@@ -164,6 +168,7 @@ function App() {
   const handleLogout = () => {
     sessionStorage.removeItem('auth_token')
     sessionStorage.removeItem('auth_user')
+    sessionStorage.removeItem('admin_just_logged_in')
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user')
     setToken(null)

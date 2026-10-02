@@ -70,6 +70,8 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     Route::get('/attendance/today', [AttendanceController::class, 'getTodayAttendance']);
     Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn']);
     Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
+    Route::get('/attendance/uncompleted-checkouts', [AttendanceController::class, 'getUncompletedCheckouts']);
+    Route::post('/attendance/check-out-forgotten', [AttendanceController::class, 'checkOutForgotten']);
     Route::get('/attendance/history', [AttendanceController::class, 'getHistory']);
     Route::get('/office-setting', [AttendanceController::class, 'getOfficeSetting']);
     Route::get('/holidays/upcoming', [PayrollController::class, 'getUpcomingHolidays']);
@@ -119,6 +121,7 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
     // Employee KPI & Daily To-Do List routes
     Route::get('/kpi/my-responsibilities', [KpiController::class, 'getMyResponsibilities']);
     Route::get('/kpi/by-date', [KpiController::class, 'getReportByDate']);
+    Route::get('/kpi/today-status', [KpiController::class, 'checkTodayKpiStatus']);
     Route::post('/kpi/tasks', [KpiController::class, 'addTask']);
     Route::post('/kpi/tasks/bulk', [KpiController::class, 'bulkAddTasks']);
     Route::post('/kpi/tasks/{id}/upload-photo', [KpiController::class, 'uploadTaskPhoto']);

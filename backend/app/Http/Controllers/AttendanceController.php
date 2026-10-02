@@ -221,6 +221,20 @@ class AttendanceController extends Controller
             ], 422);
         }
 
+        // Validasi: Wajib mengisi To-Do List / KPI harian sebelum melakukan check-out
+        $hasKpi = \App\Models\DailyWorkReport::where('user_id', $user->id)
+            ->where('date', $today)
+            ->whereHas('tasks')
+            ->exists();
+
+        if (!$hasKpi) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 'KPI_REQUIRED',
+                'message' => 'Gagal melakukan check-out! Anda wajib mengisi To-Do List / KPI harian terlebih dahulu sebelum melakukan absen keluar.'
+            ], 422);
+        }
+
         // Check-out bebas radius kantor (radius hanya berlaku saat check-in)
 
         try {
@@ -278,6 +292,233 @@ class AttendanceController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal memproses absen keluar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get list of uncompleted check-outs for the logged-in user.
+     */
+    public function getUncompletedCheckouts(Request $request)
+    {
+        $user = $request->user();
+
+        // 1. Fetch uncompleted attendances (clock_in exists, clock_out is null)
+        $attendances = Attendance::with('shift')
+            ->where('user_id', $user->id)
+            ->whereNotNull('clock_in')
+            ->whereNull('clock_out')
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($att) {
+                return [
+                    'id' => $att->id,
+                    'type' => 'attendance',
+                    'date' => Carbon::parse($att->date)->toDateString(),
+                    'clock_in' => $att->clock_in,
+                    'clock_out' => null,
+                    'attendance_type' => $att->attendance_type ?? 'kantor',
+                    'shift_name' => $att->shift ? $att->shift->name : null,
+                    'shift_start_time' => $att->shift_start_time,
+                    'shift_end_time' => $att->shift_end_time,
+                    'notes_in' => $att->notes_in,
+                    'photo_in' => $att->photo_in,
+                ];
+            });
+
+        // 2. Fetch uncompleted sales visits
+        $visits = \App\Models\SalesVisit::where('user_id', $user->id)
+            ->whereNull('visit_time_out')
+            ->orderBy('date', 'desc')
+            ->get()
+            ->map(function ($v) {
+                return [
+                    'id' => 'visit_' . $v->id,
+                    'type' => 'sales_visit',
+                    'date' => Carbon::parse($v->date)->toDateString(),
+                    'clock_in' => $v->visit_time,
+                    'clock_out' => null,
+                    'attendance_type' => $v->visit_type === 'client' ? 'client' : 'kunjungan',
+                    'shift_name' => null,
+                    'shift_start_time' => null,
+                    'shift_end_time' => null,
+                    'notes_in' => 'Kunjungan: ' . $v->client_name,
+                    'photo_in' => $v->photo_path,
+                ];
+            });
+
+        // Merge and sort descending by date
+        $all = $attendances->concat($visits)->sortByDesc('date')->values();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $all,
+            'count' => $all->count()
+        ]);
+    }
+
+    /**
+     * Process forgotten check-out for a specific date selected from history.
+     */
+    public function checkOutForgotten(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'clock_out_time' => 'required|string',
+            'photo' => 'required|string', // base64 string
+            'notes' => 'nullable|string',
+            'latitude' => 'nullable|string',
+            'longitude' => 'nullable|string',
+            'attendance_id' => 'nullable',
+        ]);
+
+        $user = $request->user();
+        $date = Carbon::parse($request->date)->toDateString();
+        $clockOutTime = Carbon::parse($request->clock_out_time)->format('H:i:s');
+
+        // Validasi: Wajib mengisi To-Do List / KPI pada tanggal yang dipilih
+        $hasKpi = \App\Models\DailyWorkReport::where('user_id', $user->id)
+            ->where('date', $date)
+            ->whereHas('tasks')
+            ->exists();
+
+        if (!$hasKpi) {
+            return response()->json([
+                'status' => 'error',
+                'code' => 'KPI_REQUIRED',
+                'date' => $date,
+                'message' => 'Gagal melakukan checkout susulan! Anda belum mengisi To-Do List / KPI untuk tanggal ' . Carbon::parse($date)->locale('id')->isoFormat('D MMMM Y') . '. Silakan buat To-Do List untuk tanggal tersebut terlebih dahulu.'
+            ], 422);
+        }
+
+        try {
+            $attendanceId = $request->attendance_id;
+
+            // Handle Sales Visit forgotten checkout
+            if ($attendanceId && str_starts_with((string)$attendanceId, 'visit_')) {
+                $visitId = (int) substr((string)$attendanceId, 6);
+                $visit = \App\Models\SalesVisit::where('id', $visitId)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                if (!$visit) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Laporan kunjungan tidak ditemukan.'
+                    ], 404);
+                }
+
+                if ($visit->visit_time_out) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Anda sudah melakukan absen keluar dari kunjungan ini.'
+                    ], 422);
+                }
+
+                $photoPath = $this->saveBase64Image($request->photo, 'visit_out_' . $user->id);
+
+                $visit->update([
+                    'visit_time_out' => $clockOutTime,
+                    'latitude_out' => $request->latitude ?? $visit->latitude,
+                    'longitude_out' => $request->longitude ?? $visit->longitude,
+                    'photo_path_out' => $photoPath,
+                    'notes_out' => $request->notes ? ($request->notes . ' (Checkout Susulan)') : 'Checkout Susulan Kunjungan',
+                ]);
+
+                // Sync with Attendance table for that date
+                $attendance = Attendance::where('user_id', $user->id)
+                    ->where('date', $date)
+                    ->first();
+
+                if ($attendance && empty($attendance->clock_out)) {
+                    $attendance->update([
+                        'clock_out' => $clockOutTime,
+                        'latitude_out' => $request->latitude ?? $attendance->latitude_in,
+                        'longitude_out' => $request->longitude ?? $attendance->longitude_in,
+                        'photo_out' => $photoPath,
+                        'notes_out' => $request->notes ? ($request->notes . ' (Checkout Susulan)') : 'Checkout Susulan via Kunjungan: ' . $visit->client_name,
+                        'status_out' => 'normal',
+                    ]);
+                }
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Checkout susulan kunjungan berhasil dicatat!',
+                    'data' => $visit
+                ]);
+            }
+
+            // Handle regular Attendance forgotten checkout
+            $attendance = null;
+            if ($attendanceId && is_numeric($attendanceId)) {
+                $attendance = Attendance::where('id', $attendanceId)->where('user_id', $user->id)->first();
+            }
+            if (!$attendance) {
+                $attendance = Attendance::where('user_id', $user->id)->where('date', $date)->first();
+            }
+
+            if (!$attendance || empty($attendance->clock_in)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Data presensi masuk untuk tanggal ' . Carbon::parse($date)->locale('id')->isoFormat('D MMMM Y') . ' tidak ditemukan.'
+                ], 422);
+            }
+
+            if (!empty($attendance->clock_out)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Anda sudah melakukan absen keluar pada tanggal ' . Carbon::parse($date)->locale('id')->isoFormat('D MMMM Y') . '.'
+                ], 422);
+            }
+
+            // Validate that checkout time is after checkin time
+            if ($clockOutTime <= $attendance->clock_in) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Jam check-out ({$clockOutTime}) harus lebih besar dari jam check-in ({$attendance->clock_in})."
+                ], 422);
+            }
+
+            $photoPath = $this->saveBase64Image($request->photo, 'checkout_forgotten_' . $user->id);
+
+            // Determine status based on shift or Saturday rules
+            $targetDateCarbon = Carbon::parse($date);
+            $isSaturday = $targetDateCarbon->isSaturday();
+
+            if ($attendance->shift_end_time) {
+                $limitEarly = $attendance->shift_end_time;
+                $limitOvertime = Carbon::parse($attendance->shift_end_time)->addMinutes(30)->format('H:i:s');
+            } else {
+                $limitEarly = $isSaturday ? '14:00:00' : '17:30:00';
+                $limitOvertime = $isSaturday ? '15:00:00' : '18:00:00';
+            }
+
+            $status = 'normal';
+            if ($clockOutTime < $limitEarly) {
+                $status = 'early_departure';
+            } elseif ($clockOutTime > $limitOvertime) {
+                $status = 'overtime';
+            }
+
+            $attendance->update([
+                'clock_out' => $clockOutTime,
+                'latitude_out' => $request->latitude ?? $attendance->latitude_in,
+                'longitude_out' => $request->longitude ?? $attendance->longitude_in,
+                'photo_out' => $photoPath,
+                'notes_out' => $request->notes ? ($request->notes . ' (Checkout Susulan)') : 'Checkout Susulan (Lupa Checkout)',
+                'status_out' => $status,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Checkout susulan berhasil dicatat untuk tanggal ' . Carbon::parse($date)->locale('id')->isoFormat('D MMMM Y') . '!',
+                'data' => $attendance
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal memproses checkout susulan: ' . $e->getMessage()
             ], 500);
         }
     }

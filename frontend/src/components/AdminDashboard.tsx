@@ -775,6 +775,9 @@ ${window.location.origin}/director/karyawan`
     if (path.includes('absen-mandiri')) {
       return { title: 'Presensi Mandiri Admin', subtitle: 'Self Check-In / Check-Out' }
     }
+    if (path.includes('riwayat')) {
+      return { title: 'Riwayat Presensi Mandiri Admin', subtitle: 'Attendance History' }
+    }
     if (path.includes('rekapAbsensi')) {
       return { title: 'Rekap Absensi Karyawan', subtitle: 'Attendance Logs' }
     }
@@ -927,6 +930,16 @@ ${window.location.origin}/director/karyawan`
                 <AbsenMandiriAdmin 
                   token={token} 
                   user={user} 
+                />
+              } 
+            />
+            <Route 
+              path="riwayat" 
+              element={
+                <AbsenMandiriAdmin 
+                  token={token} 
+                  user={user} 
+                  initialView="riwayat"
                 />
               } 
             />

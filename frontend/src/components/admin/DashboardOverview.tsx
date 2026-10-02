@@ -27,7 +27,9 @@ import {
   ShieldAlert,
   Search,
   CheckCircle,
-  FlipHorizontal2
+  FlipHorizontal2,
+  ListTodo,
+  CheckSquare,
 } from 'lucide-react'
 
 interface Attendance {
@@ -143,6 +145,48 @@ export default function DashboardOverview({
   useEffect(() => {
     fetchReimbursementsAndOvertimes()
   }, [])
+
+  // Toast pengingat To-Do List saat Admin/HR login dan masuk ke Dashboard
+  useEffect(() => {
+    const todayFormatted = new Date().toISOString().slice(0, 10)
+    const sessionKey = `admin_todo_toast_shown_${todayFormatted}_${user.id}`
+    const justLoggedIn = sessionStorage.getItem('admin_just_logged_in')
+
+    if (!sessionStorage.getItem(sessionKey) || justLoggedIn === 'true') {
+      sessionStorage.removeItem('admin_just_logged_in')
+      const timer = setTimeout(() => {
+        sessionStorage.setItem(sessionKey, 'true')
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'info',
+          title: 'Pengingat To-Do List Harian (HR)',
+          html: `<div class="text-left text-xs text-slate-600 mt-1 leading-relaxed">
+            Halo <b>${user.name}</b>, jangan lupa untuk membuat dan memperbarui <b>To-Do List</b> pekerjaan Anda hari ini!
+          </div>`,
+          showConfirmButton: true,
+          confirmButtonText: 'Buat To-Do List',
+          confirmButtonColor: '#FF5A00',
+          showCancelButton: true,
+          cancelButtonText: 'Nanti',
+          cancelButtonColor: '#64748b',
+          timer: 8000,
+          timerProgressBar: true,
+          background: '#ffffff',
+          color: '#0f172a',
+          customClass: {
+            popup: 'shadow-2xl border border-orange-200 rounded-2xl font-sans'
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate('/admin/todo')
+          }
+        })
+      }, 700)
+
+      return () => clearTimeout(timer)
+    }
+  }, [user.id, user.name, navigate])
 
   const fetchReimbursementsAndOvertimes = async () => {
     try {
@@ -429,6 +473,33 @@ export default function DashboardOverview({
       return
     }
 
+    if (modalType === 'check-out') {
+      try {
+        const kpiCheck = await axios.get('http://localhost:8000/api/kpi/today-status', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (kpiCheck.data && !kpiCheck.data.has_kpi) {
+          Swal.fire({
+            title: 'Wajib Isi To-Do List!',
+            text: 'Sebagai staf Admin/HR, Anda wajib mengisi To-Do List harian terlebih dahulu sebelum melakukan absen keluar.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Isi To-Do List Sekarang',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#ea580c',
+            cancelButtonColor: '#64748b'
+          }).then((res) => {
+            if (res.isConfirmed) {
+              navigate('/admin/todo')
+            }
+          })
+          return
+        }
+      } catch (e) {
+        console.error('Failed to verify KPI status before admin checkout:', e)
+      }
+    }
+
     setSubmitting(true)
     try {
       const url = `http://localhost:8000/api/attendance/${modalType}`
@@ -458,6 +529,28 @@ export default function DashboardOverview({
       }
     } catch (err: any) {
       console.error(err)
+      const isKpiError = err.response?.data?.code === 'KPI_REQUIRED' || 
+        (err.response?.data?.message && /kpi|to-do/i.test(err.response.data.message))
+
+      if (isKpiError) {
+        handleCloseCheckInModal()
+        Swal.fire({
+          title: 'Wajib Isi To-Do List!',
+          text: err.response?.data?.message || 'Sebagai staf Admin/HR, Anda wajib mengisi To-Do List harian terlebih dahulu sebelum melakukan absen keluar.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Isi To-Do List Sekarang',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#ea580c',
+          cancelButtonColor: '#64748b'
+        }).then((res) => {
+          if (res.isConfirmed) {
+            navigate('/admin/todo')
+          }
+        })
+        return
+      }
+
       const msg = err.response?.data?.message || 'Gagal memproses absensi.'
       Swal.fire({ title: 'Gagal', text: msg, icon: 'error', confirmButtonColor: '#dc2626' })
     } finally {
@@ -509,6 +602,22 @@ export default function DashboardOverview({
             <p className="text-xs text-white/90 font-medium mt-1">
               Kelola dan pantau seluruh aktivitas absensi serta perizinan staf Anda secara realtime.
             </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => navigate('/admin/todo')}
+              className="px-4 py-2.5 bg-white text-orange-600 hover:bg-orange-50 font-bold rounded-xl text-xs flex items-center gap-2 transition-all shadow-md cursor-pointer"
+            >
+              <ListTodo className="w-4 h-4" />
+              <span>To-Do List (HR)</span>
+            </button>
+            <button
+              onClick={() => navigate('/admin/kpi')}
+              className="px-4 py-2.5 bg-white/20 hover:bg-white/30 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition-all backdrop-blur-sm border border-white/30 cursor-pointer"
+            >
+              <CheckSquare className="w-4 h-4" />
+              <span>Monitoring KPI</span>
+            </button>
           </div>
         </div>
       </div>

@@ -20,9 +20,13 @@ import {
   Navigation,
   CheckCircle2,
   SwitchCamera,
-  Circle
+  Circle,
+  History,
+  Clock
 } from 'lucide-react'
 import { API_BASE_URL } from '../../../utils/api'
+import EmployeeHistory from '../../employee/absensi/EmployeeHistory'
+import ForgotCheckoutModal from '../../common/ForgotCheckoutModal'
 
 interface User {
   id: number
@@ -61,10 +65,14 @@ interface OfficeSetting {
 interface AbsenMandiriAdminProps {
   token: string
   user: User
+  initialView?: 'console' | 'riwayat'
 }
 
-export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProps) {
+export default function AbsenMandiriAdmin({ token, user, initialView = 'console' }: AbsenMandiriAdminProps) {
   const navigate = useNavigate()
+  const [viewMode, setViewMode] = useState<'console' | 'riwayat'>(initialView)
+  const [showForgotModal, setShowForgotModal] = useState<boolean>(false)
+  const [uncompletedCount, setUncompletedCount] = useState<number>(0)
   // Time state
   const [time, setTime] = useState(new Date())
   
@@ -139,8 +147,22 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
     }
   }
 
+  const fetchUncompletedCount = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/attendance/uncompleted-checkouts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.data && res.data.status === 'success') {
+        setUncompletedCount(res.data.count || 0)
+      }
+    } catch (e) {
+      console.error('Gagal mengambil uncompleted count admin:', e)
+    }
+  }
+
   useEffect(() => {
     fetchData()
+    fetchUncompletedCount()
   }, [token])
 
   // Map Initialization & Updates
@@ -385,7 +407,33 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
   }
 
   // Open Console (check-in / check-out page form)
-  const openConsole = (type: 'check-in' | 'check-out') => {
+  const openConsole = async (type: 'check-in' | 'check-out') => {
+    if (type === 'check-out') {
+      try {
+        const kpiCheck = await axios.get(`${API_BASE_URL}/api/kpi/today-status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (kpiCheck.data && !kpiCheck.data.has_kpi) {
+          Swal.fire({
+            title: 'Wajib Isi To-Do List!',
+            text: 'Sebagai staf Admin/HR, Anda wajib mengisi To-Do List harian terlebih dahulu sebelum melakukan absen keluar.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Isi To-Do List Sekarang',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#ea580c',
+            cancelButtonColor: '#64748b'
+          }).then((res) => {
+            if (res.isConfirmed) {
+              navigate('/admin/todo')
+            }
+          })
+          return
+        }
+      } catch (e) {
+        console.error('Failed to verify KPI status:', e)
+      }
+    }
     setModalType(type)
     setCapturedPhoto(null)
     setNotes('')
@@ -438,6 +486,33 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
         confirmButtonColor: '#dc2626'
       })
       return
+    }
+
+    if (modalType === 'check-out') {
+      try {
+        const kpiCheck = await axios.get(`${API_BASE_URL}/api/kpi/today-status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (kpiCheck.data && !kpiCheck.data.has_kpi) {
+          Swal.fire({
+            title: 'Wajib Isi To-Do List!',
+            text: 'Sebagai staf Admin/HR, Anda wajib mengisi To-Do List harian terlebih dahulu sebelum melakukan absen keluar.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Isi To-Do List Sekarang',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#ea580c',
+            cancelButtonColor: '#64748b'
+          }).then((res) => {
+            if (res.isConfirmed) {
+              navigate('/admin/todo')
+            }
+          })
+          return
+        }
+      } catch (e) {
+        console.error('Failed to verify KPI status before admin checkout:', e)
+      }
     }
 
     setSubmitting(true)
@@ -506,6 +581,28 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
       }
     } catch (err: any) {
       console.error(err)
+      const isKpiError = err.response?.data?.code === 'KPI_REQUIRED' || 
+        (err.response?.data?.message && /kpi|to-do/i.test(err.response.data.message))
+
+      if (isKpiError) {
+        closeConsole()
+        Swal.fire({
+          title: 'Wajib Isi To-Do List!',
+          text: err.response?.data?.message || 'Sebagai staf Admin/HR, Anda wajib mengisi To-Do List harian terlebih dahulu sebelum melakukan absen keluar.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Isi To-Do List Sekarang',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#ea580c',
+          cancelButtonColor: '#64748b'
+        }).then((res) => {
+          if (res.isConfirmed) {
+            navigate('/admin/todo')
+          }
+        })
+        return
+      }
+
       const msg = err.response?.data?.message || 'Gagal memproses absensi.'
       Swal.fire({ title: 'Gagal', text: msg, icon: 'error', confirmButtonColor: '#dc2626' })
     } finally {
@@ -596,6 +693,96 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
         </div>
       </div>
 
+      {/* Navigation Switcher & Quick Actions */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 bg-white border border-slate-100 rounded-2xl shadow-xs">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setViewMode('console')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+              viewMode === 'console'
+                ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Camera className="w-4 h-4" />
+            <span>Konsol Absen Hari Ini</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('riwayat')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+              viewMode === 'riwayat'
+                ? 'bg-gradient-to-r from-red-500 to-orange-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            <span>Riwayat Presensi Saya</span>
+            {uncompletedCount > 0 && (
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowForgotModal(true)}
+          className="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shrink-0"
+        >
+          <Clock className="w-4 h-4 text-amber-600" />
+          <span>Lupa Checkout?</span>
+        </button>
+      </div>
+
+      {/* Uncompleted Checkout Warning Banner */}
+      {uncompletedCount > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-950 shadow-sm animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-extrabold text-amber-950">
+                Ada {uncompletedCount} Presensi Anda yang Belum Check-Out
+              </h4>
+              <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                Anda dapat menyelesaikan checkout susulan melalui riwayat atau menggunakan tombol di samping dengan memilih jam & menyertakan foto.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowForgotModal(true)}
+            className="px-4 py-2 bg-[#ea580c] hover:bg-[#c2410c] text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center gap-1.5 shrink-0 self-start sm:self-center cursor-pointer transition-all active:scale-95"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Checkout Susulan Sekarang</span>
+          </button>
+        </div>
+      )}
+
+      {viewMode === 'riwayat' ? (
+        <div className="bg-white rounded-[32px] border border-slate-100 p-6 shadow-sm space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-slate-800">Riwayat Presensi Pribadi Admin</h2>
+              <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                Daftar absensi harian Anda. Jika terdapat tanggal yang lupa checkout, Anda dapat menyelesaikannya langsung di kartu presensi terkait.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowForgotModal(true)}
+              className="px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-black rounded-xl text-xs shadow-md shadow-red-500/10 cursor-pointer flex items-center gap-1.5 transition-all active:scale-95"
+            >
+              <Clock className="w-4 h-4" />
+              <span>Lupa Checkout</span>
+            </button>
+          </div>
+          <EmployeeHistory token={token} getStatusBadge={getStatusBadge} />
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left Column: Digital Clock Dial & Today Summary Card (4 columns) */}
@@ -716,6 +903,14 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
                     Absen Masuk Sekarang
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="w-full mt-2.5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold rounded-2xl transition-all cursor-pointer text-xs flex items-center justify-center gap-1.5"
+                >
+                  <Clock className="w-3.5 h-3.5 text-orange-600" />
+                  <span>Lupa Checkout Sebelumnya?</span>
+                </button>
               </div>
             )}
           </div>
@@ -1037,6 +1232,7 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
         </div>
 
       </div>
+      )}
 
       {/* ================================================================
           FULLSCREEN CAMERA MODAL
@@ -1204,6 +1400,18 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
           <canvas ref={modalCanvasRef} className="hidden" />
         </div>
       )}
+
+      {/* Forgot Checkout Modal for Admin */}
+      <ForgotCheckoutModal
+        isOpen={showForgotModal}
+        onClose={() => setShowForgotModal(false)}
+        onSuccess={() => {
+          fetchData()
+          fetchUncompletedCount()
+        }}
+        token={token}
+        isAdmin={true}
+      />
     </div>
   )
 }

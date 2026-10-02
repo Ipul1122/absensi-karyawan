@@ -530,6 +530,34 @@ export default function EmployeeSales({
       return
     }
 
+    try {
+      const kpiCheck = await axios.get('http://localhost:8000/api/kpi/today-status', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (kpiCheck.data && !kpiCheck.data.has_kpi) {
+        setShowCheckoutModal(false)
+        Swal.fire({
+          title: 'Wajib Isi To-Do List / KPI!',
+          text: 'Anda belum mengisi To-Do List / KPI harian untuk hari ini. Silakan buat To-Do List terlebih dahulu sebelum melakukan absen keluar kunjungan sales.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Isi KPI Sekarang',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#6366f1',
+          cancelButtonColor: '#475569',
+          background: '#1e293b',
+          color: '#f8fafc'
+        }).then((res) => {
+          if (res.isConfirmed) {
+            navigate('/employee/kpi')
+          }
+        })
+        return
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
     setCheckoutSubmitting(true)
     try {
       const response = await axios.put(
@@ -564,6 +592,30 @@ export default function EmployeeSales({
       }
     } catch (err: any) {
       console.error(err)
+      const isKpiError = err.response?.data?.code === 'KPI_REQUIRED' || 
+        (err.response?.data?.message && /kpi|to-do/i.test(err.response.data.message))
+
+      if (isKpiError) {
+        setShowCheckoutModal(false)
+        Swal.fire({
+          title: 'Wajib Isi To-Do List / KPI!',
+          text: err.response?.data?.message || 'Anda wajib mengisi To-Do List / KPI harian terlebih dahulu sebelum melakukan absen keluar kunjungan sales.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Isi KPI Sekarang',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#6366f1',
+          cancelButtonColor: '#475569',
+          background: '#1e293b',
+          color: '#f8fafc'
+        }).then((res) => {
+          if (res.isConfirmed) {
+            navigate('/employee/kpi')
+          }
+        })
+        return
+      }
+
       const msg = err.response?.data?.message || 'Gagal melaporkan check-out kunjungan.'
       Swal.fire({
         title: 'Kesalahan Pelaporan',
@@ -738,7 +790,33 @@ export default function EmployeeSales({
 
                       {!visit.visit_time_out && (
                         <button
-                          onClick={() => {
+                          onClick={async () => {
+                            try {
+                              const kpiCheck = await axios.get('http://localhost:8000/api/kpi/today-status', {
+                                headers: { Authorization: `Bearer ${token}` }
+                              })
+                              if (kpiCheck.data && !kpiCheck.data.has_kpi) {
+                                Swal.fire({
+                                  title: 'Wajib Isi To-Do List / KPI!',
+                                  text: 'Anda belum mengisi To-Do List / KPI harian untuk hari ini. Silakan buat To-Do List terlebih dahulu sebelum melakukan absen keluar kunjungan sales.',
+                                  icon: 'warning',
+                                  showCancelButton: true,
+                                  confirmButtonText: 'Isi KPI Sekarang',
+                                  cancelButtonText: 'Batal',
+                                  confirmButtonColor: '#6366f1',
+                                  cancelButtonColor: '#475569',
+                                  background: '#1e293b',
+                                  color: '#f8fafc'
+                                }).then((res) => {
+                                  if (res.isConfirmed) {
+                                    navigate('/employee/kpi')
+                                  }
+                                })
+                                return
+                              }
+                            } catch (e) {
+                              console.error(e)
+                            }
                             setCheckoutVisitId(visit.id)
                             setCameraMode('checkout')
                             setShowCheckoutModal(true)

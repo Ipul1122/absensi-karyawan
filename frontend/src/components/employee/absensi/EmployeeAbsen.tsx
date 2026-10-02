@@ -20,6 +20,7 @@ import {
   Circle,
   Building,
   Home,
+  ListTodo,
 } from 'lucide-react'
 
 const BRAND_ORANGE = '#FF5A00'
@@ -107,6 +108,24 @@ export default function EmployeeAbsen({
     searchParams.get('mode') === 'wfh' ? 'wfh' : 'kantor'
   )
   const [submitting, setSubmitting] = useState(false)
+  const [hasKpiToday, setHasKpiToday] = useState<boolean | null>(null)
+
+  const checkKpiStatus = useCallback(async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/api/kpi/today-status', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.data && res.data.status === 'success') {
+        setHasKpiToday(!!res.data.has_kpi)
+      }
+    } catch (e) {
+      console.error('Gagal mengecek status KPI hari ini:', e)
+    }
+  }, [token])
+
+  useEffect(() => {
+    checkKpiStatus()
+  }, [checkKpiStatus, selectedTab])
 
   // Camera & Location States
   const [latitude, setLatitude] = useState<number | null>(null)
@@ -662,6 +681,38 @@ export default function EmployeeAbsen({
       return
     }
 
+    if (type === 'check-out') {
+      try {
+        const kpiCheck = await axios.get('http://localhost:8000/api/kpi/today-status', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (kpiCheck.data && !kpiCheck.data.has_kpi) {
+          setHasKpiToday(false)
+          Swal.fire({
+            title: 'Wajib Isi To-Do List / KPI!',
+            text: 'Anda belum mengisi To-Do List / KPI harian untuk hari ini. Silakan buat To-Do List terlebih dahulu sebelum melakukan check-out.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Isi To-Do List Sekarang',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: BRAND_ORANGE,
+            cancelButtonColor: '#64748b',
+            background: '#1e293b',
+            color: '#f8fafc'
+          }).then((res) => {
+            if (res.isConfirmed) {
+              navigate('/employee/kpi')
+            }
+          })
+          return
+        } else {
+          setHasKpiToday(true)
+        }
+      } catch (e) {
+        console.error('Failed to verify KPI status before checkout:', e)
+      }
+    }
+
     setSubmitting(true)
     try {
       const url = `http://localhost:8000/api/attendance/${type}`
@@ -755,6 +806,30 @@ export default function EmployeeAbsen({
       }
     } catch (err: any) {
       console.error(err)
+      const isKpiError = err.response?.data?.code === 'KPI_REQUIRED' || 
+        (err.response?.data?.message && /kpi|to-do/i.test(err.response.data.message))
+
+      if (isKpiError) {
+        setHasKpiToday(false)
+        Swal.fire({
+          title: 'Wajib Isi To-Do List / KPI!',
+          text: err.response?.data?.message || 'Anda wajib mengisi To-Do List / KPI harian terlebih dahulu sebelum melakukan check-out.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Isi To-Do List Sekarang',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: BRAND_ORANGE,
+          cancelButtonColor: '#64748b',
+          background: '#1e293b',
+          color: '#f8fafc'
+        }).then((res) => {
+          if (res.isConfirmed) {
+            navigate('/employee/kpi')
+          }
+        })
+        return
+      }
+
       const msg = err.response?.data?.message || 'Gagal memproses absensi.'
       Swal.fire({
         title: 'Kesalahan Absensi',
@@ -1127,13 +1202,22 @@ export default function EmployeeAbsen({
                 Lakukan check-in terlebih dahulu hari ini sebelum mencatat check-out.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setSelectedTab('in')}
-              className="h-11 px-6 bg-[#FF5A00] hover:bg-[#E04800] text-white font-semibold rounded-2xl text-sm transition-all cursor-pointer"
-            >
-              Ke tab Check In
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedTab('in')}
+                className="h-11 px-6 bg-[#FF5A00] hover:bg-[#E04800] text-white font-semibold rounded-2xl text-sm transition-all cursor-pointer"
+              >
+                Ke tab Check In
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/employee/riwayat')}
+                className="h-11 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-2xl text-sm transition-all cursor-pointer"
+              >
+                Lupa Checkout Tanggal Lain? Buka Riwayat
+              </button>
+            </div>
           </section>
         ) : !todayAttendance.clock_out ? (
           <section className="bg-white border border-slate-100 rounded-[20px] p-4 sm:p-6 space-y-6" style={{ boxShadow: CARD_SHADOW }}>
@@ -1153,6 +1237,32 @@ export default function EmployeeAbsen({
                 Belum keluar
               </span>
             </div>
+
+            {hasKpiToday === false && (
+              <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-extrabold text-amber-950">
+                      Wajib Isi To-Do List / KPI Sebelum Check-Out
+                    </h4>
+                    <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                      Anda belum mengisi To-Do List untuk hari ini. Silakan buat To-Do List terlebih dahulu agar dapat mengirimkan absen keluar.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/employee/kpi')}
+                  className="px-4 py-2 bg-[#FF5A00] hover:bg-[#E04800] text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 shrink-0 self-start sm:self-center cursor-pointer transition-all active:scale-95"
+                >
+                  <ListTodo className="w-4 h-4" />
+                  <span>Isi To-Do List</span>
+                </button>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Column 1: Foto Presensi */}

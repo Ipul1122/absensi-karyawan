@@ -15,9 +15,11 @@ import {
   ChevronRight,
   CalendarDays,
   LogIn,
-  LogOut
+  LogOut,
+  Clock
 } from 'lucide-react'
 import { getAssetUrl } from '../../../utils/api'
+import ForgotCheckoutModal from '../../common/ForgotCheckoutModal'
 
 const BRAND_ORANGE = '#FF5A00'
 const CARD_SHADOW = '0 4px 16px rgba(0,0,0,0.06)'
@@ -108,10 +110,12 @@ function pillClass(active: boolean) {
 
 function HistoryRecordCard({
   record,
-  getStatusBadge
+  getStatusBadge,
+  onForgotCheckout
 }: {
   record: Attendance
   getStatusBadge: (status: string | null) => React.ReactNode
+  onForgotCheckout?: (record: Attendance) => void
 }) {
   const showPhoto = (title: string, path: string | null) => {
     if (!path) return null
@@ -122,6 +126,8 @@ function HistoryRecordCard({
       confirmButtonColor: BRAND_ORANGE
     })
   }
+
+  const isUncompleted = !record.clock_out && !!record.clock_in
 
   return (
     <article
@@ -141,7 +147,15 @@ function HistoryRecordCard({
             </p>
           )}
         </div>
-        <div className="shrink-0">{renderAttendanceTypeBadge(record.attendance_type)}</div>
+        <div className="shrink-0 flex items-center gap-2">
+          {isUncompleted && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-50 border border-amber-300 text-amber-900 animate-pulse">
+              <Clock className="w-3.5 h-3.5 text-amber-600" />
+              Lupa Checkout
+            </span>
+          )}
+          {renderAttendanceTypeBadge(record.attendance_type)}
+        </div>
       </div>
 
       {record.notes_in && (
@@ -165,19 +179,37 @@ function HistoryRecordCard({
             <p className="text-sm text-slate-400 italic">Tidak ada data</p>
           )}
         </div>
-        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 sm:p-4">
-          <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
-            <LogOut className="w-4 h-4 text-[#FF5A00]" />
-            Keluar
+        <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3 sm:p-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-slate-500 uppercase tracking-wide mb-2">
+              <LogOut className="w-4 h-4 text-[#FF5A00]" />
+              Keluar
+            </div>
+            {record.clock_out ? (
+              <>
+                <p className="text-lg font-bold text-slate-800 tabular-nums">{formatClock(record.clock_out)}</p>
+                <div className="mt-2">{getStatusBadge(record.status_out)}</div>
+              </>
+            ) : isUncompleted ? (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-lg border border-amber-200 inline-block">
+                  Belum Checkout
+                </p>
+                {onForgotCheckout && (
+                  <button
+                    type="button"
+                    onClick={() => onForgotCheckout(record)}
+                    className="w-full py-1.5 px-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-[11px] font-extrabold shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Lupa Checkout?</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 italic">Tidak ada data</p>
+            )}
           </div>
-          {record.clock_out ? (
-            <>
-              <p className="text-lg font-bold text-slate-800 tabular-nums">{formatClock(record.clock_out)}</p>
-              <div className="mt-2">{getStatusBadge(record.status_out)}</div>
-            </>
-          ) : (
-            <p className="text-sm text-slate-400 italic">Tidak ada data</p>
-          )}
         </div>
       </div>
 
@@ -222,6 +254,24 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
   const [totalItems, setTotalItems] = React.useState(0)
   const [totalPages, setTotalPages] = React.useState(1)
 
+  // Forgot checkout modal states
+  const [showForgotModal, setShowForgotModal] = React.useState(false)
+  const [selectedForgottenRecord, setSelectedForgottenRecord] = React.useState<Attendance | null>(null)
+  const [uncompletedCount, setUncompletedCount] = React.useState(0)
+
+  const fetchUncompletedCount = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/api/attendance/uncompleted-checkouts', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.data && res.data.status === 'success') {
+        setUncompletedCount(res.data.count || 0)
+      }
+    } catch (e) {
+      console.error('Gagal mengambil jumlah uncompleted checkouts:', e)
+    }
+  }
+
   const fetchHistoryData = async () => {
     setLoading(true)
     try {
@@ -257,6 +307,7 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
 
   React.useEffect(() => {
     fetchHistoryData()
+    fetchUncompletedCount()
   }, [currentPage, itemsPerPage, filterType, attendanceTypeFilter, selectedMonth, selectedYear, selectedDate])
 
   const safeCurrentPage = Math.min(currentPage, Math.max(totalPages, 1))
@@ -273,6 +324,36 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
 
   return (
     <div className="w-full space-y-5 sm:space-y-6 pb-4">
+      {/* Banner Peringatan Lupa Checkout */}
+      {uncompletedCount > 0 && (
+        <div className="rounded-[20px] border border-amber-200 bg-amber-50/90 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-amber-950 shadow-sm animate-fade-in">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-extrabold text-amber-950">
+                Ada {uncompletedCount} Presensi Belum Check-Out
+              </h4>
+              <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                Anda memiliki data absen masuk yang belum dilakukan check-out. Anda dapat melakukan checkout susulan sekarang dengan memilih jam dan menyertakan foto selfie/galeri.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedForgottenRecord(null)
+              setShowForgotModal(true)
+            }}
+            className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 shrink-0 self-start sm:self-center cursor-pointer transition-all active:scale-95"
+          >
+            <Clock className="w-4 h-4" />
+            <span>Checkout Susulan Sekarang</span>
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="rounded-[20px] border border-slate-100 bg-white p-4 sm:p-5 space-y-4" style={{ boxShadow: CARD_SHADOW }}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -280,21 +361,34 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
             <Filter className="w-4 h-4 text-[#FF5A00]" />
             Filter riwayat
           </div>
-          <label className="flex items-center gap-2 shrink-0 self-start sm:self-center text-[13px]">
-            <span className="text-slate-500 font-medium whitespace-nowrap">Tampilkan</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(parseInt(e.target.value, 10))
-                setCurrentPage(1)
+          <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-center">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedForgottenRecord(null)
+                setShowForgotModal(true)
               }}
-              className="h-10 bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 text-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-black shadow-xs transition-all active:scale-95 cursor-pointer"
             >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
-          </label>
+              <Clock className="w-3.5 h-3.5" />
+              <span>Lupa Checkout</span>
+            </button>
+            <label className="flex items-center gap-2 text-[13px]">
+              <span className="text-slate-500 font-medium whitespace-nowrap">Tampilkan</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(parseInt(e.target.value, 10))
+                  setCurrentPage(1)
+                }}
+                className="h-10 bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 text-slate-800 text-sm font-semibold outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -436,10 +530,34 @@ export default function EmployeeHistory({ token, getStatusBadge }: EmployeeHisto
       ) : (
         <div className="space-y-3 sm:space-y-4">
           {history.map((record) => (
-            <HistoryRecordCard key={record.id} record={record} getStatusBadge={getStatusBadge} />
+            <HistoryRecordCard
+              key={record.id}
+              record={record}
+              getStatusBadge={getStatusBadge}
+              onForgotCheckout={(rec) => {
+                setSelectedForgottenRecord(rec)
+                setShowForgotModal(true)
+              }}
+            />
           ))}
         </div>
       )}
+
+      {/* Forgot Checkout Modal */}
+      <ForgotCheckoutModal
+        isOpen={showForgotModal}
+        onClose={() => {
+          setShowForgotModal(false)
+          setSelectedForgottenRecord(null)
+        }}
+        onSuccess={() => {
+          fetchHistoryData()
+          fetchUncompletedCount()
+        }}
+        token={token}
+        isAdmin={false}
+        preselectedRecord={selectedForgottenRecord}
+      />
 
       {/* Pagination */}
       {totalItems > 0 && (

@@ -176,6 +176,20 @@ class SalesVisitController extends Controller
                 ], 422);
             }
 
+            // Validasi: Wajib mengisi To-Do List / KPI harian sebelum checkout kunjungan
+            $hasKpi = \App\Models\DailyWorkReport::where('user_id', $user->id)
+                ->where('date', $today)
+                ->whereHas('tasks')
+                ->exists();
+
+            if (!$hasKpi) {
+                return response()->json([
+                    'status' => 'error',
+                    'code' => 'KPI_REQUIRED',
+                    'message' => 'Gagal melakukan check-out! Anda wajib mengisi To-Do List / KPI harian terlebih dahulu sebelum melakukan absen keluar kunjungan.'
+                ], 422);
+            }
+
             // Save photo
             $photoPath = $this->saveBase64Image($request->photo, 'visit_out_' . $user->id);
             $visitTimeOut = Carbon::now()->format('H:i:s');

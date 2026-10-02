@@ -37,6 +37,8 @@ import {
   Building2,
   Briefcase,
   Handshake,
+  ListTodo,
+  CheckSquare,
 } from 'lucide-react'
 
 interface Attendance {
@@ -133,6 +135,51 @@ export default function DashboardOverview({
   useEffect(() => {
     fetchReimbursementsAndOvertimes()
   }, [])
+
+  // Toast pengingat To-Do List saat Admin/HR login dan masuk ke Dashboard
+  useEffect(() => {
+    const todayFormatted = new Date().toISOString().slice(0, 10)
+    const sessionKey = `admin_todo_toast_shown_${todayFormatted}_${user.id}`
+    const justLoggedIn = sessionStorage.getItem('admin_just_logged_in')
+
+    if (!sessionStorage.getItem(sessionKey) || justLoggedIn === 'true') {
+      sessionStorage.removeItem('admin_just_logged_in')
+      const timer = setTimeout(() => {
+        sessionStorage.setItem(sessionKey, 'true')
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'info',
+          title: 'Pengingat To-Do List Harian (HR)',
+          html: `<div class="text-left text-xs text-slate-600 mt-1 leading-relaxed">
+            Halo <b>${user.name}</b>, jangan lupa untuk membuat dan memperbarui <b>To-Do List</b> pekerjaan Anda hari ini!
+          </div>`,
+          showConfirmButton: true,
+          confirmButtonText: 'Buat To-Do List',
+          confirmButtonColor: '#FF5A00',
+          showCancelButton: true,
+          cancelButtonText: 'Nanti',
+          cancelButtonColor: '#64748b',
+          timer: 8000,
+          timerProgressBar: true,
+          background: '#ffffff',
+          color: '#0f172a',
+          customClass: {
+            popup: 'shadow-2xl border border-orange-200 rounded-2xl font-sans',
+            title: 'text-sm font-black text-slate-800',
+            confirmButton: 'text-xs font-bold px-4 py-2 rounded-xl shadow-xs',
+            cancelButton: 'text-xs font-bold px-4 py-2 rounded-xl'
+          }
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate('/admin/todo')
+          }
+        })
+      }, 700)
+
+      return () => clearTimeout(timer)
+    }
+  }, [user.id, user.name, navigate])
 
   const fetchReimbursementsAndOvertimes = async () => {
     try {
@@ -423,13 +470,31 @@ export default function DashboardOverview({
                 Kelola dan pantau seluruh aktivitas absensi serta perizinan staf secara realtime dengan mudah.
               </p>
               
-              <button 
-                onClick={() => navigate('/admin/absen-mandiri')} 
-                className="px-5 py-2.5 bg-[#E53935] hover:bg-[#D32F2F] text-white rounded-xl text-xs font-bold flex items-center gap-2 w-fit mt-3.5 transition-all shadow-[0_4px_12px_rgba(229,57,53,0.18)] cursor-pointer active:scale-95"
-              >
-                <span>Absen Anda</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5 mt-3.5">
+                <button 
+                  onClick={() => navigate('/admin/absen-mandiri')} 
+                  className="px-4 py-2.5 bg-[#E53935] hover:bg-[#D32F2F] text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-[0_4px_12px_rgba(229,57,53,0.18)] cursor-pointer active:scale-95"
+                >
+                  <Clock className="w-4 h-4" />
+                  <span>Absen Anda</span>
+                </button>
+
+                <button 
+                  onClick={() => navigate('/admin/todo')} 
+                  className="px-4 py-2.5 bg-white hover:bg-orange-50 text-[#FF5A00] border border-orange-200 hover:border-orange-300 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer active:scale-95"
+                >
+                  <ListTodo className="w-4 h-4 text-[#FF5A00]" />
+                  <span>To-Do List (HR)</span>
+                </button>
+
+                <button 
+                  onClick={() => navigate('/admin/kpi')} 
+                  className="px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 hover:border-indigo-300 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer active:scale-95"
+                >
+                  <CheckSquare className="w-4 h-4 text-indigo-600" />
+                  <span>Monitoring KPI</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -463,6 +528,75 @@ export default function DashboardOverview({
 
 
 
+
+      {/* 2. PINTASAN CEPAT OPERASIONAL (TO-DO LIST & KPI) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Card Pintasan: To-Do List Saya (HR) */}
+        <div 
+          onClick={() => navigate('/admin/todo')}
+          className="group relative overflow-hidden bg-gradient-to-br from-white via-orange-50/20 to-amber-50/30 border border-orange-100 hover:border-[#FF5A00]/40 rounded-[22px] p-5 shadow-[0_6px_24px_rgba(255,90,0,0.04)] hover:shadow-[0_10px_32px_rgba(255,90,0,0.12)] transition-all duration-300 cursor-pointer flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-[#FF5A00] to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/25 group-hover:scale-105 transition-transform shrink-0">
+              <ListTodo className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-100/80 text-[#FF5A00]">
+                  Operasional HR
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">Pintasan Cepat</span>
+              </div>
+              <h3 className="text-sm font-black text-slate-800 group-hover:text-[#FF5A00] transition-colors leading-tight">
+                To-Do List Harian Saya (HR)
+              </h3>
+              <p className="text-[11px] text-slate-500 font-medium leading-relaxed line-clamp-1">
+                Catat rencana kerja, progres tugas harian, dan lampirkan bukti foto untuk dievaluasi Direktur.
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#FF5A00] text-white hover:bg-[#E04800] rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 group-hover:translate-x-0.5"
+          >
+            <span>Buka To-Do</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Card Pintasan: Monitoring Kinerja & KPI Tim */}
+        <div 
+          onClick={() => navigate('/admin/kpi')}
+          className="group relative overflow-hidden bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/30 border border-indigo-100 hover:border-indigo-400/50 rounded-[22px] p-5 shadow-[0_6px_24px_rgba(99,102,241,0.04)] hover:shadow-[0_10px_32px_rgba(99,102,241,0.12)] transition-all duration-300 cursor-pointer flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform shrink-0">
+              <CheckSquare className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100/80 text-indigo-700">
+                  Monitoring KPI
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">Pintasan Cepat</span>
+              </div>
+              <h3 className="text-sm font-black text-slate-800 group-hover:text-indigo-600 transition-colors leading-tight">
+                Monitoring KPI & Target Tim
+              </h3>
+              <p className="text-[11px] text-slate-500 font-medium leading-relaxed line-clamp-1">
+                Pantau ketercapaian to-do list harian karyawan, evaluasi tugas, dan rekap capaian kinerja.
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-xs font-bold transition-all shadow-xs shrink-0 group-hover:translate-x-0.5"
+          >
+            <span>Pantau KPI</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
 
       {/* 3. DAILY INSIGHTS & CHARTS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -1316,7 +1450,27 @@ export default function DashboardOverview({
       {/* 6. FLOATING QUICK ACTION BUTTON (FAB) */}
       <div className="fixed bottom-8 right-8 z-40 select-none font-quicksand">
         {showFabMenu && (
-          <div className="absolute bottom-16 right-0 bg-white border border-slate-100 rounded-2xl p-3 shadow-xl flex flex-col gap-2.5 w-44 animate-fade-in z-50">
+          <div className="absolute bottom-16 right-0 bg-white border border-slate-100 rounded-2xl p-3 shadow-xl flex flex-col gap-2.5 w-48 animate-fade-in z-50">
+            <button 
+              onClick={() => {
+                setShowFabMenu(false)
+                navigate('/admin/todo')
+              }}
+              className="flex items-center gap-2.5 px-3 py-2 hover:bg-orange-50 rounded-xl text-slate-700 hover:text-[#FF5A00] text-xs font-bold text-left transition-colors cursor-pointer"
+            >
+              <ListTodo className="w-4 h-4 text-[#FF5A00]" />
+              <span>To-Do List (HR)</span>
+            </button>
+            <button 
+              onClick={() => {
+                setShowFabMenu(false)
+                navigate('/admin/kpi')
+              }}
+              className="flex items-center gap-2.5 px-3 py-2 hover:bg-indigo-50 rounded-xl text-slate-700 hover:text-indigo-600 text-xs font-bold text-left transition-colors cursor-pointer"
+            >
+              <CheckSquare className="w-4 h-4 text-indigo-600" />
+              <span>Monitoring KPI</span>
+            </button>
             <button 
               onClick={() => {
                 setShowFabMenu(false)

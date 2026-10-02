@@ -180,6 +180,30 @@ class KpiController extends Controller
     }
 
     /**
+     * Cek status apakah user sudah mengisi To-Do List / KPI untuk hari ini atau tanggal tertentu.
+     */
+    public function checkTodayKpiStatus(Request $request)
+    {
+        $user = $request->user();
+        $targetDate = $request->input('date') ? Carbon::parse($request->input('date'))->toDateString() : Carbon::today()->toDateString();
+
+        $report = DailyWorkReport::where('user_id', $user->id)
+            ->where('date', $targetDate)
+            ->withCount('tasks')
+            ->first();
+
+        $hasKpi = $report && $report->tasks_count > 0;
+
+        return response()->json([
+            'status' => 'success',
+            'has_kpi' => $hasKpi,
+            'tasks_count' => $report ? (int)$report->tasks_count : 0,
+            'report_status' => $report ? $report->status : null,
+            'date' => $targetDate,
+        ]);
+    }
+
+    /**
      * Helper internal: Pastikan sesi DailyWorkReport tersedia untuk user & tanggal.
      */
     private function getOrCreateReport(User $user, string $date): DailyWorkReport

@@ -216,8 +216,8 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
         .bindPopup('Lokasi Kantor')
 
       // Draw Radius Circle
-      const isKantor = modalType === 'check-in' ? activeTab === 'kantor' : todayAttendance?.attendance_type === 'kantor'
-      const circleColor = (isKantor && isWithinRadius) || !isKantor ? '#10b981' : '#ef4444'
+      const isKantorCheckIn = modalType === 'check-in' && activeTab === 'kantor'
+      const circleColor = isKantorCheckIn ? (isWithinRadius ? '#10b981' : '#ef4444') : '#10b981'
 
       radiusCircleRef.current = L.circle(officeLoc, {
         color: circleColor,
@@ -429,8 +429,8 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
       return
     }
 
-    const isKantor = modalType === 'check-in' ? activeTab === 'kantor' : todayAttendance?.attendance_type === 'kantor'
-    if (isKantor && officeSetting && !isWithinRadius) {
+    const isKantorCheckIn = modalType === 'check-in' && activeTab === 'kantor'
+    if (isKantorCheckIn && officeSetting && !isWithinRadius) {
       Swal.fire({
         title: 'Di Luar Radius Kantor',
         text: `Jarak Anda ${Math.round(currentDistance || 0)}m melebihi batas radius ${officeSetting.radius}m.`,
@@ -931,6 +931,11 @@ export default function AbsenMandiriAdmin({ token, user }: AbsenMandiriAdminProp
                                 <span>Di Luar Batas Radius (Jarak: {Math.round(currentDistance)}m, Batas: {officeSetting.radius}m). Absen ditolak.</span>
                               </>
                             )}
+                          </div>
+                        ) : modalType === 'check-out' ? (
+                          <div className="p-2.5 rounded-xl border text-[11px] font-bold leading-normal text-emerald-700 bg-emerald-50 border-emerald-200 flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>Check-out Bebas Radius. Koordinat GPS berhasil diverifikasi{currentDistance !== null ? ` (Jarak: ${Math.round(currentDistance)}m)` : ''}.</span>
                           </div>
                         ) : (
                           <div className="p-2.5 rounded-xl border text-[11px] font-bold leading-normal text-emerald-700 bg-emerald-50 border-emerald-200 flex items-start gap-2">

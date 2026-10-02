@@ -418,8 +418,8 @@ export default function DashboardOverview({
       return
     }
 
-    const isKantor = modalType === 'check-in' ? activeTab === 'kantor' : todayAttendance?.attendance_type === 'kantor'
-    if (isKantor && officeSetting && !isWithinRadius) {
+    const isKantorCheckIn = modalType === 'check-in' && activeTab === 'kantor'
+    if (isKantorCheckIn && officeSetting && !isWithinRadius) {
       Swal.fire({
         title: 'Di Luar Radius Kantor',
         text: `Jarak Anda ${Math.round(currentDistance || 0)}m melebihi batas radius ${officeSetting.radius}m.`,
@@ -1146,6 +1146,11 @@ export default function DashboardOverview({
                               <span>Di luar radius batas kantor (Jarak: {Math.round(currentDistance)}m, Batas: {officeSetting.radius}m). Absen ditolak.</span>
                             </>
                           )}
+                        </div>
+                      ) : modalType === 'check-out' ? (
+                        <div className="p-2.5 rounded-xl border text-[11px] font-bold leading-relaxed text-emerald-700 bg-emerald-50 border-emerald-250 flex items-start gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <span>Check-out bebas radius. Koordinat GPS berhasil diverifikasi{currentDistance !== null ? ` (Jarak: ${Math.round(currentDistance)}m)` : ''}.</span>
                         </div>
                       ) : (
                         <div className="p-2.5 rounded-xl border text-[11px] font-bold leading-relaxed text-emerald-700 bg-emerald-50 border-emerald-250 flex items-start gap-1.5">

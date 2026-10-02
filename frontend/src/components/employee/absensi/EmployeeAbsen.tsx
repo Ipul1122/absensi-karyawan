@@ -649,11 +649,11 @@ export default function EmployeeAbsen({
       return
     }
 
-    const isKantor = requiresOfficeRadius
-    if (isKantor && officeSetting && !isWithinRadius) {
+    const isKantorCheckIn = type === 'check-in' && requiresOfficeRadius
+    if (isKantorCheckIn && officeSetting && !isWithinRadius) {
       Swal.fire({
         title: 'Di Luar Radius Kantor',
-        text: `Anda tidak diizinkan melakukan absensi karena berada di luar radius batas kantor (Jarak Anda: ${Math.round(currentDistance || 0)} meter, Radius diizinkan: ${officeSetting.radius} meter).`,
+        text: `Anda tidak diizinkan melakukan absen masuk karena berada di luar radius batas kantor (Jarak Anda: ${Math.round(currentDistance || 0)} meter, Radius diizinkan: ${officeSetting.radius} meter).`,
         icon: 'error',
         background: '#1e293b',
         color: '#f8fafc',
@@ -1146,7 +1146,7 @@ export default function EmployeeAbsen({
                 <p className="text-[13px] text-slate-500 mt-1">
                   {isWfhMode
                     ? 'Check-out WFH — foto wajah dan GPS wajib, tanpa batas radius kantor.'
-                    : 'Foto wajah dan lokasi GPS wajib diisi (harus dalam radius kantor).'}
+                    : 'Check-out bebas radius kantor — foto wajah dan lokasi GPS tetap dicatat.'}
                 </p>
               </div>
               <span className="self-start text-[12px] font-semibold uppercase tracking-wide text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
@@ -1269,19 +1269,13 @@ export default function EmployeeAbsen({
                     </div>
                   )}
 
-                  {latitude && longitude && !isWfhMode && officeSetting && currentDistance !== null && (
-                    <div className={`p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed ${isWithinRadius ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}>
-                      {isWithinRadius ? (
-                        <>
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>Anda berada di dalam radius absensi kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m).</span>
-                        </>
-                      ) : (
-                        <>
-                          <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5 animate-bounce" />
-                          <span>Anda berada DI LUAR radius batas kantor (Jarak: {Math.round(currentDistance)}m, Maksimal: {officeSetting.radius}m). Absensi akan ditolak.</span>
-                        </>
-                      )}
+                  {latitude && longitude && !isWfhMode && (
+                    <div className="p-3 rounded-xl border text-[11px] font-bold flex items-start gap-2 leading-relaxed text-emerald-700 bg-emerald-50 border-emerald-200">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>
+                        Bebas Radius Kantor — Check-out dapat dilakukan dari mana saja
+                        {currentDistance !== null ? ` (Jarak saat ini: ${Math.round(currentDistance)}m dari kantor)` : ''}.
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1305,7 +1299,7 @@ export default function EmployeeAbsen({
             <button
               type="button"
               onClick={() => handleAttendanceSubmit('check-out')}
-              disabled={submitting || !capturedPhoto || !latitude || !longitude || (requiresOfficeRadius && officeSetting !== null && !isWithinRadius)}
+              disabled={submitting || !capturedPhoto || !latitude || !longitude}
               className="w-full sm:w-auto sm:ml-auto flex h-[52px] px-8 bg-[#FF5A00] hover:bg-[#E04800] text-white font-bold rounded-2xl transition-all cursor-pointer text-sm items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ boxShadow: '0 6px 20px rgba(255,90,0,0.25)' }}
             >

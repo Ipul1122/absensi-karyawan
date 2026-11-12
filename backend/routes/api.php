@@ -24,6 +24,7 @@ use App\Http\Controllers\SidebarNotificationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\KpiController;
 use App\Http\Controllers\AdminManagementController;
+use App\Http\Controllers\ContractNotificationController;
 
 Route::get('/health-check', function () {
     try {
@@ -292,6 +293,19 @@ Route::middleware(['auth:sanctum', 'last_seen'])->group(function () {
         Route::post('/director/admins', [AdminManagementController::class, 'store']);
         Route::put('/director/admins/{id}', [AdminManagementController::class, 'update']);
         Route::delete('/director/admins/{id}', [AdminManagementController::class, 'destroy']);
+
+        // Director Contract Notification routes
+        Route::get('/director/contract-notifications/pending', [ContractNotificationController::class, 'getPendingNotifications']);
+        Route::get('/director/contract-notifications', [ContractNotificationController::class, 'getAllNotifications']);
+        Route::get('/director/contract-notifications/summary', [ContractNotificationController::class, 'getContractSummary']);
+        Route::get('/director/contract-employees', [ContractNotificationController::class, 'getContractEmployeeDetails']);
+        Route::put('/director/contract-notifications/{id}/read', [ContractNotificationController::class, 'markAsRead']);
+        Route::post('/director/contract-notifications/mark-all-read', [ContractNotificationController::class, 'markAllAsRead']);
+    });
+
+    // Admin Contract Check routes
+    Route::middleware('admin')->group(function () {
+        Route::post('/admin/contract/trigger-check', [ContractNotificationController::class, 'triggerContractCheck']);
     });
 
     // Employee Payroll routes

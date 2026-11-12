@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'whatsapp', 'password', 'password_plain', 'role', 'photo', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'cv', 'status', 'no_rekening', 'company', 'saturday_off', 'sunday_off', 'office_location'])]
+#[Fillable(['name', 'email', 'whatsapp', 'password', 'password_plain', 'role', 'photo', 'date_of_birth', 'address', 'employee_number', 'join_date', 'gender', 'division', 'cv', 'status', 'no_rekening', 'company', 'saturday_off', 'sunday_off', 'office_location', 'contract_end_date', 'contract_status', 'days_until_contract_end'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -31,6 +31,9 @@ class User extends Authenticatable
             'saturday_off' => 'boolean',
             'sunday_off' => 'boolean',
             'last_seen_at' => 'datetime',
+            'date_of_birth' => 'date',
+            'join_date' => 'date',
+            'contract_end_date' => 'date',
         ];
     }
 
@@ -183,6 +186,52 @@ class User extends Authenticatable
     public function getRecycleBinName(): string
     {
         return "Karyawan: " . $this->name . " (" . $this->email . ")";
+    }
+
+    public function scopeWithContractExpiring($query, $days = 30)
+    {
+        return $query->where('contract_status', 'contract')
+                     ->where('contract_end_date', '!=', null)
+                     ->whereRaw('DATEDIFF(contract_end_date, CURDATE()) <= ?', [$days])
+                     ->whereRaw('DATEDIFF(contract_end_date, CURDATE()) > 0');
+    }
+
+    public function scopeWithContractExpired($query)
+    {
+        return $query->where('contract_status', 'contract')
+                     ->where('contract_end_date', '!=', null)
+                     ->where('contract_end_date', '<=', now()->toDateString());
+    }
+
+    public function scopeContractEmployees($query)
+    {
+        return $query->where('contract_status', 'contract')
+                     ->where('contract_end_date', '!=', null);
+    }
+
+    public function getDaysUntilContractEnd()
+    {
+        if (!$this->contract_end_date) {
+            return null;
+        }
+        return now()->diffInDays($this->contract_end_date, false);
+    }
+
+    public function isContractExpired(): bool
+    {
+        if (!$this->contract_end_date) {
+            return false;
+        }
+        return $this->contract_end_date <= now()->toDateString();
+    }
+
+    public function isContractExpiringWithin($days = 30): bool
+    {
+        if (!$this->contract_end_date) {
+            return false;
+        }
+        $daysUntil = $this->getDaysUntilContractEnd();
+        return $daysUntil !== null && $daysUntil > 0 && $daysUntil <= $days;
     }
 }
 
